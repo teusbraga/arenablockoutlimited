@@ -175,21 +175,23 @@ export class WeaponSystem {
     const kickRot = def.kickRotFactor ?? (def.id === 'm249' ? 2.8 : 2.2);
     this.viewmodel.applyKick(def.recoilPitch * streakMul, 0, kickbackZ, kickRot);
     this.viewmodel.flash();
-    // Calcula muzzle em coords de mundo a partir do mount do viewmodel
-	const mz = def.muzzleLocal || [0, 0.02, -0.5];
-	const muzzleLocal = new THREE.Vector3(mz[0], mz[1], mz[2]);
-	const muzzleWorld = this.viewmodel.mount.localToWorld(muzzleLocal.clone());
-	const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(_quat).normalize();
-	emit('weapon:fired', {
-	weapon: def,
-	pos: this.player.pos.clone(),
-	muzzleWorld,
-	forward,
-	});
-
-    // Raycast do tiro
+    // Raycast do tiro & Posições de Câmera
     this.camera.getWorldPosition(_camPos);
     this.camera.getWorldQuaternion(_quat);
+
+    // Calcula muzzle em coords de mundo a partir do mount do viewmodel
+    const mz = def.muzzleLocal || [0, 0.02, -0.5];
+    const muzzleLocal = new THREE.Vector3(mz[0], mz[1], mz[2]);
+    const muzzleWorld = this.viewmodel.mount.localToWorld(muzzleLocal.clone());
+    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(_quat).normalize();
+
+    emit('weapon:fired', {
+      weapon: def,
+      pos: this.player.pos.clone(),
+      muzzleWorld,
+      forward,
+    });
+
     _dir.set(0, 0, -1).applyQuaternion(_quat).normalize();
     _right.set(1, 0, 0).applyQuaternion(_quat);
     _up.set(0, 1, 0).applyQuaternion(_quat);
@@ -226,7 +228,9 @@ export class WeaponSystem {
     const botDist = hitsBot.length ? hitsBot[0].distance : Infinity;
     const worldDist = hitWorld ? hitWorld.distance : Infinity;
 
-    const impactPoint = _camPos.clone().addScaledVector(_dir, Math.min(botDist, worldDist));
+    const hitDist = Math.min(botDist, worldDist);
+    const traceDist = Number.isFinite(hitDist) ? hitDist : 120;
+    const impactPoint = _camPos.clone().addScaledVector(_dir, traceDist);
 
     if (botDist < worldDist && hitsBot.length) {
       const h = hitsBot[0];
@@ -239,10 +243,10 @@ export class WeaponSystem {
       emit('shot:world', { point: hitWorld.point.clone(), box: hitWorld.box });
     }
 
-	emit('shot:tracer', {
-		from: muzzleWorld,
-		to: impactPoint,
-		color: def.tracerColor,
-	});
+    emit('shot:tracer', {
+      from: muzzleWorld,
+      to: impactPoint,
+      color: def.tracerColor,
+    });
   }
 }

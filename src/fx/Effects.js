@@ -32,7 +32,8 @@ export class Effects {
   _initPools() {
     // 1. Tracers
     for (let i = 0; i < MAX_TRACERS; i++) {
-      const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+      const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 0)]);
+      geo.computeBoundingSphere();
       const mat = new THREE.LineBasicMaterial({ color: 0xffd27f, transparent: true, opacity: 0.9 });
       const line = new THREE.Line(geo, mat);
       line.visible = false;
@@ -74,6 +75,12 @@ export class Effects {
   }
 
   _spawnTracer(from, to, color = null) {
+    if (!from || !to) return;
+    if (!Number.isFinite(from.x) || !Number.isFinite(from.y) || !Number.isFinite(from.z) ||
+        !Number.isFinite(to.x) || !Number.isFinite(to.y) || !Number.isFinite(to.z)) {
+      return;
+    }
+
     const t = this.tracers[this.tracerIdx];
     this.tracerIdx = (this.tracerIdx + 1) % MAX_TRACERS;
 
@@ -81,6 +88,7 @@ export class Effects {
     positions[0] = from.x; positions[1] = from.y; positions[2] = from.z;
     positions[3] = to.x;   positions[4] = to.y;   positions[5] = to.z;
     t.line.geometry.attributes.position.needsUpdate = true;
+    t.line.geometry.computeBoundingSphere();
 
     if (color) {
       t.line.material.color.set(color);
