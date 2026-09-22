@@ -55,7 +55,8 @@ export class Viewmodel {
 
   equip(weaponId) {
     for (const k in this.models) this.models[k].visible = false;
-    this.activeModel = this.models[weaponId];
+    // Usa o modelo registrado ou faz fallback para não ficar invisível
+    this.activeModel = this.models[weaponId] || this.models['ar15'] || Object.values(this.models)[0];
     if (this.activeModel) {
       this.activeModel.visible = true;
       // Inicia transição suave de saque (Draw animation subindo do coldre)

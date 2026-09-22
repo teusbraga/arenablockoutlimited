@@ -18,7 +18,8 @@ export class WeaponSystem {
     this.world = world;
     this.botsProvider = botsProvider;
 
-    this.inventory = ['ar15', 'p9'];
+    // Inventário dinâmico baseado nas armas carregadas do weapons.json
+    this.inventory = (options && options.inventory) || (Object.keys(WEAPONS).length > 0 ? Object.keys(WEAPONS) : ['ar15', 'p9']);
     this.currentIndex = 0;
     this.current = null;
     this.ammo = 0;
