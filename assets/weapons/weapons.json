@@ -1,0 +1,61 @@
+{
+  "weapons": {
+    "ar15": {
+      "id": "ar15",
+      "name": "HK416",
+      "auto": true,
+      "damageBody": 24,
+      "damageHead": 52,
+      "fireInterval": 0.09,
+      "magSize": 30,
+      "reloadTime": 1.65,
+      "spreadHip": 0.024,
+      "spreadAds": 0.003,
+      "recoilPitch": 0.011,
+      "recoilYaw": 0.005,
+      "adsFov": 55,
+      "adsSightDistance": 0.26,
+      "hipPos": [0.15, -0.16, -0.30],
+      "hipRot": [0.06, -0.16, 0.05],
+      "adsRot": [0, 0, 0],
+      "sprintPos": [0.22, -0.26, -0.32],
+      "sprintRot": [0.62, -0.45, 0.20],
+      "model": "ar15",
+      "audioKey": "shot_hk416",
+      "sightLocal": [0, 0.076, -0.26],
+      "muzzleLocal": [0, 0.018, -0.51],
+      "mods": ["heavyBarrel"]
+    },
+    "p9": {
+      "id": "p9",
+      "name": "P-9",
+      "auto": false,
+      "damageBody": 40,
+      "damageHead": 75,
+      "fireInterval": 0.16,
+      "magSize": 12,
+      "reloadTime": 1.15,
+      "spreadHip": 0.018,
+      "spreadAds": 0.0025,
+      "recoilPitch": 0.017,
+      "recoilYaw": 0.006,
+      "adsFov": 58,
+      "adsSightDistance": 0.20,
+      "hipPos": [0.13, -0.14, -0.28],
+      "hipRot": [0.08, -0.17, 0.06],
+      "adsRot": [0, 0, 0],
+      "sprintPos": [0.18, -0.22, -0.28],
+      "sprintRot": [0.48, -0.36, 0.14],
+      "model": "p9",
+      "audioKey": "shot_p9",
+      "sightLocal": [0, 0.036, -0.083],
+      "muzzleLocal": [0, 0.014, -0.11],
+      "mods": []
+    }
+  },
+  "mods": {
+    "heavyBarrel": { "id": "heavyBarrel", "recoilMul": 0.8, "adsTimeMul": 1.2, "spreadMul": 0.85 },
+    "lightGrip": { "id": "lightGrip", "adsTimeMul": 0.8, "sprintOutMul": 0.8, "spreadMul": 1.1 },
+    "redDot": { "id": "redDot", "adsFov": 50, "adsSightDistance": 0.28 }
+  }
+}

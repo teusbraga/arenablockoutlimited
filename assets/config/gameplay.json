@@ -1,0 +1,48 @@
+{
+  "player": {
+    "height": 1.8,
+    "crouchHeight": 1.2,
+    "eyeHeight": 1.6,
+    "eyeCrouch": 1.05,
+    "radius": 0.35,
+    "walkSpeed": 5.2,
+    "sprintMultiplier": 1.75,
+    "crouchMultiplier": 0.5,
+    "adsMultiplier": 0.5,
+    "accel": 40.0,
+    "airAccel": 6.0,
+    "friction": 22.0,
+    "jumpSpeed": 7.0,
+    "gravity": 20.0,
+    "stepHeight": 0.55,
+    "regenDelay": 5.0,
+    "regenRate": 12.0
+  },
+  "camera": {
+    "hipFov": 78.0,
+    "adsFov": 55.0,
+    "sensitivity": 0.0022,
+    "adsSensitivityMultiplier": 0.55,
+    "pitchLimit": 1.52
+  },
+  "physics": {
+    "fixedDt": 0.008333,
+    "maxFrame": 0.1
+  },
+  "sway": {
+    "springStiffness": 25.0,
+    "springDamping": 8.0,
+    "swaySensitivity": 15.0,
+    "walkBobFrequency": 8.0,
+    "sprintBobFrequency": 12.0,
+    "walkBobAmplitude": 0.015,
+    "sprintBobAmplitude": 0.030,
+    "idleBreathingSpeed": 1.5
+  },
+  "gunplay": {
+    "recoilRecoverySpeed": 14.0,
+    "fireStreakDecayDelay": 0.22,
+    "fireStreakMultiplier": 0.16,
+    "maxFireStreak": 6
+  }
+}

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Blocky Sim — Prototype</title>
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Oswald:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0d0f11; --accent:#e8933a; --ok:#7bc67e; --warn:#e0574a;
+    --text:#e9e6df; --dim:#8c9194;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;height:100dvh;overflow:hidden;background:var(--bg);
+    font-family:'JetBrains Mono',monospace;color:var(--text);
+    touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}
+  #app{position:fixed;inset:0;}
+  canvas{display:block;outline:none;touch-action:none;}
+
+  #hud{position:fixed;inset:0;pointer-events:none;}
+  .panel{position:absolute;background:rgba(14,17,18,0.72);border:1px solid rgba(255,255,255,0.08);
+    border-radius:3px;padding:10px 14px;backdrop-filter:blur(6px);font-size:12px;}
+  #status{left:16px;bottom:16px;min-width:220px;}
+  #status .bar{height:7px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;margin:4px 0 8px;}
+  #status .bar > div{height:100%;transition:width .12s;}
+  #hp-fill{background:var(--warn);}
+  #ammo-fill{background:var(--accent);}
+  #status .row{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);}
+  #weapon-name{font-family:'Oswald',sans-serif;letter-spacing:.08em;color:var(--accent);font-size:13px;margin-bottom:6px;}
+
+  #score{right:16px;top:16px;text-align:right;font-family:'Oswald',sans-serif;}
+  #score b{font-size:22px;}
+  #controls{left:16px;top:16px;font-size:11px;color:var(--dim);line-height:1.7;}
+  #controls .k{display:inline-block;min-width:18px;text-align:center;border:1px solid rgba(255,255,255,0.12);
+    border-radius:2px;padding:0 4px;color:var(--text);font-size:10px;margin-right:5px;}
+
+  #crosshair{position:fixed;left:50%;top:50%;width:22px;height:22px;
+    transform:translate(-50%,-50%);pointer-events:none;transition:transform .1s;}
+  #crosshair .h,#crosshair .v{position:absolute;background:rgba(233,230,223,.85);box-shadow:0 0 3px #000;}
+  #crosshair .h{left:0;top:50%;width:100%;height:2px;transform:translateY(-50%);}
+  #crosshair .v{top:0;left:50%;height:100%;width:2px;transform:translateX(-50%);}
+  #crosshair .dot{position:absolute;left:50%;top:50%;width:3px;height:3px;border-radius:50%;
+    background:var(--accent);transform:translate(-50%,-50%);}
+
+  #hitmarker{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(1.3);
+    font-family:'Oswald',sans-serif;font-size:24px;color:var(--warn);opacity:0;
+    pointer-events:none;transition:opacity .08s,transform .08s;}
+  #hitmarker.head{color:#ffd166;}
+
+  #prompt{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);
+    font-size:12px;color:var(--accent);opacity:0;transition:opacity .12s;pointer-events:none;}
+
+  #killfeed{position:absolute; top:88px; right:16px; display:flex; flex-direction:column; align-items:flex-end; gap:4px; pointer-events:none; z-index: 5;}
+  .feed-item{background:rgba(10,11,12,0.68); border-left:2px solid var(--accent); padding:5px 10px; font-size:11.5px; border-radius:2px; opacity:1; transition:opacity 0.6s ease; color: white;}
+  .feed-item.fade{opacity:0;}
+  .feed-item b{color:var(--accent);}
+  .feed-item .hs{color:#ffd166; font-weight:700;}
+
+  #damage-indicator{position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:280px; height:280px; pointer-events:none; z-index: 4;}
+
+  #kill-popup{position:absolute; top:38%; left:50%; transform:translate(-50%,-50%) scale(0.8);
+    pointer-events:none; font-family:'Oswald',sans-serif; font-weight:700; font-size:42px;
+    letter-spacing:0.08em; opacity:0; color:var(--accent); text-shadow:0 2px 12px rgba(0,0,0,0.9);
+    transition:opacity 0.18s ease, transform 0.18s ease; white-space:nowrap; z-index: 6;}
+
+  #screen-flash{position:absolute; inset:0; pointer-events:none; background:rgba(224,87,74,0); z-index: 3;}
+  
+  #death-screen{position:fixed; inset:0; background:rgba(40,8,6,0.55); z-index:9; opacity:0; pointer-events:none; transition:opacity 0.25s ease; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;}
+  #death-screen.show{opacity:1;}
+  #death-screen h2{font-family:'Oswald',sans-serif; font-size:32px; color:var(--warn); margin-bottom:6px;}
+  #death-screen p{color:var(--dim); font-size:13px;}
+
+  #overlay{position:fixed;inset:0;background:rgba(6,7,8,.94);display:flex;
+    flex-direction:column;align-items:center;justify-content:center;text-align:center;cursor:pointer;z-index:10;
+    transition:opacity .3s;}
+  #overlay.hidden{opacity:0;pointer-events:none;}
+  #overlay h1{font-family:'Oswald',sans-serif;font-size:16px;letter-spacing:.25em;
+    color:var(--accent);text-transform:uppercase;margin-bottom:6px;}
+  #overlay h2{font-family:'Oswald',sans-serif;font-size:32px;margin-bottom:20px;}
+  #overlay p{color:var(--dim);font-size:12.5px;max-width:520px;line-height:1.9;}
+  #overlay .cta{margin-top:22px;border:1px solid var(--accent);padding:9px 22px;border-radius:3px;font-size:12px;}
+  #overlay .menu-option{
+    font-size:12px;color:var(--dim);display:flex;align-items:center;gap:8px;
+  }
+  #overlay .menu-option input[type="range"]{width:160px;}
+  #overlay .menu-option span{color:var(--accent);font-weight:600;}
+  #overlay .menu-buttons{display:flex;gap:10px;}
+  #overlay button{
+    background:transparent;border:1px solid var(--accent);color:var(--text);
+    font-family:'JetBrains Mono',monospace;font-size:12px;padding:9px 22px;
+    border-radius:3px;cursor:pointer;letter-spacing:.05em;transition:background .15s;
+  }
+  #overlay button:hover{background:rgba(232,147,58,.14);}
+
+  /* =========================================================
+     MOBILE TOUCH CONTROLS & RESPONSIVE LAYOUT
+     ========================================================= */
+  #mobile-controls {
+    display: none;
+    position: fixed; inset: 0; z-index: 8;
+    pointer-events: none;
+  }
+  #touch-zone-left {
+    position: absolute; left: 0; top: 0; width: 50%; height: 100%;
+    pointer-events: auto; touch-action: none;
+  }
+  #touch-zone-right {
+    position: absolute; right: 0; top: 0; width: 50%; height: 100%;
+    pointer-events: auto; touch-action: none;
+  }
+  #joystick-base {
+    position: absolute; width: 96px; height: 96px; border-radius: 50%;
+    background: rgba(255,255,255,0.06); border: 2px solid rgba(255,255,255,0.22);
+    transform: translate(-50%, -50%); display: none; pointer-events: none;
+  }
+  #joystick-knob {
+    position: absolute; left: 50%; top: 50%; width: 42px; height: 42px; border-radius: 50%;
+    background: var(--accent); box-shadow: 0 0 10px rgba(232,147,58,0.6);
+    transform: translate(-50%, -50%); pointer-events: none;
+  }
+  .touch-btn {
+    position: absolute; display: flex; align-items: center; justify-content: center;
+    background: rgba(18,22,26,0.72); border: 1.5px solid rgba(255,255,255,0.22);
+    border-radius: 50%; color: var(--text); font-family: 'Oswald', sans-serif;
+    font-size: 13px; font-weight: 600; letter-spacing: 0.05em; pointer-events: auto;
+    touch-action: none; backdrop-filter: blur(4px); transition: transform .06s, background .08s;
+  }
+  .touch-btn:active, .touch-btn.active {
+    background: rgba(232,147,58,0.45); border-color: var(--accent);
+    transform: scale(0.92);
+  }
+  #btn-touch-fire {
+    right: 28px; bottom: 78px; width: 72px; height: 72px;
+    font-size: 15px; border-color: var(--accent); background: rgba(232,147,58,0.22);
+  }
+  #btn-touch-ads {
+    right: 114px; bottom: 112px; width: 54px; height: 54px;
+  }
+  #btn-touch-jump {
+    right: 32px; bottom: 168px; width: 50px; height: 50px;
+  }
+  #btn-touch-crouch {
+    right: 114px; bottom: 50px; width: 48px; height: 48px; font-size: 11px;
+  }
+  #btn-touch-reload {
+    right: 175px; bottom: 42px; width: 48px; height: 48px; font-size: 11px;
+  }
+  #btn-touch-cycle {
+    right: 28px; top: 76px; width: 46px; height: 46px; font-size: 11px; border-radius: 6px;
+  }
+  #btn-touch-interact {
+    right: 84px; top: 76px; width: 46px; height: 46px; font-size: 11px; border-radius: 6px;
+  }
+
+  /* Aviso de Orientação Horizontal para Celular */
+  #orientation-warning {
+    display: none;
+    position: fixed; inset: 0; background: #07090b; z-index: 9999;
+    flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; color: var(--accent); padding: 24px;
+    font-family: 'Oswald', sans-serif; letter-spacing: 0.05em;
+  }
+  #orientation-warning h2 { font-size: 28px; margin-bottom: 8px; color: var(--accent); }
+  #orientation-warning p { font-size: 14px; color: var(--dim); font-family: 'JetBrains Mono', monospace; }
+  @media (orientation: portrait) and (max-width: 900px) {
+    #orientation-warning { display: flex; }
+  }
+
+  /* Compactação para telas menores / celulares */
+  @media (max-width: 900px) {
+    #controls { display: none !important; }
+    #status { left: 12px; bottom: 12px; min-width: 160px; padding: 6px 10px; }
+    #score { right: 12px; top: 12px; padding: 6px 10px; }
+    #score b { font-size: 18px; }
+    #round-timer { font-size: 16px !important; margin-top: 2px !important; }
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="screen-flash"></div>
+<canvas id="damage-indicator" width="280" height="280"></canvas>
+<div id="kill-popup"></div>
+<div id="killfeed"></div>
+
+<div id="death-screen">
+  <h2>VOCÊ FOI ELIMINADO</h2>
+  <p id="respawn-txt">reaparecendo em 3...</p>
+</div>
+
+<div id="roundover-screen" style="position:fixed; inset:0; background:rgba(6,7,8,0.96); z-index:11; opacity:0; pointer-events:none; transition:opacity 0.3s ease; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+  <h2 style="font-family:'Oswald',sans-serif; font-size:42px; color:var(--accent);">FIM DE RODADA</h2>
+  <div id="final-stats" style="font-size:16px; color:var(--dim); margin-bottom:22px;">0 abates · 0 mortes</div>
+  <button id="restart-btn" style="background:transparent; border:1px solid var(--accent); color:var(--text); padding:10px 24px; cursor:pointer;">JOGAR DE NOVO</button>
+</div>
+
+<div id="hud">
+  <div id="controls" class="panel">
+    <div><span class="k">WASD</span>mover</div>
+    <div><span class="k">Shift</span>correr</div>
+    <div><span class="k">Ctrl</span>agachar</div>
+    <div><span class="k">Space</span>pular</div>
+    <div><span class="k">LMB</span>atirar · <span class="k">RMB</span>mira</div>
+    <div><span class="k">R</span>recarregar · <span class="k">Q</span>trocar arma</div>
+    <div><span class="k">E</span>abrir porta</div>
+  </div>
+
+  <div id="score" class="panel">
+    <div>ABATES <b id="kills">0</b> · MORTES <b id="deaths">0</b></div>
+    <div id="round-timer" style="text-align:right; font-family:'Oswald',sans-serif; font-size:20px; color:var(--accent); margin-top:4px;">3:30</div>
+  </div>
+
+  <div id="status" class="panel">
+    <div id="weapon-name">HK416 <span style="float:right;color:var(--dim);font-family:'JetBrains Mono';">[Q]</span></div>
+    <div class="row"><span>HP</span><span id="hp-num">100/100</span></div>
+    <div class="bar"><div id="hp-fill" style="width:100%"></div></div>
+    <div class="row"><span>AMMO</span><span id="ammo-num">24/24</span></div>
+    <div class="bar"><div id="ammo-fill" style="width:100%"></div></div>
+  </div>
+</div>
+
+<div id="crosshair"><div class="h"></div><div class="v"></div><div class="dot"></div></div>
+<div id="hitmarker">×</div>
+<div id="prompt">[E] ABRIR</div>
+
+<!-- Camada de Controles Móveis (Touch) -->
+<div id="mobile-controls">
+  <div id="touch-zone-left">
+    <div id="joystick-base">
+      <div id="joystick-knob"></div>
+    </div>
+  </div>
+  <div id="touch-zone-right"></div>
+  
+  <button id="btn-touch-fire" class="touch-btn">TIRO</button>
+  <button id="btn-touch-ads" class="touch-btn">MIRA</button>
+  <button id="btn-touch-jump" class="touch-btn">PULO</button>
+  <button id="btn-touch-crouch" class="touch-btn">AGACHA</button>
+  <button id="btn-touch-reload" class="touch-btn">RELOAD</button>
+  <button id="btn-touch-cycle" class="touch-btn">ARMA</button>
+  <button id="btn-touch-interact" class="touch-btn">PORTA</button>
+</div>
+
+<!-- Alerta de Orientação Horizontal para Celular -->
+<div id="orientation-warning">
+  <h2>GIRE O APARELHO</h2>
+  <p>Para jogar no celular, use o smartphone na horizontal (Landscape).</p>
+</div>
+
+<div id="overlay">
+  <h1>Blocky Sim</h1>
+  <h2 id="overlay-title">Protótipo Modular</h2>
+  <p>WASD mover · Space pular · Shift correr · Ctrl agachar<br>
+     Botão esquerdo atirar · Direito mira · R recarrega · Q troca · E porta<br>
+     ESC pausa</p>
+
+  <div class="menu-option" style="margin-top:18px;">
+    <label for="bot-count">Bots:</label>
+    <input id="bot-count" type="range" min="0" max="10" value="3" style="vertical-align:middle;">
+    <span id="bot-count-val" style="display:inline-block;min-width:24px;text-align:right;">3</span>
+  </div>
+
+  <div class="menu-option" style="margin-top:12px;">
+    <label for="round-time">Tempo:</label>
+    <input id="round-time" type="range" min="30" max="600" step="30" value="210" style="vertical-align:middle;">
+    <span id="round-time-val" style="display:inline-block;min-width:38px;text-align:right;">3:30</span>
+  </div>
+
+  <div id="menu-start" class="menu-buttons" style="margin-top:22px;">
+    <div class="cta">CLIQUE PARA COMEÇAR</div>
+  </div>
+
+  <div id="menu-pause" class="menu-buttons" style="margin-top:22px;display:none;">
+    <button id="btn-resume">CONTINUAR</button>
+    <button id="btn-reset">RESET</button>
+  </div>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "sounds": {
+    "shot_hk416": { "freqA": 180, "freqB": 46, "dur": 0.095, "type": "sawtooth", "gain": 0.22 },
+    "shot_p9": { "freqA": 260, "freqB": 90, "dur": 0.070, "type": "square", "gain": 0.16 },
+    "weapon_cycle": { "freqA": 600, "freqB": 300, "dur": 0.070, "type": "square", "gain": 0.09 },
+    "reload_start": { "freqA": 400, "freqB": 200, "dur": 0.060, "type": "square", "gain": 0.10 },
+    "reload_end": { "freqA": 200, "freqB": 700, "dur": 0.090, "type": "square", "gain": 0.12 },
+    "hit_bot": { "freqA": 800, "freqB": 400, "dur": 0.090, "type": "sine", "gain": 0.14 },
+    "hit_headshot": { "freqA": 1200, "freqB": 700, "dur": 0.090, "type": "sine", "gain": 0.18 },
+    "hit_world": { "freqA": 180, "freqB": 90, "dur": 0.050, "type": "triangle", "gain": 0.05 },
+    "bot_died": { "freqA": 300, "freqB": 40, "dur": 0.300, "type": "triangle", "gain": 0.18 },
+    "bot_shot": { "freqA": 110, "freqB": 45, "dur": 0.080, "type": "sawtooth", "gain": 0.10 },
+    "player_damaged": { "freqA": 220, "freqB": 90, "dur": 0.150, "type": "sawtooth", "gain": 0.16 },
+    "player_died": { "freqA": 200, "freqB": 30, "dur": 0.500, "type": "sawtooth", "gain": 0.20 },
+    "footstep": { "freqA": 180, "freqB": 90, "dur": 0.045, "type": "triangle", "gain": 0.06 }
+  }
+}

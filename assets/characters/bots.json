@@ -1,0 +1,16 @@
+{
+  "walkSpeed": 3.2,
+  "sprintSpeed": 5.5,
+  "viewRange": 28.0,
+  "fov": 2.45,
+  "reactionTime": 0.22,
+  "losMemory": 1.6,
+  "searchTime": 3.5,
+  "fireInterval": 0.85,
+  "damageBody": 8.0,
+  "damageHead": 20.0,
+  "respawnTime": 4.0,
+  "maxHp": 100.0,
+  "hitAccuracyBase": 0.15,
+  "hitAccuracyRange": 35.0
+}
