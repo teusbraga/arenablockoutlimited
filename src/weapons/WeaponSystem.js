@@ -251,7 +251,10 @@ export class WeaponSystem {
 
     const hitDist = Math.min(botDist, worldDist);
     const traceDist = Number.isFinite(hitDist) ? hitDist : 120;
-    const impactPoint = _camPos.clone().addScaledVector(_dir, traceDist);
+
+    // Ponto de impacto e traçante colineares com o cano:
+    // O traçante sai da boca do cano e viaja em linha reta absoluta (extensão física da régua do cano)
+    const impactPoint = (this.ads ? _camPos : muzzleWorld).clone().addScaledVector(_dir, traceDist);
 
     if (botDist < worldDist && hitsBot.length) {
       const h = hitsBot[0];

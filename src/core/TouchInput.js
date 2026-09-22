@@ -198,8 +198,77 @@ export class TouchInput {
       }
     };
 
-    // Botões de Ação Táteis
-    bindBtn('btn-touch-fire', 'fire');
+    // --- BOTÃO DE TIRO COM MIRA INTEGRADA (AIM-WHILE-SHOOTING) ---
+    const fireBtn = document.getElementById('btn-touch-fire');
+    if (fireBtn) {
+      this.fireTouchId = null;
+      this.lastFireLookPos = { x: 0, y: 0 };
+
+      fireBtn.addEventListener('touchstart', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          const t = e.changedTouches[i];
+          if (this.fireTouchId === null) {
+            this.fireTouchId = t.identifier;
+            this.lastFireLookPos = { x: t.clientX, y: t.clientY };
+            this.input.actions.fire = true;
+            this.input._actionQueue.add('fire');
+            fireBtn.classList.add('active');
+            break;
+          }
+        }
+      }, { passive: false });
+
+      // Permite arrastar o dedo a partir do botão de tiro para rotacionar a mira
+      const onFireTouchMove = e => {
+        if (this.fireTouchId === null) return;
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          const t = e.changedTouches[i];
+          if (t.identifier === this.fireTouchId) {
+            const deltaX = (t.clientX - this.lastFireLookPos.x) * 1.5;
+            const deltaY = (t.clientY - this.lastFireLookPos.y) * 1.5;
+            this.lastFireLookPos = { x: t.clientX, y: t.clientY };
+
+            this.input.mouse.dx += deltaX;
+            this.input.mouse.dy += deltaY;
+            break;
+          }
+        }
+      };
+
+      const onFireTouchEnd = e => {
+        if (this.fireTouchId === null) return;
+        for (let i = 0; i < e.changedTouches.length; i++) {
+          const t = e.changedTouches[i];
+          if (t.identifier === this.fireTouchId) {
+            this.fireTouchId = null;
+            this.input.actions.fire = false;
+            fireBtn.classList.remove('active');
+            break;
+          }
+        }
+      };
+
+      window.addEventListener('touchmove', onFireTouchMove, { passive: false });
+      window.addEventListener('touchend', onFireTouchEnd);
+      window.addEventListener('touchcancel', onFireTouchEnd);
+
+      // Suporte a mouse para teste no desktop/emulador
+      fireBtn.addEventListener('mousedown', e => {
+        this.input.actions.fire = true;
+        this.input._actionQueue.add('fire');
+        fireBtn.classList.add('active');
+      });
+      window.addEventListener('mouseup', () => {
+        if (this.fireTouchId === null && this.input.actions.fire) {
+          this.input.actions.fire = false;
+          fireBtn.classList.remove('active');
+        }
+      });
+    }
+
+    // Demais Botões de Ação Táteis
     bindBtn('btn-touch-ads', 'ads', true); // Toggle ADS no mobile para conforto
     bindBtn('btn-touch-jump', 'jump');
     bindBtn('btn-touch-crouch', 'crouch', true); // Toggle agachar
