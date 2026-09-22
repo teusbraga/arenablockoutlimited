@@ -8,7 +8,7 @@ import { GameManager } from './core/GameManager.js';
 
 import { loadMap } from './world/MapLoader.js';
 import { Player } from './entities/Player.js';
-import { Viewmodel, buildHK416, buildP9 } from './weapons/Viewmodel.js';
+import { Viewmodel, buildHK416, buildP9, buildUZI, buildM249 } from './weapons/Viewmodel.js';
 import { WeaponSystem } from './weapons/WeaponSystem.js';
 import { initWeaponsFromData } from './weapons/WeaponDefs.js';
 import { Effects } from './fx/Effects.js';
@@ -80,8 +80,24 @@ const effects = new Effects(scene);
       audio.setSoundBank(assets.audio);
     }
 
-    // 2. Carrega Mapa
-    const map = await loadMap('./assets/maps/range.json', scene);
+    // 2. Seletores de Assets do Menu
+    const mapSelect = document.getElementById('map-select');
+    const weaponSelect = document.getElementById('weapon-select');
+    const botSkinSelect = document.getElementById('bot-skin-select');
+
+    const savedMap = localStorage.getItem('blocky_map');
+    if (savedMap && mapSelect) mapSelect.value = savedMap;
+
+    const savedWep = localStorage.getItem('blocky_weapon');
+    if (savedWep && weaponSelect) weaponSelect.value = savedWep;
+
+    const savedSkin = localStorage.getItem('blocky_botskin');
+    if (savedSkin && botSkinSelect) botSkinSelect.value = savedSkin;
+
+    const currentMapUrl = mapSelect ? mapSelect.value : './assets/maps/village.json';
+
+    // Carrega Mapa selecionado
+    const map = await loadMap(currentMapUrl, scene);
     const world = map.world;
     const spawn = map.playerSpawns[0];
 
@@ -92,7 +108,11 @@ const effects = new Effects(scene);
     const viewmodel = new Viewmodel(camera);
     viewmodel.registerModel('ar15', buildHK416); // Monumento HK416
     viewmodel.registerModel('p9', buildP9);
-    viewmodel.equip('ar15');
+    viewmodel.registerModel('uzi', buildUZI);
+    viewmodel.registerModel('m249', buildM249);
+
+    const initialWeapon = weaponSelect ? weaponSelect.value : 'ar15';
+    viewmodel.equip(initialWeapon);
 
     // 4. GameManager
     let gameManager = null;
@@ -106,6 +126,7 @@ const effects = new Effects(scene);
       world,
       botsProvider: () => (gameManager ? gameManager.bots : []),
     });
+    weapons._equip(initialWeapon);
 
     gameManager = new GameManager({
       scene,
@@ -116,8 +137,12 @@ const effects = new Effects(scene);
     });
     gameManager.setDoors(map.doors);
 
+    if (botSkinSelect) {
+      gameManager.setBotSkin(botSkinSelect.value);
+    }
+
     /* =========================================================
-       UI DO MENU (start + pause + mobile)
+       UI DO MENU (start + pause + mobile + seletores)
        ========================================================= */
     const botSlider = document.getElementById('bot-count');
     const botSliderVal = document.getElementById('bot-count-val');
@@ -126,6 +151,21 @@ const effects = new Effects(scene);
     const btnResume = document.getElementById('btn-resume');
     const btnReset = document.getElementById('btn-reset');
     const overlayElRef = document.getElementById('overlay');
+
+    mapSelect?.addEventListener('change', () => {
+      localStorage.setItem('blocky_map', mapSelect.value);
+      location.reload();
+    });
+
+    weaponSelect?.addEventListener('change', () => {
+      localStorage.setItem('blocky_weapon', weaponSelect.value);
+      weapons._equip(weaponSelect.value);
+    });
+
+    botSkinSelect?.addEventListener('change', () => {
+      localStorage.setItem('blocky_botskin', botSkinSelect.value);
+      gameManager.setBotSkin(botSkinSelect.value);
+    });
 
     botSlider.addEventListener('input', () => {
       botSliderVal.textContent = botSlider.value;
@@ -151,7 +191,7 @@ const effects = new Effects(scene);
     });
 
     overlayElRef.addEventListener('click', async (e) => {
-      if (e.target.closest('input, button')) return;
+      if (e.target.closest('input, button, select')) return;
       await input.requestLock();
     });
 

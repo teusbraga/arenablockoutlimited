@@ -2,9 +2,11 @@ import * as THREE from 'three';
 import { WEAPONS } from './WeaponDefs.js';
 import { buildHK416 } from './models/HK416.js';
 import { buildP9 } from './models/P9.js';
+import { buildUZI } from './models/UZI.js';
+import { buildM249 } from './models/M249.js';
 
 // Re-exporta construtores para compatibilidade com main.js / WeaponRegistry
-export { buildHK416, buildHK416 as buildAR15, buildP9 };
+export { buildHK416, buildHK416 as buildAR15, buildP9, buildUZI, buildM249 };
 
 /**
  * Viewmodel: Gerenciador de pose, física de mola (sway), recuo e animações da arma em 1ª pessoa.

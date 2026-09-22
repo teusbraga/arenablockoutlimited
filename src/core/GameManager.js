@@ -93,6 +93,21 @@ export class GameManager {
     }
   }
 
+  setBotSkin(skin) {
+    Bot.skinType = skin;
+    const n = this.bots.length;
+    while (this.bots.length > 0) {
+      const b = this.bots.pop();
+      this.scene.remove(b.root);
+      b.root.traverse(o => {
+        if (o.geometry) o.geometry.dispose();
+      });
+    }
+    for (let i = 1; i <= n; i++) {
+      this.bots.push(this.spawnBot(i));
+    }
+  }
+
   resetGame() {
     this.roundOver = false;
     this.roundTimeLeft = this.roundDuration;

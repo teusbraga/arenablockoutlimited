@@ -1,0 +1,100 @@
+{
+  "name": "Vila Ensolarada",
+  "size": [70, 70],
+  "bounds": [-34, 34, -34, 34],
+  "floorMaterial": "grass",
+  "environment": {
+    "fogColor": "#99c4eb",
+    "fogNear": 55,
+    "fogFar": 140
+  },
+  "staticGeometry": [
+    { "type": "wall", "pos": [  0, 0,  35], "size": [70, 4, 1], "material": "stone" },
+    { "type": "wall", "pos": [  0, 0, -35], "size": [70, 4, 1], "material": "stone" },
+    { "type": "wall", "pos": [-35, 0,   0], "size": [ 1, 4, 70], "material": "stone" },
+    { "type": "wall", "pos": [ 35, 0,   0], "size": [ 1, 4, 70], "material": "stone" },
+
+    { "type": "path", "pos": [0, 0, 0], "size": [6, 0.05, 50], "material": "dirt" },
+    { "type": "path", "pos": [0, 0, 0], "size": [50, 0.05, 6], "material": "dirt" },
+
+    { "type": "wall", "pos": [-16, 0, -18], "size": [10, 3.2, 1], "material": "wall_white" },
+    { "type": "wall", "pos": [-16, 0, -10], "size": [10, 3.2, 1], "material": "wall_white" },
+    { "type": "wall", "pos": [-21, 0, -14], "size": [1, 3.2, 8], "material": "wall_white" },
+    { "type": "wall", "pos": [-11, 0, -16], "size": [1, 3.2, 4], "material": "wall_white" },
+    { "type": "roof", "pos": [-16, 3.2, -14], "size": [12, 1.2, 10], "material": "roof" },
+
+    { "type": "wall", "pos": [16, 0, -18], "size": [10, 3.2, 1], "material": "wall_white" },
+    { "type": "wall", "pos": [16, 0, -10], "size": [10, 3.2, 1], "material": "wall_white" },
+    { "type": "wall", "pos": [21, 0, -14], "size": [1, 3.2, 8], "material": "wall_white" },
+    { "type": "wall", "pos": [11, 0, -16], "size": [1, 3.2, 4], "material": "wall_white" },
+    { "type": "roof", "pos": [16, 3.2, -14], "size": [12, 1.2, 10], "material": "roof" },
+
+    { "type": "wall", "pos": [-16, 0, 14], "size": [9, 3.0, 1], "material": "wall_white" },
+    { "type": "wall", "pos": [-16, 0, 22], "size": [9, 3.0, 1], "material": "wall_white" },
+    { "type": "wall", "pos": [-20.5, 0, 18], "size": [1, 3.0, 8], "material": "wall_white" },
+    { "type": "wall", "pos": [-11.5, 0, 16], "size": [1, 3.0, 4], "material": "wall_white" },
+    { "type": "roof", "pos": [-16, 3.0, 18], "size": [11, 1.2, 10], "material": "roof" },
+
+    { "type": "wall", "pos": [18, 0, 12], "size": [12, 3.6, 1], "material": "wood" },
+    { "type": "wall", "pos": [18, 0, 22], "size": [12, 3.6, 1], "material": "wood" },
+    { "type": "wall", "pos": [24, 0, 17], "size": [1, 3.6, 10], "material": "wood" },
+    { "type": "wall", "pos": [12, 0, 19], "size": [1, 3.6, 5], "material": "wood" },
+    { "type": "roof", "pos": [18, 3.6, 17], "size": [14, 1.4, 12], "material": "roof" },
+
+    { "type": "trunk",   "pos": [-6, 0, -6], "size": [0.8, 3.5, 0.8], "material": "trunk" },
+    { "type": "foliage", "pos": [-6, 3.0, -6], "size": [3.6, 2.4, 3.6], "material": "foliage" },
+    { "type": "foliage", "pos": [-6, 4.8, -6], "size": [2.4, 1.8, 2.4], "material": "foliage_light" },
+
+    { "type": "trunk",   "pos": [7, 0, -6], "size": [0.8, 3.8, 0.8], "material": "trunk" },
+    { "type": "foliage", "pos": [7, 3.2, -6], "size": [3.8, 2.4, 3.8], "material": "foliage" },
+    { "type": "foliage", "pos": [7, 5.0, -6], "size": [2.6, 1.8, 2.6], "material": "foliage_light" },
+
+    { "type": "trunk",   "pos": [-7, 0, 8], "size": [0.8, 3.6, 0.8], "material": "trunk" },
+    { "type": "foliage", "pos": [-7, 3.0, 8], "size": [3.6, 2.5, 3.6], "material": "foliage" },
+    { "type": "foliage", "pos": [-7, 4.9, 8], "size": [2.4, 1.8, 2.4], "material": "foliage_light" },
+
+    { "type": "trunk",   "pos": [8, 0, 8], "size": [0.8, 3.5, 0.8], "material": "trunk" },
+    { "type": "foliage", "pos": [8, 3.0, 8], "size": [3.5, 2.4, 3.5], "material": "foliage" },
+    { "type": "foliage", "pos": [8, 4.8, 8], "size": [2.3, 1.8, 2.3], "material": "foliage_light" },
+
+    { "type": "trunk",   "pos": [-26, 0, -2], "size": [0.9, 4.0, 0.9], "material": "trunk" },
+    { "type": "foliage", "pos": [-26, 3.5, -2], "size": [4.0, 2.6, 4.0], "material": "foliage" },
+    { "type": "foliage", "pos": [-26, 5.4, -2], "size": [2.8, 1.8, 2.8], "material": "foliage_light" },
+
+    { "type": "trunk",   "pos": [26, 0, -2], "size": [0.9, 3.8, 0.9], "material": "trunk" },
+    { "type": "foliage", "pos": [26, 3.3, -2], "size": [3.8, 2.5, 3.8], "material": "foliage" },
+    { "type": "foliage", "pos": [26, 5.2, -2], "size": [2.6, 1.8, 2.6], "material": "foliage_light" },
+
+    { "type": "trunk",   "pos": [0, 0, -25], "size": [0.8, 3.6, 0.8], "material": "trunk" },
+    { "type": "foliage", "pos": [0, 3.1, -25], "size": [3.6, 2.4, 3.6], "material": "foliage" },
+    { "type": "foliage", "pos": [0, 4.9, -25], "size": [2.4, 1.8, 2.4], "material": "foliage_light" },
+
+    { "type": "fence", "pos": [-3, 0, 16], "size": [6, 1.1, 0.2], "material": "fence", "vaultable": true },
+    { "type": "fence", "pos": [ 4, 0, 16], "size": [6, 1.1, 0.2], "material": "fence", "vaultable": true },
+    { "type": "fence", "pos": [-3, 0, -15], "size": [6, 1.1, 0.2], "material": "fence", "vaultable": true },
+    { "type": "fence", "pos": [ 4, 0, -15], "size": [6, 1.1, 0.2], "material": "fence", "vaultable": true },
+
+    { "type": "crate", "pos": [-13, 0, 13], "size": [1.4, 1.4, 1.4], "material": "crate" },
+    { "type": "crate", "pos": [-11.5, 0, 13], "size": [1.4, 2.2, 1.4], "material": "crate" },
+    { "type": "crate", "pos": [14, 0, 11], "size": [1.5, 1.2, 1.5], "material": "wood" },
+    { "type": "crate", "pos": [14, 0, 9], "size": [1.5, 1.2, 1.5], "material": "wood" },
+    { "type": "crate", "pos": [0, 0, 2], "size": [2.2, 1.2, 2.2], "material": "stone" }
+  ],
+  "doors": [
+    { "pos": [-11, 0, -12], "width": 1.2, "height": 2.4 },
+    { "pos": [ 11, 0, -12], "width": 1.2, "height": 2.4 },
+    { "pos": [-11.5, 0, 20], "width": 1.2, "height": 2.4 },
+    { "pos": [ 12, 0, 14], "width": 1.3, "height": 2.5 }
+  ],
+  "playerSpawns": [
+    [0, 0.1, 26],
+    [-24, 0.1, 20]
+  ],
+  "botSpawns": [
+    [-18, 0.1, -15],
+    [ 18, 0.1, -15],
+    [  0, 0.1, -20],
+    [-24, 0.1,  -5],
+    [ 22, 0.1,  15]
+  ]
+}

@@ -84,6 +84,12 @@
   #overlay .menu-option{
     font-size:12px;color:var(--dim);display:flex;align-items:center;gap:8px;
   }
+  #overlay .menu-option select{
+    background:#13161a;border:1px solid rgba(232,147,58,0.45);color:var(--text);
+    font-family:'JetBrains Mono',monospace;font-size:11.5px;padding:5px 8px;
+    border-radius:3px;outline:none;cursor:pointer;max-width:230px;
+  }
+  #overlay .menu-option select:focus{border-color:var(--accent);}
   #overlay .menu-option input[type="range"]{width:160px;}
   #overlay .menu-option span{color:var(--accent);font-weight:600;}
   #overlay .menu-buttons{display:flex;gap:10px;}
@@ -256,13 +262,39 @@
      Botão esquerdo atirar · Direito mira · R recarrega · Q troca · E porta<br>
      ESC pausa</p>
 
-  <div class="menu-option" style="margin-top:18px;">
-    <label for="bot-count">Bots:</label>
-    <input id="bot-count" type="range" min="0" max="10" value="3" style="vertical-align:middle;">
-    <span id="bot-count-val" style="display:inline-block;min-width:24px;text-align:right;">3</span>
+  <div class="menu-option" style="margin-top:14px;">
+    <label for="map-select">Mapa:</label>
+    <select id="map-select">
+      <option value="./assets/maps/village.json" selected>Vila Ensolarada (Casas & Árvores)</option>
+      <option value="./assets/maps/range.json">Campo de Tiro (Range)</option>
+    </select>
   </div>
 
-  <div class="menu-option" style="margin-top:12px;">
+  <div class="menu-option" style="margin-top:10px;">
+    <label for="weapon-select">Arma:</label>
+    <select id="weapon-select">
+      <option value="ar15" selected>HK416 (Fuzil 5.56)</option>
+      <option value="uzi">UZI (Micro-SMG 9mm)</option>
+      <option value="m249">M249 SAW (LMG 100 Tiros)</option>
+      <option value="p9">P-9 (Pistola Tática)</option>
+    </select>
+  </div>
+
+  <div class="menu-option" style="margin-top:10px;">
+    <label for="bot-skin-select">Inimigos:</label>
+    <select id="bot-skin-select">
+      <option value="ghost" selected>Fantasmas Pac-Man</option>
+      <option value="soldier">Soldados Blocky</option>
+    </select>
+  </div>
+
+  <div class="menu-option" style="margin-top:10px;">
+    <label for="bot-count">Bots:</label>
+    <input id="bot-count" type="range" min="0" max="10" value="4" style="vertical-align:middle;">
+    <span id="bot-count-val" style="display:inline-block;min-width:24px;text-align:right;">4</span>
+  </div>
+
+  <div class="menu-option" style="margin-top:10px;">
     <label for="round-time">Tempo:</label>
     <input id="round-time" type="range" min="30" max="600" step="30" value="210" style="vertical-align:middle;">
     <span id="round-time-val" style="display:inline-block;min-width:38px;text-align:right;">3:30</span>

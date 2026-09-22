@@ -1,6 +1,8 @@
 {
   "sounds": {
     "shot_hk416": { "freqA": 180, "freqB": 46, "dur": 0.095, "type": "sawtooth", "gain": 0.22 },
+    "shot_uzi":   { "freqA": 290, "freqB": 85, "dur": 0.058, "type": "sawtooth", "gain": 0.18 },
+    "shot_m249":  { "freqA": 140, "freqB": 38, "dur": 0.115, "type": "sawtooth", "gain": 0.28 },
     "shot_p9": { "freqA": 260, "freqB": 90, "dur": 0.070, "type": "square", "gain": 0.16 },
     "weapon_cycle": { "freqA": 600, "freqB": 300, "dur": 0.070, "type": "square", "gain": 0.09 },
     "reload_start": { "freqA": 400, "freqB": 200, "dur": 0.060, "type": "square", "gain": 0.10 },
