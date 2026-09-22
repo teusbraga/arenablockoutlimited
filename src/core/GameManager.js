@@ -4,12 +4,13 @@ import { CONFIG } from './Config.js';
 import { emit, on } from './EventBus.js';
 
 export class GameManager {
-  constructor({ scene, world, player, weapons, botSpawns = [] }) {
+  constructor({ scene, world, player, weapons, botSpawns = [], bounds = [-24, 24, -24, 24] }) {
     this.scene = scene;
     this.world = world;
     this.player = player;
     this.weapons = weapons;
     this.botSpawns = botSpawns;
+    this.bounds = bounds;
 
     this.bots = [];
     this.doors = [];
@@ -41,8 +42,12 @@ export class GameManager {
       }
     });
 
+    // Quando qualquer bot morre: registra kill e agenda respawn com lock-in de posição
     on('bot:died', e => {
       this.registerKill(e.headshot);
+      if (e.bot) {
+        this.scheduleBotRespawn(e.bot);
+      }
     });
   }
 
@@ -50,55 +55,154 @@ export class GameManager {
     this.doors = doors;
   }
 
-  _findSafeSpawnPos() {
-    let sx = 0, sz = 0, tries = 0;
-    const boundsLimit = 22;
-    do {
-      const a = Math.random() * Math.PI * 2;
-      const r = 10 + Math.random() * 12;
-      sx = this.player.pos.x + Math.cos(a) * r;
-      sz = this.player.pos.z + Math.sin(a) * r;
-      tries++;
-    } while (tries < 35 && (Math.abs(sx) > boundsLimit || Math.abs(sz) > boundsLimit));
+  /**
+   * Calcula a distância euclidiana exata no plano horizontal (X/Z) de um ponto até uma caixa AABB.
+   * Se o ponto estiver dentro da caixa, retorna 0.
+   */
+  _distToBox(px, pz, b) {
+    const dx = Math.max(0, b.min.x - px, px - b.max.x);
+    const dz = Math.max(0, b.min.z - pz, pz - b.max.z);
+    return Math.hypot(dx, dz);
+  }
 
-    // Fallback se não achar posição livre longe da borda
-    if (Math.abs(sx) > boundsLimit) sx = (Math.random() - 0.5) * 20;
-    if (Math.abs(sz) > boundsLimit) sz = (Math.random() - 0.5) * 20;
+  /**
+   * Avalia se uma posição (px, pz) está desobstruída e cumpre as regras de segurança:
+   * - Dentro dos limites do mapa
+   * - Distância mínima de qualquer prop/parede sólida (ignora o chão y <= 0.2)
+   * - Distância mínima do jogador
+   * - Distância mínima de outros bots ou posições já reservadas
+   */
+  _isPositionClear(px, pz, minPropDist = 3.0, minPlayerDist = 11.0, ignoreBot = null) {
+    const [minX, maxX, minZ, maxZ] = this.bounds;
+    if (px < minX + 2.5 || px > maxX - 2.5 || pz < minZ + 2.5 || pz > maxZ - 2.5) {
+      return false;
+    }
 
-    return { x: sx, z: sz };
+    if (this.player) {
+      const distP = Math.hypot(px - this.player.pos.x, pz - this.player.pos.z);
+      if (distP < minPlayerDist) return false;
+    }
+
+    if (this.world?.boxes) {
+      for (const b of this.world.boxes) {
+        if (!b.solid || b.max.y <= 0.2) continue;
+        if (this._distToBox(px, pz, b) < minPropDist) {
+          return false;
+        }
+      }
+    }
+
+    for (const other of this.bots) {
+      if (other === ignoreBot) continue;
+      if (other.alive) {
+        if (Math.hypot(px - other.pos.x, pz - other.pos.z) < 2.5) return false;
+      } else if (other.nextSpawnPos) {
+        if (Math.hypot(px - other.nextSpawnPos.x, pz - other.nextSpawnPos.z) < 2.5) return false;
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Busca uma coordenada segura no mapa livre de props e do jogador.
+   * Dá lock-in no melhor ponto disponível.
+   */
+  _findClearSpawnPos(minPropDist = 3.0, minPlayerDist = 11.0, forBot = null) {
+    // 1. Testa os pontos pré-configurados do mapa
+    if (this.botSpawns && this.botSpawns.length > 0) {
+      const validPresets = [];
+      for (const s of this.botSpawns) {
+        const sx = s[0];
+        const sz = s[2];
+        if (this._isPositionClear(sx, sz, minPropDist, minPlayerDist, forBot)) {
+          const distToP = Math.hypot(sx - this.player.pos.x, sz - this.player.pos.z);
+          validPresets.push({ x: sx, y: s[1] || 0.6, z: sz, distToP });
+        }
+      }
+      if (validPresets.length > 0) {
+        validPresets.sort((a, b) => b.distToP - a.distToP);
+        const pick = validPresets[Math.floor(Math.random() * Math.min(2, validPresets.length))];
+        return { x: pick.x, y: pick.y, z: pick.z };
+      }
+    }
+
+    // 2. Busca aleatória por espaço aberto com pelo menos 3 metros de distância de props
+    const [minX, maxX, minZ, maxZ] = this.bounds;
+    for (let i = 0; i < 45; i++) {
+      const rx = minX + 3.5 + Math.random() * (maxX - minX - 7);
+      const rz = minZ + 3.5 + Math.random() * (maxZ - minZ - 7);
+      if (this._isPositionClear(rx, rz, minPropDist, minPlayerDist, forBot)) {
+        return { x: rx, y: 0.6, z: rz };
+      }
+    }
+
+    // 3. Relaxamento controlado de margens caso o mapa tenha alta densidade
+    for (let i = 0; i < 30; i++) {
+      const rx = minX + 2.5 + Math.random() * (maxX - minX - 5);
+      const rz = minZ + 2.5 + Math.random() * (maxZ - minZ - 5);
+      if (this._isPositionClear(rx, rz, 1.8, 8.0, forBot)) {
+        return { x: rx, y: 0.6, z: rz };
+      }
+    }
+
+    // 4. Fallback absoluto nos presets
+    if (this.botSpawns && this.botSpawns.length > 0) {
+      const sorted = [...this.botSpawns].sort((a, b) => {
+        const da = Math.hypot(a[0] - this.player.pos.x, a[2] - this.player.pos.z);
+        const db = Math.hypot(b[0] - this.player.pos.x, b[2] - this.player.pos.z);
+        return db - da;
+      });
+      return { x: sorted[0][0], y: sorted[0][1] || 0.6, z: sorted[0][2] };
+    }
+
+    return { x: 0, y: 0.6, z: 0 };
+  }
+
+  /**
+   * Agenda o respawn de um bot: busca o local limpo e dá lock-in nele.
+   */
+  scheduleBotRespawn(bot) {
+    if (!bot) return;
+    const safePos = this._findClearSpawnPos(3.0, 11.0, bot);
+    bot.nextSpawnPos = safePos;
+    bot.respawnTimer = CONFIG.BOTS.respawnTime || 4.0;
+  }
+
+  /**
+   * Finaliza o respawn ativando o bot exatamente na posição reservada (lock-in).
+   */
+  finalizeBotRespawn(b) {
+    b.respawn();
+
+    const spawnPos = b.nextSpawnPos || this._findClearSpawnPos(3.0, 11.0, b);
+    b.pos.set(spawnPos.x, spawnPos.y || 0.6, spawnPos.z);
+    b.vel.set(0, 0, 0);
+    b.hp = b.maxHp;
+    b.alive = true;
+    b.respawnTimer = 0;
+    b.nextSpawnPos = null;
+
+    b.root.position.copy(b.pos);
+    b.root.visible = true;
+
+    if (b.ai) {
+      b.ai.state = 'patrol';
+      b.ai.reactionTimer = 0;
+      b.ai.losTimer = 0;
+      b.ai.searchTimer = 0;
+      b.ai.patrolTarget = null;
+      b.ai.fireTimer = 0.8 + Math.random() * 0.5;
+    }
   }
 
   respawnBot(b) {
-    b.respawn();
-
-    let sx = 0, sz = 0, sy = 0.6;
-    if (this.botSpawns && this.botSpawns.length > 0) {
-      // Ordena spawns por distância decrescente do player para não spawnar na cara dele
-      const sorted = [...this.botSpawns].sort((s1, s2) => {
-        const d1 = Math.hypot(s1[0] - this.player.pos.x, s1[2] - this.player.pos.z);
-        const d2 = Math.hypot(s2[0] - this.player.pos.x, s2[2] - this.player.pos.z);
-        return d2 - d1;
-      });
-      // Pega um dos spawns mais distantes com variação aleatória suave
-      const pick = sorted[Math.floor(Math.random() * Math.min(3, sorted.length))];
-      sx = pick[0] + (Math.random() - 0.5) * 2;
-      sy = pick[1] || 0.6;
-      sz = pick[2] + (Math.random() - 0.5) * 2;
-    } else {
-      const sp = this._findSafeSpawnPos();
-      sx = sp.x;
-      sz = sp.z;
-    }
-
-    b.pos.set(sx, sy, sz);
-    b.vel.set(0, 0, 0);
-    b.root.position.copy(b.pos);
-    b.root.visible = true;
+    this.finalizeBotRespawn(b);
   }
 
   spawnBot(id) {
     const b = new Bot(id, this.world, this.scene);
-    this.respawnBot(b);
+    this.finalizeBotRespawn(b);
     return b;
   }
 
@@ -149,9 +253,9 @@ export class GameManager {
     this.player.vel.set(0, 0, 0);
     emit('player:hp', { hp: this.player.hp, max: this.player.maxHp });
 
-    // Reposiciona Bots
+    // Reposiciona Bots com posições seguras
     for (const b of this.bots) {
-      this.respawnBot(b);
+      this.finalizeBotRespawn(b);
     }
 
     // Recarrega Arma
@@ -192,7 +296,12 @@ export class GameManager {
       if (!b.alive) {
         if (b.respawnTimer > 0) {
           b.respawnTimer -= dt;
-          if (b.respawnTimer <= 0) this.respawnBot(b);
+          if (b.respawnTimer <= 0) {
+            this.finalizeBotRespawn(b);
+          }
+        } else if (!b.nextSpawnPos) {
+          // Failsafe: se algum bot morreu sem agendamento prévio, agenda imediatamente
+          this.scheduleBotRespawn(b);
         }
         continue;
       }
@@ -210,28 +319,6 @@ export class GameManager {
         b.pos.z -= (dz / dist) * push;
       }
     }
-  }
-
-  respawnBot(b) {
-    b.hp = b.maxHp;
-    b.alive = true;
-    b.respawnTimer = 0;
-    b.vel.set(0, 0, 0);
-    
-    // Reseta inteligência artificial
-    if (b.ai) {
-      b.ai.state = 'patrol';
-      b.ai.reactionTimer = 0;
-      b.ai.losTimer = 0;
-      b.ai.searchTimer = 0;
-      b.ai.patrolTarget = null;
-      b.ai.fireTimer = 0.8 + Math.random() * 0.5;
-    }
-
-    const sp = this._findSafeSpawnPos();
-    b.pos.set(sp.x, 0.8, sp.z);
-    b.root.position.copy(b.pos);
-    b.root.visible = true;
   }
 
   registerKill(headshot) {

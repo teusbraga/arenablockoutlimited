@@ -96,11 +96,7 @@ export class Bot extends Character {
   }
 
   update(dt, player) {
-    if (!this.alive) {
-      this.respawnTimer -= dt;
-      if (this.respawnTimer <= 0) this.respawn();
-      return;
-    }
+    if (!this.alive) return;
 
     this.ai.update(dt, player);
 
@@ -129,7 +125,6 @@ export class Bot extends Character {
 
   die() {
     super.die();
-    this.respawnTimer = CONFIG.BOTS.respawnTime;
     this.root.visible = false;
     emit('bot:died', { bot: this, headshot: this.lastHitPart === 'head' });
   }

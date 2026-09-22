@@ -134,6 +134,7 @@ const effects = new Effects(scene);
       player,
       weapons,
       botSpawns: map.botSpawns,
+      bounds: map.bounds,
     });
     gameManager.setDoors(map.doors);
 
