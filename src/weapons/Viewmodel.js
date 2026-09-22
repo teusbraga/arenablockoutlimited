@@ -69,6 +69,11 @@ export class Viewmodel {
   applyKick(pitch, yaw, customKickbackZ = 0.035, customKickRot = 2.2) {
     this.kickRotX -= pitch * customKickRot;
     this.kickPos.z += customKickbackZ;
+    // Clamp: arma nunca recua além de 0.055 m (não some do FOV)
+    // Calculado com base no hipPos.z mais próximo da câmera (-0.28) — margem segura de 0.055
+    this.kickPos.z  = Math.min(this.kickPos.z,  0.055);
+    // Clamp do pitch do viewmodel: visualmente realista, nunca aponta para cima
+    this.kickRotX = Math.max(this.kickRotX, -0.32);
   }
 
   /**

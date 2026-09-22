@@ -122,6 +122,19 @@ export class WeaponSystem {
     }
 
     if (this.ammo === 0 && !this.reloading) this.reload();
+
+    // ── Recuperação Elástica do Recoil ──────────────────────────────────────
+    // A câmera volta ao centro suavemente quando o jogador não atira.
+    // Velocidade de recuperação aumenta quando não há tiro ativo.
+    if ((this._recoilDebt || 0) > 0.0001) {
+      // Recupera mais rápido fora de ADS (simula braço relaxando)
+      const recoverySpeed = this.ads ? 4.5 : 7.0;
+      const recover = Math.min(this._recoilDebt, this._recoilDebt * recoverySpeed * dt);
+      this._recoilDebt -= recover;
+      this.player.pitch -= recover;
+    } else {
+      this._recoilDebt = 0;
+    }
   }
 
   get reloadProgress() {
@@ -135,12 +148,15 @@ export class WeaponSystem {
     const walkSpd = CONFIG.PLAYER?.walkSpeed || 5.2;
     const speedRatio = Math.hypot(this.player.vel.x, this.player.vel.z) / walkSpd;
     const moveSpread = speedRatio * (this.ads ? 0.010 : 0.014);
-    
-    // Adiciona o sway visual do Viewmodel ao desvio da bala (Tarkov-style)
-    const swayYaw = this.viewmodel.swayGroup.rotation.y * 0.4; // fator de escala
-    const swayPitch = this.viewmodel.swayGroup.rotation.x * 0.4;
 
+    // No ADS, apenas o sway de movimento contamina — o sway idle é filtrado
+    // No hipfire, o sway completo é adicionado organicamente
+    if (this.ads) {
+      return base + moveSpread;
+    }
     const swaySpread = this.viewmodel.getSpreadFromSway();
+    const swayYaw   = this.viewmodel.swayGroup.rotation.y * 0.4;
+    const swayPitch = this.viewmodel.swayGroup.rotation.x * 0.4;
     return base + moveSpread + swaySpread + Math.hypot(swayYaw, swayPitch);
   }
 
@@ -152,8 +168,8 @@ export class WeaponSystem {
 
     const now = performance.now() / 1000;
     const streakDelay = CONFIG.GUNPLAY?.fireStreakDecayDelay ?? 0.22;
-    const maxStreak = CONFIG.GUNPLAY?.maxFireStreak ?? 6;
-    const streakFactor = CONFIG.GUNPLAY?.fireStreakMultiplier ?? 0.16;
+    const maxStreak   = CONFIG.GUNPLAY?.maxFireStreak ?? 8;
+    const streakFactor = CONFIG.GUNPLAY?.fireStreakMultiplier ?? 0.10; // reduzido de 0.16→0.10
 
     if (now - (this.lastFireGapTime || 0) < streakDelay) {
       this.fireStreak = Math.min((this.fireStreak || 0) + 1, maxStreak);
@@ -164,12 +180,21 @@ export class WeaponSystem {
 
     const streakMul = 1 + this.fireStreak * streakFactor;
 
-    // Recoil na câmera
-    this.player.pitch += def.recoilPitch * (this.ads ? 0.5 : 1) * streakMul;
-    
-    // Alterna o yaw para os lados baseado no streak
-    const yawDir = (this.fireStreak % 2 === 0 ? 1 : -1);
-    this.player.yaw += yawDir * def.recoilYaw * (this.ads ? 0.36 : 1) * streakMul * (0.6 + Math.random() * 0.5);
+    // ── Recoil Vertical da Câmera ───────────────────────────────────────────
+    // Multiplier ADS reduzido de 0.5→0.38 para ADS ser visivelmente mais controlado
+    const pitchAdd = def.recoilPitch * (this.ads ? 0.38 : 1.0) * streakMul;
+    this.player.pitch += pitchAdd;
+
+    // Acumula o recoil pendente de recuperação (retorno elástico)
+    this._recoilDebt = (this._recoilDebt || 0) + pitchAdd * 0.75; // 75% volta automaticamente
+
+    // ── Recoil Horizontal da Câmera ────────────────────────────────────────
+    // Padrão direcional por arma: cada arma tem um bias natural (ex: AR puxa levemente à esq.)
+    // Sem zigzag aleatório — o desvio é suave e consistente, compensável com mouse
+    const yawBias = def.recoilYawBias ?? 1.0; // +1 = vira dir, -1 = esq, 0 = neutro
+    const yawNoise = (Math.random() - 0.5) * 0.4; // ruído pequeno ±20% em torno do bias
+    const yawAdd = (yawBias + yawNoise) * def.recoilYaw * (this.ads ? 0.30 : 0.85) * streakMul;
+    this.player.yaw += yawAdd;
     
     const kickbackZ = def.kickbackZ ?? (def.id === 'm249' ? 0.055 : def.id === 'uzi' ? 0.022 : 0.035);
     const kickRot = def.kickRotFactor ?? (def.id === 'm249' ? 2.8 : 2.2);
