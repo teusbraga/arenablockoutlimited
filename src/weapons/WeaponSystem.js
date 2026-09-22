@@ -123,13 +123,12 @@ export class WeaponSystem {
 
     if (this.ammo === 0 && !this.reloading) this.reload();
 
-    // ── Recuperação Elástica do Recoil ──────────────────────────────────────
-    // A câmera volta ao centro suavemente quando o jogador não atira.
-    // Velocidade de recuperação aumenta quando não há tiro ativo.
+    // ── Recuperação Elástica do Recoil da Câmera ────────────────────────────
+    // A câmera volta ao centro suavemente de maneira fluida e contínua
     if ((this._recoilDebt || 0) > 0.0001) {
-      // Recupera mais rápido fora de ADS (simula braço relaxando)
-      const recoverySpeed = this.ads ? 4.5 : 7.0;
-      const recover = Math.min(this._recoilDebt, this._recoilDebt * recoverySpeed * dt);
+      const recoverySpeed = this.ads ? 6.0 : 8.5;
+      const step = this._recoilDebt * recoverySpeed * dt;
+      const recover = Math.min(this._recoilDebt, Math.max(step, 0.001 * dt));
       this._recoilDebt -= recover;
       this.player.pitch -= recover;
     } else {
@@ -144,20 +143,20 @@ export class WeaponSystem {
 
   _currentSpread() {
     const def = this.def;
-    const base = this.ads ? def.spreadAds : def.spreadHip;
     const walkSpd = CONFIG.PLAYER?.walkSpeed || 5.2;
     const speedRatio = Math.hypot(this.player.vel.x, this.player.vel.z) / walkSpd;
-    const moveSpread = speedRatio * (this.ads ? 0.010 : 0.014);
 
-    // No ADS, apenas o sway de movimento contamina — o sway idle é filtrado
-    // No hipfire, o sway completo é adicionado organicamente
     if (this.ads) {
-      return base + moveSpread;
+      // No ADS: primeiro tiro parado tem precisão absoluta (pinpoint)
+      const movePenalty = speedRatio * 0.008;
+      const streakPenalty = (this.fireStreak || 0) * 0.0012;
+      return def.spreadAds + movePenalty + streakPenalty;
     }
-    const swaySpread = this.viewmodel.getSpreadFromSway();
-    const swayYaw   = this.viewmodel.swayGroup.rotation.y * 0.4;
-    const swayPitch = this.viewmodel.swayGroup.rotation.x * 0.4;
-    return base + moveSpread + swaySpread + Math.hypot(swayYaw, swayPitch);
+
+    // No Hipfire: dispersão clássica arcade controlada
+    const moveSpread = speedRatio * 0.012;
+    const streakSpread = (this.fireStreak || 0) * 0.0025;
+    return def.spreadHip + moveSpread + streakSpread;
   }
 
   _fire() {
@@ -167,9 +166,9 @@ export class WeaponSystem {
     emit('weapon:ammo', { ammo: this.ammo, max: def.magSize });
 
     const now = performance.now() / 1000;
-    const streakDelay = CONFIG.GUNPLAY?.fireStreakDecayDelay ?? 0.22;
+    const streakDelay = CONFIG.GUNPLAY?.fireStreakDecayDelay ?? 0.20;
     const maxStreak   = CONFIG.GUNPLAY?.maxFireStreak ?? 8;
-    const streakFactor = CONFIG.GUNPLAY?.fireStreakMultiplier ?? 0.10; // reduzido de 0.16→0.10
+    const streakFactor = CONFIG.GUNPLAY?.fireStreakMultiplier ?? 0.08;
 
     if (now - (this.lastFireGapTime || 0) < streakDelay) {
       this.fireStreak = Math.min((this.fireStreak || 0) + 1, maxStreak);
@@ -181,25 +180,28 @@ export class WeaponSystem {
     const streakMul = 1 + this.fireStreak * streakFactor;
 
     // ── Recoil Vertical da Câmera ───────────────────────────────────────────
-    // Multiplier ADS reduzido de 0.5→0.38 para ADS ser visivelmente mais controlado
-    const pitchAdd = def.recoilPitch * (this.ads ? 0.38 : 1.0) * streakMul;
+    // No ADS, a câmera é muito firme (recuo leve para acompanhamento fácil do alvo)
+    const pitchScale = this.ads ? 0.25 : 0.85;
+    const pitchAdd = def.recoilPitch * pitchScale * streakMul;
     this.player.pitch += pitchAdd;
 
-    // Acumula o recoil pendente de recuperação (retorno elástico)
-    this._recoilDebt = (this._recoilDebt || 0) + pitchAdd * 0.75; // 75% volta automaticamente
+    // 70% do recoil vertical retorna suavemente (retorno elástico moderno)
+    this._recoilDebt = (this._recoilDebt || 0) + pitchAdd * 0.70;
 
     // ── Recoil Horizontal da Câmera ────────────────────────────────────────
-    // Padrão direcional por arma: cada arma tem um bias natural (ex: AR puxa levemente à esq.)
-    // Sem zigzag aleatório — o desvio é suave e consistente, compensável com mouse
-    const yawBias = def.recoilYawBias ?? 1.0; // +1 = vira dir, -1 = esq, 0 = neutro
-    const yawNoise = (Math.random() - 0.5) * 0.4; // ruído pequeno ±20% em torno do bias
-    const yawAdd = (yawBias + yawNoise) * def.recoilYaw * (this.ads ? 0.30 : 0.85) * streakMul;
-    this.player.yaw += yawAdd;
+    // No primeiro tiro: zero horizontal. Em spray: leve oscilação previsível
+    if (this.fireStreak > 0) {
+      const yawBias = def.recoilYawBias ?? 0.5;
+      const yawScale = this.ads ? 0.20 : 0.60;
+      const yawAdd = yawBias * def.recoilYaw * yawScale * streakMul;
+      this.player.yaw += yawAdd;
+    }
     
-    const kickbackZ = def.kickbackZ ?? (def.id === 'm249' ? 0.055 : def.id === 'uzi' ? 0.022 : 0.035);
-    const kickRot = def.kickRotFactor ?? (def.id === 'm249' ? 2.8 : 2.2);
-    this.viewmodel.applyKick(def.recoilPitch * streakMul, 0, kickbackZ, kickRot);
+    const kickbackZ = def.kickbackZ ?? (def.id === 'm249' ? 0.010 : def.id === 'uzi' ? 0.006 : 0.008);
+    const kickRot = def.kickRotFactor ?? 1.5;
+    this.viewmodel.applyKick(def.recoilPitch * streakMul, 0, kickbackZ, kickRot, this.ads);
     this.viewmodel.flash();
+
     // Raycast do tiro & Posições de Câmera
     this.camera.getWorldPosition(_camPos);
     this.camera.getWorldQuaternion(_quat);
@@ -225,15 +227,9 @@ export class WeaponSystem {
     const a = Math.random() * Math.PI * 2;
     const m = Math.random() * spread;
     
-    // No ADS, o projétil segue precisamente o alinhamento da alça/massa de mira (Viewmodel)
-    // No Hipfire, o sway influencia o desvio orgânico
-    const swayYawFactor = this.ads ? -1.0 : -0.5;
-    const swayPitchFactor = this.ads ? 1.0 : 0.5;
-    const swayYaw = this.viewmodel.swayGroup.rotation.y * swayYawFactor;
-    const swayPitch = this.viewmodel.swayGroup.rotation.x * swayPitchFactor;
-    
-    _dir.addScaledVector(_right, Math.cos(a) * m + swayYaw)
-        .addScaledVector(_up, Math.sin(a) * m + swayPitch)
+    // Onde a mira aponta o tiro vai: sem distorções de sway somadas no vetor do tiro!
+    _dir.addScaledVector(_right, Math.cos(a) * m)
+        .addScaledVector(_up, Math.sin(a) * m)
         .normalize();
 
     // Alvos: parede + bots

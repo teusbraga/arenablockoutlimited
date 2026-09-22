@@ -39,9 +39,11 @@ export class Viewmodel {
     this.lastPitch = 0;
     this.smoothMag = 0;
 
-    // Recoil físico reativo
+    // Recoil físico reativo (ombro firme, cano sobe e volta rápido)
     this.kickPos = new THREE.Vector3();
     this.kickRotX = 0;
+    this.basePos = new THREE.Vector3();
+    this.baseRot = new THREE.Vector3();
 
     // Registro de modelos disponíveis
     this.models = {};
@@ -66,18 +68,23 @@ export class Viewmodel {
     }
   }
 
-  applyKick(pitch, yaw, customKickbackZ = 0.035, customKickRot = 2.2) {
-    this.kickRotX -= pitch * customKickRot;
-    this.kickPos.z += customKickbackZ;
-    // Clamp: arma nunca recua além de 0.055 m (não some do FOV)
-    // Calculado com base no hipPos.z mais próximo da câmera (-0.28) — margem segura de 0.055
-    this.kickPos.z  = Math.min(this.kickPos.z,  0.055);
-    // Clamp do pitch do viewmodel: visualmente realista, nunca aponta para cima
-    this.kickRotX = Math.max(this.kickRotX, -0.32);
+  applyKick(pitch, yaw, customKickbackZ = 0.008, customKickRot = 1.5, isADS = false) {
+    // Cano sobe: rotação positiva em X eleva a ponta do cano e apoia a coronha
+    const rotScale = isADS ? 0.35 : 1.0;
+    const posScale = isADS ? 0.30 : 1.0;
+
+    this.kickRotX += Math.max(pitch * customKickRot * rotScale, 0.015 * rotScale);
+    // Limite máximo de rotação do cano (nunca aponta para o céu, mantendo mira no horizonte)
+    this.kickRotX = Math.min(this.kickRotX, isADS ? 0.035 : 0.075);
+
+    // Recuo seco para trás (ombro firme com osso, arma NÃO afunda na cara do jogador)
+    this.kickPos.z += customKickbackZ * posScale;
+    this.kickPos.z = Math.min(this.kickPos.z, isADS ? 0.003 : 0.008);
   }
 
   /**
    * Atualiza a física de mola e oscilação orgânica da arma baseado no movimento e respiração.
+   * Suave e discreto para não prejudicar a mira ou causar enjoo.
    */
   applySwayFromLook(dt, yaw, pitch, isADS, isSprinting, playerVel) {
     let dYaw = yaw - this.lastYaw;
@@ -90,55 +97,56 @@ export class Viewmodel {
     this.lastYaw = yaw;
     this.lastPitch = pitch;
 
-    const adsMul = isADS ? 0.1 : 1;
-    const sprintMul = isSprinting ? 1.5 : 1;
+    // No ADS, o sway é reduzido a quase zero (estabilização tática)
+    const adsMul = isADS ? 0.06 : 0.70;
+    const sprintMul = isSprinting ? 1.3 : 1.0;
     const mul = adsMul * sprintMul;
 
-    // Mouse Sway (Mola amortecida - Spring-Damper)
-    this.swayVel.x += (-dYaw   * 15 - this.swayPos.x * 25 - this.swayVel.x * 8) * mul * dt;
-    this.swayVel.y += ( dPitch * 15 - this.swayPos.y * 25 - this.swayVel.y * 8) * mul * dt;
+    // Mouse Sway suave com retorno amortecido
+    this.swayVel.x += (-dYaw   * 12 - this.swayPos.x * 22 - this.swayVel.x * 9) * mul * dt;
+    this.swayVel.y += ( dPitch * 12 - this.swayPos.y * 22 - this.swayVel.y * 9) * mul * dt;
     this.swayPos.x += this.swayVel.x * dt;
     this.swayPos.y += this.swayVel.y * dt;
 
-    // Walking Bob (Trajetória orgânica em 8 ao andar/correr)
+    // Walking Bob suave
     const speed = Math.hypot(playerVel.x, playerVel.z);
     const time = performance.now() / 1000;
     
-    const bobFreq = speed > 0.1 ? (isSprinting ? 12 : 8) : 0;
-    const bobAmt = (speed > 0.1 ? (isSprinting ? 0.03 : 0.015) : 0) * (isADS ? 0.25 : 1);
+    const bobFreq = speed > 0.1 ? (isSprinting ? 11 : 7.5) : 0;
+    const bobAmt = (speed > 0.1 ? (isSprinting ? 0.018 : 0.009) : 0) * (isADS ? 0.15 : 1);
     
     const bobX = Math.sin(time * bobFreq) * bobAmt;
     const bobY = Math.abs(Math.cos(time * bobFreq)) * bobAmt;
 
-    // Oscilação de Respiração / ADS Float (Curva multi-harmônica de Lissajous)
+    // Respiração suave (ADS praticamente estático)
     let idleRotX, idleRotY, idlePosX, idlePosY;
     if (isADS) {
-      idleRotY = (Math.sin(time * 1.8) * 0.007 + Math.sin(time * 3.1) * 0.003);
-      idleRotX = (Math.cos(time * 1.3) * 0.006 + Math.cos(time * 2.7) * 0.002);
-      idlePosX = Math.sin(time * 1.8) * 0.0018;
-      idlePosY = Math.cos(time * 1.3) * 0.0014;
+      idleRotY = Math.sin(time * 1.5) * 0.0015;
+      idleRotX = Math.cos(time * 1.2) * 0.0015;
+      idlePosX = Math.sin(time * 1.5) * 0.0004;
+      idlePosY = Math.cos(time * 1.2) * 0.0004;
     } else {
-      idleRotY = Math.sin(time * 1.5) * 0.008;
-      idleRotX = Math.cos(time * 1.2) * 0.008;
-      idlePosX = Math.sin(time * 1.5) * 0.003;
-      idlePosY = Math.cos(time * 1.2) * 0.003;
+      idleRotY = Math.sin(time * 1.4) * 0.005;
+      idleRotX = Math.cos(time * 1.1) * 0.005;
+      idlePosX = Math.sin(time * 1.4) * 0.002;
+      idlePosY = Math.cos(time * 1.1) * 0.002;
     }
 
-    // Aplica Rotações
-    this.swayGroup.rotation.y = this.swayPos.x * 0.7 + idleRotY;
-    this.swayGroup.rotation.x = this.swayPos.y * 0.7 + idleRotX;
-    this.swayGroup.rotation.z = -this.swayPos.x * 0.4;
+    // Aplica Rotações no grupo de sway
+    this.swayGroup.rotation.y = this.swayPos.x * 0.5 + idleRotY;
+    this.swayGroup.rotation.x = this.swayPos.y * 0.5 + idleRotX;
+    this.swayGroup.rotation.z = -this.swayPos.x * 0.25;
     
-    // Aplica Posições (Bobbing + Sway offset + ADS Float)
-    this.swayGroup.position.x = this.swayPos.x * 0.15 + bobX + idlePosX;
-    this.swayGroup.position.y = this.swayPos.y * 0.15 + bobY + idlePosY - (speed > 0.1 ? 0.01 : 0);
+    // Aplica Posições
+    this.swayGroup.position.x = this.swayPos.x * 0.10 + bobX + idlePosX;
+    this.swayGroup.position.y = this.swayPos.y * 0.10 + bobY + idlePosY - (speed > 0.1 ? 0.005 : 0);
 
     const mag = Math.hypot(this.swayPos.x, this.swayPos.y);
     this.smoothMag += (mag - this.smoothMag) * Math.min(dt * 6, 1);
   }
 
   getSpreadFromSway() { 
-    return Math.min(this.smoothMag * 0.12, 0.024); 
+    return Math.min(this.smoothMag * 0.05, 0.012); 
   }
 
   /**
@@ -154,34 +162,44 @@ export class Viewmodel {
     if (isADS) { tPos = this._adsPos(def); tRot = def.adsRot; }
     else if (isSprinting) { tPos = def.sprintPos; tRot = def.sprintRot; }
 
-    const k = Math.min(dt * (isADS ? (8 + adsAmount * 14) : 9), 1);
-    mount.position.x += (tPos[0] - mount.position.x) * k;
-    mount.position.y += (tPos[1] - mount.position.y) * k;
-    mount.position.z += (tPos[2] - mount.position.z) * k;
-    mount.rotation.x += (tRot[0] - mount.rotation.x) * k;
-    mount.rotation.y += (tRot[1] - mount.rotation.y) * k;
-    mount.rotation.z += (tRot[2] - mount.rotation.z) * k;
+    // Interpola a pose base (sem somar offsets de recoil diretamente na pose base)
+    const k = Math.min(dt * (isADS ? (12 + adsAmount * 12) : 10), 1);
+    this.basePos.x += (tPos[0] - this.basePos.x) * k;
+    this.basePos.y += (tPos[1] - this.basePos.y) * k;
+    this.basePos.z += (tPos[2] - this.basePos.z) * k;
 
-    // Recoil decai suavemente
-    this.kickPos.z *= Math.max(0, 1 - dt * 14);
-    this.kickRotX *= Math.max(0, 1 - dt * 14);
-    mount.position.z += this.kickPos.z;
-    mount.rotation.x += this.kickRotX;
+    this.baseRot.x += (tRot[0] - this.baseRot.x) * k;
+    this.baseRot.y += (tRot[1] - this.baseRot.y) * k;
+    this.baseRot.z += (tRot[2] - this.baseRot.z) * k;
 
-    // Animação de Recarregamento (Reload Dip)
+    // Recoil decai rapidamente de forma exponencial para a posição neutra
+    const decay = Math.exp(-dt * 24);
+    this.kickPos.z *= decay;
+    this.kickRotX  *= decay;
+
+    // Atribui posição combinada final: pose base + recoil offset
+    mount.position.x = this.basePos.x;
+    mount.position.y = this.basePos.y;
+    mount.position.z = this.basePos.z + this.kickPos.z;
+
+    mount.rotation.x = this.baseRot.x + this.kickRotX;
+    mount.rotation.y = this.baseRot.y;
+    mount.rotation.z = this.baseRot.z;
+
+    // Animação de Recarregamento (Reload Dip suave)
     if (reloadProgress > 0) {
       const dip = Math.sin(reloadProgress * Math.PI);
-      mount.position.y -= dip * 0.16;
-      mount.rotation.x += dip * 0.55;
+      mount.position.y -= dip * 0.12;
+      mount.rotation.x += dip * 0.40;
     }
 
     // Transição suave de saque (Draw animation)
     if (this.drawAmount > 0) {
-      this.drawAmount = Math.max(0, this.drawAmount - dt * 4.5);
+      this.drawAmount = Math.max(0, this.drawAmount - dt * 5.0);
       const ease = Math.pow(this.drawAmount, 2);
-      mount.position.y -= ease * 0.22;
-      mount.rotation.x -= ease * 0.45;
-      mount.rotation.z += ease * 0.20;
+      mount.position.y -= ease * 0.18;
+      mount.rotation.x -= ease * 0.35;
+      mount.rotation.z += ease * 0.15;
     }
   }
 

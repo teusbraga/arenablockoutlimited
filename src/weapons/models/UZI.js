@@ -25,9 +25,11 @@ export function buildUZI() {
   const topCover = new THREE.Mesh(new THREE.BoxGeometry(0.034, 0.012, 0.21), M_PARKERIZED);
   topCover.position.set(0, 0.038, -0.05);
 
-  // Botão de armar superior (Top Charging Handle)
-  const charger = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.014, 10), M_PARKERIZED);
-  charger.position.set(0, 0.048, -0.03);
+  // Botão de armar superior (Charging Handle com canaleta central vazada para visada limpa)
+  const chargerL = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.009, 0.018), M_PARKERIZED);
+  chargerL.position.set(-0.009, 0.045, -0.03);
+  const chargerR = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.009, 0.018), M_PARKERIZED);
+  chargerR.position.set(0.009, 0.045, -0.03);
 
   // Janela de ejeção lateral direita
   const ejector = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.016, 0.038), M_PARKERIZED);
@@ -75,31 +77,31 @@ export function buildUZI() {
   const stockBarR = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.006, 0.16), M_WIRE_STOCK);
   stockBarR.position.set(0.019, -0.010, -0.04);
 
-  // 5. Conjunto de Miras UZI com Aletas Protetoras
-  // Alça de mira traseira (Rear Sight Aperture)
-  const rearWingL = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.014, 0.006), M_PARKERIZED);
-  rearWingL.position.set(-0.010, 0.046, 0.045);
-  const rearWingR = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.014, 0.006), M_PARKERIZED);
-  rearWingR.position.set(0.010, 0.046, 0.045);
-  const rearPost = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.008, 0.004), M_PARKERIZED);
-  rearPost.position.set(0, 0.044, 0.045);
+  // 5. Conjunto de Miras UZI Limpo (Clean Peep / U-Notch Sight Picture)
+  // Alça de mira traseira: base baixa + aletas laterais finas deixando vão central aberto
+  const rearBase = new THREE.Mesh(new THREE.BoxGeometry(0.020, 0.005, 0.006), M_PARKERIZED);
+  rearBase.position.set(0, 0.043, 0.045);
+  const rearWingL = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.015, 0.006), M_PARKERIZED);
+  rearWingL.position.set(-0.009, 0.051, 0.045);
+  const rearWingR = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.015, 0.006), M_PARKERIZED);
+  rearWingR.position.set(0.009, 0.051, 0.045);
 
-  // Massa de mira frontal (Front Sight Post com Trítio Verde)
+  // Massa de mira dianteira: aletas curvas com pino e ponto de trítio verde brilhante
   const frontWingL = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.016, 0.006), M_PARKERIZED);
-  frontWingL.position.set(-0.009, 0.044, -0.15);
+  frontWingL.position.set(-0.011, 0.049, -0.15);
   const frontWingR = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.016, 0.006), M_PARKERIZED);
-  frontWingR.position.set(0.009, 0.044, -0.15);
-  const frontPost = new THREE.Mesh(new THREE.CylinderGeometry(0.002, 0.002, 0.012, 8), M_PARKERIZED);
-  frontPost.position.set(0, 0.044, -0.15);
-  const frontDot = new THREE.Mesh(new THREE.SphereGeometry(0.0022, 8, 8), M_TRIT);
-  frontDot.position.set(0, 0.049, -0.15);
+  frontWingR.position.set(0.011, 0.049, -0.15);
+  const frontPost = new THREE.Mesh(new THREE.CylinderGeometry(0.0012, 0.0012, 0.011, 8), M_PARKERIZED);
+  frontPost.position.set(0, 0.048, -0.15);
+  const frontDot = new THREE.Mesh(new THREE.SphereGeometry(0.0022, 10, 10), M_TRIT);
+  frontDot.position.set(0, 0.053, -0.15);
 
   g.add(
-    receiver, topCover, charger, ejector,
+    receiver, topCover, chargerL, chargerR, ejector,
     barrelNut, barrel,
     grip, mag, guard, trigger, gripSafety, foregrip,
     stockBarL, stockBarR,
-    rearWingL, rearWingR, rearPost,
+    rearBase, rearWingL, rearWingR,
     frontWingL, frontWingR, frontPost, frontDot
   );
 
