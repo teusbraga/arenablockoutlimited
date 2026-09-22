@@ -171,7 +171,9 @@ export class WeaponSystem {
     const yawDir = (this.fireStreak % 2 === 0 ? 1 : -1);
     this.player.yaw += yawDir * def.recoilYaw * (this.ads ? 0.36 : 1) * streakMul * (0.6 + Math.random() * 0.5);
     
-    this.viewmodel.applyKick(def.recoilPitch * streakMul, 0);
+    const kickbackZ = def.kickbackZ ?? (def.id === 'm249' ? 0.055 : def.id === 'uzi' ? 0.022 : 0.035);
+    const kickRot = def.kickRotFactor ?? (def.id === 'm249' ? 2.8 : 2.2);
+    this.viewmodel.applyKick(def.recoilPitch * streakMul, 0, kickbackZ, kickRot);
     this.viewmodel.flash();
     // Calcula muzzle em coords de mundo a partir do mount do viewmodel
 	const mz = def.muzzleLocal || [0, 0.02, -0.5];
@@ -240,6 +242,7 @@ export class WeaponSystem {
 	emit('shot:tracer', {
 		from: muzzleWorld,
 		to: impactPoint,
+		color: def.tracerColor,
 	});
   }
 }

@@ -66,9 +66,9 @@ export class Viewmodel {
     }
   }
 
-  applyKick(pitch, yaw) {
-    this.kickRotX -= pitch * 2.2;
-    this.kickPos.z += 0.035;
+  applyKick(pitch, yaw, customKickbackZ = 0.035, customKickRot = 2.2) {
+    this.kickRotX -= pitch * customKickRot;
+    this.kickPos.z += customKickbackZ;
   }
 
   /**

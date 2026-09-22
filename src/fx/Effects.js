@@ -60,7 +60,7 @@ export class Effects {
   }
 
   _bind() {
-    on('shot:tracer', e => this._spawnTracer(e.from, e.to));
+    on('shot:tracer', e => this._spawnTracer(e.from, e.to, e.color));
     on('shot:world', e => this._spawnImpact(e.point, 0xd9c79b, 5));
     on('shot:bot', e => this._spawnImpact(e.point, e.headshot ? 0xffd166 : 0xc4504a, 6));
     on('bot:died', e => {
@@ -73,7 +73,7 @@ export class Effects {
     });
   }
 
-  _spawnTracer(from, to) {
+  _spawnTracer(from, to, color = null) {
     const t = this.tracers[this.tracerIdx];
     this.tracerIdx = (this.tracerIdx + 1) % MAX_TRACERS;
 
@@ -81,6 +81,12 @@ export class Effects {
     positions[0] = from.x; positions[1] = from.y; positions[2] = from.z;
     positions[3] = to.x;   positions[4] = to.y;   positions[5] = to.z;
     t.line.geometry.attributes.position.needsUpdate = true;
+
+    if (color) {
+      t.line.material.color.set(color);
+    } else {
+      t.line.material.color.setHex(0xffd27f);
+    }
 
     t.line.material.opacity = 0.9;
     t.line.visible = true;

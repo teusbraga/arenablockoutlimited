@@ -24,6 +24,8 @@
       "audioKey": "shot_hk416",
       "sightLocal": [0, 0.076, -0.26],
       "muzzleLocal": [0, 0.018, -0.51],
+      "kickbackZ": 0.035,
+      "tracerColor": "#ffd27f",
       "mods": ["heavyBarrel"]
     },
     "uzi": {
@@ -50,6 +52,8 @@
       "audioKey": "shot_uzi",
       "sightLocal": [0, 0.048, -0.18],
       "muzzleLocal": [0, 0.024, -0.32],
+      "kickbackZ": 0.020,
+      "tracerColor": "#55ff88",
       "mods": ["lightGrip"]
     },
     "m249": {
@@ -76,6 +80,8 @@
       "audioKey": "shot_m249",
       "sightLocal": [0, 0.082, -0.28],
       "muzzleLocal": [0, 0.022, -0.58],
+      "kickbackZ": 0.055,
+      "tracerColor": "#ffaa33",
       "mods": ["heavyBarrel"]
     },
     "p9": {
@@ -102,6 +108,8 @@
       "audioKey": "shot_p9",
       "sightLocal": [0, 0.036, -0.083],
       "muzzleLocal": [0, 0.014, -0.11],
+      "kickbackZ": 0.022,
+      "tracerColor": "#ffea70",
       "mods": []
     }
   },

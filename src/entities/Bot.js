@@ -136,11 +136,8 @@ export class Bot extends Character {
 
   respawn() {
     super.respawn();
-    const a = Math.random() * Math.PI * 2;
-    const r = 8 + Math.random() * 10;
-    this.pos.set(Math.cos(a) * r, 0.5, Math.sin(a) * r);
     this.root.visible = true;
-    this.root.position.copy(this.pos);
+    this.floatTime = Math.random() * 10;
   }
 
   /** Retorna as malhas de hitbox ativas */
