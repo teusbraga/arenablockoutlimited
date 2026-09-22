@@ -32,6 +32,8 @@ export class WeaponSystem {
     this.lastShotTime = -10;
 
     this.raycaster = new THREE.Raycaster();
+    this.sprayBullets = 0;
+    this.lastShotTimestamp = 0;
 
     this._equip(this.inventory[0], true);
   }
@@ -123,6 +125,32 @@ export class WeaponSystem {
 
     if (this.ammo === 0 && !this.reloading) this.reload();
 
+    // ── Detecção de Término de Spray (Fumaça Residual de Calor) ─────────────
+    // Se o jogador cessou o fogo após uma rajada, solta de 0 a 6 fumaças subindo da boca do cano
+    const nowSec = performance.now() / 1000;
+    if (this.sprayBullets > 0) {
+      const ceaseDelay = Math.max(def.fireInterval * 1.4, 0.14);
+      if (!wantsFire || (nowSec - this.lastShotTimestamp) > ceaseDelay || this.reloading || this.ammo === 0) {
+        const magSize = def.magSize || 30;
+        // 45% do pente disparado em spray já alcança aquecimento máximo
+        const heatRatio = Math.min(1, this.sprayBullets / (magSize * 0.45));
+        const maxResidual = def.smokeResidualMax ?? 5;
+        const count = Math.round(heatRatio * maxResidual);
+
+        if (count > 0) {
+          const mz = def.muzzleLocal || [0, 0.02, -0.5];
+          const muzzleLocal = new THREE.Vector3(mz[0], mz[1], mz[2]);
+          const muzzleWorld = this.viewmodel.mount.localToWorld(muzzleLocal.clone());
+          emit('weapon:smoke:residual', {
+            muzzleWorld,
+            count,
+            color: def.smokeResidualColor
+          });
+        }
+        this.sprayBullets = 0;
+      }
+    }
+
     // ── Recuperação Elástica do Recoil da Câmera ────────────────────────────
     // A câmera volta ao centro suavemente de maneira fluida e contínua
     if ((this._recoilDebt || 0) > 0.0001) {
@@ -166,6 +194,9 @@ export class WeaponSystem {
     emit('weapon:ammo', { ammo: this.ammo, max: def.magSize });
 
     const now = performance.now() / 1000;
+    this.sprayBullets = (this.sprayBullets || 0) + 1;
+    this.lastShotTimestamp = now;
+
     const streakDelay = CONFIG.GUNPLAY?.fireStreakDecayDelay ?? 0.20;
     const maxStreak   = CONFIG.GUNPLAY?.maxFireStreak ?? 8;
     const streakFactor = CONFIG.GUNPLAY?.fireStreakMultiplier ?? 0.08;

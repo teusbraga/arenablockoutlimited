@@ -27,6 +27,9 @@
       "muzzleLocal": [0, 0.018, -0.51],
       "kickbackZ": 0.008,
       "tracerColor": "#ffd27f",
+      "smokeConeOpacity": 0.06,
+      "smokeResidualMax": 5,
+      "smokeResidualColor": "#d2d8e0",
       "mods": ["heavyBarrel"]
     },
     "uzi": {
@@ -56,6 +59,9 @@
       "muzzleLocal": [0, 0.012, -0.22],
       "kickbackZ": 0.006,
       "tracerColor": "#55ff88",
+      "smokeConeOpacity": 0.05,
+      "smokeResidualMax": 5,
+      "smokeResidualColor": "#cfd6df",
       "mods": ["lightGrip"]
     },
     "m249": {
@@ -85,6 +91,9 @@
       "muzzleLocal": [0, 0.022, -0.58],
       "kickbackZ": 0.010,
       "tracerColor": "#ffaa33",
+      "smokeConeOpacity": 0.08,
+      "smokeResidualMax": 6,
+      "smokeResidualColor": "#e0e4eb",
       "mods": ["heavyBarrel"]
     },
     "p9": {
@@ -114,6 +123,9 @@
       "muzzleLocal": [0, 0.014, -0.11],
       "kickbackZ": 0.005,
       "tracerColor": "#ffea70",
+      "smokeConeOpacity": 0.04,
+      "smokeResidualMax": 2,
+      "smokeResidualColor": "#ccd1d9",
       "mods": []
     }
   },

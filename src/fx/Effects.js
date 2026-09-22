@@ -70,7 +70,12 @@ export class Effects {
     });
     on('weapon:fired', e => {
       if (!e.muzzleWorld) return;
-      this._spawnMuzzleSmoke(e.muzzleWorld, e.forward);
+      const opacity = e.weapon?.smokeConeOpacity ?? 0.06;
+      this._spawnMuzzleSmoke(e.muzzleWorld, e.forward, opacity);
+    });
+    on('weapon:smoke:residual', e => {
+      if (!e.muzzleWorld || !e.count) return;
+      this._spawnBarrelHeatSmoke(e.muzzleWorld, e.count, e.color);
     });
   }
 
@@ -117,24 +122,66 @@ export class Effects {
     }
   }
 
-  _spawnMuzzleSmoke(muzzlePos, forward) {
-    for (let i = 0; i < 4; i++) {
+  // 1. Cone de fumaça frontal durante o disparo (quase totalmente translúcida)
+  _spawnMuzzleSmoke(muzzlePos, forward, maxOpacity = 0.06) {
+    for (let i = 0; i < 3; i++) {
       const p = this.smokes[this.smokeIdx];
       this.smokeIdx = (this.smokeIdx + 1) % MAX_SMOKE;
 
       p.mesh.position.copy(muzzlePos);
-      p.startScale = 1.2 + Math.random() * 1.2;
+      p.startScale = 0.6 + Math.random() * 0.5;
       p.mesh.scale.setScalar(p.startScale);
-      p.mesh.material.opacity = 0.6;
+      p.maxOpacity = maxOpacity;
+      p.mesh.material.opacity = maxOpacity;
       p.mesh.visible = true;
       
-      p.vel.copy(forward).multiplyScalar(1.4 + Math.random() * 1.2).add(new THREE.Vector3(
-        (Math.random() - 0.5) * 0.5,
-        0.5 + Math.random() * 0.4,
-        (Math.random() - 0.5) * 0.5
+      // Projeção em cone para frente com leve abertura
+      const spread = 0.35;
+      p.vel.copy(forward).multiplyScalar(2.2 + Math.random() * 1.5).add(new THREE.Vector3(
+        (Math.random() - 0.5) * spread,
+        (Math.random() - 0.5) * spread + 0.1,
+        (Math.random() - 0.5) * spread
       ));
       
-      p.growth = 1.8 + Math.random() * 1.5;
+      p.growth = 2.2 + Math.random() * 1.0;
+      p.maxLife = 0.28 + Math.random() * 0.12; // evaporação rápida no ar
+      p.life = p.maxLife;
+      p.active = true;
+    }
+  }
+
+  // 2. Fumaça de calor residual do cano quente ao término de spray (flutua suavemente para cima)
+  _spawnBarrelHeatSmoke(muzzlePos, count = 3, color = null) {
+    const total = Math.min(count, 6);
+    for (let i = 0; i < total; i++) {
+      const p = this.smokes[this.smokeIdx];
+      this.smokeIdx = (this.smokeIdx + 1) % MAX_SMOKE;
+
+      // Leve atraso e deslocamento natural ao redor da boca do cano
+      const jitter = 0.015;
+      p.mesh.position.set(
+        muzzlePos.x + (Math.random() - 0.5) * jitter,
+        muzzlePos.y + (Math.random() - 0.5) * jitter,
+        muzzlePos.z + (Math.random() - 0.5) * jitter
+      );
+
+      if (color) p.mesh.material.color.set(color);
+
+      p.startScale = 0.4 + Math.random() * 0.3;
+      p.mesh.scale.setScalar(p.startScale);
+      p.maxOpacity = 0.18 + Math.random() * 0.10; // translúcida, perceptível e graciosa
+      p.mesh.material.opacity = p.maxOpacity;
+      p.mesh.visible = true;
+
+      // Flutuação ascendente (corrente térmica de ar quente)
+      p.vel.set(
+        (Math.random() - 0.5) * 0.15,
+        0.35 + Math.random() * 0.30, // sobe em Y
+        (Math.random() - 0.5) * 0.15
+      );
+
+      p.growth = 3.0 + Math.random() * 1.5;
+      p.maxLife = 0.70 + Math.random() * 0.40; // persiste suavemente
       p.life = p.maxLife;
       p.active = true;
     }
@@ -197,7 +244,7 @@ export class Effects {
       p.mesh.position.addScaledVector(p.vel, dt);
       const grow = 1 + (1 - t) * p.growth;
       p.mesh.scale.setScalar(p.startScale * grow);
-      p.mesh.material.opacity = t * t * 0.6;
+      p.mesh.material.opacity = t * t * (p.maxOpacity || 0.6);
     }
   }
 }
