@@ -10,7 +10,7 @@ const _right = new THREE.Vector3();
 const _up = new THREE.Vector3();
 
 export class WeaponSystem {
-  constructor({ camera, viewmodel, input, player, world, botsProvider }) {
+  constructor({ camera, viewmodel, input, player, world, botsProvider, inventory }) {
     this.camera = camera;
     this.viewmodel = viewmodel;
     this.input = input;
@@ -19,7 +19,7 @@ export class WeaponSystem {
     this.botsProvider = botsProvider;
 
     // Inventário dinâmico baseado nas armas carregadas do weapons.json
-    this.inventory = (options && options.inventory) || (Object.keys(WEAPONS).length > 0 ? Object.keys(WEAPONS) : ['ar15', 'p9']);
+    this.inventory = inventory || (Object.keys(WEAPONS).length > 0 ? Object.keys(WEAPONS) : ['ar15', 'p9']);
     this.currentIndex = 0;
     this.current = null;
     this.ammo = 0;
