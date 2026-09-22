@@ -137,27 +137,33 @@
     background: rgba(232,147,58,0.45); border-color: var(--accent);
     transform: scale(0.92);
   }
+  /* Botão de Tiro afastado da borda com ampla área para mira/drag */
   #btn-touch-fire {
-    right: 28px; bottom: 78px; width: 72px; height: 72px;
-    font-size: 15px; border-color: var(--accent); background: rgba(232,147,58,0.22);
+    right: 85px; bottom: 85px; width: 76px; height: 76px;
+    font-size: 15px; border-color: var(--accent); background: rgba(232,147,58,0.25);
+    box-shadow: 0 0 12px rgba(232,147,58,0.2);
   }
   #btn-touch-ads {
-    right: 114px; bottom: 112px; width: 54px; height: 54px;
+    right: 176px; bottom: 108px; width: 54px; height: 54px;
   }
   #btn-touch-jump {
-    right: 32px; bottom: 168px; width: 50px; height: 50px;
+    right: 22px; bottom: 168px; width: 52px; height: 52px;
   }
   #btn-touch-crouch {
-    right: 114px; bottom: 50px; width: 48px; height: 48px; font-size: 11px;
+    right: 22px; bottom: 88px; width: 48px; height: 48px; font-size: 11px;
   }
   #btn-touch-reload {
-    right: 175px; bottom: 42px; width: 48px; height: 48px; font-size: 11px;
+    right: 176px; bottom: 44px; width: 48px; height: 48px; font-size: 11px;
   }
   #btn-touch-cycle {
-    right: 28px; top: 76px; width: 46px; height: 46px; font-size: 11px; border-radius: 6px;
+    right: 24px; top: 76px; width: 46px; height: 46px; font-size: 11px; border-radius: 6px;
   }
   #btn-touch-interact {
-    right: 84px; top: 76px; width: 46px; height: 46px; font-size: 11px; border-radius: 6px;
+    right: 80px; top: 76px; width: 46px; height: 46px; font-size: 11px; border-radius: 6px;
+  }
+  #btn-touch-pause {
+    left: 16px; top: 16px; width: 44px; height: 44px; font-size: 16px; border-radius: 8px;
+    background: rgba(18,22,26,0.85); border-color: rgba(255,255,255,0.3);
   }
 
   /* Aviso de Orientação Horizontal para Celular */
@@ -247,6 +253,7 @@
   <button id="btn-touch-reload" class="touch-btn">RELOAD</button>
   <button id="btn-touch-cycle" class="touch-btn">ARMA</button>
   <button id="btn-touch-interact" class="touch-btn">PORTA</button>
+  <button id="btn-touch-pause" class="touch-btn">⏸</button>
 </div>
 
 <!-- Alerta de Orientação Horizontal para Celular -->
@@ -278,6 +285,12 @@
       <option value="m249">M249 SAW (LMG 100 Tiros)</option>
       <option value="p9">P-9 (Pistola Tática)</option>
     </select>
+  </div>
+
+  <div class="menu-option" style="margin-top:10px;">
+    <label for="sens-slider">Sensibilidade:</label>
+    <input id="sens-slider" type="range" min="0.5" max="5.0" step="0.1" value="2.0" style="vertical-align:middle;">
+    <span id="sens-val" style="display:inline-block;min-width:38px;text-align:right;">2.0x</span>
   </div>
 
   <div class="menu-option" style="margin-top:10px;">

@@ -183,6 +183,23 @@ const effects = new Effects(scene);
       gameManager.setRoundDuration(s);
     });
 
+    // Controle Funcional de Sensibilidade (Desktop + Mobile)
+    const sensSlider = document.getElementById('sens-slider');
+    const sensSliderVal = document.getElementById('sens-val');
+    const savedSens = parseFloat(localStorage.getItem('blocky_sens') || (input.isMobile ? '2.0' : '1.2'));
+    if (sensSlider && sensSliderVal) {
+      sensSlider.value = savedSens;
+      sensSliderVal.textContent = `${savedSens.toFixed(1)}x`;
+      CONFIG.CAMERA.sensMultiplier = savedSens;
+
+      sensSlider.addEventListener('input', () => {
+        const val = parseFloat(sensSlider.value);
+        sensSliderVal.textContent = `${val.toFixed(1)}x`;
+        CONFIG.CAMERA.sensMultiplier = val;
+        localStorage.setItem('blocky_sens', val.toString());
+      });
+    }
+
     btnResume.addEventListener('click', async () => {
       await input.requestLock();
     });

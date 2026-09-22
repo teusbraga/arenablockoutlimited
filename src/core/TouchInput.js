@@ -1,9 +1,5 @@
-/**
- * TouchInput: Gerenciador de controles táteis para dispositivos móveis.
- * - Metade Esquerda: Analógico Virtual Dinâmico (Dynamic Floating Joystick) para movimentação WASD e Sprint.
- * - Metade Direita: Touchpad invisível para rotação livre de câmera (Yaw / Pitch).
- * - Botões Táteis: Atirar, Mirar (ADS), Pular, Agachar, Recarregar, Trocar Arma e Interagir.
- */
+import { emit } from './EventBus.js';
+import { CONFIG } from './Config.js';
 
 export class TouchInput {
   constructor(inputManager) {
@@ -133,11 +129,12 @@ export class TouchInput {
 
     this.touchZoneRight.addEventListener('touchmove', e => {
       e.preventDefault();
+      const sensFactor = 2.8 * (CONFIG.CAMERA?.sensMultiplier || 1.0);
       for (let i = 0; i < e.changedTouches.length; i++) {
         const t = e.changedTouches[i];
         if (t.identifier === this.lookTouchId) {
-          const deltaX = (t.clientX - this.lastLookPos.x) * 1.5;
-          const deltaY = (t.clientY - this.lastLookPos.y) * 1.5;
+          const deltaX = (t.clientX - this.lastLookPos.x) * sensFactor;
+          const deltaY = (t.clientY - this.lastLookPos.y) * sensFactor;
           this.lastLookPos = { x: t.clientX, y: t.clientY };
 
           this.input.mouse.dx += deltaX;
@@ -223,11 +220,12 @@ export class TouchInput {
       // Permite arrastar o dedo a partir do botão de tiro para rotacionar a mira
       const onFireTouchMove = e => {
         if (this.fireTouchId === null) return;
+        const sensFactor = 2.8 * (CONFIG.CAMERA?.sensMultiplier || 1.0);
         for (let i = 0; i < e.changedTouches.length; i++) {
           const t = e.changedTouches[i];
           if (t.identifier === this.fireTouchId) {
-            const deltaX = (t.clientX - this.lastFireLookPos.x) * 1.5;
-            const deltaY = (t.clientY - this.lastFireLookPos.y) * 1.5;
+            const deltaX = (t.clientX - this.lastFireLookPos.x) * sensFactor;
+            const deltaY = (t.clientY - this.lastFireLookPos.y) * sensFactor;
             this.lastFireLookPos = { x: t.clientX, y: t.clientY };
 
             this.input.mouse.dx += deltaX;
@@ -266,6 +264,19 @@ export class TouchInput {
           fireBtn.classList.remove('active');
         }
       });
+    }
+
+    // Botão de Pausa Mobile
+    const pauseBtn = document.getElementById('btn-touch-pause');
+    if (pauseBtn) {
+      const triggerPause = e => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.input.locked = false;
+        emit('input:lock', false);
+      };
+      pauseBtn.addEventListener('touchstart', triggerPause, { passive: false });
+      pauseBtn.addEventListener('click', triggerPause);
     }
 
     // Demais Botões de Ação Táteis
