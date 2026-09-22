@@ -115,7 +115,7 @@
   },
   "mods": {
     "heavyBarrel": { "id": "heavyBarrel", "recoilMul": 0.8, "adsTimeMul": 1.2, "spreadMul": 0.85 },
-    "lightGrip": { "id": "lightGrip", "adsTimeMul": 0.8, "sprintOutMul": 0.8, "spreadMul": 1.1 },
+    "lightGrip": { "id": "lightGrip", "adsTimeMul": 0.8, "spreadMul": 1.1 },
     "redDot": { "id": "redDot", "adsFov": 50, "adsSightDistance": 0.28 }
   }
 }

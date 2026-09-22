@@ -1,124 +1,12 @@
 /**
  * WeaponDefs: Registro e compilador de armas e attachments.
- * Suporta injeção data-driven via weapons.json com fallback de segurança.
+ * Fonte única de verdade: weapons.json — sem fallback hardcoded.
  */
 
-export let MODS = {
-  heavyBarrel: { id: 'heavyBarrel', recoilMul: 0.8, adsTimeMul: 1.2, spreadMul: 0.85 },
-  lightGrip: { id: 'lightGrip', adsTimeMul: 0.8, sprintOutMul: 0.8, spreadMul: 1.1 },
-  redDot: { id: 'redDot', adsFov: 50, adsSightDistance: 0.28 },
-};
+export let MODS = {};
 
-export let BASE_WEAPONS = {
-  ar15: {
-    id: 'ar15',
-    name: 'HK416',
-    auto: true,
-    damageBody: 24,
-    damageHead: 52,
-    fireInterval: 0.09,
-    magSize: 30,
-    reloadTime: 1.65,
-    spreadHip: 0.024,
-    spreadAds: 0.003,
-    recoilPitch: 0.011,
-    recoilYaw: 0.005,
-    adsFov: 55,
-    adsSightDistance: 0.26,
-    hipPos: [0.15, -0.16, -0.30],
-    hipRot: [0.06, -0.16, 0.05],
-    adsRot: [0, 0, 0],
-    sprintPos: [0.22, -0.26, -0.32],
-    sprintRot: [0.62, -0.45, 0.20],
-    audioKey: 'shot_hk416',
-    audioShot: { freqA: 180, freqB: 46, dur: 0.095, type: 'sawtooth', gain: 0.22 },
-    model: 'ar15',
-    sightLocal: [0, 0.076, -0.26],
-    muzzleLocal: [0, 0.018, -0.51],
-    mods: ['heavyBarrel']
-  },
-  p9: {
-    id: 'p9',
-    name: 'P-9',
-    auto: false,
-    damageBody: 40,
-    damageHead: 75,
-    fireInterval: 0.16,
-    magSize: 12,
-    reloadTime: 1.15,
-    spreadHip: 0.018,
-    spreadAds: 0.0025,
-    recoilPitch: 0.017,
-    recoilYaw: 0.006,
-    adsFov: 58,
-    adsSightDistance: 0.20,
-    hipPos: [0.13, -0.14, -0.28],
-    hipRot: [0.08, -0.17, 0.06],
-    adsRot: [0, 0, 0],
-    sprintPos: [0.18, -0.22, -0.28],
-    sprintRot: [0.48, -0.36, 0.14],
-    audioKey: 'shot_p9',
-    audioShot: { freqA: 260, freqB: 90, dur: 0.07, type: 'square', gain: 0.16 },
-    model: 'p9',
-    sightLocal: [0, 0.036, -0.083],
-    muzzleLocal: [0, 0.014, -0.11],
-    mods: []
-  },
-  uzi: {
-    id: 'uzi',
-    name: 'UZI',
-    auto: true,
-    damageBody: 18,
-    damageHead: 38,
-    fireInterval: 0.065,
-    magSize: 32,
-    reloadTime: 1.30,
-    spreadHip: 0.026,
-    spreadAds: 0.0035,
-    recoilPitch: 0.009,
-    recoilYaw: 0.007,
-    adsFov: 56,
-    adsSightDistance: 0.22,
-    hipPos: [0.14, -0.15, -0.28],
-    hipRot: [0.07, -0.15, 0.05],
-    adsRot: [0, 0, 0],
-    sprintPos: [0.20, -0.24, -0.30],
-    sprintRot: [0.55, -0.40, 0.16],
-    model: 'uzi',
-    audioKey: 'shot_uzi',
-    audioShot: { freqA: 290, freqB: 85, dur: 0.058, type: 'sawtooth', gain: 0.18 },
-    sightLocal: [0, 0.048, -0.18],
-    muzzleLocal: [0, 0.024, -0.32],
-    mods: ['lightGrip']
-  },
-  m249: {
-    id: 'm249',
-    name: 'M249 SAW',
-    auto: true,
-    damageBody: 28,
-    damageHead: 62,
-    fireInterval: 0.082,
-    magSize: 100,
-    reloadTime: 4.20,
-    spreadHip: 0.038,
-    spreadAds: 0.0028,
-    recoilPitch: 0.015,
-    recoilYaw: 0.006,
-    adsFov: 52,
-    adsSightDistance: 0.28,
-    hipPos: [0.16, -0.18, -0.32],
-    hipRot: [0.05, -0.16, 0.04],
-    adsRot: [0, 0, 0],
-    sprintPos: [0.24, -0.28, -0.35],
-    sprintRot: [0.65, -0.48, 0.22],
-    model: 'm249',
-    audioKey: 'shot_m249',
-    audioShot: { freqA: 140, freqB: 38, dur: 0.115, type: 'sawtooth', gain: 0.28 },
-    sightLocal: [0, 0.082, -0.28],
-    muzzleLocal: [0, 0.022, -0.58],
-    mods: ['heavyBarrel']
-  }
-};
+// BASE_WEAPONS inicia vazio; populado exclusivamente por initWeaponsFromData via weapons.json
+export let BASE_WEAPONS = {};
 
 export function compileWeapons(baseList = BASE_WEAPONS, modsList = MODS) {
   const compiled = {};
@@ -130,14 +18,18 @@ export function compileWeapons(baseList = BASE_WEAPONS, modsList = MODS) {
         if (!mod) continue;
         if (mod.recoilMul) {
           finalWep.recoilPitch *= mod.recoilMul;
-          finalWep.recoilYaw *= mod.recoilMul;
+          finalWep.recoilYaw   *= mod.recoilMul;
         }
         if (mod.spreadMul) {
           finalWep.spreadHip *= mod.spreadMul;
           finalWep.spreadAds *= mod.spreadMul;
         }
-        if (mod.adsFov) finalWep.adsFov = mod.adsFov;
-        if (mod.adsSightDistance) finalWep.adsSightDistance = mod.adsSightDistance;
+        if (mod.adsTimeMul && finalWep.reloadTime) {
+          // adsTimeMul escala o tempo de ADS (reloadTime usado como proxy até adsTime ser campo próprio)
+          finalWep.adsTimeMul = (finalWep.adsTimeMul ?? 1) * mod.adsTimeMul;
+        }
+        if (mod.adsFov)            finalWep.adsFov            = mod.adsFov;
+        if (mod.adsSightDistance)  finalWep.adsSightDistance  = mod.adsSightDistance;
       }
     }
     compiled[key] = finalWep;
@@ -145,19 +37,17 @@ export function compileWeapons(baseList = BASE_WEAPONS, modsList = MODS) {
   return compiled;
 }
 
-export let WEAPONS = compileWeapons();
+// Singleton — começa vazio, preenchido no boot via initWeaponsFromData
+export let WEAPONS = {};
 
 /**
- * Inicializa e sobrescreve as armas dinamicamente a partir dos dados lidos de weapons.json
+ * Inicializa WEAPONS a partir dos dados lidos de weapons.json.
+ * Deve ser chamado uma vez durante o boot, antes de qualquer uso de WEAPONS.
  */
 export function initWeaponsFromData(data) {
   if (!data) return WEAPONS;
-  if (data.mods) {
-    Object.assign(MODS, data.mods);
-  }
-  if (data.weapons) {
-    Object.assign(BASE_WEAPONS, data.weapons);
-  }
+  if (data.mods)    Object.assign(MODS,         data.mods);
+  if (data.weapons) Object.assign(BASE_WEAPONS, data.weapons);
   const compiled = compileWeapons(BASE_WEAPONS, MODS);
   for (const k in WEAPONS) delete WEAPONS[k];
   Object.assign(WEAPONS, compiled);
