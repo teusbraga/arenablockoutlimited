@@ -166,7 +166,7 @@ export class TouchInput {
       const el = document.getElementById(id);
       if (!el) return;
 
-      el.addEventListener('touchstart', e => {
+      const press = e => {
         e.preventDefault();
         e.stopPropagation();
         if (isToggle) {
@@ -177,16 +177,24 @@ export class TouchInput {
           this.input._actionQueue.add(action);
           el.classList.add('active');
         }
-      }, { passive: false });
+      };
 
-      if (!isToggle) {
-        const release = e => {
-          e.preventDefault();
+      const release = e => {
+        e.preventDefault();
+        if (!isToggle) {
           this.input.actions[action] = false;
           el.classList.remove('active');
-        };
+        }
+      };
+
+      el.addEventListener('touchstart', press, { passive: false });
+      el.addEventListener('mousedown', press);
+
+      if (!isToggle) {
         el.addEventListener('touchend', release);
         el.addEventListener('touchcancel', release);
+        el.addEventListener('mouseup', release);
+        el.addEventListener('mouseleave', release);
       }
     };
 

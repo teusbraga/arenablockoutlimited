@@ -22,6 +22,8 @@ export class Input {
       'Mouse2': 'ads',
       'KeyR': 'reload',
       'KeyQ': 'nextWeapon',
+      'Digit1': 'slot1',
+      'Digit2': 'slot2',
       'KeyE': 'interact'
     };
 
@@ -29,7 +31,8 @@ export class Input {
     this.actions = {
       forward: false, backward: false, left: false, right: false,
       jump: false, sprint: false, crouch: false,
-      fire: false, ads: false, reload: false, nextWeapon: false, interact: false
+      fire: false, ads: false, reload: false, nextWeapon: false,
+      slot1: false, slot2: false, interact: false
     };
 
     // Fila de intenções (ações discretas - one shot click)
@@ -52,7 +55,7 @@ export class Input {
         if (!this.actions[action]) this._actionQueue.add(action); // Registra apenas no primeiro frame
         this.actions[action] = true;
       }
-      if (['Space','KeyW','KeyA','KeyS','KeyD'].includes(e.code)) e.preventDefault();
+      if (['Space','KeyW','KeyA','KeyS','KeyD','KeyQ','KeyR','Digit1','Digit2'].includes(e.code)) e.preventDefault();
     });
 
     addEventListener('keyup', e => {

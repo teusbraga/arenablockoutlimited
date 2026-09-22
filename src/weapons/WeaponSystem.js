@@ -23,6 +23,7 @@ export class WeaponSystem {
     this.currentIndex = 0;
     this.current = null;
     this.ammo = 0;
+    this.ammoByWeapon = {};
     this.reloading = false;
     this.reloadT = 0;
     this.fireCooldown = 0;
@@ -38,17 +39,30 @@ export class WeaponSystem {
   get def() { return WEAPONS[this.current]; }
 
   _equip(id, instant = false) {
+    if (this.current) {
+      this.ammoByWeapon[this.current] = this.ammo;
+    }
     this.current = id;
-    this.ammo = WEAPONS[id].magSize;
+    if (this.ammoByWeapon[id] === undefined) {
+      this.ammoByWeapon[id] = WEAPONS[id].magSize;
+    }
+    this.ammo = this.ammoByWeapon[id];
     this.reloading = false;
+    this.reloadT = 0;
     this.viewmodel.equip(id);
     emit('weapon:equipped', { id, name: WEAPONS[id].name });
     emit('weapon:ammo', { ammo: this.ammo, max: WEAPONS[id].magSize });
   }
 
   cycle() {
-    if (this.reloading) return;
     this.currentIndex = (this.currentIndex + 1) % this.inventory.length;
+    this._equip(this.inventory[this.currentIndex]);
+    emit('weapon:cycle');
+  }
+
+  selectSlot(idx) {
+    if (idx < 0 || idx >= this.inventory.length || idx === this.currentIndex) return;
+    this.currentIndex = idx;
     this._equip(this.inventory[this.currentIndex]);
     emit('weapon:cycle');
   }
@@ -60,37 +74,55 @@ export class WeaponSystem {
     emit('weapon:reload:start');
   }
 
- update(dt) {
+  update(dt) {
     const def = this.def;
 
-    // ADS
+    // 1. Troca de arma (tecla Q, slots 1/2 ou botão mobile ARMA)
+    if (this.input.consumeAction('nextWeapon')) {
+      this.cycle();
+    }
+    if (this.input.consumeAction('slot1')) {
+      this.selectSlot(0);
+    }
+    if (this.input.consumeAction('slot2')) {
+      this.selectSlot(1);
+    }
+
+    // 2. Recarga manual (tecla R ou botão mobile RELOAD)
+    if (this.input.consumeAction('reload')) {
+      this.reload();
+    }
+
+    // 3. ADS
     this.ads = this.input.actions.ads && !this.player.sprinting && this.player.alive;
     const targetAds = this.ads ? 1 : 0;
     this.adsAmount += (targetAds - this.adsAmount) * Math.min(dt * 10, 1);
 
-    // ---- Reload progress — PRECISA rodar SEMPRE, mesmo recarregando ----
+    // 4. Progresso de Recarga
     if (this.reloading) {
       this.reloadT += dt;
       const p = this.reloadT / def.reloadTime;
       if (p >= 1) {
         this.reloading = false;
         this.ammo = def.magSize;
+        this.ammoByWeapon[this.current] = this.ammo;
         emit('weapon:ammo', { ammo: this.ammo, max: def.magSize });
         emit('weapon:reload:end');
       }
     }
 
-    // Firing
+    // 5. Disparo
     this.fireCooldown -= dt;
     if (!this.player.alive || this.reloading) return;
 
     const wantsFire = def.auto ? this.input.actions.fire : this.input.consumeAction('fire');
     if (wantsFire && this.fireCooldown <= 0 && this.ammo > 0 && !this.player.sprinting) {
       this._fire();
+      this.ammoByWeapon[this.current] = this.ammo;
     }
 
     if (this.ammo === 0 && !this.reloading) this.reload();
-}
+  }
 
   get reloadProgress() {
     if (!this.reloading) return 0;
