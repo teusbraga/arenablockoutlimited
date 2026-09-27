@@ -4,9 +4,10 @@ import { buildHK416 } from './models/HK416.js';
 import { buildP9 } from './models/P9.js';
 import { buildUZI } from './models/UZI.js';
 import { buildM249 } from './models/M249.js';
+import { buildRiflePrototype } from './models/RiflePrototype.js';
 
 // Re-exporta construtores para compatibilidade com main.js / WeaponRegistry
-export { buildHK416, buildHK416 as buildAR15, buildP9, buildUZI, buildM249 };
+export { buildHK416, buildHK416 as buildAR15, buildP9, buildUZI, buildM249, buildRiflePrototype };
 
 /**
  * Viewmodel: Gerenciador de pose, física de mola (sway), recuo e animações da arma em 1ª pessoa.
@@ -48,21 +49,42 @@ export class Viewmodel {
     // Registro de modelos disponíveis
     this.models = {};
     this.activeModel = null;
+
+    // Blowback do ferrolho (0 = recuado, 1 = fechado)
+    this._boltCycle = 1;
+    this._boltGroup = null;          // sub-group do modelo ativo, se existir
+    this._boltHomeZ = 0;             // posição Z de repouso do ferrolho
   }
 
   registerModel(weaponId, buildFn) {
-    const model = buildFn();
+    // Suporta builders que retornam Group diretamente OU { group, boltGroup }
+    const result    = buildFn();
+    const model     = result.group     ?? result;
+    const boltGroup = result.boltGroup ?? null;
+
     model.visible = false;
     this.mount.add(model);
-    this.models[weaponId] = model;
+    this.models[weaponId] = { mesh: model, boltGroup };
   }
 
   equip(weaponId) {
-    for (const k in this.models) this.models[k].visible = false;
-    // Usa o modelo registrado ou faz fallback para não ficar invisível
-    this.activeModel = this.models[weaponId] || this.models['ar15'] || Object.values(this.models)[0];
-    if (this.activeModel) {
-      this.activeModel.visible = true;
+    // Esconde todos os modelos
+    for (const k in this.models) this.models[k].mesh.visible = false;
+
+    // Resolve entrada (suporta estrutura { mesh, boltGroup })
+    const entry = this.models[weaponId]
+      || this.models['ar15']
+      || Object.values(this.models)[0];
+
+    if (entry) {
+      entry.mesh.visible = true;
+      this.activeModel = entry.mesh;
+
+      // Configura ferrolho para blowback (se o modelo tiver boltGroup)
+      this._boltGroup  = entry.boltGroup ?? null;
+      this._boltHomeZ  = this._boltGroup ? this._boltGroup.position.z : 0;
+      this._boltCycle  = 1;   // começa fechado
+
       // Inicia transição suave de saque (Draw animation subindo do coldre)
       this.drawAmount = 1.0;
     }
@@ -201,12 +223,37 @@ export class Viewmodel {
       mount.rotation.x -= ease * 0.35;
       mount.rotation.z += ease * 0.15;
     }
+
+    // ── Blowback do ferrolho ─────────────────────────────────────────────
+    // Anima o boltGroup do modelo ativo (só existe no RiflePrototype por ora).
+    // _boltCycle: 0 = tiro acabou de sair (recuado), 1 = fechado / repouso.
+    if (this._boltGroup) {
+      if (this._boltCycle < 1) {
+        // Avança o ciclo — mesma velocidade do protótipo original (~85ms)
+        this._boltCycle = Math.min(1, this._boltCycle + dt / 0.085);
+      }
+      // Offset em Z (eixo local do modelo, que é o X original rotacionado)
+      // sin(π·k) faz o ferrolho recuar e voltar suavemente
+      const boltOffset = this._boltCycle < 1
+        ? 0.085 * Math.sin(Math.PI * this._boltCycle)
+        : 0;
+      this._boltGroup.position.z = this._boltHomeZ + boltOffset;
+    }
+  }
+
+  /**
+   * Dispara o ciclo de blowback do ferrolho.
+   * Chamado por WeaponSystem._fire() a cada tiro.
+   */
+  triggerBlowback() {
+    this._boltCycle = 0;
   }
 
   _adsPos(def) {
     const [sx, sy, sz] = def.sightLocal || [0, 0, -0.2];
     const d = def.adsSightDistance || 0.26;
     return [-sx, -sy, -d - sz];
+
   }
 
   flash() {

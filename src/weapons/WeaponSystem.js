@@ -232,6 +232,7 @@ export class WeaponSystem {
     const kickRot = def.kickRotFactor ?? 1.5;
     this.viewmodel.applyKick(def.recoilPitch * streakMul, 0, kickbackZ, kickRot, this.ads);
     this.viewmodel.flash();
+    this.viewmodel.triggerBlowback();
 
     // Raycast do tiro & Posições de Câmera
     this.camera.getWorldPosition(_camPos);

@@ -8,7 +8,7 @@ import { GameManager } from './core/GameManager.js';
 
 import { loadMap } from './world/MapLoader.js';
 import { Player } from './entities/Player.js';
-import { Viewmodel, buildHK416, buildP9, buildUZI, buildM249 } from './weapons/Viewmodel.js';
+import { Viewmodel, buildHK416, buildP9, buildUZI, buildM249, buildRiflePrototype } from './weapons/Viewmodel.js';
 import { WeaponSystem } from './weapons/WeaponSystem.js';
 import { initWeaponsFromData } from './weapons/WeaponDefs.js';
 import { Effects } from './fx/Effects.js';
@@ -110,6 +110,7 @@ const effects = new Effects(scene);
     viewmodel.registerModel('p9', buildP9);
     viewmodel.registerModel('uzi', buildUZI);
     viewmodel.registerModel('m249', buildM249);
+    viewmodel.registerModel('rifle_proto', buildRiflePrototype);
 
     const initialWeapon = weaponSelect ? weaponSelect.value : 'ar15';
     viewmodel.equip(initialWeapon);
