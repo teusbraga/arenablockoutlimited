@@ -246,6 +246,7 @@ export class Viewmodel {
   }
 
   flash() {
+    if (this.activePhysics) return;
     this.flashLight.intensity = 7 + Math.random() * 4;
   }
 
