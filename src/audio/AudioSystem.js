@@ -55,6 +55,64 @@ export class AudioSystem {
     osc.stop(ctx.currentTime + dur + 0.02);
   }
 
+  initNoiseBuffer() {
+    const ctx = this._ensure();
+    if (!ctx || this.noiseBuffer) return;
+    const len = Math.floor(ctx.sampleRate * 0.2);
+    this.noiseBuffer = ctx.createBuffer(1, len, ctx.sampleRate);
+    const d = this.noiseBuffer.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      const t = i / len;
+      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 2.6);
+    }
+  }
+
+  playPrototypeShot() {
+    const ctx = this._ensure();
+    if (!ctx) return;
+    this.initNoiseBuffer();
+    if (!this.noiseBuffer) return;
+
+    const t = ctx.currentTime;
+
+    const src = ctx.createBufferSource();
+    src.buffer = this.noiseBuffer;
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'lowpass';
+    bp.frequency.value = 2400;
+    bp.Q.value = 0.7;
+    const g1 = ctx.createGain();
+    g1.gain.setValueAtTime(0.30, t);
+    g1.gain.exponentialRampToValueAtTime(0.0005, t + 0.16);
+    src.connect(bp); bp.connect(g1); g1.connect(ctx.destination);
+    src.start(t);
+
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(165, t);
+    osc.frequency.exponentialRampToValueAtTime(48, t + 0.11);
+    const g2 = ctx.createGain();
+    g2.gain.setValueAtTime(0.26, t);
+    g2.gain.exponentialRampToValueAtTime(0.0005, t + 0.14);
+    osc.connect(g2); g2.connect(ctx.destination);
+    osc.start(t); osc.stop(t + 0.16);
+  }
+
+  playClickSound(freq = 900, vol = 0.08) {
+    const ctx = this._ensure();
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(freq, t);
+    osc.frequency.exponentialRampToValueAtTime(freq * 0.55, t + 0.05);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0005, t + 0.06);
+    osc.connect(g); g.connect(ctx.destination);
+    osc.start(t); osc.stop(t + 0.07);
+  }
+
   play(soundKey, panX = 0) {
     const s = this.sounds[soundKey];
     if (s) {
@@ -64,6 +122,10 @@ export class AudioSystem {
 
   _bind() {
     on('weapon:fired', e => {
+      if (e.weapon?.id === 'rifle_proto' || e.weapon?.audioKey === 'shot_proto') {
+        this.playPrototypeShot();
+        return;
+      }
       const key = e.weapon?.audioKey || (e.weapon?.id === 'p9' ? 'shot_p9' : 'shot_hk416');
       if (this.sounds[key]) {
         this.play(key);
@@ -72,6 +134,8 @@ export class AudioSystem {
         this._tone(shot.freqA, shot.freqB, shot.dur, shot.type, shot.gain);
       }
     });
+
+    on('weapon:empty', () => this.playClickSound(900, 0.08));
 
     on('weapon:cycle',        () => this.play('weapon_cycle'));
     on('weapon:reload:start', () => this.play('reload_start'));

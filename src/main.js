@@ -247,6 +247,15 @@ const effects = new Effects(scene);
         // Atualização da câmera
         player.updateCamera(camera, dt);
 
+        // Tremor de câmera elástico e orgânico do protótipo
+        const shake = viewmodel.getShake();
+        if (shake > 0.002) {
+          const t = performance.now() * 0.001;
+          camera.position.x += Math.sin(t * 47.3) * 0.014 * shake;
+          camera.position.y += Math.cos(t * 61.7) * 0.014 * shake;
+          camera.position.z += Math.sin(t * 53.1) * 0.009 * shake;
+        }
+
         // Viewmodel
         viewmodel.applySwayFromLook(dt, player.yaw, player.pitch, weapons.ads, player.sprinting, player.vel);
         viewmodel.updatePose(dt, weapons.current, {
@@ -254,11 +263,12 @@ const effects = new Effects(scene);
           isSprinting: player.sprinting,
           adsAmount: weapons.adsAmount,
           reloadProgress: weapons.reloadProgress,
+          ammo: weapons.ammo,
         });
         viewmodel.decayFlash(dt);
 
         // FX
-        effects.update(dt);
+        effects.update(dt, camera);
 
         // FOV Dinâmico
         const targetFov = weapons.ads

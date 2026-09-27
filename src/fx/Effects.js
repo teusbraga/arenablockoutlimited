@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { on } from '../core/EventBus.js';
+import { SMOKE_TEX } from '../weapons/models/RiflePrototype.js';
 
 const MAX_TRACERS = 30;
 const MAX_SPARKS = 80;
@@ -58,6 +59,45 @@ export class Effects {
       this.scene.add(mesh);
       this.smokes.push({ mesh, vel: new THREE.Vector3(), life: 0, maxLife: 0.7, startScale: 1, growth: 1, active: false });
     }
+
+    // 4. Faíscas da boca do cano (THREE.Points do protótipo)
+    this.SPARK_MAX = 90;
+    this.sparkPos = new Float32Array(this.SPARK_MAX * 3);
+    this.sparkVel = new Float32Array(this.SPARK_MAX * 3);
+    this.sparkLife = new Float32Array(this.SPARK_MAX);
+    for (let i = 0; i < this.SPARK_MAX; i++) this.sparkPos[i * 3 + 1] = -999;
+
+    this.sparkPointsGeo = new THREE.BufferGeometry();
+    this.sparkPointsGeo.setAttribute('position', new THREE.BufferAttribute(this.sparkPos, 3));
+    this.sparkPointsMat = new THREE.PointsMaterial({
+      color: 0xffc061,
+      size: 0.017,
+      transparent: true,
+      opacity: 0.95,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      sizeAttenuation: true
+    });
+    this.sparkPoints = new THREE.Points(this.sparkPointsGeo, this.sparkPointsMat);
+    this.sparkPoints.frustumCulled = false;
+    this.scene.add(this.sparkPoints);
+
+    // 5. Fumaça de tiro com textura procedural radial do protótipo
+    this.protoSmokePool = [];
+    for (let i = 0; i < 16; i++) {
+      const mat = new THREE.MeshBasicMaterial({
+        map: SMOKE_TEX,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        color: 0x9aa2ad
+      });
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.16), mat);
+      m.visible = false;
+      m.renderOrder = 2;
+      this.scene.add(m);
+      this.protoSmokePool.push({ mesh: m, life: 0, max: 1, vel: new THREE.Vector3(), spin: 0 });
+    }
   }
 
   _bind() {
@@ -70,6 +110,11 @@ export class Effects {
     });
     on('weapon:fired', e => {
       if (!e.muzzleWorld) return;
+      if (e.weapon?.id === 'rifle_proto') {
+        this._spawnProtoSparks(e.muzzleWorld, e.forward, 9);
+        this._spawnProtoSmoke(e.muzzleWorld, e.forward, 2);
+        return;
+      }
       const opacity = e.weapon?.smokeConeOpacity ?? 0.06;
       this._spawnMuzzleSmoke(e.muzzleWorld, e.forward, opacity);
     });
@@ -77,6 +122,50 @@ export class Effects {
       if (!e.muzzleWorld || !e.count) return;
       this._spawnBarrelHeatSmoke(e.muzzleWorld, e.count, e.color);
     });
+  }
+
+  _spawnProtoSparks(pos, dir, count = 9) {
+    for (let n = 0; n < count; n++) {
+      let idx = -1;
+      for (let j = 0; j < this.SPARK_MAX; j++) {
+        if (this.sparkLife[j] <= 0) { idx = j; break; }
+      }
+      if (idx < 0) return;
+
+      this.sparkLife[idx] = 0.14 + Math.random() * 0.24;
+      this.sparkPos[idx * 3 + 0] = pos.x;
+      this.sparkPos[idx * 3 + 1] = pos.y;
+      this.sparkPos[idx * 3 + 2] = pos.z;
+
+      const spread = 0.95;
+      const sp = 2.0 + Math.random() * 3.0;
+      this.sparkVel[idx * 3 + 0] = (dir.x + (Math.random() - 0.5) * spread) * sp;
+      this.sparkVel[idx * 3 + 1] = (dir.y + (Math.random() - 0.5) * spread) * sp + 0.5;
+      this.sparkVel[idx * 3 + 2] = (dir.z + (Math.random() - 0.5) * spread) * sp;
+    }
+    this.sparkPointsGeo.attributes.position.needsUpdate = true;
+  }
+
+  _spawnProtoSmoke(pos, dir, count = 2) {
+    for (let n = 0; n < count; n++) {
+      const s = this.protoSmokePool.find(x => x.life <= 0);
+      if (!s) return;
+      s.max = 0.75 + Math.random() * 0.6;
+      s.life = s.max;
+      s.mesh.visible = true;
+      s.mesh.position.copy(pos);
+      s.mesh.position.x += (Math.random() - 0.5) * 0.04;
+      s.mesh.position.y += (Math.random() - 0.5) * 0.04;
+      s.mesh.position.z += (Math.random() - 0.5) * 0.04;
+      s.mesh.rotation.z = Math.random() * Math.PI;
+      s.spin = (Math.random() - 0.5) * 1.4;
+      s.vel.set(
+        dir.x * (0.25 + Math.random() * 0.45) + (Math.random() - 0.5) * 0.20,
+        0.16 + Math.random() * 0.22,
+        dir.z * (0.25 + Math.random() * 0.45) + (Math.random() - 0.5) * 0.20
+      );
+      s.mesh.scale.setScalar(0.55 + Math.random() * 0.4);
+    }
   }
 
   _spawnTracer(from, to, color = null) {
@@ -187,7 +276,7 @@ export class Effects {
     }
   }
 
-  update(dt) {
+  update(dt, camera) {
     // 1. Tracers
     for (let i = 0; i < MAX_TRACERS; i++) {
       const t = this.tracers[i];
@@ -245,6 +334,46 @@ export class Effects {
       const grow = 1 + (1 - t) * p.growth;
       p.mesh.scale.setScalar(p.startScale * grow);
       p.mesh.material.opacity = t * t * (p.maxOpacity || 0.6);
+    }
+
+    // 4. Faíscas do Protótipo (simulação física com gravidade e arrasto)
+    if (this.sparkPointsGeo) {
+      let anyProtoSpark = false;
+      for (let i = 0; i < this.SPARK_MAX; i++) {
+        if (this.sparkLife[i] <= 0) continue;
+        anyProtoSpark = true;
+        this.sparkLife[i] -= dt;
+        if (this.sparkLife[i] <= 0) {
+          this.sparkPos[i * 3 + 1] = -999;
+          continue;
+        }
+        this.sparkVel[i * 3 + 1] -= 7.0 * dt;
+        this.sparkPos[i * 3 + 0] += this.sparkVel[i * 3 + 0] * dt;
+        this.sparkPos[i * 3 + 1] += this.sparkVel[i * 3 + 1] * dt;
+        this.sparkPos[i * 3 + 2] += this.sparkVel[i * 3 + 2] * dt;
+      }
+      if (anyProtoSpark) this.sparkPointsGeo.attributes.position.needsUpdate = true;
+    }
+
+    // 5. Fumaça do Protótipo (billboard face-camera, giro e flutuação térmica)
+    if (this.protoSmokePool) {
+      for (const s of this.protoSmokePool) {
+        if (s.life <= 0) continue;
+        s.life -= dt;
+        if (s.life <= 0) {
+          s.mesh.visible = false;
+          s.mesh.material.opacity = 0;
+          continue;
+        }
+        const k = s.life / s.max;
+        s.mesh.material.opacity = 0.42 * k;
+        s.mesh.position.addScaledVector(s.vel, dt);
+        s.vel.multiplyScalar(1 - 1.6 * dt);
+        s.vel.y += 0.16 * dt;
+        s.mesh.scale.setScalar(0.55 + (1 - k) * 2.1);
+        s.mesh.rotation.z += s.spin * dt;
+        if (camera) s.mesh.quaternion.copy(camera.quaternion);
+      }
     }
   }
 }

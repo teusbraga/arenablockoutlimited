@@ -49,29 +49,24 @@ export class Viewmodel {
     // Registro de modelos disponíveis
     this.models = {};
     this.activeModel = null;
-
-    // Blowback do ferrolho (0 = recuado, 1 = fechado)
-    this._boltCycle = 1;
-    this._boltGroup = null;          // sub-group do modelo ativo, se existir
-    this._boltHomeZ = 0;             // posição Z de repouso do ferrolho
+    this.activePhysics = null;
   }
 
   registerModel(weaponId, buildFn) {
-    // Suporta builders que retornam Group diretamente OU { group, boltGroup }
-    const result    = buildFn();
-    const model     = result.group     ?? result;
-    const boltGroup = result.boltGroup ?? null;
+    const result  = buildFn();
+    const model   = result.group   ?? result;
+    const physics = result.physics ?? null;
 
     model.visible = false;
     this.mount.add(model);
-    this.models[weaponId] = { mesh: model, boltGroup };
+    this.models[weaponId] = { mesh: model, physics };
   }
 
   equip(weaponId) {
     // Esconde todos os modelos
     for (const k in this.models) this.models[k].mesh.visible = false;
 
-    // Resolve entrada (suporta estrutura { mesh, boltGroup })
+    // Resolve entrada
     const entry = this.models[weaponId]
       || this.models['ar15']
       || Object.values(this.models)[0];
@@ -79,27 +74,40 @@ export class Viewmodel {
     if (entry) {
       entry.mesh.visible = true;
       this.activeModel = entry.mesh;
+      this.activePhysics = entry.physics ?? null;
 
-      // Configura ferrolho para blowback (se o modelo tiver boltGroup)
-      this._boltGroup  = entry.boltGroup ?? null;
-      this._boltHomeZ  = this._boltGroup ? this._boltGroup.position.z : 0;
-      this._boltCycle  = 1;   // começa fechado
-
-      // Inicia transição suave de saque (Draw animation subindo do coldre)
+      // Inicia transição suave de saque
       this.drawAmount = 1.0;
     }
   }
 
+  triggerFire(ammo = 30) {
+    if (this.activePhysics) {
+      this.activePhysics.onFire(ammo);
+    }
+  }
+
+  triggerReload() {
+    if (this.activePhysics) {
+      this.activePhysics.onReload();
+    }
+  }
+
+  getShake() {
+    return this.activePhysics ? this.activePhysics.shake : 0;
+  }
+
   applyKick(pitch, yaw, customKickbackZ = 0.008, customKickRot = 1.5, isADS = false) {
+    // Se o modelo ativo tiver física própria (como o RiflePrototype), ela já gerencia os vetores de recuo
+    if (this.activePhysics) return;
+
     // Cano sobe: rotação positiva em X eleva a ponta do cano e apoia a coronha
     const rotScale = isADS ? 0.35 : 1.0;
     const posScale = isADS ? 0.30 : 1.0;
 
     this.kickRotX += Math.max(pitch * customKickRot * rotScale, 0.015 * rotScale);
-    // Limite máximo de rotação do cano (nunca aponta para o céu, mantendo mira no horizonte)
     this.kickRotX = Math.min(this.kickRotX, isADS ? 0.035 : 0.075);
 
-    // Recuo seco para trás (ombro firme com osso, arma NÃO afunda na cara do jogador)
     this.kickPos.z += customKickbackZ * posScale;
     this.kickPos.z = Math.min(this.kickPos.z, isADS ? 0.003 : 0.008);
   }
@@ -174,7 +182,7 @@ export class Viewmodel {
   /**
    * Interpolação suave entre poses táticas (Hipfire, ADS, Sprint, Reload e Draw)
    */
-  updatePose(dt, weaponId, { isADS, isSprinting, adsAmount, reloadProgress }) {
+  updatePose(dt, weaponId, { isADS, isSprinting, adsAmount, reloadProgress, ammo }) {
     const def = WEAPONS[weaponId];
     if (!def) return;
     const mount = this.mount;
@@ -224,29 +232,10 @@ export class Viewmodel {
       mount.rotation.z += ease * 0.15;
     }
 
-    // ── Blowback do ferrolho ─────────────────────────────────────────────
-    // Anima o boltGroup do modelo ativo (só existe no RiflePrototype por ora).
-    // _boltCycle: 0 = tiro acabou de sair (recuado), 1 = fechado / repouso.
-    if (this._boltGroup) {
-      if (this._boltCycle < 1) {
-        // Avança o ciclo — mesma velocidade do protótipo original (~85ms)
-        this._boltCycle = Math.min(1, this._boltCycle + dt / 0.085);
-      }
-      // Offset em Z (eixo local do modelo, que é o X original rotacionado)
-      // sin(π·k) faz o ferrolho recuar e voltar suavemente
-      const boltOffset = this._boltCycle < 1
-        ? 0.085 * Math.sin(Math.PI * this._boltCycle)
-        : 0;
-      this._boltGroup.position.z = this._boltHomeZ + boltOffset;
+    // Executa a física de recoil elástico, blowback, câmara vazia e muzzle flash originais do protótipo
+    if (this.activePhysics) {
+      this.activePhysics.update(dt, this.camera, ammo ?? 30);
     }
-  }
-
-  /**
-   * Dispara o ciclo de blowback do ferrolho.
-   * Chamado por WeaponSystem._fire() a cada tiro.
-   */
-  triggerBlowback() {
-    this._boltCycle = 0;
   }
 
   _adsPos(def) {

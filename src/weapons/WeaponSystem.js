@@ -73,6 +73,7 @@ export class WeaponSystem {
     if (this.reloading || this.ammo === this.def.magSize) return;
     this.reloading = true;
     this.reloadT = 0;
+    this.viewmodel.triggerReload();
     emit('weapon:reload:start');
   }
 
@@ -121,6 +122,9 @@ export class WeaponSystem {
     if (wantsFire && this.fireCooldown <= 0 && this.ammo > 0 && !this.player.sprinting) {
       this._fire();
       this.ammoByWeapon[this.current] = this.ammo;
+    } else if (wantsFire && this.ammo <= 0 && this.fireCooldown <= 0 && !this.reloading) {
+      this.fireCooldown = 0.22;
+      emit('weapon:empty');
     }
 
     if (this.ammo === 0 && !this.reloading) this.reload();
@@ -232,7 +236,7 @@ export class WeaponSystem {
     const kickRot = def.kickRotFactor ?? 1.5;
     this.viewmodel.applyKick(def.recoilPitch * streakMul, 0, kickbackZ, kickRot, this.ads);
     this.viewmodel.flash();
-    this.viewmodel.triggerBlowback();
+    this.viewmodel.triggerFire(this.ammo);
 
     // Raycast do tiro & Posições de Câmera
     this.camera.getWorldPosition(_camPos);
