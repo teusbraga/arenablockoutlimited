@@ -99,10 +99,12 @@ export class ScopeSystem {
           col.g = texture2D(tMap, uv).g;
           col.b = texture2D(tMap, uv - ca).b;
 
-          // Vinheta escura nas bordas internas + tinta leve de vidro
-          float vig = 1.0 - smoothstep(0.55, 1.0, r);
-          col *= mix(0.10, 1.0, vig);
-          col *= vec3(0.96, 1.0, 0.98);
+          // Vinheta leve nas bordas externas + vidro límpido e cristalino de alta fidelidade
+          float vig = 1.0 - smoothstep(0.68, 1.0, r);
+          col *= mix(0.45, 1.0, vig);
+          // Clareamento e ganho de luz para visão límpida (scope claro)
+          col *= 1.28;
+          col *= vec3(0.98, 1.0, 1.02);
 
           gl_FragColor = vec4(col, uOpacity);
         }`,
@@ -116,6 +118,11 @@ export class ScopeSystem {
     this.lensEl = document.getElementById('lens');
     this.scopeHudEl = document.getElementById('scopeHud');
     this.dotEl = document.getElementById('crosshair');
+
+    // Variáveis de oscilação orgânica (Scope Sway / Respiração)
+    this.swayTime = 0;
+    this.swayPitch = 0;
+    this.swayYaw = 0;
 
     // Inicializa Retículo SVG literal do Arquivo 1
     this.buildReticle();
@@ -159,7 +166,7 @@ export class ScopeSystem {
     // Vincula a textura do scopeRender à lente traseira do modelo 3D
     if (protoDetails.rearLens.material) {
       protoDetails.rearLens.material.map = this.scopeRT.texture;
-      protoDetails.rearLens.material.roughness = 0.1;
+      protoDetails.rearLens.material.roughness = 0.08;
       protoDetails.rearLens.material.metalness = 0.2;
       protoDetails.rearLens.material.transmission = 0.0;
       protoDetails.rearLens.material.opacity = 1.0;
@@ -187,10 +194,30 @@ export class ScopeSystem {
     this.adsT += (target - this.adsT) * (1 - Math.exp(-dt * SCOPE_CONFIG.ADS_SPEED));
     if (Math.abs(target - this.adsT) < 0.001) this.adsT = target;
 
-    // Câmera do scope: CÓPIA EXATA da principal, muda só o FOV
+    // ── Sway Orgânico de Respiração no Scope ─────────────────────────────────
+    // Quando em ADS, a respiração do atirador produz uma oscilação contínua e suave em 8 (Lissajous)
+    if (this.adsT > 0.1) {
+      this.swayTime += dt * 1.4;
+      const swayAmplitude = 0.00085 * this.adsT;
+      this.swayYaw = Math.sin(this.swayTime) * swayAmplitude;
+      this.swayPitch = Math.cos(this.swayTime * 2) * (swayAmplitude * 0.55);
+    } else {
+      this.swayYaw = 0;
+      this.swayPitch = 0;
+    }
+
+    // Câmera do scope: Orientação sincronizada com a principal + leve oscilação orgânica
     mainCamera.updateMatrixWorld();
     this.scopeCamera.position.copy(mainCamera.position);
     this.scopeCamera.quaternion.copy(mainCamera.quaternion);
+
+    if (this.adsT > 0.1) {
+      const euler = new THREE.Euler().setFromQuaternion(this.scopeCamera.quaternion, 'YXZ');
+      euler.y += this.swayYaw;
+      euler.x += this.swayPitch;
+      this.scopeCamera.quaternion.setFromEuler(euler);
+    }
+
     this.scopeCamera.fov = this.scopeFov;
     this.scopeCamera.aspect = 1;
     this.scopeCamera.updateProjectionMatrix();

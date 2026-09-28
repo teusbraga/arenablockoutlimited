@@ -245,13 +245,19 @@ export class WeaponSystem {
     const streakMul = 1 + this.fireStreak * streakFactor;
 
     // ── Recoil Vertical da Câmera ───────────────────────────────────────────
-    // No ADS, a câmera é muito firme (recuo leve para acompanhamento fácil do alvo)
-    const pitchScale = this.ads ? 0.25 : 0.85;
+    // O Rifle Prototype sobe continuamente como um rifle de precisão/assalto tático, exigindo controle do mouse
+    const isProto = def.id === 'rifle_proto';
+    const pitchScale = this.ads ? (isProto ? 0.65 : 0.25) : 0.85;
     const pitchAdd = def.recoilPitch * pitchScale * streakMul;
     this.player.pitch += pitchAdd;
 
-    // 70% do recoil vertical retorna suavemente (retorno elástico moderno)
-    this._recoilDebt = (this._recoilDebt || 0) + pitchAdd * 0.70;
+    // Para o Rifle Prototype, o recuo é permanente no mouse (sobe sem parar sem retorno elástico automático).
+    // Para as demais armas clássicas, uma parcela retorna suavemente.
+    if (!isProto) {
+      this._recoilDebt = (this._recoilDebt || 0) + pitchAdd * 0.70;
+    } else {
+      this._recoilDebt = 0;
+    }
 
     // ── Recoil Horizontal da Câmera ────────────────────────────────────────
     // No primeiro tiro: zero horizontal. Em spray: leve oscilação previsível

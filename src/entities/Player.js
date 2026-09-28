@@ -61,9 +61,12 @@ export class Player extends Character {
 
     // ---- Velocidade alvo ----
     let speed = CONFIG.PLAYER.walkSpeed;
-    if (this.sprinting) speed *= CONFIG.PLAYER.sprintMul;
-    if (this.crouched) speed *= CONFIG.PLAYER.crouchMul;
-    if (this.ads) speed *= CONFIG.PLAYER.adsMul;
+    if (this.sprinting) {
+      speed *= CONFIG.PLAYER.sprintMul;
+    } else if (this.crouched || this.ads) {
+      // Valor fixo de 0.5x tanto no agachado quanto no ADS, sem acumular
+      speed *= 0.5;
+    }
 
     // ---- Aceleração e Atrito ----
     if (this.alive && _wish.lengthSq() > 0) {

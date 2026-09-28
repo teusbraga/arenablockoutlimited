@@ -220,17 +220,30 @@ export class HUD {
     }, 700);
   }
 
-  updateCrosshair(isAds, spread = 0.02, isSprinting = false) {
+  updateCrosshair(isAds, spread = 0.02, isSprinting = false, weaponId = 'ar15') {
     if (!this.el.crosshair) return;
     const adsFactor = typeof isAds === 'number' ? isAds : (isAds ? 1 : 0);
     if (adsFactor >= 0.95) {
       this.el.crosshair.style.opacity = '0';
       return;
     }
-    const baseOpacity = isSprinting ? 0.35 : 1;
+    const baseOpacity = isSprinting ? 0.25 : 0.85;
     this.el.crosshair.style.opacity = String(Math.max(0, (1 - adsFactor * 1.2) * baseOpacity));
-    const scale = Math.max(0.75, Math.min(2.5, (spread / 0.02) * 0.9));
-    this.el.crosshair.style.transform = `translate(-50%,-50%) scale(${scale.toFixed(2)})`;
+
+    // Espaçamento dinâmico tático (gap) proporcional à precisão de cada arma
+    // Armas mais precisas (HK416, Rifle Proto) têm crosshairs bem fechadas;
+    // Armas de alta dispersão (UZI, M249) têm crosshairs mais abertas.
+    const baseGapByWeapon = {
+      'rifle_proto': 3.5,
+      'ar15': 4.5,
+      'p9': 6.0,
+      'uzi': 10.0,
+      'm249': 12.0
+    };
+    const baseGap = baseGapByWeapon[weaponId] || 5.0;
+    // Spread atual abre o gap durante movimento, tiro ou spray
+    const dynamicGap = baseGap + Math.max(0, (spread - 0.015) * 450);
+    this.el.crosshair.style.setProperty('--gap', `${dynamicGap.toFixed(1)}px`);
   }
 
   updateAds(amount) {

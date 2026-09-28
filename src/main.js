@@ -296,7 +296,7 @@ const effects = new Effects(scene);
 
         // HUD Crosshair & Indicadores (esconde crosshair se scope do proto estiver ativo)
         const hideCrosshair = isProto && scopeSystem.scopeOn;
-        hud.updateCrosshair(hideCrosshair ? 1.0 : weapons.ads, weapons._currentSpread(), player.sprinting);
+        hud.updateCrosshair(hideCrosshair ? 1.0 : weapons.ads, weapons._currentSpread(), player.sprinting, weapons.current);
         hud.update(dt, player.yaw);
       },
 
