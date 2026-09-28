@@ -125,8 +125,10 @@ export class WeaponSystem {
       this.reload();
     }
 
-    // 3. ADS
+    // 3. ADS (Mira com botão direito)
     this.ads = this.input.actions.ads && !this.player.sprinting && this.player.alive;
+    this.player.ads = this.ads; // Sincroniza diretamente com o jogador
+    emit('player:ads', { ads: this.ads }); // Emite evento para todo o jogo
     const targetAds = this.ads ? 1 : 0;
     this.adsAmount += (targetAds - this.adsAmount) * Math.min(dt * 10, 1);
 

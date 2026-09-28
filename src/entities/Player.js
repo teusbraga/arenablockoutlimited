@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Character } from './Character.js';
 import { CONFIG } from '../core/Config.js';
-import { emit } from '../core/EventBus.js';
+import { emit, on } from '../core/EventBus.js';
 
 const _fwd = new THREE.Vector3();
 const _right = new THREE.Vector3();
@@ -24,11 +24,21 @@ export class Player extends Character {
     this.stepTimer = 0;
     this.crouchAmount = 0;
     this.eyeHeight = CONFIG.PLAYER.eyeHeight;
+
+    // Escuta evento de ADS para garantir sincronismo
+    on('player:ads', e => {
+      this.ads = !!e.ads;
+    });
   }
 
   update(dt, input) {
     // ---- Look & Input (só se estiver vivo) ----
     if (this.alive) {
+      // Atualiza ADS imediatamente com a ação do botão direito do mouse
+      if (input && input.actions) {
+        this.ads = !!input.actions.ads;
+      }
+
       const { dx, dy } = input.consumeMouseDelta();
       const scopeMul = (this.customSensMul !== undefined) ? this.customSensMul : 1.0;
       const sens = CONFIG.CAMERA.sens * (CONFIG.CAMERA.sensMultiplier || 1.0) * (this.ads ? CONFIG.CAMERA.adsSensMul : 1) * scopeMul;
