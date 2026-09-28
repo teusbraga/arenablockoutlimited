@@ -118,12 +118,14 @@ export class HUD {
     on('bot:died', e => {
       this.kills++; 
       this.el.kills.textContent = this.kills;
+      this.triggerFlash(this.el.kills);
       this._addKillFeed(`Você eliminou <b>Bot</b>${e.headshot ? ' <span class="hs">HEADSHOT</span>' : ''}`);
     });
 
     on('player:died', () => { 
       this.deaths++; 
       this.el.deaths.textContent = this.deaths; 
+      this.triggerFlash(this.el.deaths);
       this.el.deathScreen.classList.add('show');
     });
 
