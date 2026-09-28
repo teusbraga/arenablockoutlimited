@@ -296,9 +296,10 @@ export function buildRiflePrototype() {
   // Compartimento de bateria circular (Coin Battery Cap à direita)
   opticBody.add(mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.010, 14), M.accent, 0.005, 0, -0.030, Math.PI / 2, 0, 0));
 
-  // 3. Lentes Ópticas Dianteira e Traseira (Vidro antirreflexo transparente)
+  // 3. Lentes Ópticas Dianteira e Traseira
   const frontLens = mesh(new THREE.CylinderGeometry(0.021, 0.021, 0.002, 18), M.opticGlass, 0.036, 0, 0, 0, 0, Math.PI / 2);
-  const rearLens  = mesh(new THREE.CylinderGeometry(0.021, 0.021, 0.002, 18), M.opticGlass, -0.036, 0, 0, 0, 0, Math.PI / 2);
+  const rearLensMat = M.opticGlass.clone();
+  const rearLens  = mesh(new THREE.CylinderGeometry(0.021, 0.021, 0.002, 18), rearLensMat, -0.036, 0, 0, 0, 0, Math.PI / 2);
   opticBody.add(frontLens, rearLens);
 
   // 4. RETÍCULO RED DOT ILUMINADO NEON (Alinhamento 100% no centro da visada ADS)

@@ -146,6 +146,9 @@ const effects = new Effects(scene);
 
     // 6. Scope System (Arquivo 1 Literal para Rifle Prototype)
     const scopeSystem = new ScopeSystem(renderer, scene);
+    if (viewmodel.models['rifle_proto']?.details) {
+      scopeSystem.attachToModel(viewmodel.models['rifle_proto'].details);
+    }
 
     /* =========================================================
        UI DO MENU (start + pause + mobile + seletores)
@@ -301,18 +304,17 @@ const effects = new Effects(scene);
         const isProto = weapons.current === 'rifle_proto';
         const protoModel = viewmodel.models['rifle_proto']?.mesh;
 
-        // Durante a renderização da Scope Camera (passada 2), ocultamos a arma para não obstruir a visão da lente
-        if (isProto && scopeSystem.scopeOn && protoModel) {
-          protoModel.visible = false;
+        // 1. Passada Offscreen da Scope Camera (captura cena com zoom para a lente)
+        if (isProto && scopeSystem.scopeOn) {
+          scopeSystem.renderScopePass(protoModel);
         }
 
-        // Renderiza cena principal
+        // 2. Renderiza a cena principal em tela cheia com a arma VISÍVEL (sensação de ótica no modelo)
         renderer.render(scene, camera);
 
-        // Se for o Rifle Prototype com scope ativo, renderiza as passadas do Scope (passada 2 na RT e 3 no overlay)
+        // 3. Renderiza a passada da lente 2D de Eye-Relief no centro da tela
         if (isProto && scopeSystem.scopeOn) {
           scopeSystem.render(camera);
-          if (protoModel) protoModel.visible = true;
         }
       },
     });

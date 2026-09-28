@@ -153,6 +153,21 @@ export class ScopeSystem {
     return Math.min(innerWidth, innerHeight) * SCOPE_CONFIG.LENS_SIZE;
   }
 
+  attachToModel(protoDetails) {
+    if (!protoDetails || !protoDetails.rearLens) return;
+    this.protoDetails = protoDetails;
+    // Vincula a textura do scopeRender à lente traseira do modelo 3D
+    if (protoDetails.rearLens.material) {
+      protoDetails.rearLens.material.map = this.scopeRT.texture;
+      protoDetails.rearLens.material.roughness = 0.1;
+      protoDetails.rearLens.material.metalness = 0.2;
+      protoDetails.rearLens.material.transmission = 0.0;
+      protoDetails.rearLens.material.opacity = 1.0;
+      protoDetails.rearLens.material.transparent = false;
+      protoDetails.rearLens.material.needsUpdate = true;
+    }
+  }
+
   apparentZoom() {
     const k = Math.tan(rad(SCOPE_CONFIG.ADS_FOV) / 2) / Math.tan(rad(this.scopeFov) / 2);
     return k * this.lensDiameter() / innerHeight;
@@ -172,8 +187,7 @@ export class ScopeSystem {
     this.adsT += (target - this.adsT) * (1 - Math.exp(-dt * SCOPE_CONFIG.ADS_SPEED));
     if (Math.abs(target - this.adsT) < 0.001) this.adsT = target;
 
-    // Câmera do scope: CÓPIA EXATA da principal, muda só o FOV.
-    // Copiamos position e quaternion (não os ângulos de Euler) → sincronia perfeita
+    // Câmera do scope: CÓPIA EXATA da principal, muda só o FOV
     mainCamera.updateMatrixWorld();
     this.scopeCamera.position.copy(mainCamera.position);
     this.scopeCamera.quaternion.copy(mainCamera.quaternion);
@@ -181,8 +195,10 @@ export class ScopeSystem {
     this.scopeCamera.aspect = 1;
     this.scopeCamera.updateProjectionMatrix();
 
-    // Atualiza HUD e display do overlay
+    // Estado do scope ativo
     this.scopeOn = this.adsT > 0.01;
+
+    // HUD Telemetria
     if (this.scopeHudEl) {
       if (this.adsT > 0.5) {
         this.scopeHudEl.style.opacity = '1';
@@ -192,10 +208,31 @@ export class ScopeSystem {
       }
     }
 
+    // Transição de Eye Relief para shooter moderno:
+    // O overlay 2D surge suavemente apenas na fase final de aproximação (adsT > 0.65)
+    // permitindo ver a arma subindo e a lente 3D se alinhando com o olho primeiro
+    const eyeReliefThreshold = 0.65;
+    const overlayProgress = Math.max(0, (this.adsT - eyeReliefThreshold) / (1 - eyeReliefThreshold));
+    const smoothOverlay = Math.pow(overlayProgress, 1.8);
+
     if (this.lensEl) {
-      this.lensEl.style.display = this.scopeOn ? 'block' : 'none';
-      this.lensEl.style.opacity = this.adsT;
+      this.lensEl.style.display = (overlayProgress > 0.01) ? 'block' : 'none';
+      this.lensEl.style.opacity = smoothOverlay;
     }
+  }
+
+  renderScopePass(protoModel) {
+    if (!this.scopeOn) return;
+
+    // ── PASSADA 2: mesma cena, scopeCamera, dentro do render target (textura da lente)
+    // Oculta a arma apenas para a scopeCamera não enxergar o próprio cano à frente
+    if (protoModel) protoModel.visible = false;
+
+    this.renderer.setRenderTarget(this.scopeRT);
+    this.renderer.render(this.scene, this.scopeCamera);
+    this.renderer.setRenderTarget(null);
+
+    if (protoModel) protoModel.visible = true;
   }
 
   render(mainCamera) {
@@ -203,17 +240,19 @@ export class ScopeSystem {
 
     if (!this.scopeOn) return;
 
-    // ── PASSADA 2: mesma cena, scopeCamera, dentro do render target (textura da lente)
-    this.renderer.setRenderTarget(this.scopeRT);
-    this.renderer.render(this.scene, this.scopeCamera);
-    this.renderer.setRenderTarget(null);
+    // Transição de Eye-Relief da lente de composição
+    const eyeReliefThreshold = 0.65;
+    const overlayProgress = Math.max(0, (this.adsT - eyeReliefThreshold) / (1 - eyeReliefThreshold));
+    if (overlayProgress <= 0.001) return;
+
+    const smoothOverlay = Math.pow(overlayProgress, 1.8);
 
     // ── PASSADA 3 (barata): cola a textura num disco no centro da tela.
-    // A lente "cresce" um pouco durante a transição (0.6 → 1.0) e faz fade-in.
-    const D = this.lensDiameter() * (0.6 + 0.4 * this.adsT);
+    // A lente expande suavemente até cobrir a ocular da mira física
+    const D = this.lensDiameter() * (0.68 + 0.32 * smoothOverlay);
     const R = D / 2;
     this.lensMesh.scale.set(R, R, 1);
-    this.lensMat.uniforms.uOpacity.value = this.adsT;
+    this.lensMat.uniforms.uOpacity.value = smoothOverlay;
 
     // setScissor limita o desenho ao quadrado que contém a lente
     this.renderer.setScissor(w / 2 - R - 2, h / 2 - R - 2, D + 4, D + 4);
