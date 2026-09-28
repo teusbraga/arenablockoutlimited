@@ -8,10 +8,10 @@
 
 import * as THREE from 'three';
 
-const M_STEEL_DARK   = new THREE.MeshStandardMaterial({ color: 0x16181b, roughness: 0.32, metalness: 0.86 });
-const M_PARKERIZED   = new THREE.MeshStandardMaterial({ color: 0x24272c, roughness: 0.25, metalness: 0.80 });
-const M_GRIP_POLYMER = new THREE.MeshStandardMaterial({ color: 0x0c0d0f, roughness: 0.90, metalness: 0.08 });
-const M_WIRE_STOCK   = new THREE.MeshStandardMaterial({ color: 0x333840, roughness: 0.20, metalness: 0.92 });
+const M_STEEL_DARK   = new THREE.MeshStandardMaterial({ color: 0x5d646b, roughness: 0.32, metalness: 0.86 });
+const M_PARKERIZED   = new THREE.MeshStandardMaterial({ color: 0x6e757d, roughness: 0.25, metalness: 0.80 });
+const M_GRIP_POLYMER = new THREE.MeshStandardMaterial({ color: 0x2a2f35, roughness: 0.90, metalness: 0.08 });
+const M_WIRE_STOCK   = new THREE.MeshStandardMaterial({ color: 0x8a929a, roughness: 0.20, metalness: 0.92 });
 const M_TRIT         = new THREE.MeshBasicMaterial({ color: 0x55ff77 });
 
 export function buildUZI() {

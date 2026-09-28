@@ -9,12 +9,12 @@
 
 import * as THREE from 'three';
 
-const M_PARKERIZED    = new THREE.MeshStandardMaterial({ color: 0x1f2226, roughness: 0.35, metalness: 0.85 });
-const M_STEEL_GUN     = new THREE.MeshStandardMaterial({ color: 0x333840, roughness: 0.22, metalness: 0.92 });
-const M_AMMO_BOX      = new THREE.MeshStandardMaterial({ color: 0x363d2e, roughness: 0.75, metalness: 0.15 }); // Olive Drab
-const M_BRASS_BELT    = new THREE.MeshStandardMaterial({ color: 0xd4af37, roughness: 0.30, metalness: 0.88 }); // Latão dourado 5.56
-const M_POLYMER_BLACK = new THREE.MeshStandardMaterial({ color: 0x0b0d0e, roughness: 0.88, metalness: 0.10 });
-const M_HEAT_SHIELD   = new THREE.MeshStandardMaterial({ color: 0x282c32, roughness: 0.40, metalness: 0.70 });
+const M_PARKERIZED    = new THREE.MeshStandardMaterial({ color: 0x6a737b, roughness: 0.35, metalness: 0.85 });
+const M_STEEL_GUN     = new THREE.MeshStandardMaterial({ color: 0x8a929a, roughness: 0.22, metalness: 0.92 });
+const M_AMMO_BOX      = new THREE.MeshStandardMaterial({ color: 0x4d5642, roughness: 0.75, metalness: 0.15 }); // Lighter Olive Drab
+const M_BRASS_BELT    = new THREE.MeshStandardMaterial({ color: 0xe5bf47, roughness: 0.30, metalness: 0.88 }); // Latão
+const M_POLYMER_BLACK = new THREE.MeshStandardMaterial({ color: 0x2b2f36, roughness: 0.88, metalness: 0.10 });
+const M_HEAT_SHIELD   = new THREE.MeshStandardMaterial({ color: 0x5a626b, roughness: 0.40, metalness: 0.70 });
 const M_TRIT          = new THREE.MeshBasicMaterial({ color: 0x55ff77 });
 
 export function buildM249() {
