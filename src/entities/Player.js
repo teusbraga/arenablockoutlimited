@@ -116,20 +116,20 @@ export class Player extends Character {
     const speedXZ = Math.hypot(this.vel.x, this.vel.z);
     const isMoving = this.alive && this.onGround && speedXZ > 0.6;
 
-    // Head bob
+    // Head bob (10% mais suave para conforto visual)
     if (isMoving) {
       const rate = 9 + (this.sprinting ? 5 : 0) - this.crouchAmount * 3;
       this.bobPhase += dt * rate;
-      const target = (this.sprinting ? 0.045 : 0.032) * Math.min(speedXZ / CONFIG.PLAYER.walkSpeed, 1.8);
+      const target = (this.sprinting ? 0.040 : 0.029) * Math.min(speedXZ / CONFIG.PLAYER.walkSpeed, 1.8);
       this.bobAmt += (target - this.bobAmt) * Math.min(dt * 8, 1);
     } else {
       this.bobAmt += (0 - this.bobAmt) * Math.min(dt * 6, 1);
     }
 
     const bobY = Math.sin(this.bobPhase * 2) * this.bobAmt;
-    const bobX = Math.cos(this.bobPhase) * this.bobAmt * 0.65;
-    const bobRoll = Math.cos(this.bobPhase) * this.bobAmt * 0.18;
-    const bobPitch = Math.sin(this.bobPhase * 2) * this.bobAmt * 0.08;
+    const bobX = Math.cos(this.bobPhase) * this.bobAmt * 0.60;
+    const bobRoll = Math.cos(this.bobPhase) * this.bobAmt * 0.16;
+    const bobPitch = Math.sin(this.bobPhase * 2) * this.bobAmt * 0.07;
 
     // Se morto, deita a câmera no chão
     let targetEye = CONFIG.PLAYER.eyeHeight + (CONFIG.PLAYER.eyeCrouch - CONFIG.PLAYER.eyeHeight) * this.crouchAmount;

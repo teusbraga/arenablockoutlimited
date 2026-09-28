@@ -8,7 +8,7 @@
     "walkSpeed": 5.2,
     "sprintMultiplier": 1.75,
     "crouchMultiplier": 0.5,
-    "adsMultiplier": 0.5,
+    "adsMultiplier": 0.42,
     "accel": 40.0,
     "airAccel": 6.0,
     "friction": 22.0,

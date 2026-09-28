@@ -236,8 +236,8 @@
     <div><span class="k">Ctrl</span>agachar</div>
     <div><span class="k">Space</span>pular</div>
     <div><span class="k">LMB</span>atirar · <span class="k">RMB</span>mira</div>
-    <div><span class="k">R</span>recarregar · <span class="k">Q</span>trocar arma</div>
-    <div><span class="k">E</span>abrir porta</div>
+    <div><span class="k">R</span>recarregar · <span class="k">B</span>modo de tiro</div>
+    <div><span class="k">Q</span>trocar arma · <span class="k">E</span>abrir porta</div>
   </div>
 
   <div id="score" class="panel">
@@ -246,7 +246,7 @@
   </div>
 
   <div id="status" class="panel">
-    <div id="weapon-name">HK416 <span style="float:right;color:var(--dim);font-family:'JetBrains Mono';">[Q]</span></div>
+    <div id="weapon-name"><span>HK416</span> <span id="fire-mode" style="font-size:10px; color:var(--text); background:rgba(255,255,255,0.08); padding:1px 5px; border-radius:2px; margin-left:6px;">AUTO</span> <span style="float:right;color:var(--dim);font-family:'JetBrains Mono';">[B] modo · [Q] arma</span></div>
     <div class="row"><span>HP</span><span id="hp-num">100/100</span></div>
     <div class="bar"><div id="hp-fill" style="width:100%"></div></div>
     <div class="row"><span>AMMO</span><span id="ammo-num">24/24</span></div>
@@ -275,6 +275,7 @@
   <button id="btn-touch-crouch" class="touch-btn">AGACHA</button>
   <button id="btn-touch-reload" class="touch-btn">RELOAD</button>
   <button id="btn-touch-cycle" class="touch-btn">ARMA</button>
+  <button id="btn-touch-firemode" class="touch-btn" style="right: 80px; top: 22px; width: 46px; height: 46px; font-size: 10px; border-radius: 6px;">MODO</button>
   <button id="btn-touch-interact" class="touch-btn">PORTA</button>
   <button id="btn-touch-pause" class="touch-btn">⏸</button>
 </div>

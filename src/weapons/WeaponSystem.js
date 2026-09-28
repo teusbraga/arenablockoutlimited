@@ -40,6 +40,12 @@ export class WeaponSystem {
 
   get def() { return WEAPONS[this.current]; }
 
+  get isAuto() {
+    const mode = this.fireModeByWeapon[this.current];
+    if (mode) return mode === 'auto';
+    return !!this.def?.auto;
+  }
+
   _equip(id, instant = false) {
     if (this.current) {
       this.ammoByWeapon[this.current] = this.ammo;
@@ -48,12 +54,30 @@ export class WeaponSystem {
     if (this.ammoByWeapon[id] === undefined) {
       this.ammoByWeapon[id] = WEAPONS[id].magSize;
     }
+    if (!this.fireModeByWeapon) this.fireModeByWeapon = {};
+    if (this.fireModeByWeapon[id] === undefined) {
+      const modes = WEAPONS[id].fireModes || (WEAPONS[id].auto ? ['auto'] : ['semi']);
+      this.fireModeByWeapon[id] = modes[0];
+    }
     this.ammo = this.ammoByWeapon[id];
     this.reloading = false;
     this.reloadT = 0;
     this.viewmodel.equip(id);
-    emit('weapon:equipped', { id, name: WEAPONS[id].name });
+    emit('weapon:equipped', { id, name: WEAPONS[id].name, fireMode: this.fireModeByWeapon[id] });
     emit('weapon:ammo', { ammo: this.ammo, max: WEAPONS[id].magSize });
+    emit('weapon:firemode', { fireMode: this.fireModeByWeapon[id], canToggle: (WEAPONS[id].fireModes?.length || 1) > 1 });
+  }
+
+  toggleFireMode() {
+    const def = this.def;
+    const modes = def.fireModes || (def.auto ? ['auto'] : ['semi']);
+    if (modes.length <= 1) return; // Arma não possui modo seletivo (ex: UZI só auto, P-9 só semi)
+
+    const cur = this.fireModeByWeapon[this.current] || modes[0];
+    const nextIdx = (modes.indexOf(cur) + 1) % modes.length;
+    this.fireModeByWeapon[this.current] = modes[nextIdx];
+    emit('weapon:firemode', { fireMode: this.fireModeByWeapon[this.current], canToggle: true });
+    emit('notification', { message: `Modo de Disparo: ${this.fireModeByWeapon[this.current].toUpperCase()}` });
   }
 
   cycle() {
@@ -91,6 +115,11 @@ export class WeaponSystem {
       this.selectSlot(1);
     }
 
+    // Modo de disparo seletivo (tecla B / V)
+    if (this.input.consumeAction('toggleFireMode')) {
+      this.toggleFireMode();
+    }
+
     // 2. Recarga manual (tecla R ou botão mobile RELOAD)
     if (this.input.consumeAction('reload')) {
       this.reload();
@@ -114,11 +143,12 @@ export class WeaponSystem {
       }
     }
 
-    // 5. Disparo
+    // 5. Disparo (considera modo de disparo selecionado: auto ou semi)
     this.fireCooldown -= dt;
     if (!this.player.alive || this.reloading) return;
 
-    const wantsFire = def.auto ? this.input.actions.fire : this.input.consumeAction('fire');
+    const isAutomatic = this.isAuto;
+    const wantsFire = isAutomatic ? this.input.actions.fire : this.input.consumeAction('fire');
     if (wantsFire && this.fireCooldown <= 0 && this.ammo > 0 && !this.player.sprinting) {
       this._fire();
       this.ammoByWeapon[this.current] = this.ammo;

@@ -21,6 +21,7 @@ export class HUD {
       respawnTxt: document.getElementById('respawn-txt'),
       diCanvas: document.getElementById('damage-indicator'),
       roundTimer: document.getElementById('round-timer'),
+      fireMode: document.getElementById('fire-mode'),
     };
     
     this.diCtx = this.el.diCanvas.getContext('2d');
@@ -63,7 +64,21 @@ export class HUD {
     });
     
     on('weapon:equipped', e => {
-      this.el.weapon.firstChild.textContent = e.name + ' ';
+      if (this.el.weapon) {
+        const span = this.el.weapon.querySelector('span');
+        if (span) span.textContent = e.name;
+        else this.el.weapon.firstChild.textContent = e.name + ' ';
+      }
+      if (this.el.fireMode && e.fireMode) {
+        this.el.fireMode.textContent = e.fireMode.toUpperCase();
+      }
+    });
+
+    on('weapon:firemode', e => {
+      if (this.el.fireMode && e.fireMode) {
+        this.el.fireMode.textContent = e.fireMode.toUpperCase();
+        this.el.fireMode.style.display = e.canToggle || e.fireMode ? 'inline-block' : 'none';
+      }
     });
     
     on('shot:bot', e => this._hit(e.headshot));

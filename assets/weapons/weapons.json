@@ -30,6 +30,7 @@
       "smokeConeOpacity": 0.06,
       "smokeResidualMax": 5,
       "smokeResidualColor": "#d2d8e0",
+      "fireModes": ["auto", "semi"],
       "mods": ["heavyBarrel"]
     },
     "rifle_proto": {
@@ -63,6 +64,7 @@
       "smokeConeOpacity": 0.06,
       "smokeResidualMax": 5,
       "smokeResidualColor": "#d2d8e0",
+      "fireModes": ["auto", "semi"],
       "mods": []
     },
     "uzi": {
@@ -95,6 +97,7 @@
       "smokeConeOpacity": 0.05,
       "smokeResidualMax": 5,
       "smokeResidualColor": "#cfd6df",
+      "fireModes": ["auto"],
       "mods": ["lightGrip"]
     },
     "m249": {
@@ -127,6 +130,7 @@
       "smokeConeOpacity": 0.08,
       "smokeResidualMax": 6,
       "smokeResidualColor": "#e0e4eb",
+      "fireModes": ["auto", "semi"],
       "mods": ["heavyBarrel"]
     },
     "p9": {
@@ -159,6 +163,7 @@
       "smokeConeOpacity": 0.04,
       "smokeResidualMax": 2,
       "smokeResidualColor": "#ccd1d9",
+      "fireModes": ["semi"],
       "mods": []
     }
   },

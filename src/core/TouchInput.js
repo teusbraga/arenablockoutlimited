@@ -285,6 +285,7 @@ export class TouchInput {
     bindBtn('btn-touch-crouch', 'crouch', true); // Toggle agachar
     bindBtn('btn-touch-reload', 'reload');
     bindBtn('btn-touch-cycle', 'nextWeapon');
+    bindBtn('btn-touch-firemode', 'toggleFireMode');
     bindBtn('btn-touch-interact', 'interact');
   }
 }
