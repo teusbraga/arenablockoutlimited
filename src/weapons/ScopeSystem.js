@@ -248,36 +248,50 @@ export class ScopeSystem {
     const smoothOverlay = Math.pow(overlayProgress, 1.8);
 
     // ── SINCRONIZAÇÃO MATEMÁTICA EXATA COM O RECUO DO RIFLE PROTOTYPE ────────
-    // Pega a posição mundial da ocular traseira (rearLens) e projeta na tela da câmera principal.
-    // Qualquer recuo (physics.recoil), vibração (shake), bobbing ou oscilação altera essa posição.
+    // Pega a posição mundial e orientação da ocular traseira (rearLens).
+    // Qualquer recuo (physics.recoil), vibração (shake), bobbing ou oscilação altera essa posição e rotação.
     let offsetX = 0;
     let offsetY = 0;
+    let rollAngle = 0;
+    let depthScale = 1.0;
 
     if (this.protoDetails && this.protoDetails.rearLens) {
+      const rearLens = this.protoDetails.rearLens;
       const v = new THREE.Vector3();
-      this.protoDetails.rearLens.getWorldPosition(v);
-      v.project(mainCamera);
+      rearLens.getWorldPosition(v);
 
-      // Converte coordenadas NDC (-1..1) para deslocamento em pixels a partir do centro
+      // Distância real entre o olho do operador (câmera) e a ocular 3D
+      const distToCamera = mainCamera.position.distanceTo(v);
+      const baseDistance = 0.20; // distância nominal em ADS
+      if (distToCamera > 0.05) {
+        depthScale = Math.max(0.75, Math.min(1.4, baseDistance / distToCamera));
+      }
+
+      // Projeção do centro no plano da câmera
+      v.project(mainCamera);
       offsetX = (v.x * (w / 2));
       offsetY = (-v.y * (h / 2));
 
-      // Limita o deslocamento máximo para manter a ocular enquadrada
-      const maxKickPx = Math.min(w, h) * 0.18;
-      offsetX = Math.max(-maxKickPx, Math.min(maxKickPx, offsetX));
-      offsetY = Math.max(-maxKickPx, Math.min(maxKickPx, offsetY));
+      // Calcula a inclinação (Roll) da arma no espaço da câmera:
+      // Pega um vetor apontando para cima na mira (+Y local) e projeta na tela
+      const upVec = new THREE.Vector3(0, 1, 0);
+      upVec.applyQuaternion(rearLens.getWorldQuaternion(new THREE.Quaternion()));
+      // Projeta a direção 'up' para o espaço de visualização da câmera
+      upVec.transformDirection(mainCamera.matrixWorldInverse);
+      rollAngle = Math.atan2(upVec.x, upVec.y);
     }
 
     // Centro do disco na tela
     const centerX = (w / 2) + offsetX;
     const centerY = (h / 2) - offsetY; // Inversão para o sistema de coordenadas WebGL (origem inferior-esquerda)
 
-    // Expansão tática do diâmetro: a lente cresce conforme a arma se aproxima do olho
-    const D = this.lensDiameter() * (0.68 + 0.32 * smoothOverlay);
+    // Expansão tática do diâmetro acompanhando a profundidade física real da arma
+    const D = this.lensDiameter() * (0.68 + 0.32 * smoothOverlay) * depthScale;
     const R = D / 2;
 
-    // Posiciona o disco 2D na overlayScene exatamente onde a ocular 3D está na tela
+    // Posiciona e rotaciona o disco 2D na overlayScene exatamente como a arma está
     this.lensMesh.position.set(offsetX, -offsetY, 0);
+    this.lensMesh.rotation.z = -rollAngle;
     this.lensMesh.scale.set(R, R, 1);
     this.lensMat.uniforms.uOpacity.value = smoothOverlay;
 
@@ -293,11 +307,12 @@ export class ScopeSystem {
     this.renderer.setScissorTest(false);
     this.renderer.autoClear = true;
 
-    // Sincroniza o retículo e carcaça externa HTML/SVG com os mesmos pixels de deslocamento do rifle
+    // Sincroniza o retículo e carcaça externa HTML/SVG com os mesmos pixels de deslocamento e rotação
     if (this.lensEl) {
       this.lensEl.style.setProperty('--d', D.toFixed(1) + 'px');
       this.lensEl.style.setProperty('--x', offsetX.toFixed(2) + 'px');
       this.lensEl.style.setProperty('--y', offsetY.toFixed(2) + 'px');
+      this.lensEl.style.setProperty('--rot', rollAngle.toFixed(4) + 'rad');
     }
   }
 

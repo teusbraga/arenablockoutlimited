@@ -302,11 +302,32 @@ export function buildRiflePrototype() {
   const rearLens  = mesh(new THREE.CylinderGeometry(0.021, 0.021, 0.002, 18), rearLensMat, -0.036, 0, 0, 0, 0, Math.PI / 2);
   opticBody.add(frontLens, rearLens);
 
-  // 4. RETÍCULO RED DOT ILUMINADO NEON (Alinhamento 100% no centro da visada ADS)
-  // Ponto central em X=0, Y=0, Z=0 do opticBody (Y mundial = 0.108)
-  const redDotMesh = mesh(new THREE.SphereGeometry(0.0016, 12, 12), M.redDot, 0, 0, 0);
-  const redDotHalo = mesh(new THREE.RingGeometry(0.0035, 0.0045, 18), M.redDot, -0.001, 0, 0, 0, Math.PI / 2, 0);
-  opticBody.add(redDotMesh, redDotHalo);
+  // 4. RETÍCULO BALÍSTICO 3D INTEGRADO DIRETAMENTE NO CORPO DA ÓPTICA
+  // Sólido único com o rifle: rotaciona, treme, recua e oscila junto com o metal da arma.
+  const reticle3D = new THREE.Group();
+  reticle3D.position.set(-0.035, 0, 0); // Exatamente na face interna da lente ocular
+  reticle3D.rotation.y = Math.PI / 2;
+
+  // Linhas duplex 3D finas gravadas na lente
+  const crossMat = new THREE.MeshBasicMaterial({ color: 0x050505, depthTest: true });
+  // Horizontal e Vertical
+  reticle3D.add(mesh(new THREE.PlaneGeometry(0.038, 0.0006), crossMat, 0, 0, 0.0001));
+  reticle3D.add(mesh(new THREE.PlaneGeometry(0.0006, 0.038), crossMat, 0, 0, 0.0001));
+
+  // Ticks mil-dot nos 4 quadrantes
+  for (let t = -0.014; t <= 0.014; t += 0.004) {
+    if (Math.abs(t) > 0.001) {
+      reticle3D.add(mesh(new THREE.PlaneGeometry(0.0004, 0.0022), crossMat, t, 0, 0.0001));
+      reticle3D.add(mesh(new THREE.PlaneGeometry(0.0022, 0.0004), crossMat, 0, t, 0.0001));
+    }
+  }
+
+  // Ponto central vermelho de precisão (Red Dot)
+  const redDotMesh = mesh(new THREE.SphereGeometry(0.0007, 12, 12), M.redDot, 0, 0, 0.0002);
+  const redDotHalo = mesh(new THREE.RingGeometry(0.0018, 0.0024, 18), M.redDot, 0, 0, 0.0002);
+  reticle3D.add(redDotMesh, redDotHalo);
+
+  opticBody.add(reticle3D);
 
   optic.add(opticBody);
   rifle.add(optic);
