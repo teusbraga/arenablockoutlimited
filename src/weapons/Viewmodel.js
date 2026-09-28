@@ -59,7 +59,7 @@ export class Viewmodel {
 
     model.visible = false;
     this.mount.add(model);
-    this.models[weaponId] = { mesh: model, physics };
+    this.models[weaponId] = { mesh: model, physics, details: result };
   }
 
   equip(weaponId) {

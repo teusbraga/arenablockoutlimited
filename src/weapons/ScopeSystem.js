@@ -1,0 +1,239 @@
+/**
+ * ============================================================================
+ *   SCOPE SYSTEM — Lente Telescópica com Segunda Câmera (Arquivo 1 Literal)
+ * ============================================================================
+ * Código literal e integral do algoritmo do Arquivo 1:
+ * - RenderTarget quadrado (1024x1024) para a scopeCamera
+ * - ShaderMaterial com distorção de barril, aberração cromática e vinheta
+ * - Mesh de CircleGeometry mapeado na overlayScene ortográfica 2D
+ * - Máscara circular perfeita com setScissor delimitado ao quadrado da lente
+ * - Retículo em SVG (Duplex + Ticks + Ponto Central Vermelho)
+ * - Sensibilidade trigonométrica e scroll de zoom
+ * ============================================================================
+ */
+
+import * as THREE from 'three';
+
+/* =====================================================================
+ *  CONFIGURAÇÃO DO ARQUIVO 1
+ * ===================================================================== */
+export const SCOPE_CONFIG = {
+  NORMAL_FOV: 75,
+  ADS_FOV: 60,
+  SCOPE_FOV: 10,
+  SCOPE_FOV_MIN: 2,
+  SCOPE_FOV_MAX: 30,
+  LENS_SIZE: 0.70,
+  SCOPE_RT_SIZE: 1024,
+  ADS_SPEED: 12
+};
+
+export const rad = d => d * Math.PI / 180;
+
+export class ScopeSystem {
+  constructor(renderer, scene) {
+    this.renderer = renderer;
+    this.scene = scene;
+
+    this.scopeFov = SCOPE_CONFIG.SCOPE_FOV;
+    this.adsT = 0;
+    this.scopeOn = false;
+
+    // ── CÂMERA 2: scope (mesma cena, mesma posição/orientação, FOV bem menor)
+    // aspect = 1 porque a lente é um círculo (textura quadrada).
+    this.scopeCamera = new THREE.PerspectiveCamera(this.scopeFov, 1, 0.1, 500);
+
+    /* ---------------------------------------------------------------------
+     *  Render target: a scopeCamera desenha AQUI (textura quadrada offscreen),
+     *  e depois essa textura é colada num disco 2D no centro da tela.
+     *  Isso resolve o problema de setScissor() ser sempre retangular: com a
+     *  textura mapeada num CircleGeometry, a máscara circular é perfeita.
+     * ------------------------------------------------------------------- */
+    this.scopeRT = new THREE.WebGLRenderTarget(SCOPE_CONFIG.SCOPE_RT_SIZE, SCOPE_CONFIG.SCOPE_RT_SIZE, {
+      minFilter: THREE.LinearFilter,
+      magFilter: THREE.LinearFilter,
+      format: THREE.RGBAFormat,
+    });
+
+    /* ---------------------------------------------------------------------
+     *  Cena de composição (overlay 2D em pixels): um disco com a textura da
+     *  scopeCamera + shader com vinheta, leve distorção de lente e aberração
+     *  cromática. Câmera ortográfica com 1 unidade = 1 pixel CSS.
+     * ------------------------------------------------------------------- */
+    this.overlayScene = new THREE.Scene();
+    this.overlayCam = new THREE.OrthographicCamera(
+      -innerWidth / 2, innerWidth / 2,
+      innerHeight / 2, -innerHeight / 2,
+      -10, 10
+    );
+
+    this.lensMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthTest: false,
+      depthWrite: false,
+      uniforms: {
+        tMap:     { value: this.scopeRT.texture },
+        uOpacity: { value: 1 },
+      },
+      vertexShader: /* glsl */`
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;   // CircleGeometry gera UVs que mapeiam o círculo dentro do quadrado 0..1
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }`,
+      fragmentShader: /* glsl */`
+        uniform sampler2D tMap;
+        uniform float uOpacity;
+        varying vec2 vUv;
+        void main() {
+          vec2  p = vUv - 0.5;             // -0.5..0.5 a partir do centro
+          float r = length(p) * 2.0;       // 0 no centro, 1 na borda
+
+          // Leve distorção de barril (efeito de lente) – aumente 0.10 para exagerar
+          vec2 uv = 0.5 + p * (1.0 - 0.10 * r * r);
+
+          // Aberração cromática sutil: canais R/B levemente deslocados nas bordas
+          vec2 ca = p * 0.006 * r * r;
+          vec3 col;
+          col.r = texture2D(tMap, uv + ca).r;
+          col.g = texture2D(tMap, uv).g;
+          col.b = texture2D(tMap, uv - ca).b;
+
+          // Vinheta escura nas bordas internas + tinta leve de vidro
+          float vig = 1.0 - smoothstep(0.55, 1.0, r);
+          col *= mix(0.10, 1.0, vig);
+          col *= vec3(0.96, 1.0, 0.98);
+
+          gl_FragColor = vec4(col, uOpacity);
+        }`,
+    });
+
+    // Disco de raio 1: a escala do mesh (em pixels) define o raio real da lente.
+    this.lensMesh = new THREE.Mesh(new THREE.CircleGeometry(1, 96), this.lensMat);
+    this.overlayScene.add(this.lensMesh);
+
+    // Elementos da interface DOM
+    this.lensEl = document.getElementById('lens');
+    this.scopeHudEl = document.getElementById('scopeHud');
+    this.dotEl = document.getElementById('crosshair');
+
+    // Inicializa Retículo SVG literal do Arquivo 1
+    this.buildReticle();
+
+    // Listener para redimensionamento
+    window.addEventListener('resize', () => this.onResize());
+
+    // Listener de Scroll do Mouse (ajusta zoom durante scope)
+    window.addEventListener('wheel', e => {
+      if (!this.adsTarget) return;
+      e.preventDefault();
+      this.scopeFov *= (e.deltaY < 0) ? 0.9 : 1 / 0.9;
+      this.scopeFov = Math.max(SCOPE_CONFIG.SCOPE_FOV_MIN, Math.min(SCOPE_CONFIG.SCOPE_FOV_MAX, this.scopeFov));
+    }, { passive: false });
+  }
+
+  buildReticle() {
+    const el = document.getElementById('reticle');
+    if (!el) return;
+    const L = (x1, y1, x2, y2, w) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke-width="${w}"/>`;
+    let s = '';
+    // Linhas grossas externas + finas internas (estilo duplex)
+    s += L(-46, 0, -10, 0, .9) + L(10, 0, 46, 0, .9) + L(0, -46, 0, -10, .9) + L(0, 10, 0, 46, .9);
+    s += L(-10, 0, -1.5, 0, .22) + L(1.5, 0, 10, 0, .22) + L(0, -10, 0, -1.5, .22) + L(0, 1.5, 0, 10, .22);
+    // Marcações de mira (ticks) ao longo dos eixos
+    for (let t = 14; t <= 42; t += 7) {
+      const l = (t % 14 === 0) ? 2.2 : 1.3;
+      s += L(t, -l, t, l, .25) + L(-t, -l, -t, l, .25) + L(-l, t, l, t, .25) + L(-l, -t, l, -t, .25);
+    }
+    s += '<circle r=".45" fill="#ff2a2a" stroke="none"/>';   // ponto central vermelho
+    el.innerHTML = s;
+  }
+
+  lensDiameter() {
+    return Math.min(innerWidth, innerHeight) * SCOPE_CONFIG.LENS_SIZE;
+  }
+
+  apparentZoom() {
+    const k = Math.tan(rad(SCOPE_CONFIG.ADS_FOV) / 2) / Math.tan(rad(this.scopeFov) / 2);
+    return k * this.lensDiameter() / innerHeight;
+  }
+
+  getSensitivityFactor() {
+    if (this.adsT <= 0.001) return 1.0;
+    const ratio = Math.tan(rad(this.scopeFov) / 2) / Math.tan(rad(SCOPE_CONFIG.ADS_FOV) / 2);
+    return 1 + (Math.pow(ratio, 0.6) - 1) * this.adsT;
+  }
+
+  update(dt, mainCamera, isAdsActive) {
+    this.adsTarget = isAdsActive;
+
+    // Transição suave do ADS (exponencial, independente de FPS)
+    const target = this.adsTarget ? 1 : 0;
+    this.adsT += (target - this.adsT) * (1 - Math.exp(-dt * SCOPE_CONFIG.ADS_SPEED));
+    if (Math.abs(target - this.adsT) < 0.001) this.adsT = target;
+
+    // Câmera do scope: CÓPIA EXATA da principal, muda só o FOV.
+    // Copiamos position e quaternion (não os ângulos de Euler) → sincronia perfeita
+    mainCamera.updateMatrixWorld();
+    this.scopeCamera.position.copy(mainCamera.position);
+    this.scopeCamera.quaternion.copy(mainCamera.quaternion);
+    this.scopeCamera.fov = this.scopeFov;
+    this.scopeCamera.aspect = 1;
+    this.scopeCamera.updateProjectionMatrix();
+
+    // Atualiza HUD e display do overlay
+    this.scopeOn = this.adsT > 0.01;
+    if (this.scopeHudEl) {
+      if (this.adsT > 0.5) {
+        this.scopeHudEl.style.opacity = '1';
+        this.scopeHudEl.textContent = `SCOPE\nZoom: ${this.apparentZoom().toFixed(1)}x\nFOV: ${this.scopeFov.toFixed(1)}°`;
+      } else {
+        this.scopeHudEl.style.opacity = '0';
+      }
+    }
+
+    if (this.lensEl) {
+      this.lensEl.style.display = this.scopeOn ? 'block' : 'none';
+      this.lensEl.style.opacity = this.adsT;
+    }
+  }
+
+  render(mainCamera) {
+    const w = innerWidth, h = innerHeight;
+
+    if (!this.scopeOn) return;
+
+    // ── PASSADA 2: mesma cena, scopeCamera, dentro do render target (textura da lente)
+    this.renderer.setRenderTarget(this.scopeRT);
+    this.renderer.render(this.scene, this.scopeCamera);
+    this.renderer.setRenderTarget(null);
+
+    // ── PASSADA 3 (barata): cola a textura num disco no centro da tela.
+    // A lente "cresce" um pouco durante a transição (0.6 → 1.0) e faz fade-in.
+    const D = this.lensDiameter() * (0.6 + 0.4 * this.adsT);
+    const R = D / 2;
+    this.lensMesh.scale.set(R, R, 1);
+    this.lensMat.uniforms.uOpacity.value = this.adsT;
+
+    // setScissor limita o desenho ao quadrado que contém a lente
+    this.renderer.setScissor(w / 2 - R - 2, h / 2 - R - 2, D + 4, D + 4);
+    this.renderer.setScissorTest(true);
+    this.renderer.autoClear = false;
+    this.renderer.render(this.overlayScene, this.overlayCam);
+    this.renderer.setScissorTest(false);
+    this.renderer.autoClear = true;
+
+    // Overlay HTML/CSS acompanha o mesmo diâmetro
+    if (this.lensEl) {
+      this.lensEl.style.setProperty('--d', D.toFixed(1) + 'px');
+    }
+  }
+
+  onResize() {
+    this.overlayCam.left = -innerWidth / 2;
+    this.overlayCam.right = innerWidth / 2;
+    this.overlayCam.top  = innerHeight / 2;
+    this.overlayCam.bottom = -innerHeight / 2;
+    this.overlayCam.updateProjectionMatrix();
+  }
+}

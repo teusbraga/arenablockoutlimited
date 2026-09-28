@@ -30,7 +30,8 @@ export class Player extends Character {
     // ---- Look & Input (só se estiver vivo) ----
     if (this.alive) {
       const { dx, dy } = input.consumeMouseDelta();
-      const sens = CONFIG.CAMERA.sens * (CONFIG.CAMERA.sensMultiplier || 1.0) * (this.ads ? CONFIG.CAMERA.adsSensMul : 1);
+      const scopeMul = (this.customSensMul !== undefined) ? this.customSensMul : 1.0;
+      const sens = CONFIG.CAMERA.sens * (CONFIG.CAMERA.sensMultiplier || 1.0) * (this.ads ? CONFIG.CAMERA.adsSensMul : 1) * scopeMul;
       this.yaw -= dx * sens;
       this.pitch -= dy * sens;
       this.pitch = Math.max(-CONFIG.CAMERA.pitchLimit, Math.min(CONFIG.CAMERA.pitchLimit, this.pitch));

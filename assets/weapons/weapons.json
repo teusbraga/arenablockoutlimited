@@ -46,7 +46,7 @@
       "recoilPitch": 0.004,
       "recoilYaw": 0.001,
       "recoilYawBias": 0.0,
-      "adsFov": 56,
+      "adsFov": 60,
       "adsSightDistance": 0.16,
       "hipPos": [0.14, -0.14, -0.32],
       "hipRot": [0, 0, 0],

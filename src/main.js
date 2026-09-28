@@ -14,6 +14,7 @@ import { initWeaponsFromData } from './weapons/WeaponDefs.js';
 import { Effects } from './fx/Effects.js';
 import { AudioSystem } from './audio/AudioSystem.js';
 import { HUD } from './ui/HUD.js';
+import { ScopeSystem } from './weapons/ScopeSystem.js';
 
 /* =========================================================
    BOOTSTRAP & CONFIGURAÇÕES DATA-DRIVEN
@@ -143,6 +144,9 @@ const effects = new Effects(scene);
       gameManager.setBotSkin(botSkinSelect.value);
     }
 
+    // 6. Scope System (Arquivo 1 Literal para Rifle Prototype)
+    const scopeSystem = new ScopeSystem(renderer, scene);
+
     /* =========================================================
        UI DO MENU (start + pause + mobile + seletores)
        ========================================================= */
@@ -271,19 +275,45 @@ const effects = new Effects(scene);
         effects.update(dt, camera);
 
         // FOV Dinâmico
+        const isProto = weapons.current === 'rifle_proto';
         const targetFov = weapons.ads
-          ? (weapons.def?.adsFov || CONFIG.CAMERA.adsFov)
+          ? ((isProto ? 60 : (weapons.def?.adsFov || CONFIG.CAMERA.adsFov)))
           : (player.sprinting ? CONFIG.CAMERA.hipFov + 8 : CONFIG.CAMERA.hipFov);
         camera.fov += (targetFov - camera.fov) * Math.min(dt * 12, 1);
         camera.updateProjectionMatrix();
 
-        // HUD Crosshair & Indicadores
-        hud.updateCrosshair(weapons.ads, weapons._currentSpread(), player.sprinting);
+        // Scope System (Arquivo 1 Literal para o Rifle Prototype)
+        if (isProto) {
+          scopeSystem.update(dt, camera, weapons.ads);
+          player.customSensMul = scopeSystem.getSensitivityFactor();
+        } else {
+          scopeSystem.update(dt, camera, false);
+          player.customSensMul = 1.0;
+        }
+
+        // HUD Crosshair & Indicadores (esconde crosshair se scope do proto estiver ativo)
+        const hideCrosshair = isProto && scopeSystem.scopeOn;
+        hud.updateCrosshair(hideCrosshair ? 1.0 : weapons.ads, weapons._currentSpread(), player.sprinting);
         hud.update(dt, player.yaw);
       },
 
       render() {
+        const isProto = weapons.current === 'rifle_proto';
+        const protoModel = viewmodel.models['rifle_proto']?.mesh;
+
+        // Durante a renderização da Scope Camera (passada 2), ocultamos a arma para não obstruir a visão da lente
+        if (isProto && scopeSystem.scopeOn && protoModel) {
+          protoModel.visible = false;
+        }
+
+        // Renderiza cena principal
         renderer.render(scene, camera);
+
+        // Se for o Rifle Prototype com scope ativo, renderiza as passadas do Scope (passada 2 na RT e 3 no overlay)
+        if (isProto && scopeSystem.scopeOn) {
+          scopeSystem.render(camera);
+          if (protoModel) protoModel.visible = true;
+        }
       },
     });
 

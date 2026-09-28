@@ -518,6 +518,12 @@ export function buildRiflePrototype() {
     group: root,
     rifle,
     bolt,
-    physics
+    physics,
+    optic,
+    opticBody,
+    redDotMesh,
+    redDotHalo,
+    frontLens,
+    rearLens
   };
 }
