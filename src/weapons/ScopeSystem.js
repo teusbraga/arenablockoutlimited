@@ -117,6 +117,8 @@ export class ScopeSystem {
     // Elementos da interface DOM
     this.lensEl = document.getElementById('lens');
     this.scopeHudEl = document.getElementById('scopeHud');
+    this.zoomTextEl = document.getElementById('scope-zoom-text');
+    this.fovTextEl = document.getElementById('scope-fov-text');
     this.dotEl = document.getElementById('crosshair');
 
     // Variáveis de oscilação orgânica (Scope Sway / Respiração)
@@ -225,13 +227,18 @@ export class ScopeSystem {
     // Estado do scope ativo
     this.scopeOn = this.adsT > 0.01;
 
-    // HUD Telemetria
+    // HUD Telemetria de Ótica posicionada harmonicamente no topo do HUD da arma
     if (this.scopeHudEl) {
-      if (this.adsT > 0.5) {
-        this.scopeHudEl.style.opacity = '1';
-        this.scopeHudEl.textContent = `SCOPE\nZoom: ${this.apparentZoom().toFixed(1)}x\nFOV: ${this.scopeFov.toFixed(1)}°`;
+      if (this.adsT > 0.45) {
+        this.scopeHudEl.classList.add('show');
+        if (this.zoomTextEl) {
+          this.zoomTextEl.textContent = `${this.apparentZoom().toFixed(1)}x`;
+        }
+        if (this.fovTextEl) {
+          this.fovTextEl.textContent = `FOV ${this.scopeFov.toFixed(1)}°`;
+        }
       } else {
-        this.scopeHudEl.style.opacity = '0';
+        this.scopeHudEl.classList.remove('show');
       }
     }
 
