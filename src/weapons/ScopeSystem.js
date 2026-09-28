@@ -271,14 +271,6 @@ export class ScopeSystem {
       v.project(mainCamera);
       offsetX = (v.x * (w / 2));
       offsetY = (-v.y * (h / 2));
-
-      // Calcula a inclinação (Roll) da arma no espaço da câmera:
-      // Pega um vetor apontando para cima na mira (+Y local) e projeta na tela
-      const upVec = new THREE.Vector3(0, 1, 0);
-      upVec.applyQuaternion(rearLens.getWorldQuaternion(new THREE.Quaternion()));
-      // Projeta a direção 'up' para o espaço de visualização da câmera
-      upVec.transformDirection(mainCamera.matrixWorldInverse);
-      rollAngle = Math.atan2(upVec.x, upVec.y);
     }
 
     // Centro do disco na tela
@@ -289,9 +281,9 @@ export class ScopeSystem {
     const D = this.lensDiameter() * (0.68 + 0.32 * smoothOverlay) * depthScale;
     const R = D / 2;
 
-    // Posiciona e rotaciona o disco 2D na overlayScene exatamente como a arma está
+    // Posiciona o disco 2D na overlayScene exatamente onde a ocular 3D está na tela (sem inclinação/rotação)
     this.lensMesh.position.set(offsetX, -offsetY, 0);
-    this.lensMesh.rotation.z = -rollAngle;
+    this.lensMesh.rotation.z = 0;
     this.lensMesh.scale.set(R, R, 1);
     this.lensMat.uniforms.uOpacity.value = smoothOverlay;
 
@@ -307,12 +299,11 @@ export class ScopeSystem {
     this.renderer.setScissorTest(false);
     this.renderer.autoClear = true;
 
-    // Sincroniza o retículo e carcaça externa HTML/SVG com os mesmos pixels de deslocamento e rotação
+    // Sincroniza o retículo e carcaça externa HTML/SVG com os mesmos pixels de deslocamento
     if (this.lensEl) {
       this.lensEl.style.setProperty('--d', D.toFixed(1) + 'px');
       this.lensEl.style.setProperty('--x', offsetX.toFixed(2) + 'px');
       this.lensEl.style.setProperty('--y', offsetY.toFixed(2) + 'px');
-      this.lensEl.style.setProperty('--rot', rollAngle.toFixed(4) + 'rad');
     }
   }
 
