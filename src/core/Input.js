@@ -18,8 +18,6 @@ export class Input {
       'Space': 'jump',
       'ShiftLeft': 'sprint',
       'ShiftRight': 'sprint',
-      'ControlLeft': 'crouch',
-      'ControlRight': 'crouch',
       'KeyC': 'crouch',
       'Mouse0': 'fire',
       'Mouse2': 'ads',

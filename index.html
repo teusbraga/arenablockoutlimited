@@ -22,13 +22,50 @@
   #hud{position:fixed;inset:0;pointer-events:none;}
   .panel{position:absolute;background:rgba(14,17,18,0.72);border:1px solid rgba(255,255,255,0.08);
     border-radius:3px;padding:10px 14px;backdrop-filter:blur(6px);font-size:12px;}
-  #status{left:16px;bottom:16px;min-width:220px;}
-  #status .bar{height:7px;background:rgba(255,255,255,0.08);border-radius:2px;overflow:hidden;margin:4px 0 8px;}
-  #status .bar > div{height:100%;transition:width .12s;}
-  #hp-fill{background:var(--warn);}
-  #ammo-fill{background:var(--accent);}
-  #status .row{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);}
-  #weapon-name{font-family:'Oswald',sans-serif;letter-spacing:.08em;color:var(--accent);font-size:13px;margin-bottom:6px;}
+
+  /* ---------- NOVO HUD MINIMALISTA E DISCRETO ---------- */
+  .hud-minimal {
+    position: fixed; pointer-events: none; z-index: 7;
+    font-family: 'JetBrains Mono', monospace;
+    color: rgba(200, 206, 214, 0.45); /* cinza suave em repouso */
+    transition: color 0.6s ease, text-shadow 0.6s ease, opacity 0.6s ease;
+  }
+  .hud-flash {
+    color: rgba(250, 252, 255, 0.95) !important; /* cinza mais claro ao alterar */
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.35);
+  }
+
+  /* HP no Centro Inferior */
+  #hp-hud {
+    left: 50%; bottom: 20px;
+    transform: translateX(-50%);
+    display: flex; align-items: baseline; gap: 8px;
+    font-size: 13px; letter-spacing: 0.05em;
+  }
+  #hp-hud .hp-tag { font-size: 11px; opacity: 0.6; }
+  #hp-hud #hp-num { font-size: 26px; font-weight: 600; font-family: 'Oswald', sans-serif; letter-spacing: 0.04em; }
+
+  /* HUD de Armas no Canto Inferior Direito */
+  #weapon-hud {
+    right: 20px; bottom: 20px;
+    text-align: right;
+    display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+  }
+  .weapon-title-row {
+    display: flex; align-items: center; gap: 8px; font-size: 12px; letter-spacing: 0.06em;
+  }
+  #weapon-name { font-family: 'Oswald', sans-serif; font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; }
+  #fire-mode {
+    font-size: 9.5px; border: 1px solid rgba(255,255,255,0.18);
+    padding: 0 4px; border-radius: 2px; letter-spacing: 0.06em;
+  }
+  .ammo-counter-row {
+    font-family: 'Oswald', sans-serif; font-size: 28px; font-weight: 600;
+    line-height: 1; letter-spacing: 0.04em; margin-top: 2px;
+  }
+  .ammo-counter-row .slash { font-size: 18px; opacity: 0.4; margin: 0 3px; font-family: 'JetBrains Mono', monospace; font-weight: 400; }
+  #ammo-max { font-size: 18px; opacity: 0.6; }
+  .weapon-keys-hint { font-size: 9.5px; opacity: 0.5; margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
 
   #score{right:16px;top:16px;text-align:right;font-family:'Oswald',sans-serif;}
   #score b{font-size:22px;}
@@ -204,10 +241,12 @@
   /* Compactação para telas menores / celulares */
   @media (max-width: 900px) {
     #controls { display: none !important; }
-    #status { left: 12px; bottom: 12px; min-width: 160px; padding: 6px 10px; }
     #score { right: 12px; top: 12px; padding: 6px 10px; }
     #score b { font-size: 18px; }
     #round-timer { font-size: 16px !important; margin-top: 2px !important; }
+    #hp-hud { bottom: 12px; }
+    #weapon-hud { right: 14px; bottom: 14px; }
+    .ammo-counter-row { font-size: 22px; }
   }
 </style>
 </head>
@@ -233,7 +272,7 @@
   <div id="controls" class="panel">
     <div><span class="k">WASD</span>mover</div>
     <div><span class="k">Shift</span>correr</div>
-    <div><span class="k">Ctrl/C</span>agachar</div>
+    <div><span class="k">C</span>agachar</div>
     <div><span class="k">Space</span>pular</div>
     <div><span class="k">LMB</span>atirar · <span class="k">RMB</span>mira</div>
     <div><span class="k">R</span>recarregar · <span class="k">B</span>modo de tiro</div>
@@ -245,12 +284,24 @@
     <div id="round-timer" style="text-align:right; font-family:'Oswald',sans-serif; font-size:20px; color:var(--accent); margin-top:4px;">3:30</div>
   </div>
 
-  <div id="status" class="panel">
-    <div id="weapon-name"><span>HK416</span> <span id="fire-mode" style="font-size:10px; color:var(--text); background:rgba(255,255,255,0.08); padding:1px 5px; border-radius:2px; margin-left:6px;">AUTO</span> <span style="float:right;color:var(--dim);font-family:'JetBrains Mono';">[B] modo · [Q] arma</span></div>
-    <div class="row"><span>HP</span><span id="hp-num">100/100</span></div>
-    <div class="bar"><div id="hp-fill" style="width:100%"></div></div>
-    <div class="row"><span>AMMO</span><span id="ammo-num">24/24</span></div>
-    <div class="bar"><div id="ammo-fill" style="width:100%"></div></div>
+  <!-- HP Centralizado no Meio Inferior -->
+  <div id="hp-hud" class="hud-minimal">
+    <span class="hp-tag">HP</span>
+    <span id="hp-num">100</span>
+  </div>
+
+  <!-- HUD de Armas Minimalista no Canto Inferior Direito -->
+  <div id="weapon-hud" class="hud-minimal">
+    <div class="weapon-title-row">
+      <span id="weapon-name">HK416</span>
+      <span id="fire-mode">AUTO</span>
+    </div>
+    <div class="ammo-counter-row">
+      <span id="ammo-num">30</span>
+      <span class="slash">/</span>
+      <span id="ammo-max">30</span>
+    </div>
+    <div class="weapon-keys-hint">[B] MODO · [Q] ARMA</div>
   </div>
 </div>
 
@@ -289,7 +340,7 @@
 <div id="overlay">
   <h1>Blocky Sim</h1>
   <h2 id="overlay-title">Protótipo Modular</h2>
-  <p>WASD mover · Space pular · Shift correr · Ctrl/C agachar<br>
+  <p>WASD mover · Space pular · Shift correr · C agachar<br>
      Botão esquerdo atirar · Direito mira · R recarrega · B modo tiro · Q troca · E porta<br>
      ESC pausa</p>
 

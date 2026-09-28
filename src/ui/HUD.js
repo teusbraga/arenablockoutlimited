@@ -22,10 +22,15 @@ export class HUD {
       diCanvas: document.getElementById('damage-indicator'),
       roundTimer: document.getElementById('round-timer'),
       fireMode: document.getElementById('fire-mode'),
+      weaponName: document.getElementById('weapon-name'),
+      ammoMax: document.getElementById('ammo-max'),
+      hpHud: document.getElementById('hp-hud'),
+      weaponHud: document.getElementById('weapon-hud'),
     };
     
     this.diCtx = this.el.diCanvas.getContext('2d');
     this.damageMarks = [];
+    this._flashTimers = new Map();
     
     this.kills = 0;
     this.deaths = 0;
@@ -33,10 +38,31 @@ export class HUD {
     this._bind();
   }
 
+  /**
+   * Efeito de iluminação sutil de 2 segundos:
+   * O elemento passa de cinza suave para cinza mais claro ao ser alterado,
+   * retornando suavemente ao normal após 2 segundos.
+   */
+  triggerFlash(el) {
+    if (!el) return;
+    el.classList.add('hud-flash');
+    if (this._flashTimers.has(el)) {
+      clearTimeout(this._flashTimers.get(el));
+    }
+    const timer = setTimeout(() => {
+      el.classList.remove('hud-flash');
+      this._flashTimers.delete(el);
+    }, 2000);
+    this._flashTimers.set(el, timer);
+  }
+
   _bind() {
     on('player:hp', e => {
-      this.el.hpFill.style.width = (e.hp / e.max * 100) + '%';
-      this.el.hpNum.textContent = `${Math.round(e.hp)}/${e.max}`;
+      const val = Math.round(e.hp);
+      if (this.el.hpNum) {
+        this.el.hpNum.textContent = val;
+        this.triggerFlash(this.el.hpHud || this.el.hpNum);
+      }
     });
 
     on('player:damaged', e => {
@@ -59,18 +85,23 @@ export class HUD {
     });
 
     on('weapon:ammo', e => {
-      this.el.ammoFill.style.width = (e.ammo / e.max * 100) + '%';
-      this.el.ammoNum.textContent = `${e.ammo}/${e.max}`;
+      if (this.el.ammoNum) {
+        this.el.ammoNum.textContent = e.ammo;
+        this.triggerFlash(this.el.ammoNum);
+      }
+      if (this.el.ammoMax) {
+        this.el.ammoMax.textContent = e.max;
+      }
     });
     
     on('weapon:equipped', e => {
-      if (this.el.weapon) {
-        const span = this.el.weapon.querySelector('span');
-        if (span) span.textContent = e.name;
-        else this.el.weapon.firstChild.textContent = e.name + ' ';
+      if (this.el.weaponName) {
+        this.el.weaponName.textContent = e.name;
+        this.triggerFlash(this.el.weaponHud || this.el.weaponName);
       }
       if (this.el.fireMode && e.fireMode) {
         this.el.fireMode.textContent = e.fireMode.toUpperCase();
+        this.triggerFlash(this.el.fireMode);
       }
     });
 
@@ -78,6 +109,7 @@ export class HUD {
       if (this.el.fireMode && e.fireMode) {
         this.el.fireMode.textContent = e.fireMode.toUpperCase();
         this.el.fireMode.style.display = e.canToggle || e.fireMode ? 'inline-block' : 'none';
+        this.triggerFlash(this.el.fireMode);
       }
     });
     
