@@ -247,24 +247,57 @@ export class ScopeSystem {
 
     const smoothOverlay = Math.pow(overlayProgress, 1.8);
 
-    // ── PASSADA 3 (barata): cola a textura num disco no centro da tela.
-    // A lente expande suavemente até cobrir a ocular da mira física
+    // ── SINCRONIZAÇÃO MATEMÁTICA EXATA COM O RECUO DO RIFLE PROTOTYPE ────────
+    // Pega a posição mundial da ocular traseira (rearLens) e projeta na tela da câmera principal.
+    // Qualquer recuo (physics.recoil), vibração (shake), bobbing ou oscilação altera essa posição.
+    let offsetX = 0;
+    let offsetY = 0;
+
+    if (this.protoDetails && this.protoDetails.rearLens) {
+      const v = new THREE.Vector3();
+      this.protoDetails.rearLens.getWorldPosition(v);
+      v.project(mainCamera);
+
+      // Converte coordenadas NDC (-1..1) para deslocamento em pixels a partir do centro
+      offsetX = (v.x * (w / 2));
+      offsetY = (-v.y * (h / 2));
+
+      // Limita o deslocamento máximo para manter a ocular enquadrada
+      const maxKickPx = Math.min(w, h) * 0.18;
+      offsetX = Math.max(-maxKickPx, Math.min(maxKickPx, offsetX));
+      offsetY = Math.max(-maxKickPx, Math.min(maxKickPx, offsetY));
+    }
+
+    // Centro do disco na tela
+    const centerX = (w / 2) + offsetX;
+    const centerY = (h / 2) - offsetY; // Inversão para o sistema de coordenadas WebGL (origem inferior-esquerda)
+
+    // Expansão tática do diâmetro: a lente cresce conforme a arma se aproxima do olho
     const D = this.lensDiameter() * (0.68 + 0.32 * smoothOverlay);
     const R = D / 2;
+
+    // Posiciona o disco 2D na overlayScene exatamente onde a ocular 3D está na tela
+    this.lensMesh.position.set(offsetX, -offsetY, 0);
     this.lensMesh.scale.set(R, R, 1);
     this.lensMat.uniforms.uOpacity.value = smoothOverlay;
 
-    // setScissor limita o desenho ao quadrado que contém a lente
-    this.renderer.setScissor(w / 2 - R - 2, h / 2 - R - 2, D + 4, D + 4);
+    // setScissor acompanha o centro dinâmico da mira (coordenadas do scissor: x, y, width, height)
+    const scissorX = Math.round(centerX - R - 2);
+    const scissorY = Math.round(centerY - R - 2);
+    const scissorSize = Math.round(D + 4);
+
+    this.renderer.setScissor(scissorX, scissorY, scissorSize, scissorSize);
     this.renderer.setScissorTest(true);
     this.renderer.autoClear = false;
     this.renderer.render(this.overlayScene, this.overlayCam);
     this.renderer.setScissorTest(false);
     this.renderer.autoClear = true;
 
-    // Overlay HTML/CSS acompanha o mesmo diâmetro
+    // Sincroniza o retículo e carcaça externa HTML/SVG com os mesmos pixels de deslocamento do rifle
     if (this.lensEl) {
       this.lensEl.style.setProperty('--d', D.toFixed(1) + 'px');
+      this.lensEl.style.setProperty('--x', offsetX.toFixed(2) + 'px');
+      this.lensEl.style.setProperty('--y', offsetY.toFixed(2) + 'px');
     }
   }
 

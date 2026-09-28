@@ -39,11 +39,11 @@
   /* ---------- HUD discreto ---------- */
   #scopeHud { position: fixed; top: 10px; right: 12px; text-align: right; white-space: pre; opacity: 0; transition: opacity .15s; pointer-events: none; text-shadow: 0 1px 2px rgba(0,0,0,.85); font-family: 'JetBrains Mono', monospace; font-size: 11px; z-index: 25; }
 
-  /* ---------- Overlay HTML/CSS da lente (Arquivo 1) ---------- */
+  /* ---------- Overlay HTML/CSS da lente (Arquivo 1 Dinâmico) ---------- */
   #lens {
     position: fixed; left: 50%; top: 50%;
     width: var(--d, 0px); height: var(--d, 0px);
-    transform: translate(-50%, -50%);
+    transform: translate(calc(-50% + var(--x, 0px)), calc(-50% + var(--y, 0px)));
     border-radius: 50%;
     pointer-events: none;
     display: none;
