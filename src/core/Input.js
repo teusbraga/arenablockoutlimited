@@ -17,7 +17,10 @@ export class Input {
       'KeyD': 'right', 'ArrowRight': 'right',
       'Space': 'jump',
       'ShiftLeft': 'sprint',
+      'ShiftRight': 'sprint',
       'ControlLeft': 'crouch',
+      'ControlRight': 'crouch',
+      'KeyC': 'crouch',
       'Mouse0': 'fire',
       'Mouse2': 'ads',
       'KeyR': 'reload',
@@ -52,17 +55,33 @@ export class Input {
 
   _bind() {
     addEventListener('keydown', e => {
+      // 1. Previne atalhos perigosos do Chrome quando o mouse está capturado no jogo
+      // Ctrl+W (fecha aba), Ctrl+A (seleciona tudo), Ctrl+S (salva), Ctrl+D (favoritos), etc.
+      if (this.locked) {
+        if (e.ctrlKey || e.metaKey || ['ControlLeft','ControlRight','AltLeft','AltRight','Tab'].includes(e.code)) {
+          if (!['F12','F5','F11'].includes(e.code)) {
+            e.preventDefault();
+          }
+        }
+      }
+
       const action = this.bindings[e.code];
       if (action) {
         if (!this.actions[action]) this._actionQueue.add(action); // Registra apenas no primeiro frame
         this.actions[action] = true;
+        e.preventDefault();
       }
-      if (['Space','KeyW','KeyA','KeyS','KeyD','KeyQ','KeyR','KeyB','KeyV','Digit1','Digit2'].includes(e.code)) e.preventDefault();
     });
 
     addEventListener('keyup', e => {
+      if (this.locked && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+      }
       const action = this.bindings[e.code];
-      if (action) this.actions[action] = false;
+      if (action) {
+        this.actions[action] = false;
+        e.preventDefault();
+      }
     });
 
     addEventListener('blur', () => {
@@ -108,6 +127,10 @@ export class Input {
     }
     try {
       await this.canvas.requestPointerLock?.(); 
+      // API nativa do Chrome para jogos em tela cheia/captura: bloqueia atalhos de navegador
+      if (navigator.keyboard && navigator.keyboard.lock) {
+        navigator.keyboard.lock(['ControlLeft', 'ControlRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyR']).catch(() => {});
+      }
     } catch (err) {
       console.warn('Pointer lock falhou:', err);
     }
