@@ -269,9 +269,9 @@ export function buildRiflePrototype() {
   rifle.add(receiver);
 
   /* ---------- 4.2 ÓPTICA MICRO REFLEX TÁTICA & RED DOT (SIGHTS PRECISAS) ---------- */
-  // Ponto óptico central exato: X = 0.020, Y = 0.108, Z = 0
+  // Ponto óptico central exato: X = 0.060, Y = 0.108, Z = 0
   const optic = new THREE.Group();
-  optic.position.set(0.020, 0.062, 0);
+  optic.position.set(0.060, 0.062, 0);
 
   // 1. Montagem elevada vazada (High-Rise Skeletonized Mount estilo Unity Tactical)
   optic.add(mesh(new THREE.BoxGeometry(0.095, 0.016, 0.056), M.darkSteel, 0, 0.008, 0));
@@ -462,7 +462,8 @@ export function buildRiflePrototype() {
   bolt.position.set(0, 0.073, 0);
 
   // Corpo cilíndrico do transportador do ferrolho (Bolt Carrier em cromo/nitreto)
-  bolt.add(mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.20, 18), M.darkSteel, 0, 0, 0, 0, 0, Math.PI / 2));
+  // Encurtado de 0.20 para 0.14 para não atravessar a câmera no recoil (Facelift)
+  bolt.add(mesh(new THREE.CylinderGeometry(0.026, 0.026, 0.14, 18), M.darkSteel, 0.03, 0, 0, 0, 0, Math.PI / 2));
   // Cabeça do ferrolho polida visível na janela de ejeção
   bolt.add(mesh(new THREE.CylinderGeometry(0.020, 0.020, 0.038, 14), M.steel, 0.040, 0, 0.022, 0, 0, Math.PI / 2));
   // Extrator e estojo em latão carregado na câmara
