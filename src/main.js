@@ -271,13 +271,13 @@ const effects = new Effects(scene);
         player.updateCamera(camera, dt);
 
         // Tremor de câmera gerenciado pela camada cinética (CameraRig)
-        // Se a luneta do Rifle Prototype estiver ativa, a câmera principal exterior é 100% preservada de qualquer tremor
-        const isProtoScope = (weapons.current === 'rifle_proto' && (weapons.ads || scopeSystem.scopeOn));
+        // Para o Rifle Prototype, a câmera exterior é 100% preservada de qualquer tremor (o tremor fica restrito à ótica interna e ao viewmodel)
+        const isProto = (weapons.current === 'rifle_proto');
         const shake = viewmodel.getShake();
-        if (shake > 0.002 && player.rig && !isProtoScope) {
+        if (shake > 0.002 && player.rig && !isProto) {
           player.rig.addShake(shake * 0.14);
         }
-        if (isProtoScope && player.rig) {
+        if (isProto && player.rig) {
           player.rig.shakeIntensity = 0;
         }
 
@@ -296,7 +296,6 @@ const effects = new Effects(scene);
         effects.update(dt, camera);
 
         // FOV Dinâmico
-        const isProto = weapons.current === 'rifle_proto';
         const targetFov = weapons.ads
           ? ((isProto ? 60 : (weapons.def?.adsFov || CONFIG.CAMERA.adsFov)))
           : (player.sprinting ? CONFIG.CAMERA.hipFov + 8 : CONFIG.CAMERA.hipFov);
