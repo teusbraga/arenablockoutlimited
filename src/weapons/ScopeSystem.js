@@ -211,13 +211,29 @@ export class ScopeSystem {
     // Câmera do scope: Orientação sincronizada com a principal + leve oscilação orgânica
     mainCamera.updateMatrixWorld();
     this.scopeCamera.position.copy(mainCamera.position);
-    this.scopeCamera.quaternion.copy(mainCamera.quaternion);
 
-    if (this.adsT > 0.1) {
-      const euler = new THREE.Euler().setFromQuaternion(this.scopeCamera.quaternion, 'YXZ');
-      euler.y += this.swayYaw;
-      euler.x += this.swayPitch;
-      this.scopeCamera.quaternion.setFromEuler(euler);
+    if (this.protoDetails && this.protoDetails.rearLens && this.protoDetails.frontLens) {
+      const vRear = new THREE.Vector3();
+      const vFront = new THREE.Vector3();
+      this.protoDetails.rearLens.getWorldPosition(vRear);
+      this.protoDetails.frontLens.getWorldPosition(vFront);
+      
+      const dir = new THREE.Vector3().subVectors(vFront, vRear).normalize();
+      
+      const vUp = new THREE.Vector3(0, 1, 0);
+      vUp.transformDirection(this.protoDetails.opticBody.matrixWorld).normalize();
+
+      const target = new THREE.Vector3().copy(this.scopeCamera.position).add(dir);
+      this.scopeCamera.up.copy(vUp);
+      this.scopeCamera.lookAt(target);
+    } else {
+      this.scopeCamera.quaternion.copy(mainCamera.quaternion);
+      if (this.adsT > 0.1) {
+        const euler = new THREE.Euler().setFromQuaternion(this.scopeCamera.quaternion, 'YXZ');
+        euler.y += this.swayYaw;
+        euler.x += this.swayPitch;
+        this.scopeCamera.quaternion.setFromEuler(euler);
+      }
     }
 
     this.scopeCamera.fov = this.scopeFov;
@@ -296,10 +312,11 @@ export class ScopeSystem {
 
       // Distância real entre o olho do operador (câmera) e a ocular 3D
       const distToCamera = mainCamera.position.distanceTo(v);
-      const baseDistance = 0.20; // distância nominal em ADS
-      if (distToCamera > 0.05) {
-        depthScale = Math.max(0.75, Math.min(1.4, baseDistance / distToCamera));
-      }
+        const baseDistance = 0.125; 
+        if (distToCamera > 0.02) {
+          const rawScale = baseDistance / distToCamera;
+          depthScale = Math.max(0.75, Math.min(3.5, Math.pow(rawScale, 1.4)));
+        }
 
       // Projeção do centro no plano da câmera
       v.project(mainCamera);
@@ -349,3 +366,5 @@ export class ScopeSystem {
     this.overlayCam.updateProjectionMatrix();
   }
 }
+
+
