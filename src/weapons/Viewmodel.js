@@ -132,9 +132,13 @@ export class Viewmodel {
     const sprintMul = isSprinting ? 1.3 : 1.0;
     const mul = adsMul * sprintMul;
 
+    // Velocidade angular do olhar (rad/s) para inércia física real independente de FPS
+    const lookSpeedX = dt > 0 ? (dYaw / dt) : 0;
+    const lookSpeedY = dt > 0 ? (dPitch / dt) : 0;
+
     // Mouse Sway suave com retorno amortecido
-    this.swayVel.x += (-dYaw   * 12 - this.swayPos.x * 22 - this.swayVel.x * 9) * mul * dt;
-    this.swayVel.y += ( dPitch * 12 - this.swayPos.y * 22 - this.swayVel.y * 9) * mul * dt;
+    this.swayVel.x += (-lookSpeedX * 0.10 * mul - this.swayPos.x * 22 - this.swayVel.x * 10) * dt;
+    this.swayVel.y += ( lookSpeedY * 0.10 * mul - this.swayPos.y * 22 - this.swayVel.y * 10) * dt;
     this.swayPos.x += this.swayVel.x * dt;
     this.swayPos.y += this.swayVel.y * dt;
 

@@ -141,10 +141,10 @@ export class ScopeSystem {
     this.swayYaw = 0;
 
     // Inércia de movimento do mouse (Mouse Look Inertia) para paralaxe realista
-    this.prevEuler = new THREE.Euler(0, 0, 0, 'YXZ');
-    this.hasPrevEuler = false;
+    this.prevYaw = 0;
+    this.prevPitch = 0;
+    this.hasPrevLook = false;
     this.lookInertia = new THREE.Vector2(0, 0);
-    this.lookInertiaVel = new THREE.Vector2(0, 0);
 
     // Inicializa Retículo SVG literal do Arquivo 1
     this.buildReticle();
@@ -217,42 +217,42 @@ export class ScopeSystem {
     if (Math.abs(target - this.adsT) < 0.001) this.adsT = target;
 
     // ── Inércia de Movimento da Câmera (Mouse Look Inertia para Paralaxe Realista) ──
-    const currentEuler = new THREE.Euler().setFromQuaternion(mainCamera.quaternion, 'YXZ');
-    if (!this.hasPrevEuler) {
-      this.prevEuler.copy(currentEuler);
-      this.hasPrevEuler = true;
+    const currentYaw = mainCamera.rotation.y;
+    const currentPitch = mainCamera.rotation.x;
+
+    if (!this.hasPrevLook) {
+      this.prevYaw = currentYaw;
+      this.prevPitch = currentPitch;
+      this.hasPrevLook = true;
     }
 
-    let dYaw = currentEuler.y - this.prevEuler.y;
-    let dPitch = currentEuler.x - this.prevEuler.x;
+    let dYaw = currentYaw - this.prevYaw;
+    let dPitch = currentPitch - this.prevPitch;
 
     while (dYaw > Math.PI) dYaw -= Math.PI * 2;
     while (dYaw < -Math.PI) dYaw += Math.PI * 2;
 
-    this.prevEuler.copy(currentEuler);
+    this.prevYaw = currentYaw;
+    this.prevPitch = currentPitch;
 
     if (this.adsT > 0.05 && dt > 0) {
-      // Impulso de inércia proporcional ao movimento rápido do mouse
-      // Quando move o mouse para a direita (dYaw > 0), a inércia puxa a parede do tubo
-      // para o sentido oposto, revelando a parede interna da luneta.
-      const sensMul = this.getSensitivityFactor();
-      const impulseX = -dYaw * 15.0 * sensMul;
-      const impulseY = dPitch * 15.0 * sensMul;
+      // Velocidade angular real do mouse em radianos por segundo (independente de FPS)
+      const lookSpeedX = dYaw / dt;
+      const lookSpeedY = dPitch / dt;
 
-      this.lookInertiaVel.x += impulseX;
-      this.lookInertiaVel.y += impulseY;
+      // Ganho calibrado para sensação de paralaxe cilíndrico realista ao mover o mouse
+      const inertiaGain = 0.085;
+      const targetInertiaX = THREE.MathUtils.clamp(lookSpeedX * inertiaGain, -0.48, 0.48);
+      const targetInertiaY = THREE.MathUtils.clamp(-lookSpeedY * inertiaGain, -0.48, 0.48);
 
-      // Sistema de mola com amortecimento crítico para retorno suave e natural
-      const springK = 34.0;
-      const damping = 12.0;
-      this.lookInertiaVel.x += (-this.lookInertia.x * springK - this.lookInertiaVel.x * damping) * dt;
-      this.lookInertiaVel.y += (-this.lookInertia.y * springK - this.lookInertiaVel.y * damping) * dt;
+      // Resposta ágil ao movimento da mão e retorno amortecido ao parar o mouse
+      const speedX = Math.abs(targetInertiaX) > Math.abs(this.lookInertia.x) ? 26.0 : 14.0;
+      const speedY = Math.abs(targetInertiaY) > Math.abs(this.lookInertia.y) ? 26.0 : 14.0;
 
-      this.lookInertia.x = THREE.MathUtils.clamp(this.lookInertia.x + this.lookInertiaVel.x * dt, -0.6, 0.6);
-      this.lookInertia.y = THREE.MathUtils.clamp(this.lookInertia.y + this.lookInertiaVel.y * dt, -0.6, 0.6);
+      this.lookInertia.x += (targetInertiaX - this.lookInertia.x) * Math.min(dt * speedX, 1);
+      this.lookInertia.y += (targetInertiaY - this.lookInertia.y) * Math.min(dt * speedY, 1);
     } else {
       this.lookInertia.set(0, 0);
-      this.lookInertiaVel.set(0, 0);
     }
 
     // ── Sway Orgânico de Respiração no Scope ─────────────────────────────────
