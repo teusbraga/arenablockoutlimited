@@ -333,6 +333,25 @@ export class ScopeSystem {
   renderScopePass(protoModel) {
     if (!this.scopeOn) return;
 
+    // Atualiza orientação da scopeCamera com as matrizes mais recentes antes do render
+    if (this.protoDetails && this.protoDetails.rearLens && this.protoDetails.frontLens) {
+      this.protoDetails.rearLens.updateMatrixWorld(true);
+      this.protoDetails.frontLens.updateMatrixWorld(true);
+      
+      const vRear = new THREE.Vector3();
+      const vFront = new THREE.Vector3();
+      this.protoDetails.rearLens.getWorldPosition(vRear);
+      this.protoDetails.frontLens.getWorldPosition(vFront);
+      
+      const dir = new THREE.Vector3().subVectors(vFront, vRear).normalize();
+      const vUp = new THREE.Vector3(0, 1, 0);
+      vUp.transformDirection(this.protoDetails.opticBody.matrixWorld).normalize();
+
+      const target = new THREE.Vector3().copy(this.scopeCamera.position).add(dir);
+      this.scopeCamera.up.copy(vUp);
+      this.scopeCamera.lookAt(target);
+    }
+
     // ── PASSADA 2: mesma cena, scopeCamera, dentro do render target (textura da lente)
     // Oculta a arma apenas para a scopeCamera não enxergar o próprio cano à frente
     if (protoModel) protoModel.visible = false;
@@ -356,9 +375,16 @@ export class ScopeSystem {
 
     const smoothOverlay = Math.pow(overlayProgress, 1.8);
 
-    // ── SINCRONIZAÇÃO MATEMÁTICA EXATA COM O RECUO DO RIFLE PROTOTYPE ────────
-    // Pega a posição mundial e orientação da ocular traseira (rearLens).
-    // Qualquer recuo (physics.recoil), vibração (shake), bobbing ou oscilação altera essa posição e rotação.
+    // ── SINCRONIZAÇÃO MATEMÁTICA EXATA COM O RECUO E ORIENTAÇÃO DO RIFLE ────────
+    // Força atualização mundial da câmera e de toda a hierarquia de nós da arma
+    mainCamera.updateMatrixWorld(true);
+    if (this.protoDetails?.rearLens) {
+      this.protoDetails.rearLens.updateMatrixWorld(true);
+    }
+    if (this.protoDetails?.frontLens) {
+      this.protoDetails.frontLens.updateMatrixWorld(true);
+    }
+
     let offsetX = 0;
     let offsetY = 0;
     let rollAngle = 0;
@@ -374,10 +400,15 @@ export class ScopeSystem {
       const vCam = v.clone().applyMatrix4(mainCamera.matrixWorldInverse);
       const depthZ = -vCam.z;
 
-      const baseDistance = 0.124; 
+      // Calibra a distância base em repouso da ocular para sincronismo de escala 1:1 perfeito
+      if (!this.baseDepth) {
+        this.baseDepth = depthZ;
+      } else if (this.adsT > 0.95 && (!this.protoDetails?.physics || this.protoDetails.physics.recoil < 0.005)) {
+        this.baseDepth += (depthZ - this.baseDepth) * 0.05;
+      }
+
       if (depthZ > 0.02) {
-        // Escala 1:1 proporcional ao movimento frontal físico (aumenta ao aproximar, diminui ao afastar)
-        const rawScale = baseDistance / depthZ;
+        const rawScale = this.baseDepth / depthZ;
         depthScale = Math.max(0.65, Math.min(2.5, rawScale));
       }
 
@@ -386,13 +417,21 @@ export class ScopeSystem {
       offsetX = (v.x * (w / 2));
       offsetY = (-v.y * (h / 2));
 
-        if (this.protoDetails && this.protoDetails.frontLens) {
-            const vFront = new THREE.Vector3();
-            this.protoDetails.frontLens.getWorldPosition(vFront);
-            vFront.project(mainCamera);
-            this.pxShiftX = (vFront.x * (w / 2)) - offsetX;
-            this.pxShiftY = (-vFront.y * (h / 2)) - offsetY;
-        }
+      // Calcula o roll (torção/inclinação) da carcaça da ótica no plano de visão da tela
+      if (this.protoDetails.opticBody) {
+        const vUp = new THREE.Vector3(0, 1, 0);
+        vUp.transformDirection(this.protoDetails.opticBody.matrixWorld);
+        vUp.transformDirection(mainCamera.matrixWorldInverse);
+        rollAngle = Math.atan2(vUp.x, vUp.y);
+      }
+
+      if (this.protoDetails.frontLens) {
+        const vFront = new THREE.Vector3();
+        this.protoDetails.frontLens.getWorldPosition(vFront);
+        vFront.project(mainCamera);
+        this.pxShiftX = (vFront.x * (w / 2)) - offsetX;
+        this.pxShiftY = (-vFront.y * (h / 2)) - offsetY;
+      }
     }
 
     // Centro do disco na tela
@@ -403,16 +442,13 @@ export class ScopeSystem {
     const D = this.lensDiameter() * (0.68 + 0.32 * smoothOverlay) * depthScale;
     const R = D / 2;
 
-    // Posiciona o disco 2D na overlayScene exatamente onde a ocular 3D está na tela (sem inclinação/rotação)
+    // Posiciona o disco 2D na overlayScene exatamente onde a ocular 3D está na tela com rotação sincronizada
     this.lensMesh.position.set(offsetX, -offsetY, 0);
-    this.lensMesh.rotation.z = 0;
+    this.lensMesh.rotation.z = -rollAngle;
     this.lensMesh.scale.set(R, R, 1);
     this.lensMat.uniforms.uOpacity.value = smoothOverlay;
 
     // ── RAIO DINÂMICO DO ANEL INTERNO COM BASE NO ZOOM (FOV) ─────────────────
-    // Quando damos zoom (aproximação máxima, FOV menor), o anel interno se expande
-    // para fora da ocular (1.08), desaparecendo da visão da lente.
-    // Quando diminuímos o zoom (FOV maior), o anel interno diminui (0.84), aparecendo dentro da lente.
     const zoomFactor = (SCOPE_CONFIG.SCOPE_FOV_MAX - this.scopeFov) / (SCOPE_CONFIG.SCOPE_FOV_MAX - SCOPE_CONFIG.SCOPE_FOV_MIN);
     const innerRingRadius = THREE.MathUtils.lerp(0.84, 1.08, THREE.MathUtils.clamp(zoomFactor, 0, 1));
     this.lensMat.uniforms.uInnerRingRadius.value = innerRingRadius;
@@ -421,7 +457,7 @@ export class ScopeSystem {
     let shiftX = 0;
     let shiftY = 0;
     if (D > 0 && this.pxShiftX !== undefined) {
-      const pxMultiplier = 4.0;
+      const pxMultiplier = 2.0; // Proporção calibrada de profundidade do tubo
       shiftX = (this.pxShiftX / D) * pxMultiplier;
       shiftY = (-this.pxShiftY / D) * pxMultiplier;
     }
@@ -444,11 +480,12 @@ export class ScopeSystem {
     this.renderer.setScissorTest(false);
     this.renderer.autoClear = true;
 
-    // Sincroniza o retículo e carcaça externa HTML/SVG com os mesmos pixels de deslocamento
+    // Sincroniza o retículo e carcaça externa HTML/SVG com os mesmos pixels de deslocamento e rotação
     if (this.lensEl) {
       this.lensEl.style.setProperty('--d', D.toFixed(1) + 'px');
       this.lensEl.style.setProperty('--x', offsetX.toFixed(2) + 'px');
       this.lensEl.style.setProperty('--y', offsetY.toFixed(2) + 'px');
+      this.lensEl.style.setProperty('--rot', `${rollAngle}rad`);
     }
   }
 
