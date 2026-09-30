@@ -369,13 +369,17 @@ export class ScopeSystem {
       const v = new THREE.Vector3();
       rearLens.getWorldPosition(v);
 
-      // Distância real entre o olho do operador (câmera) e a ocular 3D
-      const distToCamera = mainCamera.position.distanceTo(v);
-        const baseDistance = 0.125; 
-        if (distToCamera > 0.02) {
-          const rawScale = baseDistance / distToCamera;
-          depthScale = Math.max(0.75, Math.min(3.5, Math.pow(rawScale, 1.4)));
-        }
+      // Distância frontal no eixo de visão da câmera (-Z no espaço local da câmera)
+      // Mede com precisão matemática a aproximação/afastamento da lente (profundidade física)
+      const vCam = v.clone().applyMatrix4(mainCamera.matrixWorldInverse);
+      const depthZ = -vCam.z;
+
+      const baseDistance = 0.124; 
+      if (depthZ > 0.02) {
+        // Escala 1:1 proporcional ao movimento frontal físico (aumenta ao aproximar, diminui ao afastar)
+        const rawScale = baseDistance / depthZ;
+        depthScale = Math.max(0.65, Math.min(2.5, rawScale));
+      }
 
       // Projeção do centro no plano da câmera
       v.project(mainCamera);

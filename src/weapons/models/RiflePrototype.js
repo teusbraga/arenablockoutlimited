@@ -175,7 +175,7 @@ export class PrototypePhysics {
     this.shake += (0 - this.shake) * (1 - Math.exp(-dt * 9));
 
     const r = this.recoil;
-    this.rifle.position.x = -r * 0.055;
+    this.rifle.position.x = -r * 0.0275; // Reduzido em 50% no vetor de profundidade
     this.rifle.position.y = r * 0.010;
     this.rifle.rotation.z = r * 0.105;
     this.rifle.rotation.y = r * 0.012;
