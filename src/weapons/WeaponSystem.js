@@ -279,8 +279,6 @@ export class WeaponSystem {
       this.player.pitch += pitchAdd;
       this.player.yaw += yawAdd;
     }
-    
-    const kickbackZ = def.kickbackZ ?? (def.id === 'm249' ? 0.010 : def.id === 'uzi' ? 0.006 : 0.008);
     const kickRot = def.kickRotFactor ?? 1.5;
     this.viewmodel.applyKick(def.recoilPitch * streakMul, 0, kickbackZ, kickRot, this.ads);
     this.viewmodel.flash();
