@@ -276,8 +276,8 @@ export class CameraRig {
     this.shakeIntensity *= Math.max(0, 1 - dt * 9.0);
     if (this.shakeIntensity > 0.001) {
       const t = performance.now() * 0.001;
-      // Tremor reduzido em 60% e fortemente estabilizado no ADS para não distorcer a visão da luneta
-      const shakeDamp = isAds ? 0.25 : 0.50;
+      // No ADS, a câmera principal externa fica 100% firme e estável (zero tremor externo)
+      const shakeDamp = isAds ? 0.0 : 0.50;
       this.shakePos.set(
         Math.sin(t * 47.3) * 0.012 * this.shakeIntensity * shakeDamp,
         Math.cos(t * 61.7) * 0.012 * this.shakeIntensity * shakeDamp,

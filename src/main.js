@@ -271,11 +271,14 @@ const effects = new Effects(scene);
         player.updateCamera(camera, dt);
 
         // Tremor de câmera gerenciado pela camada cinética (CameraRig)
-        // Se estiver em ADS com o Rifle Prototype, o tremor não sacode a câmera principal (apenas dentro do scope)
-        const isProtoAds = (weapons.current === 'rifle_proto' && weapons.ads);
+        // Se a luneta do Rifle Prototype estiver ativa, a câmera principal exterior é 100% preservada de qualquer tremor
+        const isProtoScope = (weapons.current === 'rifle_proto' && (weapons.ads || scopeSystem.scopeOn));
         const shake = viewmodel.getShake();
-        if (shake > 0.002 && player.rig && !isProtoAds) {
+        if (shake > 0.002 && player.rig && !isProtoScope) {
           player.rig.addShake(shake * 0.14);
+        }
+        if (isProtoScope && player.rig) {
+          player.rig.shakeIntensity = 0;
         }
 
         // Viewmodel (Layer 3 — lê a velocidade angular, inércia do CameraRig e peso da arma ativa)

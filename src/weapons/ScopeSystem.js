@@ -166,14 +166,15 @@ export class ScopeSystem {
     this.mainCameraRef = null;
 
     on('weapon:fired', e => {
-      if (e.weaponId === 'rifle_proto' && this.adsTarget) {
-        this.addOpticShake(0.55);
+      const wepId = e.weapon?.id || e.weaponId;
+      if (wepId === 'rifle_proto' && (this.adsTarget || this.scopeOn)) {
+        this.addOpticShake(0.95);
       }
     });
   }
 
-  addOpticShake(amount = 0.55) {
-    this.opticShake = Math.min(this.opticShake + amount, 1.4);
+  addOpticShake(amount = 0.95) {
+    this.opticShake = Math.min(this.opticShake + amount, 1.8);
   }
 
   buildReticle() {
@@ -234,7 +235,7 @@ export class ScopeSystem {
 
     // Decaimento responsivo do tremor de tiro interno da ótica
     if (this.opticShake > 0.0001) {
-      this.opticShake *= Math.max(0, 1 - dt * 14.0);
+      this.opticShake *= Math.max(0, 1 - dt * 9.0);
     } else {
       this.opticShake = 0;
     }
@@ -395,17 +396,17 @@ export class ScopeSystem {
     // ── Tremor Cinético Exclusivo do Interior da Ótica ─────────────────────
     if (this.opticShake > 0.001) {
       const t = performance.now() * 0.001;
-      const shakePitch = Math.sin(t * 62.0) * 0.0035 * this.opticShake;
-      const shakeYaw = Math.cos(t * 79.0) * 0.0028 * this.opticShake;
-      const shakeRoll = Math.sin(t * 47.0) * 0.0032 * this.opticShake;
+      const shakePitch = (Math.sin(t * 68.0) * 0.010 + Math.cos(t * 110.0) * 0.005) * this.opticShake;
+      const shakeYaw = (Math.cos(t * 82.0) * 0.008 + Math.sin(t * 125.0) * 0.004) * this.opticShake;
+      const shakeRoll = (Math.sin(t * 54.0) * 0.009) * this.opticShake;
 
       const qShake = new THREE.Quaternion().setFromEuler(
         new THREE.Euler(shakePitch, shakeYaw, shakeRoll, 'YXZ')
       );
       this.scopeCamera.quaternion.multiply(qShake);
 
-      this.scopeCamera.position.x += Math.cos(t * 67.0) * 0.003 * this.opticShake;
-      this.scopeCamera.position.y += Math.sin(t * 83.0) * 0.003 * this.opticShake;
+      this.scopeCamera.position.x += (Math.cos(t * 73.0) * 0.012) * this.opticShake;
+      this.scopeCamera.position.y += (Math.sin(t * 91.0) * 0.012) * this.opticShake;
     }
 
     // ── PASSADA 2: mesma cena, scopeCamera, dentro do render target (textura da lente)
@@ -525,8 +526,8 @@ export class ScopeSystem {
     // Impulso do tremor cinético interno no paralaxe da lente
     if (this.opticShake > 0.001) {
       const t = performance.now() * 0.001;
-      shiftX += Math.cos(t * 53.0) * 0.02 * this.opticShake;
-      shiftY += Math.sin(t * 71.0) * 0.02 * this.opticShake;
+      shiftX += Math.cos(t * 63.0) * 0.08 * this.opticShake;
+      shiftY += Math.sin(t * 81.0) * 0.08 * this.opticShake;
     }
 
     this.lensMat.uniforms.uParallax.value.set(shiftX, shiftY);
@@ -549,8 +550,8 @@ export class ScopeSystem {
       let reticleShiftY = 0;
       if (this.opticShake > 0.001) {
         const t = performance.now() * 0.001;
-        reticleShiftX = Math.cos(t * 61.0) * 3.5 * this.opticShake;
-        reticleShiftY = Math.sin(t * 77.0) * 3.5 * this.opticShake;
+        reticleShiftX = Math.cos(t * 71.0) * 8.0 * this.opticShake;
+        reticleShiftY = Math.sin(t * 89.0) * 8.0 * this.opticShake;
       }
       this.lensEl.style.setProperty('--d', D.toFixed(1) + 'px');
       this.lensEl.style.setProperty('--x', (offsetX + reticleShiftX).toFixed(2) + 'px');

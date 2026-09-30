@@ -251,17 +251,30 @@ export class WeaponSystem {
 
     if (this.player.rig) {
       if (isProto) {
-        // Rifle Proto: subida contínua tática na mira. No ADS, o tremor e o coice são isolados estritamente dentro da ótica
-        this.player.rig.addRecoilImpulse({
-          climbPitch: pitchAdd,
-          climbYaw: yawAdd,
-          punchPitch: this.ads ? 0 : pitchAdd * 0.40,
-          punchYaw: this.ads ? 0 : (Math.random() - 0.5) * pitchAdd * 0.10,
-          punchRoll: this.ads ? 0 : (Math.random() - 0.5) * 0.004,
-          posKickZ: this.ads ? 0 : 0.008,
-          posKickY: this.ads ? 0 : 0.003,
-          shake: this.ads ? 0 : 0.22 * streakMul
-        });
+        // Rifle Proto: no ADS, a câmera exterior é totalmente firme; o tremor fica restrito à ótica
+        if (this.ads) {
+          this.player.rig.addRecoilImpulse({
+            climbPitch: pitchAdd * 0.15,
+            climbYaw: 0,
+            punchPitch: 0,
+            punchYaw: 0,
+            punchRoll: 0,
+            posKickZ: 0,
+            posKickY: 0,
+            shake: 0
+          });
+        } else {
+          this.player.rig.addRecoilImpulse({
+            climbPitch: pitchAdd,
+            climbYaw: yawAdd,
+            punchPitch: pitchAdd * 0.40,
+            punchYaw: (Math.random() - 0.5) * pitchAdd * 0.10,
+            punchRoll: (Math.random() - 0.5) * 0.004,
+            posKickZ: 0.008,
+            posKickY: 0.003,
+            shake: 0.22 * streakMul
+          });
+        }
       } else {
         // Armas clássicas: parte permanente (climb) e parte elástica (punch que retorna com mola)
         const climbRatio = 0.30;
@@ -296,9 +309,12 @@ export class WeaponSystem {
 
     emit('weapon:fired', {
       weapon: def,
+      weaponId: def.id,
       pos: this.player.pos.clone(),
       muzzleWorld,
       forward,
+      ads: this.ads,
+      streak: streakMul,
     });
 
     _dir.set(0, 0, -1).applyQuaternion(_quat).normalize();
