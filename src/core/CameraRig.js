@@ -276,15 +276,17 @@ export class CameraRig {
     this.shakeIntensity *= Math.max(0, 1 - dt * 9.0);
     if (this.shakeIntensity > 0.001) {
       const t = performance.now() * 0.001;
+      // Tremor reduzido em 60% e fortemente estabilizado no ADS para não distorcer a visão da luneta
+      const shakeDamp = isAds ? 0.25 : 0.50;
       this.shakePos.set(
-        Math.sin(t * 47.3) * 0.012 * this.shakeIntensity,
-        Math.cos(t * 61.7) * 0.012 * this.shakeIntensity,
-        Math.sin(t * 53.1) * 0.008 * this.shakeIntensity
+        Math.sin(t * 47.3) * 0.012 * this.shakeIntensity * shakeDamp,
+        Math.cos(t * 61.7) * 0.012 * this.shakeIntensity * shakeDamp,
+        Math.sin(t * 53.1) * 0.008 * this.shakeIntensity * shakeDamp
       );
       this.shakeRot.set(
-        Math.cos(t * 55.0) * 0.008 * this.shakeIntensity,
-        Math.sin(t * 43.0) * 0.006 * this.shakeIntensity,
-        Math.sin(t * 37.0) * 0.006 * this.shakeIntensity
+        Math.cos(t * 55.0) * 0.008 * this.shakeIntensity * shakeDamp,
+        Math.sin(t * 43.0) * 0.006 * this.shakeIntensity * shakeDamp,
+        Math.sin(t * 37.0) * 0.006 * this.shakeIntensity * shakeDamp
       );
     } else {
       this.shakePos.set(0, 0, 0);

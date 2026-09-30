@@ -118,8 +118,8 @@ export class Viewmodel {
    */
   applySwayFromRig(rig, dt, isADS, isSprinting, playerVel, weaponDef) {
     // No ADS, o sway mantém inércia tática suave (sensação física de peso e paralaxe)
-    const adsMul = isADS ? 0.28 : 1.0;
-    const sprintMul = isSprinting ? 1.3 : 1.0;
+    const adsMul = isADS ? 0.18 : 0.55;
+    const sprintMul = isSprinting ? 1.25 : 1.0;
     const mul = adsMul * sprintMul;
 
     // Velocidade angular do olhar (rad/s) fornecida diretamente pela Layer 1/2
@@ -137,10 +137,8 @@ export class Viewmodel {
     const springK = 22.0 / Math.pow(massFactor, 0.45);
     const springD = 9.5 / Math.pow(massFactor, 0.35);
 
-    // Força cinética do olhar:
-    // lookSpeedX: yaw em rad/s. Ao virar para direita (lookSpeedX < 0), força negativa empurra swayPos para -X (esquerda).
-    // lookSpeedY: pitch em rad/s. Ao olhar para cima (lookSpeedY > 0), força negativa empurra swayPos para -Y (baixo).
-    const forceGain = 2.4;
+    // Força cinética do olhar reduzida em 60% para amplitude contida e tática
+    const forceGain = 1.0;
     const targetForceX = lookSpeedX * forceGain * mul * inertiaMul;
     const targetForceY = -lookSpeedY * forceGain * mul * inertiaMul;
 
@@ -150,8 +148,8 @@ export class Viewmodel {
     this.swayPos.x += this.swayVel.x * dt;
     this.swayPos.y += this.swayVel.y * dt;
 
-    // Limites de segurança para evitar deformações extremas em giros bruscos
-    const maxSway = isADS ? 0.08 : 0.18;
+    // Limites de segurança contidos para evitar amplitude excessiva
+    const maxSway = isADS ? 0.035 : 0.085;
     this.swayPos.x = THREE.MathUtils.clamp(this.swayPos.x, -maxSway, maxSway);
     this.swayPos.y = THREE.MathUtils.clamp(this.swayPos.y, -maxSway, maxSway);
 
@@ -179,17 +177,17 @@ export class Viewmodel {
       idlePosY = Math.cos(time * 1.1) * 0.002;
     }
 
-    // Aplica Rotações no grupo de sway:
+    // Aplica Rotações no grupo de sway (amplitude reduzida em 60%):
     // - rotation.y: cano acompanha inércia virando na direção de atraso
     // - rotation.x: cano sobe ou desce com o olhar vertical
     // - rotation.z: inclinação (banking) orgânica na direção do movimento
-    this.swayGroup.rotation.y = -this.swayPos.x * 0.85 + idleRotY;
-    this.swayGroup.rotation.x = this.swayPos.y * 0.85 + idleRotX;
-    this.swayGroup.rotation.z = this.swayPos.x * 0.40;
+    this.swayGroup.rotation.y = -this.swayPos.x * 0.45 + idleRotY;
+    this.swayGroup.rotation.x = this.swayPos.y * 0.45 + idleRotX;
+    this.swayGroup.rotation.z = this.swayPos.x * 0.20;
     
-    // Aplica Posições (arrasto linear em metros no espaço da câmera)
-    this.swayGroup.position.x = this.swayPos.x * 0.35 + bobX + idlePosX;
-    this.swayGroup.position.y = this.swayPos.y * 0.35 + bobY + idlePosY - (speed > 0.1 ? 0.005 : 0);
+    // Aplica Posições (amplitude linear contida e controlada)
+    this.swayGroup.position.x = this.swayPos.x * 0.18 + bobX + idlePosX;
+    this.swayGroup.position.y = this.swayPos.y * 0.18 + bobY + idlePosY - (speed > 0.1 ? 0.005 : 0);
 
     const mag = Math.hypot(this.swayPos.x, this.swayPos.y);
     this.smoothMag += (mag - this.smoothMag) * Math.min(dt * 6, 1);

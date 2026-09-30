@@ -251,10 +251,10 @@ export class ScopeSystem {
     }
 
     if (this.adsT > 0.05 && dt > 0) {
-      // Ganho calibrado para sensação de paralaxe cilíndrico realista ao mover o mouse ou disparar
-      const inertiaGain = 0.085;
-      const targetInertiaX = THREE.MathUtils.clamp(lookSpeedX * inertiaGain, -0.48, 0.48);
-      const targetInertiaY = THREE.MathUtils.clamp(-lookSpeedY * inertiaGain, -0.48, 0.48);
+      // Ganho calibrado para sensação de paralaxe cilíndrico realista (reduzido em 60% para estabilidade de mira)
+      const inertiaGain = 0.034;
+      const targetInertiaX = THREE.MathUtils.clamp(lookSpeedX * inertiaGain, -0.20, 0.20);
+      const targetInertiaY = THREE.MathUtils.clamp(-lookSpeedY * inertiaGain, -0.20, 0.20);
 
       // Resposta ágil ao movimento da mão e retorno amortecido ao parar o mouse
       const speedX = Math.abs(targetInertiaX) > Math.abs(this.lookInertia.x) ? 26.0 : 14.0;
@@ -267,10 +267,10 @@ export class ScopeSystem {
     }
 
     // ── Sway Orgânico de Respiração no Scope ─────────────────────────────────
-    // Quando em ADS, a respiração do atirador produz uma oscilação contínua e suave em 8 (Lissajous)
+    // Quando em ADS, a respiração produz leve oscilação suave (reduzida em 60%)
     if (this.adsT > 0.1) {
       this.swayTime += dt * 1.4;
-      const swayAmplitude = 0.00085 * this.adsT;
+      const swayAmplitude = 0.00034 * this.adsT;
       this.swayYaw = Math.sin(this.swayTime) * swayAmplitude;
       this.swayPitch = Math.cos(this.swayTime * 2) * (swayAmplitude * 0.55);
     } else {
@@ -468,7 +468,7 @@ export class ScopeSystem {
     let shiftX = 0;
     let shiftY = 0;
     if (D > 0 && this.pxShiftX !== undefined) {
-      const pxMultiplier = 2.0; // Proporção calibrada de profundidade do tubo
+      const pxMultiplier = 0.80; // Proporção calibrada de profundidade do tubo (reduzida em 60% para firmeza)
       shiftX = (this.pxShiftX / D) * pxMultiplier;
       shiftY = (-this.pxShiftY / D) * pxMultiplier;
     }

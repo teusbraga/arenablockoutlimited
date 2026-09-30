@@ -251,16 +251,16 @@ export class WeaponSystem {
 
     if (this.player.rig) {
       if (isProto) {
-        // Rifle Proto: subida contínua tática + punch elástico + coice no ombro + tremor
+        // Rifle Proto: subida contínua tática + punch elástico + coice no ombro + tremor suave
         this.player.rig.addRecoilImpulse({
           climbPitch: pitchAdd,
           climbYaw: yawAdd,
-          punchPitch: pitchAdd * 0.45,
-          punchYaw: (Math.random() - 0.5) * pitchAdd * 0.15,
-          punchRoll: (Math.random() - 0.5) * 0.008,
-          posKickZ: this.ads ? 0.006 : 0.012,
-          posKickY: this.ads ? 0.002 : 0.004,
-          shake: 0.35 * streakMul
+          punchPitch: this.ads ? pitchAdd * 0.18 : pitchAdd * 0.40,
+          punchYaw: (Math.random() - 0.5) * pitchAdd * 0.10,
+          punchRoll: (Math.random() - 0.5) * 0.004,
+          posKickZ: this.ads ? 0.0025 : 0.008,
+          posKickY: this.ads ? 0.001 : 0.003,
+          shake: (this.ads ? 0.10 : 0.22) * streakMul
         });
       } else {
         // Armas clássicas: parte permanente (climb) e parte elástica (punch que retorna com mola)
@@ -268,11 +268,11 @@ export class WeaponSystem {
         this.player.rig.addRecoilImpulse({
           climbPitch: pitchAdd * climbRatio,
           climbYaw: yawAdd,
-          punchPitch: pitchAdd * (1 - climbRatio),
-          punchRoll: (Math.random() - 0.5) * 0.006,
-          posKickZ: kickbackZ,
-          posKickY: kickbackZ * 0.3,
-          shake: 0.25 * streakMul
+          punchPitch: this.ads ? pitchAdd * (1 - climbRatio) * 0.4 : pitchAdd * (1 - climbRatio),
+          punchRoll: (Math.random() - 0.5) * 0.004,
+          posKickZ: this.ads ? kickbackZ * 0.4 : kickbackZ,
+          posKickY: kickbackZ * 0.2,
+          shake: (this.ads ? 0.08 : 0.18) * streakMul
         });
       }
     } else {

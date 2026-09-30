@@ -258,7 +258,7 @@ const effects = new Effects(scene);
         // Tremor de câmera gerenciado pela camada cinética (CameraRig)
         const shake = viewmodel.getShake();
         if (shake > 0.002 && player.rig) {
-          player.rig.addShake(shake * 0.35);
+          player.rig.addShake(shake * 0.14);
         }
 
         // Viewmodel (Layer 3 — lê a velocidade angular, inércia do CameraRig e peso da arma ativa)
