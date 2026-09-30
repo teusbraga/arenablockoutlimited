@@ -118,7 +118,7 @@ export class Viewmodel {
    */
   applySwayFromRig(rig, dt, isADS, isSprinting, playerVel, weaponDef) {
     // No ADS, o sway mantém inércia tática suave (sensação física de peso e paralaxe)
-    const adsMul = isADS ? 0.22 : 0.70;
+    const adsMul = isADS ? 0.28 : 1.0;
     const sprintMul = isSprinting ? 1.3 : 1.0;
     const mul = adsMul * sprintMul;
 
@@ -134,14 +134,26 @@ export class Viewmodel {
     // Rigidez e Amortecimento da Mola:
     // - Armas leves (pistolas/SMGs) são ágeis e têm alta frequência de retorno elástico (snappy).
     // - Armas pesadas (fuzis pesados/LMGs) têm inércia maior e retorno com elasticidade mais cadenciada e pesada.
-    const springK = 24.0 / Math.pow(massFactor, 0.45);
-    const springD = 10.5 / Math.pow(massFactor, 0.35);
+    const springK = 22.0 / Math.pow(massFactor, 0.45);
+    const springD = 9.5 / Math.pow(massFactor, 0.35);
+
+    // Força cinética do olhar:
+    // lookSpeedX: yaw em rad/s. Ao virar para direita (lookSpeedX < 0), força negativa empurra swayPos para -X (esquerda).
+    // lookSpeedY: pitch em rad/s. Ao olhar para cima (lookSpeedY > 0), força negativa empurra swayPos para -Y (baixo).
+    const forceGain = 2.4;
+    const targetForceX = lookSpeedX * forceGain * mul * inertiaMul;
+    const targetForceY = -lookSpeedY * forceGain * mul * inertiaMul;
 
     // Mouse Sway suave com retorno amortecido dependente da massa
-    this.swayVel.x += (-lookSpeedX * 0.10 * mul * inertiaMul - this.swayPos.x * springK - this.swayVel.x * springD) * dt;
-    this.swayVel.y += ( lookSpeedY * 0.10 * mul * inertiaMul - this.swayPos.y * springK - this.swayVel.y * springD) * dt;
+    this.swayVel.x += (targetForceX - this.swayPos.x * springK - this.swayVel.x * springD) * dt;
+    this.swayVel.y += (targetForceY - this.swayPos.y * springK - this.swayVel.y * springD) * dt;
     this.swayPos.x += this.swayVel.x * dt;
     this.swayPos.y += this.swayVel.y * dt;
+
+    // Limites de segurança para evitar deformações extremas em giros bruscos
+    const maxSway = isADS ? 0.08 : 0.18;
+    this.swayPos.x = THREE.MathUtils.clamp(this.swayPos.x, -maxSway, maxSway);
+    this.swayPos.y = THREE.MathUtils.clamp(this.swayPos.y, -maxSway, maxSway);
 
     // Walking Bob suave
     const speed = playerVel ? Math.hypot(playerVel.x, playerVel.z) : 0;
@@ -167,14 +179,17 @@ export class Viewmodel {
       idlePosY = Math.cos(time * 1.1) * 0.002;
     }
 
-    // Aplica Rotações no grupo de sway
-    this.swayGroup.rotation.y = this.swayPos.x * 0.5 + idleRotY;
-    this.swayGroup.rotation.x = this.swayPos.y * 0.5 + idleRotX;
-    this.swayGroup.rotation.z = -this.swayPos.x * 0.25;
+    // Aplica Rotações no grupo de sway:
+    // - rotation.y: cano acompanha inércia virando na direção de atraso
+    // - rotation.x: cano sobe ou desce com o olhar vertical
+    // - rotation.z: inclinação (banking) orgânica na direção do movimento
+    this.swayGroup.rotation.y = -this.swayPos.x * 0.85 + idleRotY;
+    this.swayGroup.rotation.x = this.swayPos.y * 0.85 + idleRotX;
+    this.swayGroup.rotation.z = this.swayPos.x * 0.40;
     
-    // Aplica Posições
-    this.swayGroup.position.x = this.swayPos.x * 0.10 + bobX + idlePosX;
-    this.swayGroup.position.y = this.swayPos.y * 0.10 + bobY + idlePosY - (speed > 0.1 ? 0.005 : 0);
+    // Aplica Posições (arrasto linear em metros no espaço da câmera)
+    this.swayGroup.position.x = this.swayPos.x * 0.35 + bobX + idlePosX;
+    this.swayGroup.position.y = this.swayPos.y * 0.35 + bobY + idlePosY - (speed > 0.1 ? 0.005 : 0);
 
     const mag = Math.hypot(this.swayPos.x, this.swayPos.y);
     this.smoothMag += (mag - this.smoothMag) * Math.min(dt * 6, 1);
@@ -183,9 +198,9 @@ export class Viewmodel {
   /**
    * Adaptador para compatibilidade com chamadas legadas
    */
-  applySwayFromLook(dt, yawOrRig, pitch, isADS, isSprinting, playerVel) {
+  applySwayFromLook(dt, yawOrRig, pitch, isADS, isSprinting, playerVel, weaponDef) {
     if (yawOrRig && typeof yawOrRig === 'object' && yawOrRig.angularVelocity) {
-      return this.applySwayFromRig(yawOrRig, dt, pitch, isADS, isSprinting);
+      return this.applySwayFromRig(yawOrRig, dt, pitch, isADS, isSprinting, playerVel);
     }
     let dYaw = (yawOrRig || 0) - this.lastYaw;
     let dPitch = (pitch || 0) - this.lastPitch;
@@ -199,7 +214,7 @@ export class Viewmodel {
         y: dt > 0 ? (dYaw / dt) : 0
       }
     };
-    return this.applySwayFromRig(fakeRig, dt, isADS, isSprinting, playerVel);
+    return this.applySwayFromRig(fakeRig, dt, isADS, isSprinting, playerVel, weaponDef);
   }
 
   getSpreadFromSway() { 
