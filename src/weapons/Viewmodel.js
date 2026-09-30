@@ -127,8 +127,8 @@ export class Viewmodel {
     this.lastYaw = yaw;
     this.lastPitch = pitch;
 
-    // No ADS, o sway é reduzido a quase zero (estabilização tática)
-    const adsMul = isADS ? 0.06 : 0.70;
+    // No ADS, o sway mantém inércia tática suave (sensação física de peso e paralaxe)
+    const adsMul = isADS ? 0.22 : 0.70;
     const sprintMul = isSprinting ? 1.3 : 1.0;
     const mul = adsMul * sprintMul;
 

@@ -72,9 +72,10 @@ export class ScopeSystem {
       depthTest: false,
       depthWrite: false,
       uniforms: {
-        tMap:     { value: this.scopeRT.texture },
-        uOpacity: { value: 1 },
-        uParallax:{ value: new THREE.Vector2(0, 0) },
+        tMap:             { value: this.scopeRT.texture },
+        uOpacity:         { value: 1 },
+        uParallax:        { value: new THREE.Vector2(0, 0) },
+        uInnerRingRadius: { value: 0.95 },
       },
       vertexShader: /* glsl */`
         varying vec2 vUv;
@@ -86,6 +87,7 @@ export class ScopeSystem {
         uniform sampler2D tMap;
         uniform float uOpacity;
         uniform vec2 uParallax;
+        uniform float uInnerRingRadius;
         varying vec2 vUv;
         void main() {
           vec2  p = vUv - 0.5;
@@ -104,13 +106,13 @@ export class ScopeSystem {
           col.g = texture2D(tMap, uv).g;
           col.b = texture2D(tMap, uv - ca).b;
           
-          // Anel Interno (A parede do tubo)
-          // Se o raio na lente dianteira passar de 0.92, comeÃ§a a parede interna do cilindro
-          float isWall = smoothstep(0.92, 0.95, rFront);
+          // Anel Interno (A parede do tubo que varia dinamicamente com o zoom)
+          // Se o raio na lente dianteira passar de uInnerRingRadius, comeÃ§a a parede interna do cilindro
+          float isWall = smoothstep(uInnerRingRadius, uInnerRingRadius + 0.035, rFront);
           
           // IluminaÃ§Ã£o da parede interna baseada na direÃ§Ã£o (fake 3D shading do tubo)
-          float wallShade = 0.5 + 0.5 * dot(normalize(pFront + vec2(0.001)), vec2(0.0, 1.0));
-          vec3 wallColor = vec3(0.01, 0.012, 0.015) * wallShade;
+          float wallShade = 0.45 + 0.55 * dot(normalize(pFront + vec2(0.001)), vec2(0.0, 1.0));
+          vec3 wallColor = vec3(0.012, 0.014, 0.018) * wallShade;
           
           // Mistura a imagem da lente com a parede interna
           col = mix(col, wallColor, isWall);
@@ -137,6 +139,12 @@ export class ScopeSystem {
     this.swayTime = 0;
     this.swayPitch = 0;
     this.swayYaw = 0;
+
+    // Inércia de movimento do mouse (Mouse Look Inertia) para paralaxe realista
+    this.prevEuler = new THREE.Euler(0, 0, 0, 'YXZ');
+    this.hasPrevEuler = false;
+    this.lookInertia = new THREE.Vector2(0, 0);
+    this.lookInertiaVel = new THREE.Vector2(0, 0);
 
     // Inicializa Retículo SVG literal do Arquivo 1
     this.buildReticle();
@@ -207,6 +215,45 @@ export class ScopeSystem {
     const target = this.adsTarget ? 1 : 0;
     this.adsT += (target - this.adsT) * (1 - Math.exp(-dt * SCOPE_CONFIG.ADS_SPEED));
     if (Math.abs(target - this.adsT) < 0.001) this.adsT = target;
+
+    // ── Inércia de Movimento da Câmera (Mouse Look Inertia para Paralaxe Realista) ──
+    const currentEuler = new THREE.Euler().setFromQuaternion(mainCamera.quaternion, 'YXZ');
+    if (!this.hasPrevEuler) {
+      this.prevEuler.copy(currentEuler);
+      this.hasPrevEuler = true;
+    }
+
+    let dYaw = currentEuler.y - this.prevEuler.y;
+    let dPitch = currentEuler.x - this.prevEuler.x;
+
+    while (dYaw > Math.PI) dYaw -= Math.PI * 2;
+    while (dYaw < -Math.PI) dYaw += Math.PI * 2;
+
+    this.prevEuler.copy(currentEuler);
+
+    if (this.adsT > 0.05 && dt > 0) {
+      // Impulso de inércia proporcional ao movimento rápido do mouse
+      // Quando move o mouse para a direita (dYaw > 0), a inércia puxa a parede do tubo
+      // para o sentido oposto, revelando a parede interna da luneta.
+      const sensMul = this.getSensitivityFactor();
+      const impulseX = -dYaw * 15.0 * sensMul;
+      const impulseY = dPitch * 15.0 * sensMul;
+
+      this.lookInertiaVel.x += impulseX;
+      this.lookInertiaVel.y += impulseY;
+
+      // Sistema de mola com amortecimento crítico para retorno suave e natural
+      const springK = 34.0;
+      const damping = 12.0;
+      this.lookInertiaVel.x += (-this.lookInertia.x * springK - this.lookInertiaVel.x * damping) * dt;
+      this.lookInertiaVel.y += (-this.lookInertia.y * springK - this.lookInertiaVel.y * damping) * dt;
+
+      this.lookInertia.x = THREE.MathUtils.clamp(this.lookInertia.x + this.lookInertiaVel.x * dt, -0.6, 0.6);
+      this.lookInertia.y = THREE.MathUtils.clamp(this.lookInertia.y + this.lookInertiaVel.y * dt, -0.6, 0.6);
+    } else {
+      this.lookInertia.set(0, 0);
+      this.lookInertiaVel.set(0, 0);
+    }
 
     // ── Sway Orgânico de Respiração no Scope ─────────────────────────────────
     // Quando em ADS, a respiração do atirador produz uma oscilação contínua e suave em 8 (Lissajous)
@@ -357,10 +404,29 @@ export class ScopeSystem {
     this.lensMesh.rotation.z = 0;
     this.lensMesh.scale.set(R, R, 1);
     this.lensMat.uniforms.uOpacity.value = smoothOverlay;
-      if (D > 0 && this.pxShiftX !== undefined) {
-        const pxMultiplier = 5.0; // Multiplicador do efeito parallax (tubo interno 3D)
-        this.lensMat.uniforms.uParallax.value.set((this.pxShiftX / D) * pxMultiplier, (-this.pxShiftY / D) * pxMultiplier); // Note o -pxShiftY por causa da Y invertida no GLSL
-      }
+
+    // ── RAIO DINÂMICO DO ANEL INTERNO COM BASE NO ZOOM (FOV) ─────────────────
+    // Quando damos zoom (aproximação máxima, FOV menor), o anel interno se expande
+    // para fora da ocular (1.08), desaparecendo da visão da lente.
+    // Quando diminuímos o zoom (FOV maior), o anel interno diminui (0.84), aparecendo dentro da lente.
+    const zoomFactor = (SCOPE_CONFIG.SCOPE_FOV_MAX - this.scopeFov) / (SCOPE_CONFIG.SCOPE_FOV_MAX - SCOPE_CONFIG.SCOPE_FOV_MIN);
+    const innerRingRadius = THREE.MathUtils.lerp(0.84, 1.08, THREE.MathUtils.clamp(zoomFactor, 0, 1));
+    this.lensMat.uniforms.uInnerRingRadius.value = innerRingRadius;
+
+    // ── PARALAXE COMBINADO: RECUO/BOBBING 3D + INÉRCIA DO MOUSE ─────────────
+    let shiftX = 0;
+    let shiftY = 0;
+    if (D > 0 && this.pxShiftX !== undefined) {
+      const pxMultiplier = 4.0;
+      shiftX = (this.pxShiftX / D) * pxMultiplier;
+      shiftY = (-this.pxShiftY / D) * pxMultiplier;
+    }
+
+    // Inércia fluida do mouse para sensação de peso e cilindro 3D realista
+    shiftX += this.lookInertia.x;
+    shiftY += this.lookInertia.y;
+
+    this.lensMat.uniforms.uParallax.value.set(shiftX, shiftY);
 
     // setScissor acompanha o centro dinâmico da mira (coordenadas do scissor: x, y, width, height)
     const scissorX = Math.round(centerX - R - 2);
