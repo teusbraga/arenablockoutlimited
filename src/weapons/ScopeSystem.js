@@ -81,7 +81,36 @@ export class ScopeSystem {
           vUv = uv;   // CircleGeometry gera UVs que mapeiam o círculo dentro do quadrado 0..1
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }`,
-      fragmentShader: /* glsl */`
+      fragmentShader: /* glsl */
+        uniform sampler2D tMap;
+        uniform float uOpacity;
+        uniform vec2 uParallax;
+        varying vec2 vUv;
+        void main() {
+          vec2  p = vUv - 0.5;
+          float r = length(p) * 2.0;
+
+          vec2 pFront = p - uParallax;
+          float rFront = length(pFront) * 2.0;
+          
+          float tubeShadow = smoothstep(0.85, 1.0, rFront);
+
+          vec2 uv = 0.5 + p * (1.0 - 0.10 * r * r);
+
+          vec2 ca = p * 0.006 * r * r;
+          vec3 col;
+          col.r = texture2D(tMap, uv + ca).r;
+          col.g = texture2D(tMap, uv).g;
+          col.b = texture2D(tMap, uv - ca).b;
+
+          float vig = 1.0 - smoothstep(0.68, 1.0, r);
+          col *= mix(0.45, 1.0, vig);
+
+          col = mix(col, vec3(0.01, 0.012, 0.015), tubeShadow);
+
+          float alpha = uOpacity * (1.0 - smoothstep(0.98, 1.0, r));
+          gl_FragColor = vec4(col, alpha);
+        }`
         uniform sampler2D tMap;
         uniform float uOpacity;
         varying vec2 vUv;
@@ -322,6 +351,14 @@ export class ScopeSystem {
       v.project(mainCamera);
       offsetX = (v.x * (w / 2));
       offsetY = (-v.y * (h / 2));
+
+        if (this.protoDetails && this.protoDetails.frontLens) {
+            const vFront = new THREE.Vector3();
+            this.protoDetails.frontLens.getWorldPosition(vFront);
+            vFront.project(mainCamera);
+            this.pxShiftX = (vFront.x * (w / 2)) - offsetX;
+            this.pxShiftY = (-vFront.y * (h / 2)) - offsetY;
+        }
     }
 
     // Centro do disco na tela
@@ -337,6 +374,10 @@ export class ScopeSystem {
     this.lensMesh.rotation.z = 0;
     this.lensMesh.scale.set(R, R, 1);
     this.lensMat.uniforms.uOpacity.value = smoothOverlay;
+      if (D > 0 && this.pxShiftX !== undefined) {
+        const pxMultiplier = 3.0; // Exagera o cilindro
+        this.lensMat.uniforms.uParallax.value.set((this.pxShiftX / D) * pxMultiplier, (-this.pxShiftY / D) * pxMultiplier); // Note o -pxShiftY por causa da Y invertida no GLSL
+      }
 
     // setScissor acompanha o centro dinâmico da mira (coordenadas do scissor: x, y, width, height)
     const scissorX = Math.round(centerX - R - 2);
@@ -366,5 +407,6 @@ export class ScopeSystem {
     this.overlayCam.updateProjectionMatrix();
   }
 }
+
 
 
