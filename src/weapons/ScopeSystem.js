@@ -89,20 +89,35 @@ export class ScopeSystem {
         varying vec2 vUv;
         void main() {
           vec2  p = vUv - 0.5;
-          float r = length(p) * 2.0;
+          float r = length(p) * 2.0;               // Raio na Lente Traseira (0 a 1)
+          
           vec2 pFront = p - uParallax;
-          float rFront = length(pFront) * 2.0;
-          float tubeShadow = smoothstep(0.85, 1.0, rFront);
+          float rFront = length(pFront) * 2.0;     // Raio na Lente Dianteira (0 a 1)
+          
+          // A imagem da cÃ¢mera vem alinhada com o cano (frontLens)
+          // EntÃ£o adicionamos uma levÃ­ssima distorÃ§Ã£o de lente baseada na lente traseira (p)
           vec2 uv = 0.5 + p * (1.0 - 0.10 * r * r);
           vec2 ca = p * 0.006 * r * r;
+          
           vec3 col;
           col.r = texture2D(tMap, uv + ca).r;
           col.g = texture2D(tMap, uv).g;
           col.b = texture2D(tMap, uv - ca).b;
-          float vig = 1.0 - smoothstep(0.68, 1.0, r);
-          col *= mix(0.45, 1.0, vig);
-          col = mix(col, vec3(0.01, 0.012, 0.015), tubeShadow);
+          
+          // Anel Interno (A parede do tubo)
+          // Se o raio na lente dianteira passar de 0.92, comeÃ§a a parede interna do cilindro
+          float isWall = smoothstep(0.92, 0.95, rFront);
+          
+          // IluminaÃ§Ã£o da parede interna baseada na direÃ§Ã£o (fake 3D shading do tubo)
+          float wallShade = 0.5 + 0.5 * dot(normalize(pFront + vec2(0.001)), vec2(0.0, 1.0));
+          vec3 wallColor = vec3(0.01, 0.012, 0.015) * wallShade;
+          
+          // Mistura a imagem da lente com a parede interna
+          col = mix(col, wallColor, isWall);
+          
+          // Anel Externo (O limite da ocular traseira, define a transparÃªncia)
           float alpha = uOpacity * (1.0 - smoothstep(0.98, 1.0, r));
+          
           gl_FragColor = vec4(col, alpha);
         }`,
     });
@@ -343,7 +358,7 @@ export class ScopeSystem {
     this.lensMesh.scale.set(R, R, 1);
     this.lensMat.uniforms.uOpacity.value = smoothOverlay;
       if (D > 0 && this.pxShiftX !== undefined) {
-        const pxMultiplier = 3.0; // Exagera o cilindro
+        const pxMultiplier = 5.0; // Multiplicador do efeito parallax (tubo interno 3D)
         this.lensMat.uniforms.uParallax.value.set((this.pxShiftX / D) * pxMultiplier, (-this.pxShiftY / D) * pxMultiplier); // Note o -pxShiftY por causa da Y invertida no GLSL
       }
 
