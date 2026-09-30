@@ -74,6 +74,7 @@ export class ScopeSystem {
       uniforms: {
         tMap:     { value: this.scopeRT.texture },
         uOpacity: { value: 1 },
+        uParallax:{ value: new THREE.Vector2(0, 0) },
       },
       vertexShader: /* glsl */`
         varying vec2 vUv;
