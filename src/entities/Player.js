@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { Character } from './Character.js';
 import { CONFIG } from '../core/Config.js';
 import { emit, on } from '../core/EventBus.js';
+import { CameraRig } from '../core/CameraRig.js';
 
 const _fwd = new THREE.Vector3();
 const _right = new THREE.Vector3();
@@ -14,21 +15,50 @@ export class Player extends Character {
     this.pos.set(0, 0.1, 10);
     this.size.set(0.6, CONFIG.PLAYER.height, 0.6);
 
-    this.pitch = 0;
+    // Instancia o CameraRig (Layer 1 da câmera)
+    this.rig = new CameraRig();
+    this.rig.setOrientation(this._yaw || 0, 0);
+
     this.sprinting = false;
     this.crouched = false;
     this.ads = false;
     this.lastDamageTime = -999;
-    this.bobPhase = 0;
-    this.bobAmt = 0;
     this.stepTimer = 0;
     this.crouchAmount = 0;
-    this.eyeHeight = CONFIG.PLAYER.eyeHeight;
 
     // Escuta evento de ADS para garantir sincronismo
     on('player:ads', e => {
       this.ads = !!e.ads;
     });
+  }
+
+  get yaw() {
+    return this.rig ? this.rig.currentYaw : (this._yaw || 0);
+  }
+  set yaw(v) {
+    if (this.rig) {
+      this.rig.setYaw(v);
+    } else {
+      this._yaw = v;
+    }
+  }
+
+  get pitch() {
+    return this.rig ? this.rig.currentPitch : (this._pitch || 0);
+  }
+  set pitch(v) {
+    if (this.rig) {
+      this.rig.setPitch(v);
+    } else {
+      this._pitch = v;
+    }
+  }
+
+  get eyeHeight() {
+    return this.rig ? this.rig.eyeHeight : CONFIG.PLAYER.eyeHeight;
+  }
+  set eyeHeight(v) {
+    if (this.rig) this.rig.eyeHeight = v;
   }
 
   update(dt, input) {
@@ -42,9 +72,7 @@ export class Player extends Character {
       const { dx, dy } = input.consumeMouseDelta();
       const scopeMul = (this.customSensMul !== undefined) ? this.customSensMul : 1.0;
       const sens = CONFIG.CAMERA.sens * (CONFIG.CAMERA.sensMultiplier || 1.0) * (this.ads ? CONFIG.CAMERA.adsSensMul : 1) * scopeMul;
-      this.yaw -= dx * sens;
-      this.pitch -= dy * sens;
-      this.pitch = Math.max(-CONFIG.CAMERA.pitchLimit, Math.min(CONFIG.CAMERA.pitchLimit, this.pitch));
+      this.rig.addMouseInput(dx, dy, sens);
 
       _fwd.set(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
       _right.set(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
@@ -126,60 +154,16 @@ export class Player extends Character {
   }
 
   updateCamera(camera, dt) {
-    const speedXZ = Math.hypot(this.vel.x, this.vel.z);
-    const isMoving = this.alive && this.onGround && speedXZ > 0.6;
-
-    // Head bob (10% mais suave para conforto visual)
-    if (isMoving) {
-      const rate = 9 + (this.sprinting ? 5 : 0) - this.crouchAmount * 3;
-      this.bobPhase += dt * rate;
-      const target = (this.sprinting ? 0.040 : 0.029) * Math.min(speedXZ / CONFIG.PLAYER.walkSpeed, 1.8);
-      this.bobAmt += (target - this.bobAmt) * Math.min(dt * 8, 1);
-    } else {
-      this.bobAmt += (0 - this.bobAmt) * Math.min(dt * 6, 1);
-    }
-
-    const bobY = Math.sin(this.bobPhase * 2) * this.bobAmt;
-    const bobX = Math.cos(this.bobPhase) * this.bobAmt * 0.60;
-    const bobRoll = Math.cos(this.bobPhase) * this.bobAmt * 0.16;
-    const bobPitch = Math.sin(this.bobPhase * 2) * this.bobAmt * 0.07;
-
-    // Se morto, deita a câmera no chão
-    let targetEye = CONFIG.PLAYER.eyeHeight + (CONFIG.PLAYER.eyeCrouch - CONFIG.PLAYER.eyeHeight) * this.crouchAmount;
-    if (!this.alive) targetEye = 0.2; 
-    
-    this.eyeHeight += (targetEye - this.eyeHeight) * Math.min(dt * (this.alive ? 18 : 6), 1);
-
-    // Flinch (Hit Impact)
-    this.flinchPitch = (this.flinchPitch || 0) * Math.max(0, 1 - dt * 15);
-    this.flinchYaw = (this.flinchYaw || 0) * Math.max(0, 1 - dt * 15);
-
-    // Aplica à câmera
-    const rightX = Math.cos(this.yaw);
-    const rightZ = -Math.sin(this.yaw);
-
-    let deathRoll = !this.alive ? -0.8 : 0; // Tomba a cabeça ao morrer
-    this.currentRoll = (this.currentRoll || 0);
-    this.currentRoll += (deathRoll - this.currentRoll) * Math.min(dt * 4, 1);
-
-    camera.position.set(
-      this.pos.x + bobX * rightX,
-      this.pos.y + this.eyeHeight + bobY,
-      this.pos.z + bobX * rightZ,
-    );
-    camera.rotation.order = 'YXZ';
-    camera.rotation.y = this.yaw + this.flinchYaw;
-    camera.rotation.x = this.pitch + bobPitch + this.flinchPitch;
-    camera.rotation.z = bobRoll + this.currentRoll;
+    this.rig.update(dt, this);
+    this.rig.applyToCamera(camera);
   }
 
   takeDamage(dmg, source) {
     if (!this.alive) return;
     this.lastDamageTime = performance.now() / 1000;
     
-    // Flinch impact
-    this.flinchPitch = (this.flinchPitch || 0) + (Math.random() * 0.06 + 0.04);
-    this.flinchYaw = (this.flinchYaw || 0) + (Math.random() - 0.5) * 0.1;
+    // Flinch impact no rig
+    this.rig.addFlinch(Math.random() * 0.06 + 0.04, (Math.random() - 0.5) * 0.1);
 
     super.takeDamage(dmg);
     emit('player:hp', { hp: this.hp, max: this.maxHp });
@@ -206,10 +190,7 @@ export class Player extends Character {
   respawn() {
     super.respawn();
     this.pos.set(0, 0.1, 12);
-    this.flinchPitch = 0;
-    this.flinchYaw = 0;
-    this.currentRoll = 0;
-    this.pitch = 0;
+    this.rig.reset();
     emit('player:hp', { hp: this.hp, max: this.maxHp });
     emit('player:respawn');
   }

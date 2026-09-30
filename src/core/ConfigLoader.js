@@ -18,7 +18,10 @@ export const DEFAULT_CONFIG = {
   CAMERA: {
     hipFov: 78.0, adsFov: 55.0,
     sens: 0.0022, adsSensMul: 0.55,
-    pitchLimit: 1.52
+    pitchLimit: 1.52,
+    smoothTime: 0.016,
+    adsSmoothTime: 0.024,
+    maxTurningRate: 50.0
   },
   PHYSICS: { fixedDt: 1 / 120, maxFrame: 0.1 },
   BOTS: {

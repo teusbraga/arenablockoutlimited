@@ -208,7 +208,7 @@ export class ScopeSystem {
     return 1 + (Math.pow(ratio, 0.6) - 1) * this.adsT;
   }
 
-  update(dt, mainCamera, isAdsActive) {
+  update(dt, mainCamera, isAdsActive, rig, viewmodel) {
     this.adsTarget = isAdsActive;
 
     // Transição suave do ADS (exponencial, independente de FPS)
@@ -216,31 +216,42 @@ export class ScopeSystem {
     this.adsT += (target - this.adsT) * (1 - Math.exp(-dt * SCOPE_CONFIG.ADS_SPEED));
     if (Math.abs(target - this.adsT) < 0.001) this.adsT = target;
 
-    // ── Inércia de Movimento da Câmera (Mouse Look Inertia para Paralaxe Realista) ──
-    const currentYaw = mainCamera.rotation.y;
-    const currentPitch = mainCamera.rotation.x;
+    // ── Inércia de Movimento Cinético (Layer 4 — Paralaxe Passivo da Câmera) ──
+    let lookSpeedX = 0;
+    let lookSpeedY = 0;
 
-    if (!this.hasPrevLook) {
+    if (rig && rig.angularVelocity) {
+      // Lê passivamente a velocidade angular contínua da Layer 1/2 (já inclui inércia e recuo!)
+      lookSpeedX = rig.angularVelocity.y;
+      lookSpeedY = rig.angularVelocity.x;
+    } else {
+      // Fallback legado se o rig não for passado
+      const currentYaw = mainCamera.rotation.y;
+      const currentPitch = mainCamera.rotation.x;
+
+      if (!this.hasPrevLook) {
+        this.prevYaw = currentYaw;
+        this.prevPitch = currentPitch;
+        this.hasPrevLook = true;
+      }
+
+      let dYaw = currentYaw - this.prevYaw;
+      let dPitch = currentPitch - this.prevPitch;
+
+      while (dYaw > Math.PI) dYaw -= Math.PI * 2;
+      while (dYaw < -Math.PI) dYaw += Math.PI * 2;
+
       this.prevYaw = currentYaw;
       this.prevPitch = currentPitch;
-      this.hasPrevLook = true;
+
+      if (dt > 0) {
+        lookSpeedX = dYaw / dt;
+        lookSpeedY = dPitch / dt;
+      }
     }
 
-    let dYaw = currentYaw - this.prevYaw;
-    let dPitch = currentPitch - this.prevPitch;
-
-    while (dYaw > Math.PI) dYaw -= Math.PI * 2;
-    while (dYaw < -Math.PI) dYaw += Math.PI * 2;
-
-    this.prevYaw = currentYaw;
-    this.prevPitch = currentPitch;
-
     if (this.adsT > 0.05 && dt > 0) {
-      // Velocidade angular real do mouse em radianos por segundo (independente de FPS)
-      const lookSpeedX = dYaw / dt;
-      const lookSpeedY = dPitch / dt;
-
-      // Ganho calibrado para sensação de paralaxe cilíndrico realista ao mover o mouse
+      // Ganho calibrado para sensação de paralaxe cilíndrico realista ao mover o mouse ou disparar
       const inertiaGain = 0.085;
       const targetInertiaX = THREE.MathUtils.clamp(lookSpeedX * inertiaGain, -0.48, 0.48);
       const targetInertiaY = THREE.MathUtils.clamp(-lookSpeedY * inertiaGain, -0.48, 0.48);

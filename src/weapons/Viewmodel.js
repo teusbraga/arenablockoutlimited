@@ -113,38 +113,39 @@ export class Viewmodel {
   }
 
   /**
-   * Atualiza a física de mola e oscilação orgânica da arma baseado no movimento e respiração.
-   * Suave e discreto para não prejudicar a mira ou causar enjoo.
+   * Layer 3: Atualiza a física de mola e oscilação orgânica do Viewmodel baseado na velocidade angular
+   * do CameraRig (Layer 1/2) e na locomoção do jogador.
    */
-  applySwayFromLook(dt, yaw, pitch, isADS, isSprinting, playerVel) {
-    let dYaw = yaw - this.lastYaw;
-    let dPitch = pitch - this.lastPitch;
-
-    // Corrige saltos de rotação em 360°
-    while (dYaw > Math.PI) dYaw -= Math.PI * 2;
-    while (dYaw < -Math.PI) dYaw += Math.PI * 2;
-
-    this.lastYaw = yaw;
-    this.lastPitch = pitch;
-
+  applySwayFromRig(rig, dt, isADS, isSprinting, playerVel, weaponDef) {
     // No ADS, o sway mantém inércia tática suave (sensação física de peso e paralaxe)
     const adsMul = isADS ? 0.22 : 0.70;
     const sprintMul = isSprinting ? 1.3 : 1.0;
     const mul = adsMul * sprintMul;
 
-    // Velocidade angular do olhar (rad/s) para inércia física real independente de FPS
-    const lookSpeedX = dt > 0 ? (dYaw / dt) : 0;
-    const lookSpeedY = dt > 0 ? (dPitch / dt) : 0;
+    // Velocidade angular do olhar (rad/s) fornecida diretamente pela Layer 1/2
+    const lookSpeedX = rig?.angularVelocity ? rig.angularVelocity.y : 0;
+    const lookSpeedY = rig?.angularVelocity ? rig.angularVelocity.x : 0;
 
-    // Mouse Sway suave com retorno amortecido
-    this.swayVel.x += (-lookSpeedX * 0.10 * mul - this.swayPos.x * 22 - this.swayVel.x * 10) * dt;
-    this.swayVel.y += ( lookSpeedY * 0.10 * mul - this.swayPos.y * 22 - this.swayVel.y * 10) * dt;
+    // Fator de Massa e Peso da Arma (normalizado em torno de 3.5 kg de um rifle padrão)
+    const weight = (weaponDef && weaponDef.weight) ? weaponDef.weight : 3.5;
+    const massFactor = Math.max(0.25, Math.min(2.6, weight / 3.5));
+    const inertiaMul = Math.sqrt(massFactor);
+
+    // Rigidez e Amortecimento da Mola:
+    // - Armas leves (pistolas/SMGs) são ágeis e têm alta frequência de retorno elástico (snappy).
+    // - Armas pesadas (fuzis pesados/LMGs) têm inércia maior e retorno com elasticidade mais cadenciada e pesada.
+    const springK = 24.0 / Math.pow(massFactor, 0.45);
+    const springD = 10.5 / Math.pow(massFactor, 0.35);
+
+    // Mouse Sway suave com retorno amortecido dependente da massa
+    this.swayVel.x += (-lookSpeedX * 0.10 * mul * inertiaMul - this.swayPos.x * springK - this.swayVel.x * springD) * dt;
+    this.swayVel.y += ( lookSpeedY * 0.10 * mul * inertiaMul - this.swayPos.y * springK - this.swayVel.y * springD) * dt;
     this.swayPos.x += this.swayVel.x * dt;
     this.swayPos.y += this.swayVel.y * dt;
 
     // Walking Bob suave
-    const speed = Math.hypot(playerVel.x, playerVel.z);
-    const time = performance.now() / 1000;
+    const speed = playerVel ? Math.hypot(playerVel.x, playerVel.z) : 0;
+    const time = performance.now() * 0.001;
     
     const bobFreq = speed > 0.1 ? (isSprinting ? 11 : 7.5) : 0;
     const bobAmt = (speed > 0.1 ? (isSprinting ? 0.018 : 0.009) : 0) * (isADS ? 0.15 : 1);
@@ -179,6 +180,28 @@ export class Viewmodel {
     this.smoothMag += (mag - this.smoothMag) * Math.min(dt * 6, 1);
   }
 
+  /**
+   * Adaptador para compatibilidade com chamadas legadas
+   */
+  applySwayFromLook(dt, yawOrRig, pitch, isADS, isSprinting, playerVel) {
+    if (yawOrRig && typeof yawOrRig === 'object' && yawOrRig.angularVelocity) {
+      return this.applySwayFromRig(yawOrRig, dt, pitch, isADS, isSprinting);
+    }
+    let dYaw = (yawOrRig || 0) - this.lastYaw;
+    let dPitch = (pitch || 0) - this.lastPitch;
+    while (dYaw > Math.PI) dYaw -= Math.PI * 2;
+    while (dYaw < -Math.PI) dYaw += Math.PI * 2;
+    this.lastYaw = yawOrRig || 0;
+    this.lastPitch = pitch || 0;
+    const fakeRig = {
+      angularVelocity: {
+        x: dt > 0 ? (dPitch / dt) : 0,
+        y: dt > 0 ? (dYaw / dt) : 0
+      }
+    };
+    return this.applySwayFromRig(fakeRig, dt, isADS, isSprinting, playerVel);
+  }
+
   getSpreadFromSway() { 
     return Math.min(this.smoothMag * 0.05, 0.012); 
   }
@@ -206,8 +229,11 @@ export class Viewmodel {
     this.baseRot.y += (tRot[1] - this.baseRot.y) * k;
     this.baseRot.z += (tRot[2] - this.baseRot.z) * k;
 
-    // Recoil decai rapidamente de forma exponencial para a posição neutra
-    const decay = Math.exp(-dt * 24);
+    // Recoil decai dependente do peso da arma (armas leves voltam rápido; armas pesadas têm recuperação cadenciada)
+    const weight = def.weight || 3.5;
+    const massFactor = Math.max(0.25, Math.min(2.6, weight / 3.5));
+    const kickDecaySpeed = 24.0 / Math.pow(massFactor, 0.35);
+    const decay = Math.exp(-dt * kickDecaySpeed);
     this.kickPos.z *= decay;
     this.kickRotX  *= decay;
 

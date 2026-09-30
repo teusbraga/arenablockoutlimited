@@ -251,20 +251,18 @@ const effects = new Effects(scene);
         weapons.update(dt);
         gameManager.update(dt);
 
-        // Atualização da câmera
+        // Atualização da câmera (Layer 1 & 2)
+        player.activeWeaponWeight = weapons.def?.weight || 3.5;
         player.updateCamera(camera, dt);
 
-        // Tremor de câmera elástico e orgânico do protótipo
+        // Tremor de câmera gerenciado pela camada cinética (CameraRig)
         const shake = viewmodel.getShake();
-        if (shake > 0.002) {
-          const t = performance.now() * 0.001;
-          camera.position.x += Math.sin(t * 47.3) * 0.014 * shake;
-          camera.position.y += Math.cos(t * 61.7) * 0.014 * shake;
-          camera.position.z += Math.sin(t * 53.1) * 0.009 * shake;
+        if (shake > 0.002 && player.rig) {
+          player.rig.addShake(shake * 0.35);
         }
 
-        // Viewmodel
-        viewmodel.applySwayFromLook(dt, player.yaw, player.pitch, weapons.ads, player.sprinting, player.vel);
+        // Viewmodel (Layer 3 — lê a velocidade angular, inércia do CameraRig e peso da arma ativa)
+        viewmodel.applySwayFromRig(player.rig, dt, weapons.ads, player.sprinting, player.vel, weapons.def);
         viewmodel.updatePose(dt, weapons.current, {
           isADS: weapons.ads,
           isSprinting: player.sprinting,
@@ -285,12 +283,12 @@ const effects = new Effects(scene);
         camera.fov += (targetFov - camera.fov) * Math.min(dt * 12, 1);
         camera.updateProjectionMatrix();
 
-        // Scope System (Arquivo 1 Literal para o Rifle Prototype)
+        // Scope System (Layer 4 — Paralaxe passivo lendo CameraRig e Viewmodel)
         if (isProto) {
-          scopeSystem.update(dt, camera, weapons.ads);
+          scopeSystem.update(dt, camera, weapons.ads, player.rig, viewmodel);
           player.customSensMul = scopeSystem.getSensitivityFactor();
         } else {
-          scopeSystem.update(dt, camera, false);
+          scopeSystem.update(dt, camera, false, player.rig, viewmodel);
           player.customSensMul = 1.0;
         }
 

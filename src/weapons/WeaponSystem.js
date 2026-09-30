@@ -187,17 +187,6 @@ export class WeaponSystem {
       }
     }
 
-    // ── Recuperação Elástica do Recoil da Câmera ────────────────────────────
-    // A câmera volta ao centro suavemente de maneira fluida e contínua
-    if ((this._recoilDebt || 0) > 0.0001) {
-      const recoverySpeed = this.ads ? 6.0 : 8.5;
-      const step = this._recoilDebt * recoverySpeed * dt;
-      const recover = Math.min(this._recoilDebt, Math.max(step, 0.001 * dt));
-      this._recoilDebt -= recover;
-      this.player.pitch -= recover;
-    } else {
-      this._recoilDebt = 0;
-    }
   }
 
   get reloadProgress() {
@@ -246,27 +235,48 @@ export class WeaponSystem {
 
     const streakMul = 1 + this.fireStreak * streakFactor;
 
-    // ── Recoil Vertical da Câmera ───────────────────────────────────────────
-    // O Rifle Prototype sobe continuamente como um rifle de precisão/assalto tático, exigindo controle do mouse
+    // ── Recoil no CameraRig (Layer 2) ───────────────────────────────────────────
     const isProto = def.id === 'rifle_proto';
     const pitchScale = this.ads ? (isProto ? 0.65 : 0.25) : 0.85;
     const pitchAdd = def.recoilPitch * pitchScale * streakMul;
-    this.player.pitch += pitchAdd;
 
-    // Para o Rifle Prototype, o recuo é permanente no mouse (sobe sem parar sem retorno elástico automático).
-    // Para as demais armas clássicas, uma parcela retorna suavemente.
-    if (!isProto) {
-      this._recoilDebt = (this._recoilDebt || 0) + pitchAdd * 0.70;
-    } else {
-      this._recoilDebt = 0;
-    }
-
-    // ── Recoil Horizontal da Câmera ────────────────────────────────────────
-    // No primeiro tiro: zero horizontal. Em spray: leve oscilação previsível
+    let yawAdd = 0;
     if (this.fireStreak > 0) {
       const yawBias = def.recoilYawBias ?? 0.5;
       const yawScale = this.ads ? 0.20 : 0.60;
-      const yawAdd = yawBias * def.recoilYaw * yawScale * streakMul;
+      yawAdd = yawBias * def.recoilYaw * yawScale * streakMul;
+    }
+
+    const kickbackZ = def.kickbackZ ?? (def.id === 'm249' ? 0.010 : def.id === 'uzi' ? 0.006 : 0.008);
+
+    if (this.player.rig) {
+      if (isProto) {
+        // Rifle Proto: subida contínua tática + punch elástico + coice no ombro + tremor
+        this.player.rig.addRecoilImpulse({
+          climbPitch: pitchAdd,
+          climbYaw: yawAdd,
+          punchPitch: pitchAdd * 0.45,
+          punchYaw: (Math.random() - 0.5) * pitchAdd * 0.15,
+          punchRoll: (Math.random() - 0.5) * 0.008,
+          posKickZ: this.ads ? 0.006 : 0.012,
+          posKickY: this.ads ? 0.002 : 0.004,
+          shake: 0.35 * streakMul
+        });
+      } else {
+        // Armas clássicas: parte permanente (climb) e parte elástica (punch que retorna com mola)
+        const climbRatio = 0.30;
+        this.player.rig.addRecoilImpulse({
+          climbPitch: pitchAdd * climbRatio,
+          climbYaw: yawAdd,
+          punchPitch: pitchAdd * (1 - climbRatio),
+          punchRoll: (Math.random() - 0.5) * 0.006,
+          posKickZ: kickbackZ,
+          posKickY: kickbackZ * 0.3,
+          shake: 0.25 * streakMul
+        });
+      }
+    } else {
+      this.player.pitch += pitchAdd;
       this.player.yaw += yawAdd;
     }
     
