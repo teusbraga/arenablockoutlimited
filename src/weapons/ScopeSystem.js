@@ -81,7 +81,7 @@ export class ScopeSystem {
           vUv = uv;   // CircleGeometry gera UVs que mapeiam o círculo dentro do quadrado 0..1
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }`,
-      fragmentShader: /* glsl */
+      fragmentShader: /* glsl */`
         uniform sampler2D tMap;
         uniform float uOpacity;
         uniform vec2 uParallax;
@@ -89,53 +89,20 @@ export class ScopeSystem {
         void main() {
           vec2  p = vUv - 0.5;
           float r = length(p) * 2.0;
-
           vec2 pFront = p - uParallax;
           float rFront = length(pFront) * 2.0;
-          
           float tubeShadow = smoothstep(0.85, 1.0, rFront);
-
           vec2 uv = 0.5 + p * (1.0 - 0.10 * r * r);
-
           vec2 ca = p * 0.006 * r * r;
           vec3 col;
           col.r = texture2D(tMap, uv + ca).r;
           col.g = texture2D(tMap, uv).g;
           col.b = texture2D(tMap, uv - ca).b;
-
           float vig = 1.0 - smoothstep(0.68, 1.0, r);
           col *= mix(0.45, 1.0, vig);
-
           col = mix(col, vec3(0.01, 0.012, 0.015), tubeShadow);
-
           float alpha = uOpacity * (1.0 - smoothstep(0.98, 1.0, r));
           gl_FragColor = vec4(col, alpha);
-        }`
-        uniform sampler2D tMap;
-        uniform float uOpacity;
-        varying vec2 vUv;
-        void main() {
-          vec2  p = vUv - 0.5;             // -0.5..0.5 a partir do centro
-          float r = length(p) * 2.0;       // 0 no centro, 1 na borda
-
-          // Leve distorção de barril (efeito de lente) – aumente 0.10 para exagerar
-          vec2 uv = 0.5 + p * (1.0 - 0.10 * r * r);
-
-          // Aberração cromática sutil: canais R/B levemente deslocados nas bordas
-          vec2 ca = p * 0.006 * r * r;
-          vec3 col;
-          col.r = texture2D(tMap, uv + ca).r;
-          col.g = texture2D(tMap, uv).g;
-          col.b = texture2D(tMap, uv - ca).b;
-
-          // Vinheta leve nas bordas externas + vidro límpido e cristalino de alta fidelidade
-          float vig = 1.0 - smoothstep(0.68, 1.0, r);
-          col *= mix(0.45, 1.0, vig);
-          // Clareamento e ganho de luz para visão límpida (scope claro)
-          col *= 1.28;
-          col *= vec3(0.98, 1.0, 1.02);
-
-          gl_FragColor = vec4(col, uOpacity);
         }`,
     });
 
