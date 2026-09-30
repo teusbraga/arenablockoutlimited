@@ -13,6 +13,7 @@
  */
 
 import * as THREE from 'three';
+import { on } from '../core/EventBus.js';
 
 /* =====================================================================
  *  CONFIGURAÇÃO DO ARQUIVO 1
@@ -159,6 +160,20 @@ export class ScopeSystem {
       this.scopeFov *= (e.deltaY < 0) ? 0.9 : 1 / 0.9;
       this.scopeFov = Math.max(SCOPE_CONFIG.SCOPE_FOV_MIN, Math.min(SCOPE_CONFIG.SCOPE_FOV_MAX, this.scopeFov));
     }, { passive: false });
+
+    // Tremor interno cinético exclusivo da ótica (Scope Concussion / Recoil Shockwave)
+    this.opticShake = 0;
+    this.mainCameraRef = null;
+
+    on('weapon:fired', e => {
+      if (e.weaponId === 'rifle_proto' && this.adsTarget) {
+        this.addOpticShake(0.55);
+      }
+    });
+  }
+
+  addOpticShake(amount = 0.55) {
+    this.opticShake = Math.min(this.opticShake + amount, 1.4);
   }
 
   buildReticle() {
@@ -209,12 +224,20 @@ export class ScopeSystem {
   }
 
   update(dt, mainCamera, isAdsActive, rig, viewmodel) {
+    this.mainCameraRef = mainCamera;
     this.adsTarget = isAdsActive;
 
     // Transição suave do ADS (exponencial, independente de FPS)
     const target = this.adsTarget ? 1 : 0;
     this.adsT += (target - this.adsT) * (1 - Math.exp(-dt * SCOPE_CONFIG.ADS_SPEED));
     if (Math.abs(target - this.adsT) < 0.001) this.adsT = target;
+
+    // Decaimento responsivo do tremor de tiro interno da ótica
+    if (this.opticShake > 0.0001) {
+      this.opticShake *= Math.max(0, 1 - dt * 14.0);
+    } else {
+      this.opticShake = 0;
+    }
 
     // ── Inércia de Movimento Cinético (Layer 4 — Paralaxe Passivo da Câmera) ──
     let lookSpeedX = 0;
@@ -344,6 +367,10 @@ export class ScopeSystem {
   renderScopePass(protoModel) {
     if (!this.scopeOn) return;
 
+    if (this.mainCameraRef) {
+      this.scopeCamera.position.copy(this.mainCameraRef.position);
+    }
+
     // Atualiza orientação da scopeCamera com as matrizes mais recentes antes do render
     if (this.protoDetails && this.protoDetails.rearLens && this.protoDetails.frontLens) {
       this.protoDetails.rearLens.updateMatrixWorld(true);
@@ -361,6 +388,24 @@ export class ScopeSystem {
       const target = new THREE.Vector3().copy(this.scopeCamera.position).add(dir);
       this.scopeCamera.up.copy(vUp);
       this.scopeCamera.lookAt(target);
+    } else if (this.mainCameraRef) {
+      this.scopeCamera.quaternion.copy(this.mainCameraRef.quaternion);
+    }
+
+    // ── Tremor Cinético Exclusivo do Interior da Ótica ─────────────────────
+    if (this.opticShake > 0.001) {
+      const t = performance.now() * 0.001;
+      const shakePitch = Math.sin(t * 62.0) * 0.0035 * this.opticShake;
+      const shakeYaw = Math.cos(t * 79.0) * 0.0028 * this.opticShake;
+      const shakeRoll = Math.sin(t * 47.0) * 0.0032 * this.opticShake;
+
+      const qShake = new THREE.Quaternion().setFromEuler(
+        new THREE.Euler(shakePitch, shakeYaw, shakeRoll, 'YXZ')
+      );
+      this.scopeCamera.quaternion.multiply(qShake);
+
+      this.scopeCamera.position.x += Math.cos(t * 67.0) * 0.003 * this.opticShake;
+      this.scopeCamera.position.y += Math.sin(t * 83.0) * 0.003 * this.opticShake;
     }
 
     // ── PASSADA 2: mesma cena, scopeCamera, dentro do render target (textura da lente)
@@ -477,6 +522,13 @@ export class ScopeSystem {
     shiftX += this.lookInertia.x;
     shiftY += this.lookInertia.y;
 
+    // Impulso do tremor cinético interno no paralaxe da lente
+    if (this.opticShake > 0.001) {
+      const t = performance.now() * 0.001;
+      shiftX += Math.cos(t * 53.0) * 0.02 * this.opticShake;
+      shiftY += Math.sin(t * 71.0) * 0.02 * this.opticShake;
+    }
+
     this.lensMat.uniforms.uParallax.value.set(shiftX, shiftY);
 
     // setScissor acompanha o centro dinâmico da mira (coordenadas do scissor: x, y, width, height)
@@ -493,9 +545,16 @@ export class ScopeSystem {
 
     // Sincroniza o retículo e carcaça externa HTML/SVG com os mesmos pixels de deslocamento e rotação
     if (this.lensEl) {
+      let reticleShiftX = 0;
+      let reticleShiftY = 0;
+      if (this.opticShake > 0.001) {
+        const t = performance.now() * 0.001;
+        reticleShiftX = Math.cos(t * 61.0) * 3.5 * this.opticShake;
+        reticleShiftY = Math.sin(t * 77.0) * 3.5 * this.opticShake;
+      }
       this.lensEl.style.setProperty('--d', D.toFixed(1) + 'px');
-      this.lensEl.style.setProperty('--x', offsetX.toFixed(2) + 'px');
-      this.lensEl.style.setProperty('--y', offsetY.toFixed(2) + 'px');
+      this.lensEl.style.setProperty('--x', (offsetX + reticleShiftX).toFixed(2) + 'px');
+      this.lensEl.style.setProperty('--y', (offsetY + reticleShiftY).toFixed(2) + 'px');
       this.lensEl.style.setProperty('--rot', `${rollAngle}rad`);
     }
   }

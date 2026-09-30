@@ -251,16 +251,16 @@ export class WeaponSystem {
 
     if (this.player.rig) {
       if (isProto) {
-        // Rifle Proto: subida contínua tática + punch elástico + coice no ombro + tremor suave
+        // Rifle Proto: subida contínua tática na mira. No ADS, o tremor e o coice são isolados estritamente dentro da ótica
         this.player.rig.addRecoilImpulse({
           climbPitch: pitchAdd,
           climbYaw: yawAdd,
-          punchPitch: this.ads ? pitchAdd * 0.18 : pitchAdd * 0.40,
-          punchYaw: (Math.random() - 0.5) * pitchAdd * 0.10,
-          punchRoll: (Math.random() - 0.5) * 0.004,
-          posKickZ: this.ads ? 0.0025 : 0.008,
-          posKickY: this.ads ? 0.001 : 0.003,
-          shake: (this.ads ? 0.10 : 0.22) * streakMul
+          punchPitch: this.ads ? 0 : pitchAdd * 0.40,
+          punchYaw: this.ads ? 0 : (Math.random() - 0.5) * pitchAdd * 0.10,
+          punchRoll: this.ads ? 0 : (Math.random() - 0.5) * 0.004,
+          posKickZ: this.ads ? 0 : 0.008,
+          posKickY: this.ads ? 0 : 0.003,
+          shake: this.ads ? 0 : 0.22 * streakMul
         });
       } else {
         // Armas clássicas: parte permanente (climb) e parte elástica (punch que retorna com mola)

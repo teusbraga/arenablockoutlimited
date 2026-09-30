@@ -4,12 +4,13 @@ import { CONFIG } from './Config.js';
 import { emit, on } from './EventBus.js';
 
 export class GameManager {
-  constructor({ scene, world, player, weapons, botSpawns = [], bounds = [-24, 24, -24, 24] }) {
+  constructor({ scene, world, player, weapons, botSpawns = [], playerSpawn = null, bounds = [-24, 24, -24, 24] }) {
     this.scene = scene;
     this.world = world;
     this.player = player;
     this.weapons = weapons;
     this.botSpawns = botSpawns;
+    this.playerSpawn = playerSpawn;
     this.bounds = bounds;
 
     this.bots = [];
@@ -249,7 +250,11 @@ export class GameManager {
     // Respawna Player
     this.player.hp = this.player.maxHp;
     this.player.alive = true;
-    this.player.pos.set(0, 0.1, 12);
+    if (this.playerSpawn) {
+      this.player.pos.set(this.playerSpawn[0], this.playerSpawn[1], this.playerSpawn[2]);
+    } else {
+      this.player.pos.set(0, 0.1, 12);
+    }
     this.player.vel.set(0, 0, 0);
     emit('player:hp', { hp: this.player.hp, max: this.player.maxHp });
 

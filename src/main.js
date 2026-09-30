@@ -102,8 +102,9 @@ const effects = new Effects(scene);
     const world = map.world;
     const spawn = map.playerSpawns[0];
 
-    const player = new Player(world, map.bounds);
+    const player = new Player(world, map.bounds, spawn);
     player.pos.set(spawn[0], spawn[1], spawn[2]);
+    player.updateCamera(camera, 0.016);
 
     // 3. Inicializa Viewmodel e Registra Modelos
     const viewmodel = new Viewmodel(camera);
@@ -136,6 +137,7 @@ const effects = new Effects(scene);
       player,
       weapons,
       botSpawns: map.botSpawns,
+      playerSpawn: spawn,
       bounds: map.bounds,
     });
     gameManager.setDoors(map.doors);
@@ -245,7 +247,20 @@ const effects = new Effects(scene);
        ========================================================= */
     startEngine({
       update(dt) {
-        if (!gameManager.hasStarted || !input.locked) return;
+        if (!gameManager.hasStarted) {
+          // Posiciona e mantém a câmera a partir do spawn point do jogador com o mapa ao fundo no menu
+          player.updateCamera(camera, dt);
+          viewmodel.updatePose(dt, weapons.current, {
+            isADS: false,
+            isSprinting: false,
+            adsAmount: 0,
+            reloadProgress: 0,
+            ammo: weapons.ammo,
+          });
+          return;
+        }
+
+        if (!input.locked) return;
 
         player.update(dt, input);
         weapons.update(dt);
@@ -256,8 +271,10 @@ const effects = new Effects(scene);
         player.updateCamera(camera, dt);
 
         // Tremor de câmera gerenciado pela camada cinética (CameraRig)
+        // Se estiver em ADS com o Rifle Prototype, o tremor não sacode a câmera principal (apenas dentro do scope)
+        const isProtoAds = (weapons.current === 'rifle_proto' && weapons.ads);
         const shake = viewmodel.getShake();
-        if (shake > 0.002 && player.rig) {
+        if (shake > 0.002 && player.rig && !isProtoAds) {
           player.rig.addShake(shake * 0.14);
         }
 

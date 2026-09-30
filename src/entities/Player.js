@@ -9,10 +9,11 @@ const _right = new THREE.Vector3();
 const _wish = new THREE.Vector3();
 
 export class Player extends Character {
-  constructor(world, bounds) {
+  constructor(world, bounds, spawnPos = [0, 0.1, 10]) {
     super(world);
     this.bounds = bounds;
-    this.pos.set(0, 0.1, 10);
+    this.spawnPos = spawnPos;
+    this.pos.set(spawnPos[0], spawnPos[1], spawnPos[2]);
     this.size.set(0.6, CONFIG.PLAYER.height, 0.6);
 
     // Instancia o CameraRig (Layer 1 da câmera)
@@ -189,7 +190,11 @@ export class Player extends Character {
 
   respawn() {
     super.respawn();
-    this.pos.set(0, 0.1, 12);
+    if (this.spawnPos) {
+      this.pos.set(this.spawnPos[0], this.spawnPos[1], this.spawnPos[2]);
+    } else {
+      this.pos.set(0, 0.1, 12);
+    }
     this.rig.reset();
     emit('player:hp', { hp: this.hp, max: this.maxHp });
     emit('player:respawn');
