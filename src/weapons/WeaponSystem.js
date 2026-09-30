@@ -254,7 +254,7 @@ export class WeaponSystem {
         // Rifle Proto: no ADS, a câmera exterior é totalmente firme; o tremor fica restrito à ótica
         if (this.ads) {
           this.player.rig.addRecoilImpulse({
-            climbPitch: pitchAdd * 0.15,
+            climbPitch: 0,
             climbYaw: 0,
             punchPitch: 0,
             punchYaw: 0,
