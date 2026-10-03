@@ -47,7 +47,24 @@ export function makeGlowTexture() {
   return t;
 }
 
+export function makeSmokeTexture() {
+  const s = 64;
+  const c = document.createElement('canvas');
+  c.width = c.height = s;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+  g.addColorStop(0.0, 'rgba(225,228,234,0.60)');
+  g.addColorStop(0.5, 'rgba(180,184,194,0.22)');
+  g.addColorStop(1.0, 'rgba(150,154,164,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, s, s);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
 export const GLOW_TEX = makeGlowTexture();
+export const SMOKE_TEX = makeSmokeTexture();
 
 /* ============================================================
    2. MATERIAIS TÁTICOS PBR COMPARTILHADOS (ZERO CLONE)
