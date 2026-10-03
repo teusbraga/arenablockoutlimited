@@ -108,26 +108,22 @@ export class ScopeSystem {
           col.g = texture2D(tMap, uv).g;
           col.b = texture2D(tMap, uv - ca).b;
           
+          // Ganho de 20% de luminosidade / clareza na imagem da lente
+          col *= 1.20;
+
           // Anel Interno (A parede do tubo que varia dinamicamente com o zoom)
-          // Se o raio na lente dianteira passar de uInnerRingRadius, comeÃ§a a parede interna do cilindro
+          // Se o raio na lente dianteira passar de uInnerRingRadius, começa a parede interna do cilindro
           float isWall = smoothstep(uInnerRingRadius, uInnerRingRadius + 0.035, rFront);
           
           // Iluminação da parede interna baseada na direção (fake 3D shading do tubo)
           float wallShade = 0.45 + 0.55 * dot(normalize(pFront + vec2(0.001)), vec2(0.0, 1.0));
           vec3 wallColor = vec3(0.012, 0.014, 0.018) * wallShade;
           
-          // Mistura a imagem da lente com a parede interna do tubo
+          // Mistura a imagem da lente com a parede interna
           col = mix(col, wallColor, isWall);
-
-          // Aumenta a luminosidade da imagem em aproximadamente 10%
-          col *= 1.10;
-
-          // Borda externa sólida e opaca (aro preto sólido que fecha a borda sem transparência fantasma)
-          float outerRim = smoothstep(0.96, 0.995, r);
-          col = mix(col, vec3(0.02, 0.02, 0.025), outerRim);
           
-          // Alpha firme no perímetro (corte nítido no contorno final sem desbotamento translúcido)
-          float alpha = uOpacity * (1.0 - smoothstep(0.992, 1.0, r));
+          // Borda externa sólida e opaca (corte nítido e limpo com anti-aliasing de 1px, sem transparência esfumaçada)
+          float alpha = uOpacity * (1.0 - smoothstep(0.995, 1.0, r));
           
           gl_FragColor = vec4(col, alpha);
         }`,
