@@ -127,7 +127,8 @@ export class ScopeSystem {
     });
 
     // Disco de raio 1: a escala do mesh (em pixels) define o raio real da lente.
-    this.lensMesh = new THREE.Mesh(new THREE.CircleGeometry(1, 96), this.lensMat);
+    // 36 segmentos mantêm a curvatura da lente perfeitamente suave enquanto poupa vértices da GPU
+    this.lensMesh = new THREE.Mesh(new THREE.CircleGeometry(1, 36), this.lensMat);
     this.overlayScene.add(this.lensMesh);
 
     // Elementos da interface DOM
