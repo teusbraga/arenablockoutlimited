@@ -112,15 +112,22 @@ export class ScopeSystem {
           // Se o raio na lente dianteira passar de uInnerRingRadius, comeÃ§a a parede interna do cilindro
           float isWall = smoothstep(uInnerRingRadius, uInnerRingRadius + 0.035, rFront);
           
-          // IluminaÃ§Ã£o da parede interna baseada na direÃ§Ã£o (fake 3D shading do tubo)
+          // Iluminação da parede interna baseada na direção (fake 3D shading do tubo)
           float wallShade = 0.45 + 0.55 * dot(normalize(pFront + vec2(0.001)), vec2(0.0, 1.0));
           vec3 wallColor = vec3(0.012, 0.014, 0.018) * wallShade;
           
-          // Mistura a imagem da lente com a parede interna
+          // Mistura a imagem da lente com a parede interna do tubo
           col = mix(col, wallColor, isWall);
+
+          // Aumenta a luminosidade da imagem em aproximadamente 10%
+          col *= 1.10;
+
+          // Borda externa sólida e opaca (aro preto sólido que fecha a borda sem transparência fantasma)
+          float outerRim = smoothstep(0.96, 0.995, r);
+          col = mix(col, vec3(0.02, 0.02, 0.025), outerRim);
           
-          // Anel Externo (O limite da ocular traseira, define a transparÃªncia)
-          float alpha = uOpacity * (1.0 - smoothstep(0.98, 1.0, r));
+          // Alpha firme no perímetro (corte nítido no contorno final sem desbotamento translúcido)
+          float alpha = uOpacity * (1.0 - smoothstep(0.992, 1.0, r));
           
           gl_FragColor = vec4(col, alpha);
         }`,
