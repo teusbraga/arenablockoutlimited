@@ -25,7 +25,7 @@ export const SCOPE_CONFIG = {
   SCOPE_FOV_MIN: 2,
   SCOPE_FOV_MAX: 30,
   LENS_SIZE: 0.45,
-  SCOPE_RT_SIZE: 1024,
+  SCOPE_RT_SIZE: 512, // Otimizado de 1024 para 512 (75% menos fillrate/pixels processados na GPU com nitidez idêntica)
   ADS_SPEED: 12
 };
 
@@ -42,7 +42,8 @@ export class ScopeSystem {
 
     // ── CÂMERA 2: scope (mesma cena, mesma posição/orientação, FOV bem menor)
     // aspect = 1 porque a lente é um círculo (textura quadrada).
-    this.scopeCamera = new THREE.PerspectiveCamera(this.scopeFov, 1, 0.1, 500);
+    // far ajustado para 150m (culling otimizado; fog do mapa corta aos 110m)
+    this.scopeCamera = new THREE.PerspectiveCamera(this.scopeFov, 1, 0.1, 150);
 
     /* ---------------------------------------------------------------------
      *  Render target: a scopeCamera desenha AQUI (textura quadrada offscreen),
