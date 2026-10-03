@@ -5,6 +5,7 @@ import { SMOKE_TEX } from '../weapons/models/RiflePrototype.js';
 const MAX_TRACERS = 30;
 const MAX_SPARKS = 80;
 const MAX_SMOKE = 40;
+const MAX_CASINGS = 24;
 
 export class Effects {
   constructor(scene) {
@@ -15,6 +16,13 @@ export class Effects {
     
     // Geometrias reutilizáveis
     this.sparkGeo = new THREE.SphereGeometry(0.02, 4, 4);
+    // Cartucho 3D cilíndrico de latão (escala 1:1 estojo de munição)
+    this.casingGeo = new THREE.CylinderGeometry(0.005, 0.005, 0.026, 8);
+    this.casingMat = new THREE.MeshStandardMaterial({
+      color: 0xdfb850,
+      metalness: 0.90,
+      roughness: 0.28
+    });
 
     // Pools
     this.tracers = [];
@@ -25,6 +33,9 @@ export class Effects {
 
     this.smokes = [];
     this.smokeIdx = 0;
+
+    this.casings = [];
+    this.casingIdx = 0;
 
     this._initPools();
     this._bind();
@@ -98,6 +109,21 @@ export class Effects {
       this.scene.add(m);
       this.protoSmokePool.push({ mesh: m, life: 0, max: 1, vel: new THREE.Vector3(), spin: 0 });
     }
+
+    // 6. Cartuchos vazios ejetados (Brass Casings com física e rotação)
+    for (let i = 0; i < MAX_CASINGS; i++) {
+      const mesh = new THREE.Mesh(this.casingGeo, this.casingMat);
+      mesh.visible = false;
+      this.scene.add(mesh);
+      this.casings.push({
+        mesh,
+        vel: new THREE.Vector3(),
+        rotVel: new THREE.Vector3(),
+        life: 0,
+        maxLife: 1.2,
+        active: false
+      });
+    }
   }
 
   _bind() {
@@ -109,6 +135,11 @@ export class Effects {
       this._spawnImpact(p, 0xc4504a, 14);
     });
     on('weapon:fired', e => {
+      // Ejeção do cartucho vazio em todas as armas
+      if (e.ejectWorld && e.right && e.up) {
+        this._spawnCasing(e.ejectWorld, e.right, e.up, e.forward);
+      }
+
       if (!e.muzzleWorld) return;
       if (e.weapon?.id === 'rifle_proto') {
         this._spawnProtoSparks(e.muzzleWorld, e.forward, 9);
@@ -166,6 +197,42 @@ export class Effects {
       );
       s.mesh.scale.setScalar(0.55 + Math.random() * 0.4);
     }
+  }
+
+  _spawnCasing(pos, right, up, forward) {
+    if (!pos || !right) return;
+    const c = this.casings[this.casingIdx];
+    this.casingIdx = (this.casingIdx + 1) % MAX_CASINGS;
+
+    c.mesh.position.copy(pos);
+    c.mesh.visible = true;
+    c.active = true;
+    c.life = c.maxLife;
+
+    // Orientação inicial aleatória
+    c.mesh.rotation.set(
+      Math.random() * Math.PI * 2,
+      Math.random() * Math.PI * 2,
+      Math.random() * Math.PI * 2
+    );
+
+    // Vetor de velocidade física:
+    // Ejetado com força para a direita (+right), ligeiramente para cima (+up) e para trás (-forward)
+    const rightForce = 1.6 + Math.random() * 0.9;
+    const upForce    = 1.1 + Math.random() * 0.7;
+    const backForce  = -0.4 - Math.random() * 0.5;
+
+    c.vel.set(0, 0, 0)
+      .addScaledVector(right, rightForce)
+      .addScaledVector(up, upForce)
+      .addScaledVector(forward, backForce);
+
+    // Velocidade angular de rotação rápida no ar (tumble)
+    c.rotVel.set(
+      (Math.random() - 0.5) * 28,
+      (Math.random() - 0.5) * 24,
+      (Math.random() - 0.5) * 28
+    );
   }
 
   _spawnTracer(from, to, color = null) {
@@ -373,6 +440,43 @@ export class Effects {
         s.mesh.scale.setScalar(0.55 + (1 - k) * 2.1);
         s.mesh.rotation.z += s.spin * dt;
         if (camera) s.mesh.quaternion.copy(camera.quaternion);
+      }
+    }
+
+    // 6. Cartuchos vazios ejetados (gravidade, quique no chão e rotação tumbling)
+    for (let i = 0; i < MAX_CASINGS; i++) {
+      const c = this.casings[i];
+      if (!c.active) continue;
+
+      c.life -= dt;
+      if (c.life <= 0) {
+        c.active = false;
+        c.mesh.visible = false;
+        continue;
+      }
+
+      // Gravidade acelerada
+      c.vel.y -= 13.0 * dt;
+      // Arrasto do ar leve
+      c.vel.x *= Math.max(0, 1 - 0.5 * dt);
+      c.vel.z *= Math.max(0, 1 - 0.5 * dt);
+
+      // Movimento linear
+      c.mesh.position.addScaledVector(c.vel, dt);
+
+      // Rotação dinâmica no ar
+      c.mesh.rotation.x += c.rotVel.x * dt;
+      c.mesh.rotation.y += c.rotVel.y * dt;
+      c.mesh.rotation.z += c.rotVel.z * dt;
+
+      // Colisão / quique suave no solo (y = 0.01)
+      if (c.mesh.position.y < 0.012) {
+        c.mesh.position.y = 0.012;
+        // Amortecimento elástico de quique de latão
+        c.vel.y = Math.abs(c.vel.y) * 0.35;
+        c.vel.x *= 0.65;
+        c.vel.z *= 0.65;
+        c.rotVel.multiplyScalar(0.45);
       }
     }
   }

@@ -289,25 +289,32 @@ export class WeaponSystem {
     this.camera.getWorldPosition(_camPos);
     this.camera.getWorldQuaternion(_quat);
 
+    _dir.set(0, 0, -1).applyQuaternion(_quat).normalize();
+    _right.set(1, 0, 0).applyQuaternion(_quat).normalize();
+    _up.set(0, 1, 0).applyQuaternion(_quat).normalize();
+
     // Calcula muzzle em coords de mundo a partir do mount do viewmodel
     const mz = def.muzzleLocal || [0, 0.02, -0.5];
     const muzzleLocal = new THREE.Vector3(mz[0], mz[1], mz[2]);
     const muzzleWorld = this.viewmodel.mount.localToWorld(muzzleLocal.clone());
-    const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(_quat).normalize();
+
+    // Ponto de ejeção do estojo vazio em coordenadas de mundo (baseado na janela da arma)
+    const ej = def.ejectLocal || [0.02, 0.02, -0.06];
+    const ejectLocal = new THREE.Vector3(ej[0], ej[1], ej[2]);
+    const ejectWorld = this.viewmodel.mount.localToWorld(ejectLocal.clone());
 
     emit('weapon:fired', {
       weapon: def,
       weaponId: def.id,
       pos: this.player.pos.clone(),
       muzzleWorld,
-      forward,
+      ejectWorld,
+      forward: _dir.clone(),
+      right: _right.clone(),
+      up: _up.clone(),
       ads: this.ads,
       streak: streakMul,
     });
-
-    _dir.set(0, 0, -1).applyQuaternion(_quat).normalize();
-    _right.set(1, 0, 0).applyQuaternion(_quat);
-    _up.set(0, 1, 0).applyQuaternion(_quat);
 
     const spread = this._currentSpread();
     const a = Math.random() * Math.PI * 2;
