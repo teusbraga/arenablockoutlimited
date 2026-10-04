@@ -399,10 +399,10 @@ export function buildSW500() {
   rearSightMount.position.set(0, 0.0435, 0.015);
 
   const rearBladeL = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.006, 0.004), M_SW_STEEL_DARK);
-  rearBladeL.position.set(-0.008, 0.048, 0.030);
+  rearBladeL.position.set(-0.008, 0.050, 0.030);
 
   const rearBladeR = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.006, 0.004), M_SW_STEEL_DARK);
-  rearBladeR.position.set(0.008, 0.048, 0.030);
+  rearBladeR.position.set(0.008, 0.050, 0.030);
 
   // Parafuso de elevação micrométrico
   const elevScrew = new THREE.Mesh(new THREE.CylinderGeometry(0.002, 0.002, 0.002, 8), M_SW_STEEL_DARK);
