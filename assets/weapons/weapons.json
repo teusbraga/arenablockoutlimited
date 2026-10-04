@@ -253,7 +253,7 @@
       "auto": false,
       "weight": 3.4,
       "damageBody": 22,
-      "damageHead": 40,
+      "damageHead": 51,
       "pellets": 7,
       "pelletSpread": 0.10,
       "fireInterval": 0.65,
