@@ -64,8 +64,114 @@ export const M_SW_RED_RAMP = new THREE.MeshBasicMaterial({
   color: 0xff3824
 });
 
+/* =========================================================
+   FÍSICA DE RECUO DRAMÁTICO DE 1.10s DO S&W 500 MAGNUM
+   ========================================================= */
+export class SW500Physics {
+  constructor(revolver, cylinder, hammer, flashObj) {
+    this.revolver = revolver;
+    this.cylinder = cylinder;
+    this.hammer = hammer;
+    this.flashObj = flashObj;
+
+    this.DURATION = 1.10;   // Tempo exato de 1.10s sincronizado com fireInterval
+    this.RISE_TIME = 0.075; // 75ms para subida explosiva no disparo
+    this.timer = 0;
+    this.active = false;
+    this.shake = 0;
+
+    this.currentCylRot = 0;
+    this.targetCylRot = 0;
+    this.flashTimer = 0;
+  }
+
+  onFire() {
+    this.timer = 0.0001;
+    this.active = true;
+    this.shake = 0.95;
+
+    // Indexa o tambor de 6 tiros em +60 graus (PI / 3)
+    this.targetCylRot += Math.PI / 3;
+
+    if (this.flashObj) {
+      this.flashTimer = 0.065;
+      const { muzzleFlash, muzzleLight } = this.flashObj;
+      if (muzzleFlash) {
+        muzzleFlash.visible = true;
+        const sc = 1.1 + Math.random() * 0.5;
+        muzzleFlash.scale.setScalar(sc);
+        muzzleFlash.rotation.z = Math.random() * Math.PI * 2;
+      }
+      if (muzzleLight) muzzleLight.intensity = 18;
+    }
+  }
+
+  onReload() {
+    // Giro completo do tambor no reload
+    this.targetCylRot += Math.PI * 2;
+  }
+
+  update(dt, camera) {
+    // 1. Curva de Recuo Dramático Assimétrica de exatamente 1.10s
+    if (this.active) {
+      this.timer += dt;
+      if (this.timer >= this.DURATION) {
+        this.timer = 0;
+        this.active = false;
+        this.revolver.position.set(0, 0, 0);
+        this.revolver.rotation.set(0, 0, 0);
+        if (this.hammer) this.hammer.rotation.x = 0;
+      } else {
+        let k = 0;
+        if (this.timer < this.RISE_TIME) {
+          // Subida explosiva ultra-rápida (0.00s -> 0.075s)
+          const u = this.timer / this.RISE_TIME;
+          k = 1 - Math.pow(1 - u, 3);
+        } else {
+          // Retorno lento, pesado e dramático até a posição inicial (0.075s -> 1.10s)
+          const d = (this.timer - this.RISE_TIME) / (this.DURATION - this.RISE_TIME);
+          k = Math.pow(1 - d, 1.65);
+        }
+
+        // Muzzle flip monumental (~45 graus para o alto), coice para trás e torque lateral
+        this.revolver.rotation.x = k * 0.78;
+        this.revolver.rotation.z = k * 0.12;
+        this.revolver.position.y = k * 0.045;
+        this.revolver.position.z = k * 0.068;
+
+        // Ação do cão (hammer bate à frente no tiro e rearma durante a descida)
+        if (this.hammer) {
+          this.hammer.rotation.x = this.timer < 0.18 ? 0.45 : k * 0.20;
+        }
+      }
+    }
+
+    // 2. Rotação mecânica do tambor de 6 câmaras
+    this.currentCylRot += (this.targetCylRot - this.currentCylRot) * (1 - Math.exp(-dt * 14));
+    if (this.cylinder) {
+      this.cylinder.rotation.z = this.currentCylRot;
+    }
+
+    // 3. Decaimento de tremor de câmera
+    this.shake += (0 - this.shake) * (1 - Math.exp(-dt * 8));
+
+    // 4. Muzzle Flash Colossal .500 Magnum
+    if (this.flashTimer > 0 && this.flashObj) {
+      this.flashTimer -= dt;
+      const f = Math.max(0, this.flashTimer / 0.065);
+      if (this.flashObj.muzzleLight) this.flashObj.muzzleLight.intensity = 18 * f;
+      if (this.flashTimer <= 0) {
+        if (this.flashObj.muzzleFlash) this.flashObj.muzzleFlash.visible = false;
+        if (this.flashObj.muzzleLight) this.flashObj.muzzleLight.intensity = 0;
+      }
+    }
+  }
+}
+
 export function buildSW500() {
+  const root = new THREE.Group();
   const g = new THREE.Group();
+  root.add(g);
 
   /* =========================================================
      1. CHASSI PRINCIPAL X-FRAME (FRAME & RECOIL SHIELD)
@@ -108,14 +214,18 @@ export function buildSW500() {
   trigger.rotation.x = -0.30;
   trigger.position.set(0, -0.028, 0.002);
 
-  // Cão externo com espora serrilhada (Hammer)
+  // Cão externo articulado com espora serrilhada (Hammer Group)
+  const hammerGroup = new THREE.Group();
+  hammerGroup.position.set(0, 0.024, 0.036);
+
   const hammerBase = new THREE.Mesh(new THREE.BoxGeometry(0.010, 0.024, 0.016), M_SW_STEEL_DARK);
   hammerBase.rotation.x = -0.22;
-  hammerBase.position.set(0, 0.034, 0.038);
+  hammerBase.position.set(0, 0.010, 0.002);
 
   const hammerSpur = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.006, 0.014), M_SW_STEEL_DARK);
   hammerSpur.rotation.x = -0.45;
-  hammerSpur.position.set(0, 0.043, 0.048);
+  hammerSpur.position.set(0, 0.019, 0.012);
+  hammerGroup.add(hammerBase, hammerSpur);
 
   // Botão serrilhado de liberação do tambor (Cylinder Release Latch no lado esquerdo)
   const cylinderLatch = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.012, 0.018), M_SW_STEEL_DARK);
@@ -314,24 +424,47 @@ export function buildSW500() {
   redRamp.position.set(0, 0.046, -0.316);
 
   /* =========================================================
-     7. MONTAGEM FINAL DO GRUPO
+     7. CLARÃO DE BOCA & MONTAGEM FINAL DO GRUPO
      ========================================================= */
+  const flashMat = new THREE.MeshBasicMaterial({
+    color: 0xffcc55,
+    transparent: true,
+    opacity: 0.90,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+  const muzzleFlash = new THREE.Mesh(new THREE.SphereGeometry(0.032, 8, 8), flashMat);
+  muzzleFlash.position.set(0, 0.016, -0.375);
+  muzzleFlash.visible = false;
+
+  const muzzleLight = new THREE.PointLight(0xffaa44, 0, 9, 1.5);
+  muzzleLight.position.set(0, 0.016, -0.375);
+
   g.add(
     frameRear, recoilShield, topStrap, bottomStrap, frameFront,
     tgBottom, tgFront, tgRear, trigger,
-    hammerBase, hammerSpur, cylinderLatch, screw1, screw2,
+    hammerGroup, cylinderLatch, screw1, screw2,
     cylinderGroup, barrelGroup, compGroup, gripGroup,
     rearSightMount, rearBladeL, rearBladeR, elevScrew,
-    frontSightBase, frontBlade, redRamp
+    frontSightBase, frontBlade, redRamp,
+    muzzleFlash, muzzleLight
   );
 
   // Ativa sombras para renderização tática consistente
-  g.traverse(o => {
-    if (o.isMesh) {
+  root.traverse(o => {
+    if (o.isMesh && o !== muzzleFlash) {
       o.castShadow = true;
       o.receiveShadow = true;
     }
   });
 
-  return g;
+  const physics = new SW500Physics(g, cylinderGroup, hammerGroup, {
+    muzzleFlash,
+    muzzleLight
+  });
+
+  return {
+    group: root,
+    physics
+  };
 }
