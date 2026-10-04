@@ -445,7 +445,6 @@ export function buildSW500() {
     tgBottom, tgFront, tgRear, trigger,
     hammerGroup, cylinderLatch, screw1, screw2,
     cylinderGroup, barrelGroup, compGroup, gripGroup,
-    rearSightMount, rearBladeL, rearBladeR, elevScrew,
     frontSightBase, frontBlade, redRamp,
     muzzleFlash, muzzleLight
   );
