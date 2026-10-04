@@ -84,6 +84,8 @@ export class ConfigLoader {
           CONFIG.PLAYER.sprintMul = gp.player.sprintMultiplier ?? CONFIG.PLAYER.sprintMul;
           CONFIG.PLAYER.crouchMul = gp.player.crouchMultiplier ?? CONFIG.PLAYER.crouchMul;
           CONFIG.PLAYER.adsMul = gp.player.adsMultiplier ?? CONFIG.PLAYER.adsMul;
+          CONFIG.PLAYER.accel = gp.player.accel ?? CONFIG.PLAYER.accel;
+          CONFIG.PLAYER.airAccel = gp.player.airAccel ?? CONFIG.PLAYER.airAccel;
           CONFIG.PLAYER.jumpSpeed = gp.player.jumpSpeed ?? CONFIG.PLAYER.jumpSpeed;
           CONFIG.PLAYER.gravity = gp.player.gravity ?? CONFIG.PLAYER.gravity;
           CONFIG.PLAYER.stepHeight = gp.player.stepHeight ?? CONFIG.PLAYER.stepHeight;
