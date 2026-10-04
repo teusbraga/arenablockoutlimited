@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>Blocky Sim — Prototype</title>
-<link rel="icon" href="data:,">
+<title>ARENA BLOCKOUT: LIMITED</title>
+<link rel="icon" type="image/svg+xml" href="./assets/ui/favicon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Oswald:wght@500;600&display=swap" rel="stylesheet">
 <style>
@@ -234,9 +234,21 @@
   #overlay .menu-content {
     display:flex; flex-direction:column; align-items:center; max-width:540px; width:90%;
   }
-  #overlay h1{font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:.3em;
-    color:rgba(215,222,230,0.5);text-transform:uppercase;margin-bottom:4px;}
-  #overlay h2{font-family:'Oswald',sans-serif;font-size:34px;letter-spacing:.08em;font-weight:600;color:rgba(250,252,255,0.95);margin-bottom:14px;}
+  .menu-logo-wrap {
+    width: 100%;
+    max-width: 440px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: center;
+    filter: drop-shadow(0 6px 18px rgba(0,0,0,0.9));
+  }
+  .menu-logo {
+    width: 100%;
+    height: auto;
+    max-height: 140px;
+    display: block;
+    object-fit: contain;
+  }
   #overlay .menu-instructions{color:rgba(165,174,185,0.55);font-size:11.5px;max-width:520px;line-height:1.9;margin-bottom:12px;}
   #overlay .cta{
     margin-top:20px;border:1px solid rgba(255,255,255,0.22);background:rgba(255,255,255,0.03);
@@ -478,8 +490,9 @@
 <!-- Menu Inicial Minimalista -->
 <div id="overlay">
   <div class="menu-content">
-    <h1>Blocky Sim</h1>
-    <h2 id="overlay-title">Protótipo Tático</h2>
+    <div class="menu-logo-wrap">
+      <img src="./assets/ui/logo.svg" alt="ARENA BLOCKOUT: LIMITED" class="menu-logo" />
+    </div>
     <div class="menu-instructions">
       WASD mover · Shift correr · C agachar · Space pular<br>
       LMB atirar · RMB mirar · R reload · B modo tiro · Q arma · E porta<br>
