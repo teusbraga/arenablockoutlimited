@@ -78,17 +78,18 @@ export const M_W12_BEAD = new THREE.MeshStandardMaterial({
 export class M12Physics {
   constructor(pumpHandle, bolt, basePumpZ, baseBoltZ) {
     this.pumpHandle = pumpHandle;
+    this.gun = pumpHandle.parent;
     this.bolt = bolt;
     this.basePumpZ = basePumpZ;
     this.baseBoltZ = baseBoltZ;
 
     this.pumpTimer = 0;
-    this.pumpDuration = 0.36; // Ciclo de pump ágil para coincidir com fireInterval de 0.4s
     this.isPumping = false;
 
     this.playedBack = false;
     this.playedForward = false;
     this.shake = 0;
+    this.recoil = 0;
   }
 
   onFire(ammo) {
@@ -96,61 +97,65 @@ export class M12Physics {
     this.pumpTimer = 0;
     this.playedBack = false;
     this.playedForward = false;
-    this.shake = 0.25;
+    this.shake = 0.35; // Mais trepidação
+    this.recoil = 1.0; // Coice violento
   }
 
-  onReload() {
-    // Durante reload, dá um leve curso no pump
-  }
+  onReload() {}
 
   update(dt, camera, ammo) {
-    if (this.shake > 0) {
-      this.shake = Math.max(0, this.shake - dt * 2.5);
+    if (this.shake > 0) this.shake = Math.max(0, this.shake - dt * 2.5);
+    if (this.recoil > 0) this.recoil = Math.max(0, this.recoil - dt * 6.0); // Retorna rápido
+
+    // Aplica o recoil visual (muzzle flip) na arma inteira
+    if (this.gun) {
+      this.gun.position.z = this.recoil * 0.025;
+      this.gun.rotation.x = this.recoil * 0.12;
     }
 
     if (!this.isPumping) return;
 
     this.pumpTimer += dt;
-    const progress = Math.min(this.pumpTimer / this.pumpDuration, 1.0);
-
     let slideOffset = 0;
-    const maxSlide = 0.055; // Deslocamento de 5.5cm do pump
+    const maxSlide = 0.070; // Curso do pump mais longo e agressivo
 
-    // Fase 1: Telha puxada para trás (0.0 até 0.48)
-    if (progress < 0.48) {
-      const t = progress / 0.48;
-      // Curva suave de aceleração para trás
+    const delay = 0.14; // Tempo parado no ombro sentindo o recuo
+    const backTime = 0.18; // Puxada rápida para ejetar
+    const fwdTime = 0.16; // Empurrada forte para carregar nova
+
+    if (this.pumpTimer < delay) {
+      // Fase 0: Recuo apenas
+      slideOffset = 0;
+    } else if (this.pumpTimer < delay + backTime) {
+      // Fase 1: Telha puxada para trás (Ejeta)
+      const t = (this.pumpTimer - delay) / backTime;
       slideOffset = Math.sin(t * Math.PI * 0.5) * maxSlide;
 
-      if (progress >= 0.24 && !this.playedBack) {
+      if (t > 0.4 && !this.playedBack) {
         this.playedBack = true;
         emit('weapon:pump', { stage: 'back' });
       }
-    } 
-    // Fase 2: Telha empurrada para frente de volta à posição de tiro (0.48 até 1.0)
-    else {
-      const t = (progress - 0.48) / 0.52;
+    } else if (this.pumpTimer < delay + backTime + fwdTime) {
+      // Fase 2: Telha empurrada para frente (Carrega)
+      const t = (this.pumpTimer - delay - backTime) / fwdTime;
       slideOffset = (1.0 - Math.sin(t * Math.PI * 0.5)) * maxSlide;
 
-      if (progress >= 0.72 && !this.playedForward) {
+      if (t > 0.6 && !this.playedForward) {
         this.playedForward = true;
         emit('weapon:pump', { stage: 'forward' });
       }
+    } else {
+      // Fim da ação
+      this.isPumping = false;
+      slideOffset = 0;
     }
 
-    // Aplica deslocamento ao longo do eixo Z local (para trás é +Z)
     if (this.pumpHandle) {
       this.pumpHandle.position.z = this.basePumpZ + slideOffset;
     }
 
     if (this.bolt) {
       this.bolt.position.z = this.baseBoltZ + slideOffset * 0.9;
-    }
-
-    if (progress >= 1.0) {
-      this.isPumping = false;
-      if (this.pumpHandle) this.pumpHandle.position.z = this.basePumpZ;
-      if (this.bolt) this.bolt.position.z = this.baseBoltZ;
     }
   }
 }
@@ -286,28 +291,28 @@ export function buildWinchester1912() {
   pumpGroup.position.set(0, 0.005, basePumpZ);
 
   // Luva interna metálica de deslizamento (Forend Tube)
-  const pumpTube = new THREE.Mesh(new THREE.CylinderGeometry(0.0135, 0.0135, 0.135, 14), M_W12_STEEL_DARK);
+  const pumpTube = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.155, 14), M_W12_STEEL_DARK);
   pumpTube.rotation.x = Math.PI / 2;
   pumpGroup.add(pumpTube);
 
-  // Corpo principal da telha de nogueira estriada
-  const pumpWood = new THREE.Mesh(new THREE.CylinderGeometry(0.019, 0.019, 0.125, 20), M_W12_WOOD);
+  // Corpo principal da telha de nogueira estriada (ESCALA AUMENTADA)
+  const pumpWood = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.145, 20), M_W12_WOOD);
   pumpWood.rotation.x = Math.PI / 2;
   pumpGroup.add(pumpWood);
 
-  // 14 anéis concêntricos usinados na madeira (Iconic Corncob Ribs)
-  const numRibs = 14;
-  const ribSpacing = 0.115 / (numRibs - 1);
+  // Anéis concêntricos usinados na madeira (mais grossos)
+  const numRibs = 12; // Menos anéis, mais espaçados
+  const ribSpacing = 0.125 / (numRibs - 1);
   for (let i = 0; i < numRibs; i++) {
-    const rz = -0.0575 + i * ribSpacing;
-    const rib = new THREE.Mesh(new THREE.TorusGeometry(0.0194, 0.0013, 6, 20), M_W12_WOOD_DARK);
+    const rz = -0.0625 + i * ribSpacing;
+    const rib = new THREE.Mesh(new THREE.TorusGeometry(0.0245, 0.002, 6, 20), M_W12_WOOD_DARK);
     rib.position.set(0, 0, rz);
     pumpGroup.add(rib);
   }
 
   // Barra de manobra em aço polido (Action Slide Bar) ligando a telha ao ferrolho
-  const actionBar = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.006, 0.18), M_W12_STEEL_BRT);
-  actionBar.position.set(-0.015, 0.010, 0.09);
+  const actionBar = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.008, 0.18), M_W12_STEEL_BRT);
+  actionBar.position.set(-0.016, 0.010, 0.09);
   pumpGroup.add(actionBar);
 
   /* =========================================================
@@ -317,34 +322,22 @@ export function buildWinchester1912() {
   heatShieldGroup.position.set(0, 0.025, -0.425);
 
   const shieldLength = 0.22;
-  // Capa protetora superior de aço perfurado curvada sobre o cano
-  const shieldMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.0135, 0.0135, shieldLength, 16, 1, true, -Math.PI * 0.75, Math.PI * 1.5), M_W12_RECEIVER);
+  // Capa protetora superior grossa de aço liso (Smooth thick barrel shroud)
+  const shieldMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.0175, 0.0175, shieldLength, 18, 1, true, -Math.PI * 0.70, Math.PI * 1.4), M_W12_STEEL_DARK);
   shieldMesh.rotation.x = Math.PI / 2;
+  shieldMesh.material.side = THREE.DoubleSide; 
   heatShieldGroup.add(shieldMesh);
 
-  // Simulação das 4 fileiras de furos circulares de ventilação do Trench Gun
-  const numHoles = 11;
-  const holeSpacing = (shieldLength - 0.03) / (numHoles - 1);
-  for (let row = -1; row <= 1; row++) {
-    const angle = row * 0.55;
-    for (let h = 0; h < numHoles; h++) {
-      const hz = -shieldLength * 0.5 + 0.015 + h * holeSpacing;
-      const hole = new THREE.Mesh(new THREE.CircleGeometry(0.0028, 8), M_W12_STEEL_DARK);
-      hole.position.set(
-        Math.sin(angle) * 0.0138,
-        Math.cos(angle) * 0.0138,
-        hz
-      );
-      hole.rotation.z = -angle;
-      heatShieldGroup.add(hole);
-    }
-  }
-
   // Braçadeiras metálicas traseira e dianteira de retenção do escudo térmico
-  const rearBand = new THREE.Mesh(new THREE.CylinderGeometry(0.0142, 0.0142, 0.010, 16), M_W12_STEEL_DARK);
+  const rearBand = new THREE.Mesh(new THREE.CylinderGeometry(0.0185, 0.0185, 0.012, 18), M_W12_STEEL_DARK);
   rearBand.rotation.x = Math.PI / 2;
   rearBand.position.set(0, 0, shieldLength * 0.5 - 0.006);
   heatShieldGroup.add(rearBand);
+
+  const frontBand = new THREE.Mesh(new THREE.CylinderGeometry(0.0185, 0.0185, 0.012, 18), M_W12_STEEL_DARK);
+  frontBand.rotation.x = Math.PI / 2;
+  frontBand.position.set(0, 0, -shieldLength * 0.5 + 0.006);
+  heatShieldGroup.add(frontBand);
 
   /* =========================================================
      6. ADAPTADOR FRONTAL DE TRINCHEIRA & MASSA DE MIRA
