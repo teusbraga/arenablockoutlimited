@@ -1,5 +1,6 @@
 import { emit } from './EventBus.js';
 import { TouchInput } from './TouchInput.js';
+import { CONFIG } from './Config.js';
 
 export class Input {
   constructor(canvas) {
@@ -40,6 +41,7 @@ export class Input {
 
     // Fila de intenções (ações discretas - one shot click)
     this._actionQueue = new Set();
+    this._cheatBuffer = '';
 
     this._bind();
 
@@ -53,6 +55,36 @@ export class Input {
 
   _bind() {
     addEventListener('keydown', e => {
+      // Cheat code detection (ex: GETTHEREFAST)
+      if (e.key && e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        this._cheatBuffer = ((this._cheatBuffer || '') + e.key.toLowerCase()).slice(-20);
+        if (this._cheatBuffer.endsWith('gettherefast')) {
+          this._cheatBuffer = '';
+          const isBoosted = CONFIG.PLAYER.walkSpeed > 10.0;
+          if (!isBoosted) {
+            CONFIG.PLAYER.walkSpeed = 52.0;
+            CONFIG.PLAYER.accel = 150.0;
+            CONFIG.PLAYER.airAccel = 25.0;
+            emit('hud:popup', {
+              text: '⚡ CHEAT ACTIVATED: GETTHEREFAST (10x Speed)',
+              color: '#06d6a0',
+              duration: 2200
+            });
+            emit('cheat:activated', { cheat: 'gettherefast', active: true });
+          } else {
+            CONFIG.PLAYER.walkSpeed = 5.2;
+            CONFIG.PLAYER.accel = 40.0;
+            CONFIG.PLAYER.airAccel = 6.0;
+            emit('hud:popup', {
+              text: 'CHEAT DEACTIVATED (Velocidade Normal)',
+              color: '#f77f00',
+              duration: 1800
+            });
+            emit('cheat:activated', { cheat: 'gettherefast', active: false });
+          }
+        }
+      }
+
       // 1. Previne atalhos perigosos do Chrome quando o mouse está capturado no jogo
       // Ctrl+W (fecha aba), Ctrl+A (seleciona tudo), Ctrl+S (salva), Ctrl+D (favoritos), etc.
       if (this.locked) {

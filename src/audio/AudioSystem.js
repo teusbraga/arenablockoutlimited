@@ -297,5 +297,6 @@ export class AudioSystem {
     on('player:damaged',  () => this.play('player_damaged'));
     on('player:died',     () => this.play('player_died'));
     on('player:footstep', () => this.play('footstep'));
+    on('cheat:activated', () => this.play('hit_headshot'));
   }
 }

@@ -161,6 +161,10 @@ export class HUD {
       this.setTimer(t);
     });
 
+    on('hud:popup', ({ text, color, duration }) => {
+      this._showKillPopup(text, color || '#06d6a0', duration || 1600);
+    });
+
     on('round:over', () => {
       const screen = document.getElementById('roundover-screen');
       const stats = document.getElementById('final-stats');
@@ -240,7 +244,7 @@ export class HUD {
     }, 3200);
   }
 
-  _showKillPopup(text, color) {
+  _showKillPopup(text, color, duration = 700) {
     const el = this.el.killPopup;
     el.textContent = text;
     el.style.color = color;
@@ -250,7 +254,7 @@ export class HUD {
     this._popupT = setTimeout(() => {
       el.style.opacity = '0';
       el.style.transform = 'translate(-50%,-50%) scale(0.85)';
-    }, 700);
+    }, duration);
   }
 
   updateCrosshair(isAds, spread = 0.02, isSprinting = false, weaponId = 'ar15') {
