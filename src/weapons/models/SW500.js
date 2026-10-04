@@ -214,17 +214,18 @@ export function buildSW500() {
   trigger.rotation.x = -0.30;
   trigger.position.set(0, -0.028, 0.002);
 
-  // Cão externo articulado com espora serrilhada (Hammer Group)
+  // Cão externo articulado com espora serrilhada (Hammer Group) - Baixado para não bloquear ADS
   const hammerGroup = new THREE.Group();
-  hammerGroup.position.set(0, 0.024, 0.036);
+  hammerGroup.position.set(0, 0.020, 0.032);
+  hammerGroup.rotation.x = 0.25; // Rotacionado para frente em repouso
 
   const hammerBase = new THREE.Mesh(new THREE.BoxGeometry(0.010, 0.024, 0.016), M_SW_STEEL_DARK);
   hammerBase.rotation.x = -0.22;
-  hammerBase.position.set(0, 0.010, 0.002);
+  hammerBase.position.set(0, 0.006, 0.002);
 
-  const hammerSpur = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.006, 0.014), M_SW_STEEL_DARK);
+  const hammerSpur = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.005, 0.014), M_SW_STEEL_DARK);
   hammerSpur.rotation.x = -0.45;
-  hammerSpur.position.set(0, 0.019, 0.012);
+  hammerSpur.position.set(0, 0.014, 0.010);
   hammerGroup.add(hammerBase, hammerSpur);
 
   // Botão serrilhado de liberação do tambor (Cylinder Release Latch no lado esquerdo)
@@ -393,21 +394,19 @@ export function buildSW500() {
   /* =========================================================
      6. CONJUNTO DE MIRAS ALVO (TARGET REAR SIGHT & RED RAMP FRONT)
      ========================================================= */
-  // --- ALÇA DE MIRA TRASEIRA (Micro-Adjustable Target Rear Sight) ---
-  const rearSightMount = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.008, 0.042), M_SW_STEEL_DARK);
-  rearSightMount.position.set(0, 0.045, 0.012);
+  // --- ALÇA DE MIRA TRASEIRA (Low-Profile Target Rear Sight) ---
+  const rearSightMount = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.005, 0.030), M_SW_STEEL_DARK);
+  rearSightMount.position.set(0, 0.0435, 0.015);
 
-  // Lâmina traseira com entalhe quadrado vazado (Square Notch)
-  // Alinhada exatamente em Y=0.046
-  const rearBladeL = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.010, 0.003), M_SW_STEEL_DARK);
-  rearBladeL.position.set(-0.0065, 0.046, 0.032);
+  const rearBladeL = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.006, 0.004), M_SW_STEEL_DARK);
+  rearBladeL.position.set(-0.008, 0.048, 0.030);
 
-  const rearBladeR = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.010, 0.003), M_SW_STEEL_DARK);
-  rearBladeR.position.set(0.0065, 0.046, 0.032);
+  const rearBladeR = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.006, 0.004), M_SW_STEEL_DARK);
+  rearBladeR.position.set(0.008, 0.048, 0.030);
 
   // Parafuso de elevação micrométrico
-  const elevScrew = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.004, 8), M_SW_STEEL_DARK);
-  elevScrew.position.set(0, 0.050, 0.018);
+  const elevScrew = new THREE.Mesh(new THREE.CylinderGeometry(0.002, 0.002, 0.002, 8), M_SW_STEEL_DARK);
+  elevScrew.position.set(0, 0.046, 0.018);
 
   // --- MASSA DE MIRA DIANTEIRA (Pinned Red Ramp Front Sight) ---
   const frontSightBase = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.008, 0.032), M_SW_STAINLESS);
@@ -445,6 +444,7 @@ export function buildSW500() {
     tgBottom, tgFront, tgRear, trigger,
     hammerGroup, cylinderLatch, screw1, screw2,
     cylinderGroup, barrelGroup, compGroup, gripGroup,
+    rearSightMount, rearBladeL, rearBladeR, elevScrew,
     frontSightBase, frontBlade, redRamp,
     muzzleFlash, muzzleLight
   );
