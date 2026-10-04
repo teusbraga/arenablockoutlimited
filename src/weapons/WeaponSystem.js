@@ -148,11 +148,13 @@ export class WeaponSystem {
     // 5. Disparo (considera modo de disparo selecionado: auto ou semi)
     this.fireCooldown -= dt;
 
-    // Decaimento suave da sequência de disparo (fireStreak) e recuperação de precisão
+    // Decaimento exponencial suave e imediato da dispersão de tiro (idêntico à inércia do movimento)
     const nowSec = performance.now() / 1000;
-    const streakDelay = CONFIG.GUNPLAY?.fireStreakDecayDelay ?? 0.20;
-    if (this.fireStreak > 0 && (nowSec - (this.lastFireGapTime || 0)) > streakDelay) {
-      this.fireStreak = Math.max(0, this.fireStreak - dt * 20);
+    const timeSinceLastShot = nowSec - (this.lastShotTimestamp || 0);
+    const ceaseDelay = Math.max(def.fireInterval * 1.2, 0.12);
+    if (this.fireStreak > 0 && timeSinceLastShot > ceaseDelay) {
+      this.fireStreak += (0 - this.fireStreak) * Math.min(1, dt * 14);
+      if (this.fireStreak < 0.01) this.fireStreak = 0;
     }
 
     if (!this.player.alive || this.reloading) return;
@@ -236,7 +238,7 @@ export class WeaponSystem {
     if (now - (this.lastFireGapTime || 0) < streakDelay) {
       this.fireStreak = Math.min((this.fireStreak || 0) + 1, maxStreak);
     } else {
-      this.fireStreak = 0;
+      this.fireStreak = 1;
     }
     this.lastFireGapTime = now;
 
