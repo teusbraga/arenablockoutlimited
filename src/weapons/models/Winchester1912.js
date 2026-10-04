@@ -440,11 +440,11 @@ export function buildWinchester1912() {
   ring2.position.set(0, 0.024, -0.520);
   frontRingsGroup.add(ring1, ring2);
 
-  // Massa de mira proeminente ajustada para a nova altura do cano
-  const frontSightBase = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.010, 0.010), M_W12_STEEL_DARK);
-  frontSightBase.position.set(0, 0.053, -0.560);
+  // Massa de mira proeminente ajustada para a nova altura do cano (Elevada para evitar clipping no ADS)
+  const frontSightBase = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.014, 0.010), M_W12_STEEL_DARK);
+  frontSightBase.position.set(0, 0.055, -0.560);
   const frontBead = new THREE.Mesh(new THREE.SphereGeometry(0.003, 8, 8), M_W12_BEAD);
-  frontBead.position.set(0, 0.059, -0.560);
+  frontBead.position.set(0, 0.063, -0.560);
   frontRingsGroup.add(frontSightBase, frontBead);
 
   /* =========================================================
