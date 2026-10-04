@@ -157,7 +157,7 @@
       "recoilYaw": 0.0035,
       "recoilYawBias": 0.4,
       "adsFov": 54,
-      "adsSightDistance": 0.26,
+      "adsSightDistance": 0.40,
       "hipPos": [0.15, -0.17, -0.32],
       "hipRot": [0, 0, 0],
       "adsRot": [0, 0, 0],
@@ -293,3 +293,4 @@
     "redDot": { "id": "redDot", "adsFov": 50, "adsSightDistance": 0.28 }
   }
 }
+

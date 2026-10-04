@@ -233,27 +233,46 @@ export function buildM249() {
   const bipodFootR = new THREE.Mesh(new THREE.BoxGeometry(0.010, 0.014, 0.018), M_STEEL_DARK);
   bipodFootR.position.set(0.024, -0.012, -0.18);
 
-  // 9. MIRAS DE FERRO M249 MILITARES
-  // Alça de mira traseira ajustável (aperture leaf / drum)
-  const rearSightBase = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.014, 0.028), M_RECEIVER_PARK);
-  rearSightBase.position.set(0, 0.070, 0.025);
+    // 9. MIRAS DE FERRO M249 MILITARES (High-Fidelity Facelift)
+  // --- AL�A DE MIRA TRASEIRA (Aperture Rear Sight with Wings & Knobs) ---
+  const rearSightBase = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.010, 0.024), M_RECEIVER_PARK);
+  rearSightBase.position.set(0, 0.075, 0.025);
 
-  const rearSightAperture = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.014, 10), M_STEEL_DARK);
-  rearSightAperture.rotation.x = Math.PI / 2;
-  rearSightAperture.position.set(0, 0.082, 0.025);
+  const rearWingL = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.016, 0.020), M_STEEL_DARK);
+  rearWingL.position.set(-0.0115, 0.088, 0.025);
+  
+  const rearWingR = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.016, 0.020), M_STEEL_DARK);
+  rearWingR.position.set(0.0115, 0.088, 0.025);
 
-  // Massa de mira frontal militar com anel protetor (Hooded front sight)
-  const frontSightBase = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.028, 0.018), M_RECEIVER_PARK);
-  frontSightBase.position.set(0, 0.046, -0.38);
+  const rearKnobL = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.008, 12), M_STEEL_DARK);
+  rearKnobL.rotation.z = Math.PI / 2;
+  rearKnobL.position.set(-0.017, 0.084, 0.025);
 
-  const frontHood = new THREE.Mesh(new THREE.TorusGeometry(0.0075, 0.0016, 8, 12), M_STEEL_DARK);
-  frontHood.position.set(0, 0.062, -0.38);
+  const rearKnobR = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.008, 12), M_STEEL_DARK);
+  rearKnobR.rotation.z = Math.PI / 2;
+  rearKnobR.position.set(0.017, 0.084, 0.025);
 
-  const frontPin = new THREE.Mesh(new THREE.CylinderGeometry(0.0016, 0.0016, 0.008, 8), M_STEEL_GUN);
-  frontPin.position.set(0, 0.059, -0.38);
+  const peepBlockL = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.008, 0.006), M_STEEL_GUN);
+  peepBlockL.position.set(-0.006, 0.082, 0.025);
 
-  const frontTritium = new THREE.Mesh(new THREE.SphereGeometry(0.0022, 8, 8), M_TRIT);
-  frontTritium.position.set(0, 0.0625, -0.38);
+  const peepBlockR = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.008, 0.006), M_STEEL_GUN);
+  peepBlockR.position.set(0.006, 0.082, 0.025);
+
+  const peepBase = new THREE.Mesh(new THREE.BoxGeometry(0.020, 0.004, 0.006), M_STEEL_GUN);
+  peepBase.position.set(0, 0.078, 0.025);
+
+  // --- MASSA DE MIRA DIANTEIRA (Hooded Front Sight) ---
+  const frontSightBase = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.038, 0.018), M_RECEIVER_PARK);
+  frontSightBase.position.set(0, 0.051, -0.38);
+
+  const frontHood = new THREE.Mesh(new THREE.TorusGeometry(0.007, 0.0015, 8, 16), M_STEEL_DARK);
+  frontHood.position.set(0, 0.082, -0.38);
+
+  const frontPin = new THREE.Mesh(new THREE.CylinderGeometry(0.0012, 0.0015, 0.014, 8), M_STEEL_DARK);
+  frontPin.position.set(0, 0.076, -0.38);
+
+  const frontTritium = new THREE.Mesh(new THREE.SphereGeometry(0.0016, 6, 6), M_TRIT);
+  frontTritium.position.set(0, 0.082, -0.38);
 
   g.add(
     receiver, sidePlateL, sidePlateR,
@@ -264,10 +283,12 @@ export function buildM249() {
     stockMount, stockBuffer, stockBody, buttPad, shoulderRest,
     handleBase, handleArm, handleGrip,
     bipodPivot, bipodL, bipodFootL, bipodR, bipodFootR,
-    rearSightBase, rearSightAperture,
+    rearSightBase, rearWingL, rearWingR, rearKnobL, rearKnobR, peepBlockL, peepBlockR, peepBase,
     frontSightBase, frontHood, frontPin, frontTritium
   );
 
   g.traverse(o => { if (o.isMesh) o.castShadow = true; });
   return g;
 }
+
+
