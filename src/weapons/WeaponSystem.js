@@ -147,6 +147,14 @@ export class WeaponSystem {
 
     // 5. Disparo (considera modo de disparo selecionado: auto ou semi)
     this.fireCooldown -= dt;
+
+    // Decaimento suave da sequência de disparo (fireStreak) e recuperação de precisão
+    const nowSec = performance.now() / 1000;
+    const streakDelay = CONFIG.GUNPLAY?.fireStreakDecayDelay ?? 0.20;
+    if (this.fireStreak > 0 && (nowSec - (this.lastFireGapTime || 0)) > streakDelay) {
+      this.fireStreak = Math.max(0, this.fireStreak - dt * 20);
+    }
+
     if (!this.player.alive || this.reloading) return;
 
     const isAutomatic = this.isAuto;
