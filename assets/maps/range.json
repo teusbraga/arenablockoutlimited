@@ -1,32 +1,93 @@
 {
-  "name": "Range",
-  "size": [40, 40],
-  "bounds": [-19, 19, -19, 19],
+  "name": "Campo de Tiro (Remake)",
+  "size": [56, 96],
+  "bounds": [-28, 28, -48, 48],
   "staticGeometry": [
-    { "type": "wall", "pos": [ 0, 0,  20], "size": [ 40, 5, 1], "material": "wall" },
-    { "type": "wall", "pos": [ 0, 0, -20], "size": [ 40, 5, 1], "material": "wall" },
-    { "type": "wall", "pos": [-20, 0, 0], "size": [ 1, 5, 40], "material": "wall" },
-    { "type": "wall", "pos": [ 20, 0, 0], "size": [ 1, 5, 40], "material": "wall" },
+    { "type": "wall", "pos": [0, 0, -48], "size": [56, 12, 1], "material": "wall" },
+    { "type": "wall", "pos": [0, 0, 48], "size": [56, 12, 1], "material": "wall" },
+    { "type": "wall", "pos": [-28, 0, 0], "size": [1, 12, 96], "material": "wall" },
+    { "type": "wall", "pos": [28, 0, 0], "size": [1, 12, 96], "material": "wall" },
 
-    { "type": "crate", "pos": [-8, 0, -6], "size": [ 3, 1.6, 3], "material": "crate" },
-    { "type": "crate", "pos": [ 9, 0, -4], "size": [ 2, 2.4, 2], "material": "crate" },
-    { "type": "crate", "pos": [ 5, 0,  6], "size": [ 4, 1.0, 4], "material": "crate" },
-    { "type": "crate", "pos": [-12, 0, 10], "size": [ 2, 1.0, 2], "material": "crate" },
+    { "type": "wall", "pos": [-16, 0, -9], "size": [1, 12, 78], "material": "wall" },
+    { "type": "wall", "pos": [16, 0, -9], "size": [1, 12, 78], "material": "wall" },
 
-    { "type": "fence", "pos": [ 0, 0, -12], "size": [ 6, 1.1, 0.2], "material": "fence", "vaultable": true },
-    { "type": "fence", "pos": [ 12, 0,  0], "size": [ 0.2, 1.1, 6], "material": "fence", "vaultable": true },
+    { "type": "wall", "pos": [-23.75, 0, 30], "size": [7.5, 12, 1], "material": "wall" },
+    { "type": "wall", "pos": [-9.75, 0, 30], "size": [11.5, 12, 1], "material": "wall" },
+    { "type": "wall", "pos": [9.75, 0, 30], "size": [11.5, 12, 1], "material": "wall" },
+    { "type": "wall", "pos": [23.75, 0, 30], "size": [7.5, 12, 1], "material": "wall" },
 
-    { "type": "crate", "pos": [-15, 0, -14], "size": [ 1.2, 1.2, 1.2], "material": "crate" },
-    { "type": "crate", "pos": [-14, 0, -14], "size": [ 1.2, 2.4, 1.2], "material": "crate" },
-    { "type": "crate", "pos": [-13, 0, -14], "size": [ 1.2, 3.6, 1.2], "material": "crate" }
+    { "type": "wall", "pos": [-12, 0, 22], "size": [0.2, 2.5, 4], "material": "wall" },
+    { "type": "wall", "pos": [-4, 0, 22], "size": [0.2, 2.5, 4], "material": "wall" },
+    { "type": "wall", "pos": [4, 0, 22], "size": [0.2, 2.5, 4], "material": "wall" },
+    { "type": "wall", "pos": [12, 0, 22], "size": [0.2, 2.5, 4], "material": "wall" },
+
+    { "type": "crate", "pos": [-13.8, 0, 20.5], "size": [3.4, 1, 1], "material": "crate" },
+    { "type": "crate", "pos": [-8, 0, 20.5], "size": [7.8, 1, 1], "material": "crate" },
+    { "type": "crate", "pos": [0, 0, 20.5], "size": [7.8, 1, 1], "material": "crate" },
+    { "type": "crate", "pos": [8, 0, 20.5], "size": [7.8, 1, 1], "material": "crate" },
+    { "type": "crate", "pos": [13.8, 0, 20.5], "size": [3.4, 1, 1], "material": "crate" },
+
+    { "type": "crate", "pos": [0, 0, 42], "size": [10, 1.2, 2], "material": "crate" },
+    { "type": "crate", "pos": [-10, 0, 45], "size": [4, 1.2, 1], "material": "crate" },
+    { "type": "crate", "pos": [10, 0, 45], "size": [4, 1.2, 1], "material": "crate" },
+
+    { "type": "crate", "pos": [0, 0, 10], "size": [2, 2, 0.2], "material": "crate" },
+    { "type": "crate", "pos": [0, 0, -10], "size": [2, 2, 0.2], "material": "crate" },
+    { "type": "crate", "pos": [0, 0, -30], "size": [2, 2, 0.2], "material": "crate" },
+
+    { "type": "crate", "pos": [-8, 0, 0], "size": [2, 2, 0.2], "material": "crate" },
+    { "type": "crate", "pos": [-8, 0, -20], "size": [2, 2, 0.2], "material": "crate" },
+    { "type": "crate", "pos": [-8, 0, -40], "size": [2, 2, 0.2], "material": "crate" },
+
+    { "type": "crate", "pos": [8, 0, 5], "size": [2, 2, 0.2], "material": "crate" },
+    { "type": "crate", "pos": [8, 0, -15], "size": [2, 2, 0.2], "material": "crate" },
+    { "type": "crate", "pos": [8, 0, -35], "size": [2, 2, 0.2], "material": "crate" },
+
+    { "type": "wall", "pos": [-20, 0, 15], "size": [1, 4, 30], "material": "wall" },
+    { "type": "wall", "pos": [-24, 0, 20], "size": [7, 4, 1], "material": "wall" },
+    { "type": "wall", "pos": [-24, 0, 10], "size": [7, 4, 1], "material": "wall" },
+    { "type": "wall", "pos": [-24, 0, 0], "size": [7, 4, 1], "material": "wall" },
+
+    { "type": "stair", "pos": [-25.5, 0.0, -10.5], "size": [4, 0.5, 1], "material": "concrete" },
+    { "type": "stair", "pos": [-25.5, 0.5, -11.5], "size": [4, 0.5, 1], "material": "concrete" },
+    { "type": "stair", "pos": [-25.5, 1.0, -12.5], "size": [4, 0.5, 1], "material": "concrete" },
+    { "type": "stair", "pos": [-25.5, 1.5, -13.5], "size": [4, 0.5, 1], "material": "concrete" },
+    { "type": "stair", "pos": [-25.5, 2.0, -14.5], "size": [4, 0.5, 1], "material": "concrete" },
+    { "type": "stair", "pos": [-25.5, 2.5, -15.5], "size": [4, 0.5, 1], "material": "concrete" },
+    { "type": "stair", "pos": [-25.5, 3.0, -16.5], "size": [4, 0.5, 1], "material": "concrete" },
+    { "type": "stair", "pos": [-25.5, 3.5, -17.5], "size": [4, 0.5, 1], "material": "concrete" },
+    { "type": "floor", "pos": [-22, 4.0, -32.75], "size": [11, 0.4, 29.5], "material": "concrete" },
+    { "type": "fence", "pos": [-16.6, 4.4, -32.75], "size": [0.2, 1.2, 29.5], "material": "fence" },
+    { "type": "fence", "pos": [-20, 4.4, -17.9], "size": [7, 1.2, 0.2], "material": "fence" },
+
+    { "type": "stair", "pos": [25.5, 0.0, 27.5], "size": [4, 0.5, 1], "material": "concrete" },
+    { "type": "stair", "pos": [25.5, 0.5, 26.5], "size": [4, 0.5, 1], "material": "concrete" },
+    { "type": "stair", "pos": [25.5, 1.0, 25.5], "size": [4, 0.5, 1], "material": "concrete" },
+    { "type": "stair", "pos": [25.5, 1.5, 24.5], "size": [4, 0.5, 1], "material": "concrete" },
+    { "type": "stair", "pos": [25.5, 2.0, 23.5], "size": [4, 0.5, 1], "material": "concrete" },
+    { "type": "stair", "pos": [25.5, 2.5, 22.5], "size": [4, 0.5, 1], "material": "concrete" },
+    { "type": "stair", "pos": [25.5, 3.0, 21.5], "size": [4, 0.5, 1], "material": "concrete" },
+    { "type": "stair", "pos": [25.5, 3.5, 20.5], "size": [4, 0.5, 1], "material": "concrete" },
+    { "type": "floor", "pos": [22, 4.0, -13.75], "size": [11, 0.4, 67.5], "material": "concrete" },
+    { "type": "fence", "pos": [16.6, 4.4, -13.75], "size": [0.2, 1.2, 67.5], "material": "fence" },
+    { "type": "fence", "pos": [20, 4.4, 20.1], "size": [7, 1.2, 0.2], "material": "fence" },
+
+    { "type": "crate", "pos": [22, 4.4, -14], "size": [2, 1.2, 2], "material": "crate" },
+    { "type": "crate", "pos": [-22, 4.4, -30], "size": [2, 1.2, 2], "material": "crate" }
   ],
-  "doors": [
-    { "pos": [10, 0, -10], "width": 1.2, "height": 2.2 }
+  "doors": [],
+  "playerSpawns": [
+    [0, 0.1, 40],
+    [-5, 0.1, 40],
+    [5, 0.1, 40]
   ],
-  "playerSpawns": [[0, 0.1, 14]],
   "botSpawns": [
-    [-14, 0.1, -14],
-    [ 14, 0.1,  12],
-    [ -8, 0.1,  14]
+    [0, 0.1, -40],
+    [-8, 0.1, -40],
+    [8, 0.1, -40],
+    [-22, 4.1, -33],
+    [22, 4.1, -14],
+    [-24, 0.1, 5],
+    [-24, 0.1, 15]
   ]
 }
