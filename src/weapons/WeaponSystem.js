@@ -171,7 +171,6 @@ export class WeaponSystem {
 
     // ── Detecção de Término de Spray (Fumaça Residual de Calor) ─────────────
     // Se o jogador cessou o fogo após uma rajada, solta de 0 a 6 fumaças subindo da boca do cano
-    const nowSec = performance.now() / 1000;
     if (this.sprayBullets > 0) {
       const ceaseDelay = Math.max(def.fireInterval * 1.4, 0.14);
       if (!wantsFire || (nowSec - this.lastShotTimestamp) > ceaseDelay || this.reloading || this.ammo === 0) {
