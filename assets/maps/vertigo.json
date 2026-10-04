@@ -1,752 +1,1243 @@
 {
-    "name": "Vertigo Construction",
-    "size": [
-        100,
-        100
-    ],
-    "bounds": [
-        -50,
-        50,
-        -50,
-        50
-    ],
-    "spawnPoints": [
-        [
-            0,
-            2,
-            -20
-        ],
-        [
-            -20,
-            2,
-            0
-        ],
-        [
-            20,
-            2,
-            0
-        ],
-        [
-            0,
-            8,
-            -15
-        ],
-        [
-            15,
-            8,
-            15
-        ]
-    ],
-    "ambientLight": 0.6,
-    "directionalLight": {
-        "color": "#ffffff",
-        "intensity": 1.0,
-        "position": [
-            50,
-            100,
-            50
-        ]
-    },
-    "staticGeometry": [
-        {
-            "type": "box",
-            "pos": [
-                0,
-                -1,
-                0
-            ],
-            "size": [
-                50,
-                1,
-                50
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                0,
-                5.5,
-                0
-            ],
-            "size": [
-                40,
-                0.5,
-                40
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                0,
-                11.5,
-                0
-            ],
-            "size": [
-                30,
-                0.5,
-                30
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                15,
-                0.0,
-                0.0
-            ],
-            "size": [
-                4,
-                0.5,
-                1.5
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                15,
-                0.5,
-                1.0
-            ],
-            "size": [
-                4,
-                0.5,
-                1.5
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                15,
-                1.0,
-                2.0
-            ],
-            "size": [
-                4,
-                0.5,
-                1.5
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                15,
-                1.5,
-                3.0
-            ],
-            "size": [
-                4,
-                0.5,
-                1.5
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                15,
-                2.0,
-                4.0
-            ],
-            "size": [
-                4,
-                0.5,
-                1.5
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                15,
-                2.5,
-                5.0
-            ],
-            "size": [
-                4,
-                0.5,
-                1.5
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                15,
-                3.0,
-                6.0
-            ],
-            "size": [
-                4,
-                0.5,
-                1.5
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                15,
-                3.5,
-                7.0
-            ],
-            "size": [
-                4,
-                0.5,
-                1.5
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                15,
-                4.0,
-                8.0
-            ],
-            "size": [
-                4,
-                0.5,
-                1.5
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                15,
-                4.5,
-                9.0
-            ],
-            "size": [
-                4,
-                0.5,
-                1.5
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                15,
-                5.0,
-                10.0
-            ],
-            "size": [
-                4,
-                0.5,
-                1.5
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                15,
-                5.5,
-                11.0
-            ],
-            "size": [
-                4,
-                0.5,
-                1.5
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                -10,
-                6.0,
-                10.0
-            ],
-            "size": [
-                4,
-                0.5,
-                1.5
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                -10,
-                6.5,
-                9.0
-            ],
-            "size": [
-                4,
-                0.5,
-                1.5
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                -10,
-                7.0,
-                8.0
-            ],
-            "size": [
-                4,
-                0.5,
-                1.5
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                -10,
-                7.5,
-                7.0
-            ],
-            "size": [
-                4,
-                0.5,
-                1.5
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                -10,
-                8.0,
-                6.0
-            ],
-            "size": [
-                4,
-                0.5,
-                1.5
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                -10,
-                8.5,
-                5.0
-            ],
-            "size": [
-                4,
-                0.5,
-                1.5
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                -10,
-                9.0,
-                4.0
-            ],
-            "size": [
-                4,
-                0.5,
-                1.5
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                -10,
-                9.5,
-                3.0
-            ],
-            "size": [
-                4,
-                0.5,
-                1.5
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                -10,
-                10.0,
-                2.0
-            ],
-            "size": [
-                4,
-                0.5,
-                1.5
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                -10,
-                10.5,
-                1.0
-            ],
-            "size": [
-                4,
-                0.5,
-                1.5
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                -10,
-                11.0,
-                0.0
-            ],
-            "size": [
-                4,
-                0.5,
-                1.5
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                -10,
-                11.5,
-                -1.0
-            ],
-            "size": [
-                4,
-                0.5,
-                1.5
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                -18,
-                0,
-                -18
-            ],
-            "size": [
-                1.5,
-                5.5,
-                1.5
-            ],
-            "material": "steel_girder"
-        },
-        {
-            "type": "box",
-            "pos": [
-                -18,
-                0,
-                18
-            ],
-            "size": [
-                1.5,
-                5.5,
-                1.5
-            ],
-            "material": "steel_girder"
-        },
-        {
-            "type": "box",
-            "pos": [
-                18,
-                0,
-                -18
-            ],
-            "size": [
-                1.5,
-                5.5,
-                1.5
-            ],
-            "material": "steel_girder"
-        },
-        {
-            "type": "box",
-            "pos": [
-                18,
-                0,
-                18
-            ],
-            "size": [
-                1.5,
-                5.5,
-                1.5
-            ],
-            "material": "steel_girder"
-        },
-        {
-            "type": "box",
-            "pos": [
-                -13,
-                6,
-                -13
-            ],
-            "size": [
-                1.5,
-                5.5,
-                1.5
-            ],
-            "material": "steel_girder"
-        },
-        {
-            "type": "box",
-            "pos": [
-                -13,
-                6,
-                13
-            ],
-            "size": [
-                1.5,
-                5.5,
-                1.5
-            ],
-            "material": "steel_girder"
-        },
-        {
-            "type": "box",
-            "pos": [
-                13,
-                6,
-                -13
-            ],
-            "size": [
-                1.5,
-                5.5,
-                1.5
-            ],
-            "material": "steel_girder"
-        },
-        {
-            "type": "box",
-            "pos": [
-                13,
-                6,
-                13
-            ],
-            "size": [
-                1.5,
-                5.5,
-                1.5
-            ],
-            "material": "steel_girder"
-        },
-        {
-            "type": "box",
-            "pos": [
-                0,
-                0,
-                -5
-            ],
-            "size": [
-                15,
-                3,
-                1
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                -10,
-                0,
-                10
-            ],
-            "size": [
-                1,
-                3,
-                10
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                10,
-                0,
-                -15
-            ],
-            "size": [
-                2,
-                2,
-                2
-            ],
-            "material": "crate"
-        },
-        {
-            "type": "box",
-            "pos": [
-                12,
-                0,
-                -15
-            ],
-            "size": [
-                2,
-                2,
-                2
-            ],
-            "material": "crate"
-        },
-        {
-            "type": "box",
-            "pos": [
-                11,
-                2,
-                -15
-            ],
-            "size": [
-                2,
-                2,
-                2
-            ],
-            "material": "crate"
-        },
-        {
-            "type": "box",
-            "pos": [
-                5,
-                6,
-                5
-            ],
-            "size": [
-                12,
-                3,
-                1
-            ],
-            "material": "blue_tarp"
-        },
-        {
-            "type": "box",
-            "pos": [
-                -5,
-                6,
-                -5
-            ],
-            "size": [
-                1,
-                3,
-                12
-            ],
-            "material": "blue_tarp"
-        },
-        {
-            "type": "box",
-            "pos": [
-                0,
-                6,
-                12
-            ],
-            "size": [
-                6,
-                2,
-                2
-            ],
-            "material": "crate"
-        },
-        {
-            "type": "box",
-            "pos": [
-                0,
-                12,
-                -14
-            ],
-            "size": [
-                20,
-                2,
-                1
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                0,
-                12,
-                14
-            ],
-            "size": [
-                20,
-                2,
-                1
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                -14,
-                12,
-                0
-            ],
-            "size": [
-                1,
-                2,
-                20
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                14,
-                12,
-                0
-            ],
-            "size": [
-                1,
-                2,
-                20
-            ],
-            "material": "concrete"
-        },
-        {
-            "type": "box",
-            "pos": [
-                -2,
-                12,
-                0
-            ],
-            "size": [
-                1,
-                0.1,
-                5
-            ],
-            "material": "steel_girder"
-        },
-        {
-            "type": "box",
-            "pos": [
-                2,
-                12,
-                0
-            ],
-            "size": [
-                1,
-                0.1,
-                5
-            ],
-            "material": "steel_girder"
-        },
-        {
-            "type": "box",
-            "pos": [
-                0,
-                12,
-                0
-            ],
-            "size": [
-                3,
-                0.1,
-                1
-            ],
-            "material": "steel_girder"
-        }
+  "name": "Vertigo Skyscraper",
+  "size": [
+    80,
+    80
+  ],
+  "bounds": [
+    -35,
+    35,
+    -35,
+    35
+  ],
+  "floorMaterial": "concrete",
+  "ambientLight": 0.65,
+  "directionalLight": {
+    "color": "#ffffff",
+    "intensity": 1.1,
+    "position": [
+      40,
+      80,
+      40
     ]
+  },
+  "staticGeometry": [
+    {
+      "type": "wall",
+      "pos": [
+        0,
+        0,
+        35
+      ],
+      "size": [
+        70.0,
+        3.5,
+        1.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        0,
+        0,
+        -35
+      ],
+      "size": [
+        70.0,
+        3.5,
+        1.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        -35,
+        0,
+        0
+      ],
+      "size": [
+        1.0,
+        3.5,
+        69.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        35,
+        0,
+        0
+      ],
+      "size": [
+        1.0,
+        3.5,
+        69.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        0,
+        0,
+        0
+      ],
+      "size": [
+        5.0,
+        4.6,
+        5.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        -17,
+        0,
+        -17
+      ],
+      "size": [
+        1.4,
+        4.6,
+        1.4
+      ],
+      "material": "steel_girder"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        -17,
+        0,
+        17
+      ],
+      "size": [
+        1.4,
+        4.6,
+        1.4
+      ],
+      "material": "steel_girder"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        17,
+        0,
+        -17
+      ],
+      "size": [
+        1.4,
+        4.6,
+        1.4
+      ],
+      "material": "steel_girder"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        17,
+        0,
+        17
+      ],
+      "size": [
+        1.4,
+        4.6,
+        1.4
+      ],
+      "material": "steel_girder"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        0,
+        0,
+        -17
+      ],
+      "size": [
+        1.4,
+        4.6,
+        1.4
+      ],
+      "material": "steel_girder"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        0,
+        0,
+        17
+      ],
+      "size": [
+        1.4,
+        4.6,
+        1.4
+      ],
+      "material": "steel_girder"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        -17,
+        0,
+        0
+      ],
+      "size": [
+        1.4,
+        4.6,
+        1.4
+      ],
+      "material": "steel_girder"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        17,
+        0,
+        0
+      ],
+      "size": [
+        1.4,
+        4.6,
+        1.4
+      ],
+      "material": "steel_girder"
+    },
+    {
+      "type": "cover",
+      "pos": [
+        -8,
+        0,
+        -12
+      ],
+      "size": [
+        6.0,
+        1.3,
+        0.8
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "cover",
+      "pos": [
+        8,
+        0,
+        -12
+      ],
+      "size": [
+        6.0,
+        1.3,
+        0.8
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "crate",
+      "pos": [
+        -14,
+        0,
+        -8
+      ],
+      "size": [
+        2.2,
+        2.2,
+        2.2
+      ],
+      "material": "crate"
+    },
+    {
+      "type": "crate",
+      "pos": [
+        -14,
+        0,
+        -5.5
+      ],
+      "size": [
+        2.2,
+        1.2,
+        2.2
+      ],
+      "material": "crate"
+    },
+    {
+      "type": "crate",
+      "pos": [
+        0,
+        0,
+        12
+      ],
+      "size": [
+        2.5,
+        2.5,
+        2.5
+      ],
+      "material": "crate"
+    },
+    {
+      "type": "barrel",
+      "pos": [
+        -3,
+        0,
+        12
+      ],
+      "size": [
+        1.4,
+        1.8,
+        1.4
+      ],
+      "material": "metal_barrel"
+    },
+    {
+      "type": "barrel",
+      "pos": [
+        3,
+        0,
+        12
+      ],
+      "size": [
+        1.4,
+        1.8,
+        1.4
+      ],
+      "material": "metal_barrel"
+    },
+    {
+      "type": "fence",
+      "pos": [
+        0,
+        0,
+        -20
+      ],
+      "size": [
+        10.0,
+        1.2,
+        0.2
+      ],
+      "material": "fence",
+      "vaultable": true
+    },
+    {
+      "type": "stair",
+      "pos": [
+        12.0,
+        0.0,
+        -5.5
+      ],
+      "size": [
+        4.0,
+        0.5,
+        1.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        12.0,
+        0.5,
+        -4.5
+      ],
+      "size": [
+        4.0,
+        0.5,
+        1.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        12.0,
+        1.0,
+        -3.5
+      ],
+      "size": [
+        4.0,
+        0.5,
+        1.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        12.0,
+        1.5,
+        -2.5
+      ],
+      "size": [
+        4.0,
+        0.5,
+        1.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        12.0,
+        2.0,
+        -1.5
+      ],
+      "size": [
+        4.0,
+        0.5,
+        1.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        12.0,
+        2.5,
+        -0.5
+      ],
+      "size": [
+        4.0,
+        0.5,
+        1.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        12.0,
+        3.0,
+        0.5
+      ],
+      "size": [
+        4.0,
+        0.5,
+        1.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        12.0,
+        3.5,
+        1.5
+      ],
+      "size": [
+        4.0,
+        0.5,
+        1.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        12.0,
+        4.0,
+        2.5
+      ],
+      "size": [
+        4.0,
+        0.5,
+        1.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        12.0,
+        4.5,
+        3.5
+      ],
+      "size": [
+        4.0,
+        0.5,
+        1.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "floor",
+      "pos": [
+        -5.5,
+        4.6,
+        0
+      ],
+      "size": [
+        29.0,
+        0.4,
+        40.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "floor",
+      "pos": [
+        17.5,
+        4.6,
+        0
+      ],
+      "size": [
+        5.0,
+        0.4,
+        40.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "floor",
+      "pos": [
+        12.0,
+        4.6,
+        -13.0
+      ],
+      "size": [
+        6.0,
+        0.4,
+        14.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "floor",
+      "pos": [
+        12.0,
+        4.6,
+        12.0
+      ],
+      "size": [
+        6.0,
+        0.4,
+        16.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "fence",
+      "pos": [
+        9.1,
+        5.0,
+        -0.9
+      ],
+      "size": [
+        0.2,
+        1.1,
+        9.8
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "fence",
+      "pos": [
+        14.9,
+        5.0,
+        -0.9
+      ],
+      "size": [
+        0.2,
+        1.1,
+        9.8
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "fence",
+      "pos": [
+        12.0,
+        5.0,
+        -5.9
+      ],
+      "size": [
+        5.6,
+        1.1,
+        0.2
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        0,
+        5.0,
+        19.8
+      ],
+      "size": [
+        40.0,
+        1.2,
+        0.4
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        0,
+        5.0,
+        -19.8
+      ],
+      "size": [
+        40.0,
+        1.2,
+        0.4
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        -19.8,
+        5.0,
+        0
+      ],
+      "size": [
+        0.4,
+        1.2,
+        39.2
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        19.8,
+        5.0,
+        0
+      ],
+      "size": [
+        0.4,
+        1.2,
+        39.2
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        0,
+        5.0,
+        0
+      ],
+      "size": [
+        5.0,
+        4.6,
+        5.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        -16,
+        5.0,
+        -16
+      ],
+      "size": [
+        1.4,
+        4.6,
+        1.4
+      ],
+      "material": "steel_girder"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        -16,
+        5.0,
+        16
+      ],
+      "size": [
+        1.4,
+        4.6,
+        1.4
+      ],
+      "material": "steel_girder"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        16,
+        5.0,
+        -16
+      ],
+      "size": [
+        1.4,
+        4.6,
+        1.4
+      ],
+      "material": "steel_girder"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        16,
+        5.0,
+        16
+      ],
+      "size": [
+        1.4,
+        4.6,
+        1.4
+      ],
+      "material": "steel_girder"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        0,
+        5.0,
+        -16
+      ],
+      "size": [
+        1.4,
+        4.6,
+        1.4
+      ],
+      "material": "steel_girder"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        0,
+        5.0,
+        16
+      ],
+      "size": [
+        1.4,
+        4.6,
+        1.4
+      ],
+      "material": "steel_girder"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        16,
+        5.0,
+        0
+      ],
+      "size": [
+        1.4,
+        4.6,
+        1.4
+      ],
+      "material": "steel_girder"
+    },
+    {
+      "type": "tarp",
+      "pos": [
+        -6,
+        5.0,
+        8
+      ],
+      "size": [
+        8.0,
+        3.0,
+        0.2
+      ],
+      "material": "blue_tarp"
+    },
+    {
+      "type": "tarp",
+      "pos": [
+        6,
+        5.0,
+        -10
+      ],
+      "size": [
+        0.2,
+        3.0,
+        8.0
+      ],
+      "material": "blue_tarp"
+    },
+    {
+      "type": "crate",
+      "pos": [
+        -10,
+        5.0,
+        14
+      ],
+      "size": [
+        2.6,
+        1.6,
+        2.0
+      ],
+      "material": "crate"
+    },
+    {
+      "type": "crate",
+      "pos": [
+        14,
+        5.0,
+        14
+      ],
+      "size": [
+        2.2,
+        2.2,
+        2.2
+      ],
+      "material": "crate"
+    },
+    {
+      "type": "girders",
+      "pos": [
+        0,
+        5.0,
+        -9
+      ],
+      "size": [
+        6.0,
+        0.8,
+        1.8
+      ],
+      "material": "steel_girder"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -12.0,
+        5.0,
+        3.5
+      ],
+      "size": [
+        4.0,
+        0.5,
+        1.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -12.0,
+        5.5,
+        2.5
+      ],
+      "size": [
+        4.0,
+        0.5,
+        1.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -12.0,
+        6.0,
+        1.5
+      ],
+      "size": [
+        4.0,
+        0.5,
+        1.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -12.0,
+        6.5,
+        0.5
+      ],
+      "size": [
+        4.0,
+        0.5,
+        1.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -12.0,
+        7.0,
+        -0.5
+      ],
+      "size": [
+        4.0,
+        0.5,
+        1.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -12.0,
+        7.5,
+        -1.5
+      ],
+      "size": [
+        4.0,
+        0.5,
+        1.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -12.0,
+        8.0,
+        -2.5
+      ],
+      "size": [
+        4.0,
+        0.5,
+        1.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -12.0,
+        8.5,
+        -3.5
+      ],
+      "size": [
+        4.0,
+        0.5,
+        1.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -12.0,
+        9.0,
+        -4.5
+      ],
+      "size": [
+        4.0,
+        0.5,
+        1.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -12.0,
+        9.5,
+        -5.5
+      ],
+      "size": [
+        4.0,
+        0.5,
+        1.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "floor",
+      "pos": [
+        -16.5,
+        9.6,
+        0
+      ],
+      "size": [
+        3.0,
+        0.4,
+        36.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "floor",
+      "pos": [
+        4.5,
+        9.6,
+        0
+      ],
+      "size": [
+        27.0,
+        0.4,
+        36.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "floor",
+      "pos": [
+        -12.0,
+        9.6,
+        -12.0
+      ],
+      "size": [
+        6.0,
+        0.4,
+        12.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "floor",
+      "pos": [
+        -12.0,
+        9.6,
+        11.0
+      ],
+      "size": [
+        6.0,
+        0.4,
+        14.0
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "fence",
+      "pos": [
+        -9.1,
+        10.0,
+        -1.1
+      ],
+      "size": [
+        0.2,
+        1.1,
+        9.8
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "fence",
+      "pos": [
+        -14.9,
+        10.0,
+        -1.1
+      ],
+      "size": [
+        0.2,
+        1.1,
+        9.8
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "fence",
+      "pos": [
+        -12.0,
+        10.0,
+        3.9
+      ],
+      "size": [
+        5.6,
+        1.1,
+        0.2
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        0,
+        10.0,
+        17.8
+      ],
+      "size": [
+        36.0,
+        1.2,
+        0.4
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        0,
+        10.0,
+        -17.8
+      ],
+      "size": [
+        36.0,
+        1.2,
+        0.4
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        -17.8,
+        10.0,
+        0
+      ],
+      "size": [
+        0.4,
+        1.2,
+        35.2
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        17.8,
+        10.0,
+        0
+      ],
+      "size": [
+        0.4,
+        1.2,
+        35.2
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        0,
+        10.0,
+        0
+      ],
+      "size": [
+        5.2,
+        2.8,
+        5.2
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "prop",
+      "pos": [
+        6.6,
+        10.02,
+        0
+      ],
+      "size": [
+        0.6,
+        0.04,
+        4.0
+      ],
+      "material": "steel_girder"
+    },
+    {
+      "type": "prop",
+      "pos": [
+        9.4,
+        10.02,
+        0
+      ],
+      "size": [
+        0.6,
+        0.04,
+        4.0
+      ],
+      "material": "steel_girder"
+    },
+    {
+      "type": "prop",
+      "pos": [
+        8.0,
+        10.02,
+        0
+      ],
+      "size": [
+        2.2,
+        0.04,
+        0.6
+      ],
+      "material": "steel_girder"
+    },
+    {
+      "type": "prop",
+      "pos": [
+        8,
+        10.0,
+        10
+      ],
+      "size": [
+        3.2,
+        1.8,
+        3.2
+      ],
+      "material": "steel_girder"
+    },
+    {
+      "type": "crate",
+      "pos": [
+        8,
+        10.0,
+        -10
+      ],
+      "size": [
+        2.4,
+        1.4,
+        2.4
+      ],
+      "material": "crate"
+    },
+    {
+      "type": "barrel",
+      "pos": [
+        -4,
+        10.0,
+        10
+      ],
+      "size": [
+        1.4,
+        1.8,
+        1.4
+      ],
+      "material": "metal_barrel"
+    }
+  ],
+  "playerSpawns": [
+    [
+      0,
+      0.1,
+      -25
+    ],
+    [
+      0,
+      5.1,
+      12
+    ],
+    [
+      8,
+      10.1,
+      -5
+    ]
+  ],
+  "botSpawns": [
+    [
+      -20,
+      0.1,
+      0
+    ],
+    [
+      20,
+      0.1,
+      0
+    ],
+    [
+      0,
+      0.1,
+      22
+    ],
+    [
+      -8,
+      5.1,
+      -10
+    ],
+    [
+      10,
+      5.1,
+      8
+    ],
+    [
+      8,
+      10.1,
+      5
+    ],
+    [
+      -8,
+      10.1,
+      8
+    ]
+  ]
 }
