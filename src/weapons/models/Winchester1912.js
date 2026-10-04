@@ -283,16 +283,10 @@ export function buildWinchester1912() {
   magCap.rotation.x = Math.PI / 2;
   magCap.position.set(0, 0.005, -0.535);
 
-  // Cano principal em aço super grosso
-  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.46, 18), M_W12_STEEL);
+  // Cano principal em aço super grosso conectado direto na culatra
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.48, 18), M_W12_STEEL);
   barrel.rotation.x = Math.PI / 2;
-  barrel.position.set(0, 0.024, -0.350);
-
-  // Cone simulando a espessura da câmara interna (Parte mais grossa na culatra)
-  const chamberCone = new THREE.Mesh(new THREE.CylinderGeometry(0.029, 0.024, 0.04, 18), M_W12_STEEL);
-  chamberCone.rotation.x = Math.PI / 2;
-  chamberCone.position.set(0, 0.024, -0.100);
-  g.add(chamberCone);
+  barrel.position.set(0, 0.024, -0.340);
 
   /* =========================================================
      4. TELHA MÓVEL "CORNOCOB" (PUMP FOREND ANIMADO)
