@@ -350,39 +350,60 @@ export class WeaponSystem {
       hittableMeshes.push(...bot.hittables());
     }
 
-    // Primeiro raycast contra meshes dos bots
-    this.raycaster.set(_camPos, _dir);
-    this.raycaster.far = 200;
-    const hitsBot = this.raycaster.intersectObjects(hittableMeshes, false);
+    const pelletCount = def.pellets || 1;
+    const maxPelletSpread = def.pelletSpread || 0.10; // Raio de 2m a 20m de distância
 
-    // Depois raycast contra o mundo físico
-    const hitWorld = this.world.raycast(_camPos, _dir, 200);
+    for (let p = 0; p < pelletCount; p++) {
+      const pelletDir = _dir.clone();
+      if (pelletCount > 1) {
+        let rx, ry;
+        if (p === 0) {
+          // Pellet central com leve tremor
+          rx = (Math.random() - 0.5) * 0.015;
+          ry = (Math.random() - 0.5) * 0.015;
+        } else {
+          // 6 pellets distribuídos em anel no cone (raio proporcional à distância)
+          const ang = (p * Math.PI * 2) / (pelletCount - 1) + (Math.random() - 0.5) * 0.35;
+          const r = (0.45 + Math.random() * 0.55) * maxPelletSpread;
+          rx = Math.cos(ang) * r;
+          ry = Math.sin(ang) * r;
+        }
+        pelletDir.addScaledVector(_right, rx).addScaledVector(_up, ry).normalize();
+      }
 
-    const botDist = hitsBot.length ? hitsBot[0].distance : Infinity;
-    const worldDist = hitWorld ? hitWorld.distance : Infinity;
+      // Primeiro raycast contra meshes dos bots
+      this.raycaster.set(_camPos, pelletDir);
+      this.raycaster.far = 200;
+      const hitsBot = this.raycaster.intersectObjects(hittableMeshes, false);
 
-    const hitDist = Math.min(botDist, worldDist);
-    const traceDist = Number.isFinite(hitDist) ? hitDist : 120;
+      // Depois raycast contra o mundo físico
+      const hitWorld = this.world.raycast(_camPos, pelletDir, 200);
 
-    // Ponto de impacto e traçante colineares com o cano:
-    // O traçante sai da boca do cano e viaja em linha reta absoluta (extensão física da régua do cano)
-    const impactPoint = (this.ads ? _camPos : muzzleWorld).clone().addScaledVector(_dir, traceDist);
+      const botDist = hitsBot.length ? hitsBot[0].distance : Infinity;
+      const worldDist = hitWorld ? hitWorld.distance : Infinity;
 
-    if (botDist < worldDist && hitsBot.length) {
-      const h = hitsBot[0];
-      const bot = h.object.userData.bot;
-      const part = h.object.userData.part;
-      const dmg = part === 'head' ? def.damageHead : def.damageBody;
-      const killed = bot.takeDamage(dmg, part);
-      emit('shot:bot', { point: h.point.clone(), headshot: part === 'head', killed });
-    } else if (hitWorld) {
-      emit('shot:world', { point: hitWorld.point.clone(), box: hitWorld.box });
+      const hitDist = Math.min(botDist, worldDist);
+      const traceDist = Number.isFinite(hitDist) ? hitDist : 120;
+
+      // Ponto de impacto e traçante colineares com o cano
+      const impactPoint = (this.ads ? _camPos : muzzleWorld).clone().addScaledVector(pelletDir, traceDist);
+
+      if (botDist < worldDist && hitsBot.length) {
+        const h = hitsBot[0];
+        const bot = h.object.userData.bot;
+        const part = h.object.userData.part;
+        const dmg = part === 'head' ? def.damageHead : def.damageBody;
+        const killed = bot.takeDamage(dmg, part);
+        emit('shot:bot', { point: h.point.clone(), headshot: part === 'head', killed });
+      } else if (hitWorld) {
+        emit('shot:world', { point: hitWorld.point.clone(), box: hitWorld.box });
+      }
+
+      emit('shot:tracer', {
+        from: muzzleWorld,
+        to: impactPoint,
+        color: def.tracerColor,
+      });
     }
-
-    emit('shot:tracer', {
-      from: muzzleWorld,
-      to: impactPoint,
-      color: def.tracerColor,
-    });
   }
 }

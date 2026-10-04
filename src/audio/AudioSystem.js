@@ -143,6 +143,99 @@ export class AudioSystem {
     punchOsc.start(t); punchOsc.stop(t + 0.18);
   }
 
+  playShotgunBlast() {
+    const ctx = this._ensure();
+    if (!ctx) return;
+    this.initNoiseBuffer();
+    const t = ctx.currentTime;
+
+    // 1. Onda de choque explosiva de calibre 12
+    if (this.noiseBuffer) {
+      const src = ctx.createBufferSource();
+      src.buffer = this.noiseBuffer;
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.setValueAtTime(4200, t);
+      lp.frequency.exponentialRampToValueAtTime(220, t + 0.32);
+      lp.Q.value = 2.8;
+      const gNoise = ctx.createGain();
+      gNoise.gain.setValueAtTime(0.52, t);
+      gNoise.gain.exponentialRampToValueAtTime(0.0005, t + 0.35);
+      src.connect(lp); lp.connect(gNoise); gNoise.connect(ctx.destination);
+      src.start(t);
+    }
+
+    // 2. Sub-bass boom encorpado
+    const subOsc = ctx.createOscillator();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(140, t);
+    subOsc.frequency.exponentialRampToValueAtTime(30, t + 0.38);
+    const gSub = ctx.createGain();
+    gSub.gain.setValueAtTime(0.54, t);
+    gSub.gain.exponentialRampToValueAtTime(0.0005, t + 0.42);
+    subOsc.connect(gSub); gSub.connect(ctx.destination);
+    subOsc.start(t); subOsc.stop(t + 0.44);
+
+    // 3. Estalo violento da detonação
+    const crackOsc = ctx.createOscillator();
+    crackOsc.type = 'sawtooth';
+    crackOsc.frequency.setValueAtTime(320, t);
+    crackOsc.frequency.exponentialRampToValueAtTime(45, t + 0.12);
+    const gCrack = ctx.createGain();
+    gCrack.gain.setValueAtTime(0.38, t);
+    gCrack.gain.exponentialRampToValueAtTime(0.0005, t + 0.15);
+    crackOsc.connect(gCrack); gCrack.connect(ctx.destination);
+    crackOsc.start(t); crackOsc.stop(t + 0.16);
+  }
+
+  playPumpRackSound(stage = 'back') {
+    const ctx = this._ensure();
+    if (!ctx) return;
+    const t = ctx.currentTime;
+
+    if (stage === 'back') {
+      const osc = ctx.createOscillator();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(380, t);
+      osc.frequency.exponentialRampToValueAtTime(140, t + 0.07);
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.22, t);
+      g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+      osc.connect(g); g.connect(ctx.destination);
+      osc.start(t); osc.stop(t + 0.09);
+
+      const clack = ctx.createOscillator();
+      clack.type = 'square';
+      clack.frequency.setValueAtTime(820, t + 0.02);
+      clack.frequency.exponentialRampToValueAtTime(260, t + 0.06);
+      const gClack = ctx.createGain();
+      gClack.gain.setValueAtTime(0.16, t + 0.02);
+      gClack.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+      clack.connect(gClack); gClack.connect(ctx.destination);
+      clack.start(t + 0.02); clack.stop(t + 0.08);
+    } else {
+      const lock = ctx.createOscillator();
+      lock.type = 'square';
+      lock.frequency.setValueAtTime(1050, t);
+      lock.frequency.exponentialRampToValueAtTime(180, t + 0.06);
+      const gLock = ctx.createGain();
+      gLock.gain.setValueAtTime(0.25, t);
+      gLock.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+      lock.connect(gLock); gLock.connect(ctx.destination);
+      lock.start(t); lock.stop(t + 0.08);
+
+      const thud = ctx.createOscillator();
+      thud.type = 'sine';
+      thud.frequency.setValueAtTime(180, t);
+      thud.frequency.exponentialRampToValueAtTime(60, t + 0.07);
+      const gThud = ctx.createGain();
+      gThud.gain.setValueAtTime(0.20, t);
+      gThud.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+      thud.connect(gThud); gThud.connect(ctx.destination);
+      thud.start(t); thud.stop(t + 0.09);
+    }
+  }
+
   playClickSound(freq = 900, vol = 0.08) {
     const ctx = this._ensure();
     if (!ctx) return;
@@ -175,6 +268,10 @@ export class AudioSystem {
         this.playMagnumBoom();
         return;
       }
+      if (e.weapon?.id === 'm12' || e.weapon?.audioKey === 'shot_m12') {
+        this.playShotgunBlast();
+        return;
+      }
       const key = e.weapon?.audioKey || (e.weapon?.id === 'p9' ? 'shot_p9' : 'shot_hk416');
       if (this.sounds[key]) {
         this.play(key);
@@ -185,6 +282,7 @@ export class AudioSystem {
     });
 
     on('weapon:empty', () => this.playClickSound(900, 0.08));
+    on('weapon:pump', e => this.playPumpRackSound(e?.stage || 'back'));
 
     on('weapon:cycle',        () => this.play('weapon_cycle'));
     on('weapon:reload:start', () => this.play('reload_start'));

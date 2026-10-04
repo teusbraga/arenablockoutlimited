@@ -6,6 +6,7 @@
     "shot_m249":  { "freqA": 140, "freqB": 38, "dur": 0.115, "type": "sawtooth", "gain": 0.28 },
     "shot_p9": { "freqA": 260, "freqB": 90, "dur": 0.070, "type": "square", "gain": 0.16 },
     "shot_sw500": { "freqA": 120, "freqB": 24, "dur": 0.350, "type": "sawtooth", "gain": 0.45 },
+    "shot_m12":   { "freqA": 130, "freqB": 28, "dur": 0.320, "type": "sawtooth", "gain": 0.40 },
     "weapon_cycle": { "freqA": 600, "freqB": 300, "dur": 0.070, "type": "square", "gain": 0.09 },
     "reload_start": { "freqA": 400, "freqB": 200, "dur": 0.060, "type": "square", "gain": 0.10 },
     "reload_end": { "freqA": 200, "freqB": 700, "dur": 0.090, "type": "square", "gain": 0.12 },

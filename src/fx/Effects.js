@@ -23,6 +23,13 @@ export class Effects {
       metalness: 0.90,
       roughness: 0.28
     });
+    // Cartucho de escopeta Calibre 12 Vermelho com base em latão
+    this.shotgunCasingGeo = new THREE.CylinderGeometry(0.009, 0.009, 0.038, 10);
+    this.shotgunCasingMat = new THREE.MeshStandardMaterial({
+      color: 0xd61818, // Vermelho vívido de cartucho calibre 12
+      metalness: 0.20,
+      roughness: 0.45
+    });
 
     // Pools
     this.tracers = [];
@@ -137,7 +144,8 @@ export class Effects {
     on('weapon:fired', e => {
       // Ejeção do cartucho vazio em todas as armas
       if (e.ejectWorld && e.right && e.up) {
-        this._spawnCasing(e.ejectWorld, e.right, e.up, e.forward);
+        const isShotgun = (e.weapon?.casingType === 'shotgun' || e.weapon?.id === 'm12');
+        this._spawnCasing(e.ejectWorld, e.right, e.up, e.forward, isShotgun);
       }
 
       if (!e.muzzleWorld) return;
@@ -199,11 +207,13 @@ export class Effects {
     }
   }
 
-  _spawnCasing(pos, right, up, forward) {
+  _spawnCasing(pos, right, up, forward, isShotgun = false) {
     if (!pos || !right) return;
     const c = this.casings[this.casingIdx];
     this.casingIdx = (this.casingIdx + 1) % MAX_CASINGS;
 
+    c.mesh.geometry = isShotgun ? this.shotgunCasingGeo : this.casingGeo;
+    c.mesh.material = isShotgun ? this.shotgunCasingMat : this.casingMat;
     c.mesh.position.copy(pos);
     c.mesh.visible = true;
     c.active = true;
