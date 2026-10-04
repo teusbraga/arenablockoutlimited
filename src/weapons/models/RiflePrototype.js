@@ -120,13 +120,22 @@ export class PrototypePhysics {
     this.boltCycle = 1;
     this.boltOpen = false;
     this.boltOpenAmt = 0;
+    this.closeDelay = 0;
     this.flashTimer = 0;
   }
 
   onFire(ammo = 30) {
-    this.isReloading = false;
     // 1. Ciclo de blowback (aciona o ferrolho e o novo charging handle esquerdo)
     this.boltCycle = 0;
+
+    if (ammo <= 0) {
+      // Chegou em zero: trava em openbolt imediatamente e agenda fechamento para 0.2s após o fim do reload
+      this.boltOpen = true;
+      this.closeDelay = 0.20;
+    } else {
+      this.boltOpen = false;
+      this.closeDelay = 0;
+    }
 
     // 2. Impulso de recuo (valores balanceados)
     this.recoil = Math.min(this.recoil + 0.42, 1.15);
@@ -146,31 +155,40 @@ export class PrototypePhysics {
   }
 
   onReload() {
-    this.boltOpen = false;
-    this.isReloading = true;
+    // Mantém o ferrolho aberto durante toda a animação de recarga para fechar 0.2s após a arma subir de volta
+    if (this.boltOpen) {
+      this.closeDelay = 0.20;
+    }
   }
 
   update(dt, camera, ammo = 30) {
-    if (ammo > 0) {
-      this.isReloading = false;
+    // Se a munição estiver zerada, garante trava em openbolt
+    if (ammo <= 0 && !this.boltOpen) {
+      this.boltOpen = true;
+      this.closeDelay = 0.20;
+    }
+
+    // 0.2s após a animação de reload terminar (ammo > 0 e arma de volta na tela), fecha o ferrolho na cara do jogador
+    if (this.boltOpen && ammo > 0) {
+      if (this.closeDelay > 0) {
+        this.closeDelay -= dt;
+      } else {
+        this.boltOpen = false;
+      }
     }
 
     /* ---- blowback do ferrolho e do charging handle ---- */
     if (this.boltCycle < 1) {
       this.boltCycle = Math.min(1, this.boltCycle + dt / 0.085);
     }
-    // Retém do ferrolho trava aberto quando sem munição (apenas se não estiver recarregando)
-    if (this.boltCycle >= 1 && ammo <= 0 && !this.boltOpen && !this.isReloading) {
-      this.boltOpen = true;
-    }
     const targetOpen = this.boltOpen ? 1 : 0;
-    this.boltOpenAmt += (targetOpen - this.boltOpenAmt) * (1 - Math.exp(-dt * 13));
+    this.boltOpenAmt += (targetOpen - this.boltOpenAmt) * (1 - Math.exp(-dt * 16));
 
     const cycleOff = this.boltCycle < 1
       ? -0.085 * Math.sin(Math.PI * this.boltCycle)
       : 0;
     const openOff = -0.085 * this.boltOpenAmt;
-    const boltOffset = cycleOff + openOff;
+    const boltOffset = Math.min(cycleOff, openOff);
 
     this.bolt.position.x = boltOffset;
 

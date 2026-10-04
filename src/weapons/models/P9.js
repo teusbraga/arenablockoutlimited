@@ -40,13 +40,22 @@ export class P9Physics {
     this.slideCycle = 1;
     this.slideOpen = false;
     this.slideOpenAmt = 0;
+    this.closeDelay = 0;
     this.flashTimer = 0;
   }
 
   onFire(ammo = 12) {
-    this.isReloading = false;
     // 1. Inicia ciclo seco e rápido de blowback do ferrolho
     this.slideCycle = 0;
+
+    if (ammo <= 0) {
+      // Chegou em zero: trava em openbolt imediatamente e agenda fechamento para 0.2s após o fim do reload
+      this.slideOpen = true;
+      this.closeDelay = 0.20;
+    } else {
+      this.slideOpen = false;
+      this.closeDelay = 0;
+    }
 
     // 2. Impulso de recuo elástico e muzzle flip
     this.recoil = Math.min(this.recoil + 0.38, 1.0);
@@ -69,24 +78,31 @@ export class P9Physics {
   }
 
   onReload() {
-    // Ao recarregar, destrava o retém do ferrolho e avança o slide para a frente
-    this.slideOpen = false;
-    this.isReloading = true;
+    // Mantém o slide aberto durante toda a animação de recarga para fechar 0.2s após a arma subir de volta
+    if (this.slideOpen) {
+      this.closeDelay = 0.20;
+    }
   }
 
   update(dt, camera, ammo = 12) {
-    if (ammo > 0) {
-      this.isReloading = false;
+    // Se a munição estiver zerada, garante trava em openbolt
+    if (ammo <= 0 && !this.slideOpen) {
+      this.slideOpen = true;
+      this.closeDelay = 0.20;
+    }
+
+    // 0.2s após a animação de reload terminar (ammo > 0 e arma de volta na tela), fecha o slide na cara do jogador
+    if (this.slideOpen && ammo > 0) {
+      if (this.closeDelay > 0) {
+        this.closeDelay -= dt;
+      } else {
+        this.slideOpen = false;
+      }
     }
 
     // ---- 1. Blowback do Ferrolho e Slide Racker ----
     if (this.slideCycle < 1) {
       this.slideCycle = Math.min(1, this.slideCycle + dt / 0.070);
-    }
-
-    // Trava aberta (Slide Lock) no último disparo quando esgotar a munição (apenas se não estiver recarregando)
-    if (this.slideCycle >= 1 && ammo <= 0 && !this.slideOpen && !this.isReloading) {
-      this.slideOpen = true;
     }
     const targetOpen = this.slideOpen ? 1 : 0;
     this.slideOpenAmt += (targetOpen - this.slideOpenAmt) * (1 - Math.exp(-dt * 18));
@@ -97,7 +113,7 @@ export class P9Physics {
       ? slideTravel * Math.sin(Math.PI * this.slideCycle)
       : 0;
     const openOff = slideTravel * this.slideOpenAmt;
-    this.slide.position.z = cycleOff + openOff;
+    this.slide.position.z = Math.max(cycleOff, openOff);
 
     // ---- 2. Recoil elástico da Pistola (Muzzle Climb) ----
     const recoilDecay = 1 - Math.exp(-dt * 7.5);
