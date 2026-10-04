@@ -288,8 +288,8 @@ export function buildWinchester1912() {
   barrel.rotation.x = Math.PI / 2;
   barrel.position.set(0, 0.024, -0.350);
 
-  // Cone simulando a espessura da câmara interna
-  const chamberCone = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.029, 0.04, 18), M_W12_STEEL);
+  // Cone simulando a espessura da câmara interna (Parte mais grossa na culatra)
+  const chamberCone = new THREE.Mesh(new THREE.CylinderGeometry(0.029, 0.024, 0.04, 18), M_W12_STEEL);
   chamberCone.rotation.x = Math.PI / 2;
   chamberCone.position.set(0, 0.024, -0.100);
   g.add(chamberCone);
