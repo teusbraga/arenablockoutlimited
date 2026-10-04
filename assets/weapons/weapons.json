@@ -256,7 +256,7 @@
       "damageHead": 28,
       "pellets": 7,
       "pelletSpread": 0.10,
-      "fireInterval": 0.4,
+      "fireInterval": 0.65,
       "magSize": 6,
       "reloadTime": 2.5,
       "spreadHip": 0.020,

@@ -83,80 +83,173 @@ export class M12Physics {
     this.basePumpZ = basePumpZ;
     this.baseBoltZ = baseBoltZ;
 
-    this.pumpTimer = 0;
-    this.isPumping = false;
+    this.state = 'IDLE'; 
+    this.timer = 0;
+    
+    this.recoilY = 0; 
+    this.recoilZ = 0; 
+    this.maxSlide = 0.08; 
 
-    this.playedBack = false;
-    this.playedForward = false;
-    this.shake = 0;
-    this.recoil = 0;
+    this.playedClick = false;
+    this.playedClack = false;
+    this.ejectedCase = false;
+    this.lastAmmo = -1;
   }
 
   onFire(ammo) {
-    this.isPumping = true;
-    this.pumpTimer = 0;
-    this.playedBack = false;
-    this.playedForward = false;
-    this.shake = 0.35; // Mais trepidação
-    this.recoil = 1.0; // Coice violento
+    if (this.state === 'RELOAD_HOLD' || this.state === 'RELOAD_BACK' || this.state === 'RELOAD_FWD') return;
+    
+    this.state = 'RECOIL';
+    this.timer = 0;
+    
+    // Muzzle flip: Sobe rápido e desce devagar
+    this.recoilZ = 1.0; 
+    this.recoilY = 1.0;
+
+    this.playedClick = false;
+    this.playedClack = false;
+    this.ejectedCase = false;
   }
 
-  onReload() {}
+  onReload() {
+    this.state = 'RELOAD_BACK';
+    this.timer = 0;
+    this.playedClick = false;
+    this.playedClack = false;
+  }
 
   update(dt, camera, ammo) {
-    if (this.shake > 0) this.shake = Math.max(0, this.shake - dt * 2.5);
-    if (this.recoil > 0) this.recoil = Math.max(0, this.recoil - dt * 6.0); // Retorna rápido
-
-    // Aplica o recoil visual (muzzle flip) na arma inteira
+    // FÍSICA DE RECUO INDEPENDENTE DA TELHA (SEMPRE APLICADA)
+    if (this.recoilZ > 0) this.recoilZ = Math.max(0, this.recoilZ - dt * 8.0); // Z kick recover fast
+    if (this.recoilY > 0) this.recoilY = Math.max(0, this.recoilY - dt * 4.0); // Y flip recover slow
+    
     if (this.gun) {
-      this.gun.position.z = this.recoil * 0.025;
-      this.gun.rotation.x = this.recoil * 0.12;
+      this.gun.position.z = this.recoilZ * 0.035; 
+      this.gun.rotation.x = this.recoilY * 0.15;  
     }
 
-    if (!this.isPumping) return;
-
-    this.pumpTimer += dt;
     let slideOffset = 0;
-    const maxSlide = 0.070; // Curso do pump mais longo e agressivo
 
-    const delay = 0.14; // Tempo parado no ombro sentindo o recuo
-    const backTime = 0.18; // Puxada rápida para ejetar
-    const fwdTime = 0.16; // Empurrada forte para carregar nova
+    // DETECÇÃO DE TÉRMINO DO RELOAD: A munição aumentou (ou encheu) e a telha estava travada atrás
+    if (this.lastAmmo !== -1 && ammo > this.lastAmmo && this.state === 'RELOAD_HOLD') {
+      this.state = 'RELOAD_FWD';
+      this.timer = 0;
+    }
+    // Proteção: caso o reload seja cancelado de outra forma
+    if (this.state === 'RELOAD_HOLD' && ammo === this.lastAmmo) {
+      // continua no hold aguardando
+    }
+    this.lastAmmo = ammo;
 
-    if (this.pumpTimer < delay) {
-      // Fase 0: Recuo apenas
-      slideOffset = 0;
-    } else if (this.pumpTimer < delay + backTime) {
-      // Fase 1: Telha puxada para trás (Ejeta)
-      const t = (this.pumpTimer - delay) / backTime;
-      slideOffset = Math.sin(t * Math.PI * 0.5) * maxSlide;
+    // MÁQUINA DE ESTADOS RESTRITA
+    switch (this.state) {
+      case 'IDLE':
+        slideOffset = 0;
+        break;
 
-      if (t > 0.4 && !this.playedBack) {
-        this.playedBack = true;
-        emit('weapon:pump', { stage: 'back' });
-      }
-    } else if (this.pumpTimer < delay + backTime + fwdTime) {
-      // Fase 2: Telha empurrada para frente (Carrega)
-      const t = (this.pumpTimer - delay - backTime) / fwdTime;
-      slideOffset = (1.0 - Math.sin(t * Math.PI * 0.5)) * maxSlide;
+      case 'RECOIL':
+        slideOffset = 0;
+        // EXCLUSIVAMENTE APÓS O RECUO RESETAR (ex: y < 0.05) COMEÇA A TELHA
+        if (this.recoilY <= 0.05) { 
+          this.state = 'PUMP_BACK';
+          this.timer = 0;
+        }
+        break;
 
-      if (t > 0.6 && !this.playedForward) {
-        this.playedForward = true;
-        emit('weapon:pump', { stage: 'forward' });
-      }
-    } else {
-      // Fim da ação
-      this.isPumping = false;
-      slideOffset = 0;
+      case 'PUMP_BACK':
+        this.timer += dt;
+        const tBack = Math.min(this.timer / 0.10, 1.0); // Exatos 100ms
+        
+        slideOffset = this.easeInOutSine(tBack) * this.maxSlide;
+
+        if (tBack >= 1.0) {
+          this.state = 'PUMP_PAUSE';
+          this.timer = 0;
+        }
+        break;
+
+      case 'PUMP_PAUSE':
+        slideOffset = this.maxSlide;
+        
+        // Exclusivamente quando chega aqui e para: click + eject case
+        if (!this.playedClick) {
+          emit('weapon:pump', { stage: 'back' });
+          this.playedClick = true;
+        }
+        if (!this.ejectedCase) {
+          emit('weapon:eject_shell', { type: 'shotgun' });
+          this.ejectedCase = true;
+        }
+
+        this.timer += dt;
+        // Pausa de 100ms para cérebro processar a ejeção antes de avançar
+        if (this.timer >= 0.10) {
+          this.state = 'PUMP_FWD';
+          this.timer = 0;
+        }
+        break;
+
+      case 'PUMP_FWD':
+        this.timer += dt;
+        const tFwd = Math.min(this.timer / 0.15, 1.0); // Exatos 150ms
+        
+        slideOffset = (1.0 - this.easeInOutSine(tFwd)) * this.maxSlide;
+
+        if (tFwd >= 1.0) {
+          if (!this.playedClack) {
+            emit('weapon:pump', { stage: 'forward' });
+            this.playedClack = true;
+          }
+          this.state = 'IDLE';
+        }
+        break;
+
+      case 'RELOAD_BACK':
+        this.timer += dt;
+        const tRBack = Math.min(this.timer / 0.10, 1.0); // 100ms pra abrir no reload
+        slideOffset = this.easeInOutSine(tRBack) * this.maxSlide;
+        
+        if (tRBack >= 1.0) {
+          if (!this.playedClick) {
+            emit('weapon:pump', { stage: 'back' });
+            this.playedClick = true;
+          }
+          this.state = 'RELOAD_HOLD';
+        }
+        break;
+
+      case 'RELOAD_HOLD':
+        // Fica travada atrás durante toda a animação de colocar as balas no tubo
+        slideOffset = this.maxSlide;
+        break;
+        
+      case 'RELOAD_FWD':
+        this.timer += dt;
+        // Tempo de volta (100ms com clack no final)
+        const tRFwd = Math.min(this.timer / 0.10, 1.0);
+        slideOffset = (1.0 - this.easeInOutSine(tRFwd)) * this.maxSlide;
+        
+        if (tRFwd >= 1.0) {
+          if (!this.playedClack) {
+            emit('weapon:pump', { stage: 'forward' });
+            this.playedClack = true;
+          }
+          this.state = 'IDLE';
+        }
+        break;
     }
 
+    // APLICA O OFFSET VISUAL À TELHA E AO FERROLHO
     if (this.pumpHandle) {
       this.pumpHandle.position.z = this.basePumpZ + slideOffset;
     }
-
     if (this.bolt) {
-      this.bolt.position.z = this.baseBoltZ + slideOffset * 0.9;
+      this.bolt.position.z = this.baseBoltZ + slideOffset * 0.95;
     }
+  }
+
+  easeInOutSine(x) {
+    return -(Math.cos(Math.PI * x) - 1) / 2;
   }
 }
 
