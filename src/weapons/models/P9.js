@@ -241,9 +241,10 @@ export function buildP9() {
   chamber.position.set(0.004, 0.021, -0.010);
 
   // Cano usinado de aço (fica fixo na armação; o slide desliza sobre ele)
-  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.0068, 0.0068, 0.020, 14), M_BARREL_STEEL);
+  // Comprimento estendido para trás para manter a imersão com o ferrolho aberto
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.0068, 0.0068, 0.100, 14), M_BARREL_STEEL);
   barrel.rotation.x = Math.PI / 2;
-  barrel.position.set(0, 0.014, -0.103);
+  barrel.position.set(0, 0.014, -0.063);
 
   // Orifício vazado do cano (Bore hole)
   const bore = new THREE.Mesh(new THREE.CylinderGeometry(0.0045, 0.0045, 0.006, 12), M_GRIP_PANEL);
