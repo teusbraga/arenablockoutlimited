@@ -236,6 +236,7 @@ export class HUD {
     const baseGapByWeapon = {
       'rifle_proto': 3.5,
       'ar15': 4.5,
+      'ak47': 5.5,
       'p9': 6.0,
       'uzi': 10.0,
       'm249': 12.0
