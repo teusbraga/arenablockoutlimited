@@ -234,13 +234,13 @@ export function buildM249() {
   bipodFootR.position.set(0.024, -0.012, -0.18);
 
   // 9. MIRAS DE FERRO M249 MILITARES
-  // Alça de mira traseira rebaixada para permitir visão limpa (estilo HK416)
+  // Alça de mira traseira ajustável (aperture leaf / drum)
   const rearSightBase = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.014, 0.028), M_RECEIVER_PARK);
-  rearSightBase.position.set(0, 0.045, 0.025);
+  rearSightBase.position.set(0, 0.070, 0.025);
 
   const rearSightAperture = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.014, 10), M_STEEL_DARK);
   rearSightAperture.rotation.x = Math.PI / 2;
-  rearSightAperture.position.set(0, 0.057, 0.025);
+  rearSightAperture.position.set(0, 0.082, 0.025);
 
   // Massa de mira frontal militar com anel protetor (Hooded front sight)
   const frontSightBase = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.028, 0.018), M_RECEIVER_PARK);
