@@ -129,7 +129,7 @@ export function buildAK47() {
      ========================================================= */
   const grip = new THREE.Group();
   grip.position.set(0, -0.012, 0.050);
-  grip.rotation.x = 0.32; // Ângulo para trás
+  grip.rotation.x = -0.22; // Inclinado para trás (na direção do buttstock)
 
   // Fixador metálico superior
   const gripFerrule = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.008, 0.038), M_AK_STEEL);
