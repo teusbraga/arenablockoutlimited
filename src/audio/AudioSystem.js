@@ -98,6 +98,51 @@ export class AudioSystem {
     osc.start(t); osc.stop(t + 0.16);
   }
 
+  playMagnumBoom() {
+    const ctx = this._ensure();
+    if (!ctx) return;
+    this.initNoiseBuffer();
+    const t = ctx.currentTime;
+
+    // 1. Onda de choque com filtro passa-baixa ressonante
+    if (this.noiseBuffer) {
+      const src = ctx.createBufferSource();
+      src.buffer = this.noiseBuffer;
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.setValueAtTime(3200, t);
+      lp.frequency.exponentialRampToValueAtTime(160, t + 0.38);
+      lp.Q.value = 3.5;
+      const gNoise = ctx.createGain();
+      gNoise.gain.setValueAtTime(0.50, t);
+      gNoise.gain.exponentialRampToValueAtTime(0.0005, t + 0.40);
+      src.connect(lp); lp.connect(gNoise); gNoise.connect(ctx.destination);
+      src.start(t);
+    }
+
+    // 2. Sub-bass boom dramático e estrondoso (130Hz -> 25Hz)
+    const subOsc = ctx.createOscillator();
+    subOsc.type = 'sine';
+    subOsc.frequency.setValueAtTime(130, t);
+    subOsc.frequency.exponentialRampToValueAtTime(25, t + 0.45);
+    const gSub = ctx.createGain();
+    gSub.gain.setValueAtTime(0.58, t);
+    gSub.gain.exponentialRampToValueAtTime(0.0005, t + 0.48);
+    subOsc.connect(gSub); gSub.connect(ctx.destination);
+    subOsc.start(t); subOsc.stop(t + 0.50);
+
+    // 3. Estalo violento da detonação da pólvora Magnum
+    const punchOsc = ctx.createOscillator();
+    punchOsc.type = 'sawtooth';
+    punchOsc.frequency.setValueAtTime(280, t);
+    punchOsc.frequency.exponentialRampToValueAtTime(38, t + 0.14);
+    const gPunch = ctx.createGain();
+    gPunch.gain.setValueAtTime(0.36, t);
+    gPunch.gain.exponentialRampToValueAtTime(0.0005, t + 0.16);
+    punchOsc.connect(gPunch); gPunch.connect(ctx.destination);
+    punchOsc.start(t); punchOsc.stop(t + 0.18);
+  }
+
   playClickSound(freq = 900, vol = 0.08) {
     const ctx = this._ensure();
     if (!ctx) return;
@@ -124,6 +169,10 @@ export class AudioSystem {
     on('weapon:fired', e => {
       if (e.weapon?.id === 'rifle_proto' || e.weapon?.audioKey === 'shot_proto') {
         this.playPrototypeShot();
+        return;
+      }
+      if (e.weapon?.id === 'sw500' || e.weapon?.audioKey === 'shot_sw500') {
+        this.playMagnumBoom();
         return;
       }
       const key = e.weapon?.audioKey || (e.weapon?.id === 'p9' ? 'shot_p9' : 'shot_hk416');

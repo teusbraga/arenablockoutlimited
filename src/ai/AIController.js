@@ -147,7 +147,7 @@ export class AIController {
   }
 
   _fire(player, dist) {
-    const muzzleLocal = new THREE.Vector3(0, 1.4, 0.4); // Cano teórico do bot
+    const muzzleLocal = new THREE.Vector3(0.10, 1.03, 0.85); // Cano da arma do bot
     const botQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), this.bot.yaw);
     const muzzleWorld = this.bot.pos.clone().add(muzzleLocal.applyQuaternion(botQuat));
 

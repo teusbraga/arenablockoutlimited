@@ -298,10 +298,13 @@ export class WeaponSystem {
     const muzzleLocal = new THREE.Vector3(mz[0], mz[1], mz[2]);
     const muzzleWorld = this.viewmodel.mount.localToWorld(muzzleLocal.clone());
 
-    // Ponto de ejeção do estojo vazio em coordenadas de mundo (baseado na janela da arma)
-    const ej = def.ejectLocal || [0.02, 0.02, -0.06];
-    const ejectLocal = new THREE.Vector3(ej[0], ej[1], ej[2]);
-    const ejectWorld = this.viewmodel.mount.localToWorld(ejectLocal.clone());
+    // Ponto de ejeção do estojo vazio em coordenadas de mundo (apenas para armas com ejeção de cartucho)
+    let ejectWorld = null;
+    if (def.ejectCasings !== false) {
+      const ej = def.ejectLocal || [0.02, 0.02, -0.06];
+      const ejectLocal = new THREE.Vector3(ej[0], ej[1], ej[2]);
+      ejectWorld = this.viewmodel.mount.localToWorld(ejectLocal.clone());
+    }
 
     emit('weapon:fired', {
       weapon: def,

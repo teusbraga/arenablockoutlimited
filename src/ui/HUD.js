@@ -235,6 +235,7 @@ export class HUD {
     // Armas de alta dispersão (UZI, M249) têm crosshairs mais abertas.
     const baseGapByWeapon = {
       'rifle_proto': 3.5,
+      'sw500': 4.0,
       'ar15': 4.5,
       'ak47': 5.5,
       'p9': 6.0,
