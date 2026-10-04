@@ -5,9 +5,10 @@ import { buildP9 } from './models/P9.js';
 import { buildUZI } from './models/UZI.js';
 import { buildM249 } from './models/M249.js';
 import { buildRiflePrototype } from './models/RiflePrototype.js';
+import { buildAK47 } from './models/AK47.js';
 
 // Re-exporta construtores para compatibilidade com main.js / WeaponRegistry
-export { buildHK416, buildHK416 as buildAR15, buildP9, buildUZI, buildM249, buildRiflePrototype };
+export { buildHK416, buildHK416 as buildAR15, buildP9, buildUZI, buildM249, buildRiflePrototype, buildAK47 };
 
 /**
  * Viewmodel: Gerenciador de pose, física de mola (sway), recuo e animações da arma em 1ª pessoa.

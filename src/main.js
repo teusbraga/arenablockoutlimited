@@ -8,7 +8,7 @@ import { GameManager } from './core/GameManager.js';
 
 import { loadMap } from './world/MapLoader.js';
 import { Player } from './entities/Player.js';
-import { Viewmodel, buildHK416, buildP9, buildUZI, buildM249, buildRiflePrototype } from './weapons/Viewmodel.js';
+import { Viewmodel, buildHK416, buildP9, buildUZI, buildM249, buildRiflePrototype, buildAK47 } from './weapons/Viewmodel.js';
 import { WeaponSystem } from './weapons/WeaponSystem.js';
 import { initWeaponsFromData } from './weapons/WeaponDefs.js';
 import { Effects } from './fx/Effects.js';
@@ -109,6 +109,7 @@ const effects = new Effects(scene);
     // 3. Inicializa Viewmodel e Registra Modelos
     const viewmodel = new Viewmodel(camera);
     viewmodel.registerModel('ar15', buildHK416); // Monumento HK416
+    viewmodel.registerModel('ak47', buildAK47);
     viewmodel.registerModel('p9', buildP9);
     viewmodel.registerModel('uzi', buildUZI);
     viewmodel.registerModel('m249', buildM249);
