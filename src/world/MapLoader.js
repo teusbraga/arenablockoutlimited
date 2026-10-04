@@ -16,6 +16,13 @@ const MATERIALS = {
   dirt:          () => new THREE.MeshStandardMaterial({ color: 0x8a7051, roughness: 0.95 }),
   grass:         () => new THREE.MeshStandardMaterial({ color: 0x4d7c3d, roughness: 0.92 }),
   floor:         () => new THREE.MeshStandardMaterial({ color: 0x2b2f32, roughness: 0.95 }),
+  sand:          () => new THREE.MeshStandardMaterial({ color: 0xd4b27d, roughness: 0.95 }),
+  sand_dark:     () => new THREE.MeshStandardMaterial({ color: 0xb59363, roughness: 0.95 }),
+  sandstone:     () => new THREE.MeshStandardMaterial({ color: 0xdeb887, roughness: 0.88 }),
+  plaster_light: () => new THREE.MeshStandardMaterial({ color: 0xebd9be, roughness: 0.85 }),
+  fabric_red:    () => new THREE.MeshStandardMaterial({ color: 0x9c332b, roughness: 0.85 }),
+  fabric_green:  () => new THREE.MeshStandardMaterial({ color: 0x2e6648, roughness: 0.85 }),
+  metal_barrel:  () => new THREE.MeshStandardMaterial({ color: 0x3d5a80, roughness: 0.45, metalness: 0.6 }),
 };
 
 export async function loadMap(url, scene) {
