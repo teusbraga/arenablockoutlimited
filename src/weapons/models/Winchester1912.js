@@ -177,7 +177,22 @@ export class M12Physics {
           this.playedClick = true;
         }
         if (!this.ejectedCase) {
-          emit('weapon:eject_shell', { type: 'shotgun' });
+          // Calcula vetores e posições no mundo baseados na câmera e na arma
+          if (camera) {
+            const right = new THREE.Vector3();
+            const up = new THREE.Vector3();
+            const forward = new THREE.Vector3();
+            camera.getWorldDirection(forward);
+            right.crossVectors(forward, camera.up).normalize();
+            up.crossVectors(right, forward).normalize();
+            
+            const ejectLocal = new THREE.Vector3(0.022, 0.022, -0.01);
+            const ejectWorld = this.gun.localToWorld(ejectLocal);
+            
+            emit('weapon:manual_eject_fx', { 
+              ejectWorld, right, up, forward, isShotgun: true 
+            });
+          }
           this.ejectedCase = true;
         }
 

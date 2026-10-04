@@ -142,8 +142,8 @@ export class Effects {
       this._spawnImpact(p, 0xc4504a, 14);
     });
     on('weapon:fired', e => {
-      // Ejeção do cartucho vazio em todas as armas
-      if (e.ejectWorld && e.right && e.up) {
+      // Ejeção do cartucho vazio em todas as armas (Ignora m12 que tem ejeção manual)
+      if (e.ejectWorld && e.right && e.up && e.weapon?.id !== 'm12') {
         const isShotgun = (e.weapon?.casingType === 'shotgun' || e.weapon?.id === 'm12');
         this._spawnCasing(e.ejectWorld, e.right, e.up, e.forward, isShotgun);
       }
@@ -156,6 +156,12 @@ export class Effects {
       }
       const opacity = e.weapon?.smokeConeOpacity ?? 0.06;
       this._spawnMuzzleSmoke(e.muzzleWorld, e.forward, opacity);
+    });
+
+    on('weapon:manual_eject_fx', e => {
+      if (e.ejectWorld && e.right && e.up) {
+        this._spawnCasing(e.ejectWorld, e.right, e.up, e.forward, e.isShotgun);
+      }
     });
     on('weapon:smoke:residual', e => {
       if (!e.muzzleWorld || !e.count) return;
