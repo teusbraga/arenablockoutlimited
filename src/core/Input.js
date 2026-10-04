@@ -78,6 +78,7 @@ export class Input {
       const action = this.bindings[e.code];
       if (action) {
         this.actions[action] = false;
+        this._actionQueue.delete(action);
         e.preventDefault();
       }
     });
@@ -106,7 +107,10 @@ export class Input {
     addEventListener('mouseup', e => {
       const code = `Mouse${e.button}`;
       const action = this.bindings[code];
-      if (action) this.actions[action] = false;
+      if (action) {
+        this.actions[action] = false;
+        this._actionQueue.delete(action);
+      }
     });
 
     this.canvas.addEventListener('contextmenu', e => e.preventDefault());

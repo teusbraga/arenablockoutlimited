@@ -62,6 +62,7 @@ export class WeaponSystem {
     this.ammo = this.ammoByWeapon[id];
     this.reloading = false;
     this.reloadT = 0;
+    this.input?.consumeAction('fire');
     this.viewmodel.equip(id);
     emit('weapon:equipped', { id, name: WEAPONS[id].name, fireMode: this.fireModeByWeapon[id] });
     emit('weapon:ammo', { ammo: this.ammo, max: WEAPONS[id].magSize });
@@ -76,6 +77,7 @@ export class WeaponSystem {
     const cur = this.fireModeByWeapon[this.current] || modes[0];
     const nextIdx = (modes.indexOf(cur) + 1) % modes.length;
     this.fireModeByWeapon[this.current] = modes[nextIdx];
+    this.input?.consumeAction('fire');
     emit('weapon:firemode', { fireMode: this.fireModeByWeapon[this.current], canToggle: true });
     emit('notification', { message: `Modo de Disparo: ${this.fireModeByWeapon[this.current].toUpperCase()}` });
   }
@@ -97,6 +99,7 @@ export class WeaponSystem {
     if (this.reloading || this.ammo === this.def.magSize) return;
     this.reloading = true;
     this.reloadT = 0;
+    this.input?.consumeAction('fire');
     this.viewmodel.triggerReload();
     emit('weapon:reload:start');
   }
@@ -157,10 +160,14 @@ export class WeaponSystem {
       if (this.fireStreak < 0.01) this.fireStreak = 0;
     }
 
-    if (!this.player.alive || this.reloading) return;
+    if (!this.player.alive || this.reloading) {
+      this.input.consumeAction('fire');
+      return;
+    }
 
     const isAutomatic = this.isAuto;
-    const wantsFire = isAutomatic ? this.input.actions.fire : this.input.consumeAction('fire');
+    const queuedFire = this.input.consumeAction('fire');
+    const wantsFire = isAutomatic ? this.input.actions.fire : queuedFire;
     if (wantsFire && this.fireCooldown <= 0 && this.ammo > 0 && !this.player.sprinting) {
       this._fire();
       this.ammoByWeapon[this.current] = this.ammo;
