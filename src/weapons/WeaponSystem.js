@@ -266,12 +266,13 @@ export class WeaponSystem {
     const kickbackZ = def.kickbackZ ?? (def.id === 'm249' ? 0.010 : def.id === 'uzi' ? 0.006 : 0.008);
 
     if (this.player.rig) {
+      const climbRatio = 0.30;
       if (isProto) {
-        // Rifle Proto: no ADS e no Hipfire, o solavanco da câmera externa é nulo (100% firme e estável).
-        // O tremor elástico e recuo visual pertencem exclusivamente ao scope (no ADS) e ao modelo 3D da arma.
+        // Rifle Proto: aplica a subida contínua da mira/câmera no spray (climbPitch e climbYaw),
+        // preservando as animações exclusivas do modelo 3D e do scope.
         this.player.rig.addRecoilImpulse({
-          climbPitch: 0,
-          climbYaw: 0,
+          climbPitch: pitchAdd * climbRatio,
+          climbYaw: yawAdd,
           punchPitch: 0,
           punchYaw: 0,
           punchRoll: 0,
@@ -281,7 +282,6 @@ export class WeaponSystem {
         });
       } else {
         // Armas clássicas: parte permanente (climb) e parte elástica (punch que retorna com mola)
-        const climbRatio = 0.30;
         this.player.rig.addRecoilImpulse({
           climbPitch: pitchAdd * climbRatio,
           climbYaw: yawAdd,
