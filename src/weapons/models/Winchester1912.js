@@ -175,6 +175,11 @@ export function buildWinchester1912() {
   receiverTop.rotation.x = Math.PI / 2;
   receiverTop.position.set(0, 0.036, -0.01);
 
+  // Esfera para suavizar a quebra do cilindro traseiro
+  const receiverSphere = new THREE.Mesh(new THREE.SphereGeometry(0.019, 16, 16), M_W12_RECEIVER);
+  receiverSphere.position.set(0, 0.036, 0.08);
+  g.add(receiverSphere);
+
   // Sulco de visada ao longo do topo do receptor (Sighting Groove)
   const sightGroove = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.003, 0.16), M_W12_STEEL_DARK);
   sightGroove.position.set(0, 0.046, -0.01);
@@ -278,10 +283,16 @@ export function buildWinchester1912() {
   magCap.rotation.x = Math.PI / 2;
   magCap.position.set(0, 0.005, -0.535);
 
-  // Cano principal em aço de 20" (Shotgun Barrel)
-  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.48, 18), M_W12_STEEL);
+  // Cano principal em aço grosso ("bull barrel")
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.46, 18), M_W12_STEEL);
   barrel.rotation.x = Math.PI / 2;
-  barrel.position.set(0, 0.024, -0.340);
+  barrel.position.set(0, 0.024, -0.350);
+
+  // Cone simulando a espessura da câmara interna
+  const chamberCone = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.021, 0.04, 18), M_W12_STEEL);
+  chamberCone.rotation.x = Math.PI / 2;
+  chamberCone.position.set(0, 0.024, -0.100);
+  g.add(chamberCone);
 
   /* =========================================================
      4. TELHA MÓVEL "CORNOCOB" (PUMP FOREND ANIMADO)
@@ -316,31 +327,26 @@ export function buildWinchester1912() {
   pumpGroup.add(actionBar);
 
   /* =========================================================
-     5. ESCUDO TÉRMICO PERFURADO (PERFORATED HEAT SHIELD)
+     5. ANÉIS DE RETENÇÃO (TORUS) E MASSA DE MIRA
      ========================================================= */
-  const heatShieldGroup = new THREE.Group();
-  heatShieldGroup.position.set(0, 0.025, -0.425);
+  const frontRingsGroup = new THREE.Group();
+  
+  // Anéis toroidais no cano simulando braçadeiras de retenção
+  const ring1 = new THREE.Mesh(new THREE.TorusGeometry(0.0165, 0.003, 8, 20), M_W12_STEEL_DARK);
+  ring1.position.set(0, 0.024, -0.480);
+  const ring2 = new THREE.Mesh(new THREE.TorusGeometry(0.0165, 0.003, 8, 20), M_W12_STEEL_DARK);
+  ring2.position.set(0, 0.024, -0.520);
+  frontRingsGroup.add(ring1, ring2);
 
-  const shieldLength = 0.22;
-  // Capa protetora superior grossa de aço liso (Smooth thick barrel shroud)
-  const shieldMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.0175, 0.0175, shieldLength, 18, 1, true, -Math.PI * 0.70, Math.PI * 1.4), M_W12_STEEL_DARK);
-  shieldMesh.rotation.x = Math.PI / 2;
-  shieldMesh.material.side = THREE.DoubleSide; 
-  heatShieldGroup.add(shieldMesh);
-
-  // Braçadeiras metálicas traseira e dianteira de retenção do escudo térmico
-  const rearBand = new THREE.Mesh(new THREE.CylinderGeometry(0.0185, 0.0185, 0.012, 18), M_W12_STEEL_DARK);
-  rearBand.rotation.x = Math.PI / 2;
-  rearBand.position.set(0, 0, shieldLength * 0.5 - 0.006);
-  heatShieldGroup.add(rearBand);
-
-  const frontBand = new THREE.Mesh(new THREE.CylinderGeometry(0.0185, 0.0185, 0.012, 18), M_W12_STEEL_DARK);
-  frontBand.rotation.x = Math.PI / 2;
-  frontBand.position.set(0, 0, -shieldLength * 0.5 + 0.006);
-  heatShieldGroup.add(frontBand);
+  // Massa de mira proeminente (Poste + Esfera)
+  const frontSightBase = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.012, 0.010), M_W12_STEEL_DARK);
+  frontSightBase.position.set(0, 0.045, -0.560);
+  const frontBead = new THREE.Mesh(new THREE.SphereGeometry(0.003, 8, 8), M_W12_BEAD);
+  frontBead.position.set(0, 0.052, -0.560);
+  frontRingsGroup.add(frontSightBase, frontBead);
 
   /* =========================================================
-     6. ADAPTADOR FRONTAL DE TRINCHEIRA & MASSA DE MIRA
+     6. ADAPTADOR FRONTAL DE TRINCHEIRA
      ========================================================= */
   const muzzleAssembly = new THREE.Group();
   muzzleAssembly.position.set(0, 0.015, -0.555);
@@ -361,21 +367,15 @@ export function buildWinchester1912() {
   muzzleAssembly.add(frontSwivelLoop);
 
   // Boca do cano calibre 12 (12-gauge muzzle opening)
-  const muzzleTip = new THREE.Mesh(new THREE.CylinderGeometry(0.0105, 0.0105, 0.025, 16), M_W12_STEEL_DARK);
+  const muzzleTip = new THREE.Mesh(new THREE.CylinderGeometry(0.0155, 0.0155, 0.025, 16), M_W12_STEEL_DARK);
   muzzleTip.rotation.x = Math.PI / 2;
   muzzleTip.position.set(0, 0.009, -0.022);
   muzzleAssembly.add(muzzleTip);
 
-  const boreHole = new THREE.Mesh(new THREE.CylinderGeometry(0.0072, 0.0072, 0.010, 12), M_W12_STEEL_DARK);
+  const boreHole = new THREE.Mesh(new THREE.CylinderGeometry(0.0095, 0.0095, 0.010, 12), M_W12_STEEL_DARK);
   boreHole.rotation.x = Math.PI / 2;
   boreHole.position.set(0, 0.009, -0.033);
   muzzleAssembly.add(boreHole);
-
-  // Massa de mira esférica em latão polido (Brass Bead Front Sight)
-  // Alinhada exatamente em X=0, Y=0.038, Z=-0.565 para visada ADS precisa
-  const beadSight = new THREE.Mesh(new THREE.SphereGeometry(0.0024, 8, 8), M_W12_BEAD);
-  beadSight.position.set(0, 0.023, -0.010);
-  muzzleAssembly.add(beadSight);
 
   /* =========================================================
      7. MONTAGEM FINAL DO GRUPO
@@ -384,7 +384,7 @@ export function buildWinchester1912() {
     receiver, receiverTop, sightGroove, ejectPort, bolt, takedownRing,
     tgLoop, tgFront, tgRear, trigger,
     stock, magTube, magCap, barrel,
-    pumpGroup, heatShieldGroup, muzzleAssembly
+    pumpGroup, frontRingsGroup, muzzleAssembly
   );
 
   g.traverse(o => {
