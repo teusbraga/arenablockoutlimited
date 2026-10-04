@@ -343,6 +343,9 @@
   #btn-touch-interact {
     right: 80px; top: 76px; width: 46px; height: 46px; font-size: 11px; border-radius: 6px;
   }
+  #btn-touch-firemode {
+    right: 80px; top: 22px; width: 46px; height: 46px; font-size: 10px; border-radius: 6px;
+  }
   #btn-touch-pause {
     left: 16px; top: 16px; width: 44px; height: 44px; font-size: 16px; border-radius: 8px;
     background: rgba(18,22,26,0.85); border-color: rgba(255,255,255,0.3);
@@ -365,14 +368,40 @@
   /* Compactação para telas menores / celulares */
   @media (max-width: 900px) {
     #controls { display: none !important; }
-    #score-hud { right: 14px; top: 12px; gap: 8px; }
+    #score-hud { right: 14px; top: 12px; gap: 8px; padding: 4px 10px; }
     .score-val { font-size: 16px; }
-    #round-timer-hud { top: 12px; }
+    #round-timer-hud { top: 12px; padding: 4px 10px; }
     #round-timer { font-size: 18px !important; }
     #killfeed { top: 12px; left: 14px; }
     #hp-hud { bottom: 12px; }
+    #hp-hud #hp-num { font-size: 22px; }
     #weapon-hud { right: 14px; bottom: 14px; }
     .ammo-counter-row { font-size: 22px; }
+
+    /* Touch Controls - Ergonomia Mobile */
+    #btn-touch-fire { right: 65px; bottom: 55px; width: 68px; height: 68px; font-size: 13px; }
+    #btn-touch-ads { right: 145px; bottom: 85px; width: 50px; height: 50px; font-size: 11px; }
+    #btn-touch-jump { right: 12px; bottom: 140px; width: 48px; height: 48px; font-size: 11px; }
+    #btn-touch-crouch { right: 12px; bottom: 75px; width: 46px; height: 46px; font-size: 10px; }
+    #btn-touch-reload { right: 145px; bottom: 25px; width: 46px; height: 46px; font-size: 10px; }
+    #btn-touch-cycle { right: 14px; top: 60px; width: 42px; height: 42px; font-size: 10px; }
+    #btn-touch-interact { right: 64px; top: 60px; width: 42px; height: 42px; font-size: 10px; }
+    #btn-touch-firemode { right: 64px; top: 12px; width: 42px; height: 42px; font-size: 9px; }
+    #btn-touch-pause { left: 12px; top: 12px; width: 38px; height: 38px; font-size: 14px; }
+  }
+
+  /* Landscape em Celulares (Altura Reduzida) - Essencial para Menus */
+  @media (max-height: 500px) {
+    .menu-logo { max-height: 65px; }
+    .menu-logo-wrap { margin-bottom: 6px; }
+    #overlay .menu-instructions { display: none; }
+    #overlay .menu-options-grid { gap: 5px; max-width: 360px; }
+    #overlay .menu-option select { padding: 2px 6px; min-width: 160px; }
+    #overlay .menu-option input[type="range"] { width: 100px; }
+    #overlay .cta { margin-top: 10px; padding: 8px 24px; }
+    #kill-popup { font-size: 32px; top: 30%; }
+    #death-screen h2 { font-size: 26px; margin-bottom: 4px; }
+    #roundover-screen h2 { font-size: 32px; }
   }
 </style>
 </head>
@@ -476,7 +505,7 @@
   <button id="btn-touch-crouch" class="touch-btn">AGACHA</button>
   <button id="btn-touch-reload" class="touch-btn">RELOAD</button>
   <button id="btn-touch-cycle" class="touch-btn">ARMA</button>
-  <button id="btn-touch-firemode" class="touch-btn" style="right: 80px; top: 22px; width: 46px; height: 46px; font-size: 10px; border-radius: 6px;">MODO</button>
+  <button id="btn-touch-firemode" class="touch-btn">MODO</button>
   <button id="btn-touch-interact" class="touch-btn">PORTA</button>
   <button id="btn-touch-pause" class="touch-btn">⏸</button>
 </div>
