@@ -1,0 +1,82 @@
+{
+  "name": "Vertigo Skyscraper",
+  "size": [74, 74],
+  "bounds": [-36, 36, -36, 36],
+  "floorMaterial": "concrete",
+  "environment": {
+    "fogColor": "#a5c2de",
+    "fogNear": 60,
+    "fogFar": 160
+  },
+  "staticGeometry": [
+    { "type": "wall", "pos": [  0, 0,  37], "size": [74, 1.2, 0.4], "material": "fence", "vaultable": false },
+    { "type": "wall", "pos": [  0, 0, -37], "size": [74, 1.2, 0.4], "material": "fence", "vaultable": false },
+    { "type": "wall", "pos": [-37, 0,   0], "size": [ 0.4, 1.2, 74], "material": "fence", "vaultable": false },
+    { "type": "wall", "pos": [ 37, 0,   0], "size": [ 0.4, 1.2, 74], "material": "fence", "vaultable": false },
+
+    { "type": "girder", "pos": [-24, 0, 0], "size": [0.8, 6.0, 0.8], "material": "steel_girder" },
+    { "type": "girder", "pos": [ 24, 0, 0], "size": [0.8, 6.0, 0.8], "material": "steel_girder" },
+    { "type": "girder", "pos": [ 0, 0, -20], "size": [0.8, 6.0, 0.8], "material": "steel_girder" },
+    { "type": "girder", "pos": [ 0, 0,  20], "size": [0.8, 6.0, 0.8], "material": "steel_girder" },
+    { "type": "girder", "pos": [ 0, 5.2, 0], "size": [48, 0.6, 0.6], "material": "steel_girder" },
+    { "type": "girder", "pos": [ 0, 5.2, 0], "size": [0.6, 0.6, 40], "material": "steel_girder" },
+
+    { "type": "wall", "pos": [0, 0, -4], "size": [10, 4.2, 1.4], "material": "concrete_dark" },
+    { "type": "wall", "pos": [0, 0,  4], "size": [10, 4.2, 1.4], "material": "concrete_dark" },
+    { "type": "wall", "pos": [-6, 0, 0], "size": [1.4, 4.2, 10], "material": "concrete_dark" },
+    { "type": "roof", "pos": [0, 4.2, 0], "size": [14, 0.6, 12], "material": "concrete" },
+    { "type": "crate", "pos": [0, 0, 0], "size": [2.4, 1.4, 2.4], "material": "blue_tarp" },
+    { "type": "crate", "pos": [3.2, 0, 0], "size": [1.4, 1.8, 1.4], "material": "plywood" },
+
+    { "type": "platform", "pos": [22, 0, 20], "size": [18, 1.6, 18], "material": "concrete_dark" },
+    { "type": "ramp", "pos": [11, 0, 20], "size": [4, 0.8, 6], "material": "plywood" },
+    { "type": "scaffold", "pos": [28, 1.6, 16], "size": [6, 2.4, 0.3], "material": "scaffold" },
+    { "type": "crate", "pos": [20, 1.6, 18], "size": [2.4, 1.4, 2.4], "material": "blue_tarp" },
+    { "type": "crate", "pos": [24, 1.6, 24], "size": [1.6, 1.8, 1.6], "material": "plywood" },
+    { "type": "crate", "pos": [24, 1.6, 21.5], "size": [1.6, 1.4, 1.6], "material": "plywood" },
+    { "type": "wall", "pos": [22, 1.6, 29], "size": [18, 1.1, 0.3], "material": "fence", "vaultable": true },
+    { "type": "wall", "pos": [31, 1.6, 20], "size": [0.3, 1.1, 18], "material": "fence", "vaultable": true },
+
+    { "type": "wall", "pos": [-22, 0, 14], "size": [18, 4.0, 1.2], "material": "concrete" },
+    { "type": "wall", "pos": [-22, 0, 28], "size": [18, 4.0, 1.2], "material": "concrete" },
+    { "type": "wall", "pos": [-31, 0, 21], "size": [1.2, 4.0, 14], "material": "concrete" },
+    { "type": "roof", "pos": [-22, 4.0, 21], "size": [19, 0.5, 15], "material": "concrete_dark" },
+    { "type": "crate", "pos": [-19, 0, 21], "size": [2.2, 1.6, 2.2], "material": "metal_barrel" },
+    { "type": "crate", "pos": [-23, 0, 23], "size": [1.5, 2.2, 1.5], "material": "plywood" },
+    { "type": "barrier", "pos": [-14, 0, 21], "size": [0.6, 1.0, 4.0], "material": "caution_yellow", "vaultable": true },
+
+    { "type": "wall", "pos": [-20, 0, -22], "size": [20, 4.0, 1.2], "material": "concrete" },
+    { "type": "wall", "pos": [ 20, 0, -22], "size": [20, 4.0, 1.2], "material": "concrete" },
+    { "type": "crate", "pos": [0, 0, -24], "size": [3.2, 1.6, 2.0], "material": "blue_tarp" },
+    { "type": "crate", "pos": [-6, 0, -18], "size": [1.6, 1.6, 1.6], "material": "plywood" },
+    { "type": "crate", "pos": [ 6, 0, -18], "size": [1.6, 1.6, 1.6], "material": "plywood" },
+    { "type": "barrier", "pos": [0, 0, -16], "size": [6, 1.0, 0.4], "material": "caution_yellow", "vaultable": true },
+
+    { "type": "wall", "pos": [-26, 0, -4], "size": [1.2, 3.8, 20], "material": "concrete" },
+    { "type": "scaffold", "pos": [-28, 0, 0], "size": [2.5, 3.5, 8], "material": "scaffold" },
+    { "type": "crate", "pos": [-23, 0, 0], "size": [1.4, 2.0, 1.4], "material": "metal_barrel" },
+    { "type": "fence", "pos": [-23, 0, 8], "size": [4, 1.1, 0.3], "material": "fence", "vaultable": true },
+
+    { "type": "wall", "pos": [26, 0, -4], "size": [1.2, 3.8, 20], "material": "concrete" },
+    { "type": "scaffold", "pos": [28, 0, 0], "size": [2.5, 3.5, 8], "material": "scaffold" },
+    { "type": "crate", "pos": [23, 0, 0], "size": [1.4, 2.0, 1.4], "material": "plywood" },
+    { "type": "fence", "pos": [23, 0, 8], "size": [4, 1.1, 0.3], "material": "fence", "vaultable": true }
+  ],
+  "doors": [
+    { "pos": [-13, 0, 18], "width": 1.3, "height": 2.6 },
+    { "pos": [ 12, 0, -4], "width": 1.3, "height": 2.6 }
+  ],
+  "playerSpawns": [
+    [0, 0.1, 32],
+    [-20, 0.1, 32],
+    [20, 0.1, 32]
+  ],
+  "botSpawns": [
+    [0, 0.1, -32],
+    [-22, 0.1, -28],
+    [ 22, 0.1, -28],
+    [ 22, 1.7,  20],
+    [-22, 0.1,  21],
+    [  0, 0.1,   0]
+  ]
+}

@@ -21,8 +21,14 @@ const MATERIALS = {
   sandstone:     () => new THREE.MeshStandardMaterial({ color: 0xdeb887, roughness: 0.88 }),
   plaster_light: () => new THREE.MeshStandardMaterial({ color: 0xebd9be, roughness: 0.85 }),
   fabric_red:    () => new THREE.MeshStandardMaterial({ color: 0x9c332b, roughness: 0.85 }),
-  fabric_green:  () => new THREE.MeshStandardMaterial({ color: 0x2e6648, roughness: 0.85 }),
   metal_barrel:  () => new THREE.MeshStandardMaterial({ color: 0x3d5a80, roughness: 0.45, metalness: 0.6 }),
+  concrete:      () => new THREE.MeshStandardMaterial({ color: 0x82878d, roughness: 0.90 }),
+  concrete_dark: () => new THREE.MeshStandardMaterial({ color: 0x474b50, roughness: 0.92 }),
+  steel_girder:  () => new THREE.MeshStandardMaterial({ color: 0xc44527, roughness: 0.55, metalness: 0.65 }), // Viga I de aço vermelho industrial
+  caution_yellow:() => new THREE.MeshStandardMaterial({ color: 0xd9a425, roughness: 0.60 }),
+  blue_tarp:     () => new THREE.MeshStandardMaterial({ color: 0x24558a, roughness: 0.70 }), // Lona azul de construção
+  plywood:       () => new THREE.MeshStandardMaterial({ color: 0xb59263, roughness: 0.85 }), // Compensado de madeira
+  scaffold:      () => new THREE.MeshStandardMaterial({ color: 0xa0a8b0, roughness: 0.35, metalness: 0.85 }),
 };
 
 export async function loadMap(url, scene) {
