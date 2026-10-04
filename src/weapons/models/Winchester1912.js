@@ -283,13 +283,13 @@ export function buildWinchester1912() {
   magCap.rotation.x = Math.PI / 2;
   magCap.position.set(0, 0.005, -0.535);
 
-  // Cano principal em aço grosso ("bull barrel")
-  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.46, 18), M_W12_STEEL);
+  // Cano principal em aço super grosso
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.46, 18), M_W12_STEEL);
   barrel.rotation.x = Math.PI / 2;
   barrel.position.set(0, 0.024, -0.350);
 
   // Cone simulando a espessura da câmara interna
-  const chamberCone = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.021, 0.04, 18), M_W12_STEEL);
+  const chamberCone = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.029, 0.04, 18), M_W12_STEEL);
   chamberCone.rotation.x = Math.PI / 2;
   chamberCone.position.set(0, 0.024, -0.100);
   g.add(chamberCone);
@@ -331,18 +331,18 @@ export function buildWinchester1912() {
      ========================================================= */
   const frontRingsGroup = new THREE.Group();
   
-  // Anéis toroidais no cano simulando braçadeiras de retenção
-  const ring1 = new THREE.Mesh(new THREE.TorusGeometry(0.0165, 0.003, 8, 20), M_W12_STEEL_DARK);
+  // Anéis toroidais no cano simulando braçadeiras de retenção (escala aumentada)
+  const ring1 = new THREE.Mesh(new THREE.TorusGeometry(0.0245, 0.003, 8, 20), M_W12_STEEL_DARK);
   ring1.position.set(0, 0.024, -0.480);
-  const ring2 = new THREE.Mesh(new THREE.TorusGeometry(0.0165, 0.003, 8, 20), M_W12_STEEL_DARK);
+  const ring2 = new THREE.Mesh(new THREE.TorusGeometry(0.0245, 0.003, 8, 20), M_W12_STEEL_DARK);
   ring2.position.set(0, 0.024, -0.520);
   frontRingsGroup.add(ring1, ring2);
 
-  // Massa de mira proeminente (Poste + Esfera)
-  const frontSightBase = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.012, 0.010), M_W12_STEEL_DARK);
-  frontSightBase.position.set(0, 0.045, -0.560);
+  // Massa de mira proeminente ajustada para a nova altura do cano
+  const frontSightBase = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.010, 0.010), M_W12_STEEL_DARK);
+  frontSightBase.position.set(0, 0.053, -0.560);
   const frontBead = new THREE.Mesh(new THREE.SphereGeometry(0.003, 8, 8), M_W12_BEAD);
-  frontBead.position.set(0, 0.052, -0.560);
+  frontBead.position.set(0, 0.059, -0.560);
   frontRingsGroup.add(frontSightBase, frontBead);
 
   /* =========================================================
@@ -351,9 +351,9 @@ export function buildWinchester1912() {
   const muzzleAssembly = new THREE.Group();
   muzzleAssembly.position.set(0, 0.015, -0.555);
 
-  // Bloco adaptador militar em aço fundido unindo o cano e o depósito
-  const bayonetLugAdapter = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.046, 0.040), M_W12_RECEIVER);
-  bayonetLugAdapter.position.set(0, 0, 0);
+  // Bloco adaptador militar escalado para abraçar o cano grosso
+  const bayonetLugAdapter = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.060, 0.040), M_W12_RECEIVER);
+  bayonetLugAdapter.position.set(0, 0.005, 0);
   muzzleAssembly.add(bayonetLugAdapter);
 
   // Trilho de fixação da baioneta M1917 sob o adaptador
@@ -366,13 +366,13 @@ export function buildWinchester1912() {
   frontSwivelLoop.position.set(0, -0.038, 0.008);
   muzzleAssembly.add(frontSwivelLoop);
 
-  // Boca do cano calibre 12 (12-gauge muzzle opening)
-  const muzzleTip = new THREE.Mesh(new THREE.CylinderGeometry(0.0155, 0.0155, 0.025, 16), M_W12_STEEL_DARK);
+  // Boca do cano calibre 12 ajustada para o super bull barrel
+  const muzzleTip = new THREE.Mesh(new THREE.CylinderGeometry(0.0245, 0.0245, 0.025, 16), M_W12_STEEL_DARK);
   muzzleTip.rotation.x = Math.PI / 2;
   muzzleTip.position.set(0, 0.009, -0.022);
   muzzleAssembly.add(muzzleTip);
 
-  const boreHole = new THREE.Mesh(new THREE.CylinderGeometry(0.0095, 0.0095, 0.010, 12), M_W12_STEEL_DARK);
+  const boreHole = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.010, 12), M_W12_STEEL_DARK);
   boreHole.rotation.x = Math.PI / 2;
   boreHole.position.set(0, 0.009, -0.033);
   muzzleAssembly.add(boreHole);
