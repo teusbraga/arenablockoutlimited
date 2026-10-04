@@ -44,6 +44,7 @@ export class P9Physics {
   }
 
   onFire(ammo = 12) {
+    this.isReloading = false;
     // 1. Inicia ciclo seco e rápido de blowback do ferrolho
     this.slideCycle = 0;
 
@@ -70,16 +71,21 @@ export class P9Physics {
   onReload() {
     // Ao recarregar, destrava o retém do ferrolho e avança o slide para a frente
     this.slideOpen = false;
+    this.isReloading = true;
   }
 
   update(dt, camera, ammo = 12) {
+    if (ammo > 0) {
+      this.isReloading = false;
+    }
+
     // ---- 1. Blowback do Ferrolho e Slide Racker ----
     if (this.slideCycle < 1) {
       this.slideCycle = Math.min(1, this.slideCycle + dt / 0.070);
     }
 
-    // Trava aberta (Slide Lock) no último disparo quando esgotar a munição
-    if (this.slideCycle >= 1 && ammo <= 0 && !this.slideOpen) {
+    // Trava aberta (Slide Lock) no último disparo quando esgotar a munição (apenas se não estiver recarregando)
+    if (this.slideCycle >= 1 && ammo <= 0 && !this.slideOpen && !this.isReloading) {
       this.slideOpen = true;
     }
     const targetOpen = this.slideOpen ? 1 : 0;

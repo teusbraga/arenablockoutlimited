@@ -124,6 +124,7 @@ export class PrototypePhysics {
   }
 
   onFire(ammo = 30) {
+    this.isReloading = false;
     // 1. Ciclo de blowback (aciona o ferrolho e o novo charging handle esquerdo)
     this.boltCycle = 0;
 
@@ -146,15 +147,20 @@ export class PrototypePhysics {
 
   onReload() {
     this.boltOpen = false;
+    this.isReloading = true;
   }
 
   update(dt, camera, ammo = 30) {
+    if (ammo > 0) {
+      this.isReloading = false;
+    }
+
     /* ---- blowback do ferrolho e do charging handle ---- */
     if (this.boltCycle < 1) {
       this.boltCycle = Math.min(1, this.boltCycle + dt / 0.085);
     }
-    // Retém do ferrolho trava aberto quando sem munição
-    if (this.boltCycle >= 1 && ammo <= 0 && !this.boltOpen) {
+    // Retém do ferrolho trava aberto quando sem munição (apenas se não estiver recarregando)
+    if (this.boltCycle >= 1 && ammo <= 0 && !this.boltOpen && !this.isReloading) {
       this.boltOpen = true;
     }
     const targetOpen = this.boltOpen ? 1 : 0;
