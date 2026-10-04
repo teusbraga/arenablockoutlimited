@@ -220,7 +220,7 @@
       "damageHead": 360,
       "fireInterval": 2.2,
       "magSize": 6,
-      "reloadTime": 2.6,
+      "reloadTime": 1.1,
       "spreadHip": 0.022,
       "spreadAds": 0.0003,
       "recoilPitch": 0.034,
