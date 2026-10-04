@@ -1,0 +1,1480 @@
+{
+  "name": "Cargo (Assault/Train)",
+  "size": [
+    120,
+    120
+  ],
+  "bounds": [
+    -58,
+    58,
+    -58,
+    58
+  ],
+  "ambientLight": 0.5,
+  "directionalLight": {
+    "color": "#e0f0ff",
+    "intensity": 0.9,
+    "position": [
+      50,
+      100,
+      20
+    ]
+  },
+  "staticGeometry": [
+    {
+      "type": "wall",
+      "pos": [
+        0,
+        0,
+        -59
+      ],
+      "size": [
+        120,
+        20,
+        2
+      ],
+      "material": "wall"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        0,
+        0,
+        59
+      ],
+      "size": [
+        120,
+        20,
+        2
+      ],
+      "material": "wall"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        -59,
+        0,
+        0
+      ],
+      "size": [
+        2,
+        20,
+        120
+      ],
+      "material": "wall"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        59,
+        0,
+        0
+      ],
+      "size": [
+        2,
+        20,
+        120
+      ],
+      "material": "wall"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        -24,
+        0,
+        12
+      ],
+      "size": [
+        16,
+        12,
+        1
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        -12,
+        6,
+        12
+      ],
+      "size": [
+        8,
+        6,
+        1
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        0,
+        0,
+        12
+      ],
+      "size": [
+        16,
+        12,
+        1
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        12,
+        6,
+        12
+      ],
+      "size": [
+        8,
+        6,
+        1
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        24,
+        0,
+        12
+      ],
+      "size": [
+        16,
+        12,
+        1
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        -18,
+        0,
+        -36
+      ],
+      "size": [
+        28,
+        12,
+        1
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        -2,
+        3,
+        -36
+      ],
+      "size": [
+        4,
+        9,
+        1
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        16,
+        0,
+        -36
+      ],
+      "size": [
+        32,
+        12,
+        1
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        -32,
+        0,
+        -12
+      ],
+      "size": [
+        1,
+        12,
+        48
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        32,
+        0,
+        -12
+      ],
+      "size": [
+        1,
+        12,
+        48
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "floor",
+      "pos": [
+        -18,
+        12,
+        -12
+      ],
+      "size": [
+        28,
+        0.4,
+        49
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "floor",
+      "pos": [
+        18,
+        12,
+        -12
+      ],
+      "size": [
+        28,
+        0.4,
+        49
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "floor",
+      "pos": [
+        0,
+        12,
+        -26
+      ],
+      "size": [
+        8,
+        0.4,
+        21
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "floor",
+      "pos": [
+        0,
+        12,
+        2
+      ],
+      "size": [
+        8,
+        0.4,
+        21
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "fence",
+      "pos": [
+        0,
+        12.4,
+        -35.5
+      ],
+      "size": [
+        64,
+        1.2,
+        0.2
+      ],
+      "material": "fence"
+    },
+    {
+      "type": "fence",
+      "pos": [
+        0,
+        12.4,
+        11.5
+      ],
+      "size": [
+        64,
+        1.2,
+        0.2
+      ],
+      "material": "fence"
+    },
+    {
+      "type": "fence",
+      "pos": [
+        -31.5,
+        12.4,
+        -12
+      ],
+      "size": [
+        0.2,
+        1.2,
+        48
+      ],
+      "material": "fence"
+    },
+    {
+      "type": "fence",
+      "pos": [
+        31.5,
+        12.4,
+        -12
+      ],
+      "size": [
+        0.2,
+        1.2,
+        48
+      ],
+      "material": "fence"
+    },
+    {
+      "type": "floor",
+      "pos": [
+        24,
+        4,
+        -28
+      ],
+      "size": [
+        16,
+        0.4,
+        16
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        24,
+        4,
+        -20
+      ],
+      "size": [
+        16,
+        2,
+        1
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        16,
+        4,
+        -26
+      ],
+      "size": [
+        1,
+        1.5,
+        12
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        16,
+        8,
+        -26
+      ],
+      "size": [
+        1,
+        4,
+        12
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        16,
+        7.5,
+        -34
+      ],
+      "size": [
+        1,
+        4.5,
+        4
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        8.5,
+        0.0,
+        -34.5
+      ],
+      "size": [
+        1.0,
+        0.5,
+        3
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        9.5,
+        0.5,
+        -34.5
+      ],
+      "size": [
+        1.0,
+        0.5,
+        3
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        10.5,
+        1.0,
+        -34.5
+      ],
+      "size": [
+        1.0,
+        0.5,
+        3
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        11.5,
+        1.5,
+        -34.5
+      ],
+      "size": [
+        1.0,
+        0.5,
+        3
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        12.5,
+        2.0,
+        -34.5
+      ],
+      "size": [
+        1.0,
+        0.5,
+        3
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        13.5,
+        2.5,
+        -34.5
+      ],
+      "size": [
+        1.0,
+        0.5,
+        3
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        14.5,
+        3.0,
+        -34.5
+      ],
+      "size": [
+        1.0,
+        0.5,
+        3
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        15.5,
+        3.5,
+        -34.5
+      ],
+      "size": [
+        1.0,
+        0.5,
+        3
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "floor",
+      "pos": [
+        -29,
+        6,
+        -12
+      ],
+      "size": [
+        6,
+        0.4,
+        48
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "fence",
+      "pos": [
+        -26.1,
+        6.4,
+        -12
+      ],
+      "size": [
+        0.2,
+        1.2,
+        48
+      ],
+      "material": "fence"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -29,
+        0.0,
+        9.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -29,
+        0.5,
+        8.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -29,
+        1.0,
+        7.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -29,
+        1.5,
+        6.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -29,
+        2.0,
+        5.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -29,
+        2.5,
+        4.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -29,
+        3.0,
+        3.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -29,
+        3.5,
+        2.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -29,
+        4.0,
+        1.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -29,
+        4.5,
+        0.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -29,
+        5.0,
+        -0.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -29,
+        5.5,
+        -1.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -14,
+        0.0,
+        -37.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -14,
+        0.5,
+        -38.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -14,
+        1.0,
+        -39.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -14,
+        1.5,
+        -40.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -14,
+        2.0,
+        -41.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -14,
+        2.5,
+        -42.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -14,
+        3.0,
+        -43.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -14,
+        3.5,
+        -44.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -14,
+        4.0,
+        -45.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -14,
+        4.5,
+        -46.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -14,
+        5.0,
+        -47.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -14,
+        5.5,
+        -48.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "floor",
+      "pos": [
+        -12,
+        6,
+        -50.5
+      ],
+      "size": [
+        8,
+        0.5,
+        4
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -10,
+        6.0,
+        -49.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -10,
+        6.5,
+        -48.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -10,
+        7.0,
+        -47.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -10,
+        7.5,
+        -46.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -10,
+        8.0,
+        -45.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -10,
+        8.5,
+        -44.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -10,
+        9.0,
+        -43.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -10,
+        9.5,
+        -42.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -10,
+        10.0,
+        -41.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -10,
+        10.5,
+        -40.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -10,
+        11.0,
+        -39.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -10,
+        11.5,
+        -38.5
+      ],
+      "size": [
+        4,
+        0.5,
+        1.0
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "floor",
+      "pos": [
+        -10,
+        12,
+        -37.5
+      ],
+      "size": [
+        4,
+        0.5,
+        2
+      ],
+      "material": "scaffold"
+    },
+    {
+      "type": "metal_barrel",
+      "pos": [
+        12,
+        0,
+        30
+      ],
+      "size": [
+        2.6,
+        1.5,
+        2
+      ],
+      "material": "metal_barrel"
+    },
+    {
+      "type": "metal_barrel",
+      "pos": [
+        12,
+        0,
+        32.5
+      ],
+      "size": [
+        3,
+        3.2,
+        3
+      ],
+      "material": "metal_barrel"
+    },
+    {
+      "type": "blue_tarp",
+      "pos": [
+        12,
+        0,
+        39
+      ],
+      "size": [
+        3.2,
+        4.5,
+        10
+      ],
+      "material": "blue_tarp"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        -10,
+        0,
+        40
+      ],
+      "size": [
+        2,
+        1.5,
+        2.6
+      ],
+      "material": "wall"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        -12.5,
+        0,
+        40
+      ],
+      "size": [
+        3,
+        3.2,
+        3
+      ],
+      "material": "wall"
+    },
+    {
+      "type": "crate",
+      "pos": [
+        -19,
+        0,
+        40
+      ],
+      "size": [
+        10,
+        4.5,
+        3.2
+      ],
+      "material": "crate"
+    },
+    {
+      "type": "crate",
+      "pos": [
+        -25,
+        0,
+        15
+      ],
+      "size": [
+        2.6,
+        1.5,
+        2
+      ],
+      "material": "crate"
+    },
+    {
+      "type": "crate",
+      "pos": [
+        -25,
+        0,
+        17.5
+      ],
+      "size": [
+        3,
+        3.2,
+        3
+      ],
+      "material": "crate"
+    },
+    {
+      "type": "blue_tarp",
+      "pos": [
+        -25,
+        0,
+        24
+      ],
+      "size": [
+        3.2,
+        4.5,
+        10
+      ],
+      "material": "blue_tarp"
+    },
+    {
+      "type": "metal_barrel",
+      "pos": [
+        -12,
+        0,
+        11
+      ],
+      "size": [
+        2.6,
+        1.5,
+        2
+      ],
+      "material": "metal_barrel"
+    },
+    {
+      "type": "metal_barrel",
+      "pos": [
+        -12,
+        0,
+        8.5
+      ],
+      "size": [
+        3,
+        3.2,
+        3
+      ],
+      "material": "metal_barrel"
+    },
+    {
+      "type": "blue_tarp",
+      "pos": [
+        -12,
+        0,
+        2
+      ],
+      "size": [
+        3.2,
+        4.5,
+        10
+      ],
+      "material": "blue_tarp"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        17,
+        0,
+        -15
+      ],
+      "size": [
+        2,
+        1.5,
+        2.6
+      ],
+      "material": "wall"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        14.5,
+        0,
+        -15
+      ],
+      "size": [
+        3,
+        3.2,
+        3
+      ],
+      "material": "wall"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        8,
+        0,
+        -15
+      ],
+      "size": [
+        10,
+        4.5,
+        3.2
+      ],
+      "material": "wall"
+    },
+    {
+      "type": "crate",
+      "pos": [
+        5,
+        0,
+        -15
+      ],
+      "size": [
+        3,
+        3,
+        7
+      ],
+      "material": "blue_tarp"
+    },
+    {
+      "type": "crate",
+      "pos": [
+        -5,
+        0,
+        -25
+      ],
+      "size": [
+        3,
+        3,
+        7
+      ],
+      "material": "crate"
+    },
+    {
+      "type": "crate",
+      "pos": [
+        5,
+        0,
+        -25
+      ],
+      "size": [
+        3,
+        6,
+        7
+      ],
+      "material": "blue_tarp"
+    },
+    {
+      "type": "crate",
+      "pos": [
+        12,
+        0,
+        -10
+      ],
+      "size": [
+        4,
+        2,
+        4
+      ],
+      "material": "crate"
+    },
+    {
+      "type": "crate",
+      "pos": [
+        -20,
+        0,
+        -20
+      ],
+      "size": [
+        2,
+        2,
+        2
+      ],
+      "material": "crate"
+    },
+    {
+      "type": "crate",
+      "pos": [
+        -22,
+        0,
+        -20
+      ],
+      "size": [
+        2,
+        2,
+        2
+      ],
+      "material": "crate"
+    },
+    {
+      "type": "crate",
+      "pos": [
+        25,
+        4.4,
+        -25
+      ],
+      "size": [
+        2,
+        1.2,
+        2
+      ],
+      "material": "crate"
+    },
+    {
+      "type": "crate",
+      "pos": [
+        0,
+        0,
+        25
+      ],
+      "size": [
+        6,
+        1.5,
+        1
+      ],
+      "material": "crate"
+    },
+    {
+      "type": "crate",
+      "pos": [
+        25,
+        0,
+        30
+      ],
+      "size": [
+        2,
+        2,
+        2
+      ],
+      "material": "crate"
+    },
+    {
+      "type": "crate",
+      "pos": [
+        -5,
+        0,
+        45
+      ],
+      "size": [
+        2,
+        2,
+        2
+      ],
+      "material": "crate"
+    }
+  ],
+  "doors": [],
+  "playerSpawns": [
+    [
+      0,
+      0.1,
+      50
+    ],
+    [
+      -20,
+      0.1,
+      50
+    ],
+    [
+      20,
+      0.1,
+      50
+    ]
+  ],
+  "botSpawns": [
+    [
+      24,
+      4.1,
+      -30
+    ],
+    [
+      -29,
+      6.1,
+      -12
+    ],
+    [
+      0,
+      0.1,
+      -30
+    ],
+    [
+      -10,
+      12.1,
+      -12
+    ],
+    [
+      0,
+      12.1,
+      0
+    ],
+    [
+      -12,
+      0.1,
+      -40
+    ],
+    [
+      20,
+      0.1,
+      30
+    ]
+  ]
+}
