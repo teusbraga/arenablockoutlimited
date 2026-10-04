@@ -203,26 +203,7 @@ export function buildP9() {
   extractor.position.set(0.0134, 0.022, 0.004);
   slide.add(extractor);
 
-  /* ---- ALAVANCA DE MANEJO TÁTICA DO SLIDE (SLIDE RACKER CNC) ---- */
-  // Inspirada na lógica ergonômica de combate do RiflePrototype, montada no lado esquerdo do ferrolho (-X)
-  const slideHandle = new THREE.Group();
-  slideHandle.position.set(-0.013, 0.022, 0.045);
 
-  // Haste usinada de encaixe
-  const rackerStem = new THREE.Mesh(new THREE.CylinderGeometry(0.0028, 0.0028, 0.012, 8), M_SLIDE_BEVEL);
-  rackerStem.rotation.z = Math.PI / 2;
-  rackerStem.position.set(-0.006, 0, 0);
-
-  // Manípulo tático de combate estriado (Knurled Combat Knob) em tom dourado/accent
-  const rackerKnob = new THREE.Mesh(new THREE.CylinderGeometry(0.0055, 0.0048, 0.014, 10), M_CHAMBER_GOLD);
-  rackerKnob.rotation.z = Math.PI / 2;
-  rackerKnob.position.set(-0.018, 0, 0);
-
-  const rackerTip = new THREE.Mesh(new THREE.SphereGeometry(0.0048, 8, 8), M_SLIDE_MATTE);
-  rackerTip.position.set(-0.025, 0, 0);
-
-  slideHandle.add(rackerStem, rackerKnob, rackerTip);
-  slide.add(slideHandle);
 
   /* =========================================================
      2. MIRAS DE TRÍTIO TÁTICAS (MONTADAS NO SLIDE)
