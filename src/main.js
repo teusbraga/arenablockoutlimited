@@ -235,12 +235,14 @@ const effects = new Effects(scene);
         overlayElRef.classList.add('hidden');
         document.getElementById('menu-start').style.display = 'none';
         document.getElementById('menu-pause').style.display = 'flex';
-        document.getElementById('overlay-title').textContent = 'PAUSADO';
+        const titleEl = document.getElementById('overlay-title');
+        if (titleEl) titleEl.textContent = 'PAUSADO';
       } else if (gameManager.hasStarted && !gameManager.roundOver) {
         overlayElRef.classList.remove('hidden');
         document.getElementById('menu-start').style.display = 'none';
         document.getElementById('menu-pause').style.display = 'flex';
-        document.getElementById('overlay-title').textContent = 'PAUSADO';
+        const titleEl = document.getElementById('overlay-title');
+        if (titleEl) titleEl.textContent = 'PAUSADO';
       }
     });
 
