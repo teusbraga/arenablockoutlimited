@@ -394,7 +394,12 @@ export class WeaponSystem {
         const part = h.object.userData.part;
         const dmg = part === 'head' ? def.damageHead : def.damageBody;
         const killed = bot.takeDamage(dmg, part);
-        emit('shot:bot', { point: h.point.clone(), headshot: part === 'head', killed });
+        
+        const screenPos = h.point.clone().project(this.camera);
+        const px = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
+        const py = -(screenPos.y * 0.5 - 0.5) * window.innerHeight;
+        
+        emit('shot:bot', { point: h.point.clone(), headshot: part === 'head', killed, screenX: px, screenY: py, isShotgun: def.pellets > 1 });
       } else if (hitWorld) {
         emit('shot:world', { point: hitWorld.point.clone(), box: hitWorld.box });
       }

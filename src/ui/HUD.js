@@ -113,7 +113,7 @@ export class HUD {
       }
     });
     
-    on('shot:bot', e => this._hit(e.headshot));
+    on('shot:bot', e => this._hit(e));
 
     on('bot:died', e => {
       this.kills++; 
@@ -182,16 +182,49 @@ export class HUD {
     });
   }
 
-  _hit(headshot) {
-    const el = this.el.hitmarker;
-    el.classList.toggle('head', !!headshot);
-    el.style.opacity = '1';
-    el.style.transform = 'translate(-50%,-50%) scale(1.3)';
-    clearTimeout(this._hitT);
-    this._hitT = setTimeout(() => {
-      el.style.opacity = '0';
-      el.style.transform = 'translate(-50%,-50%) scale(1)';
-    }, 110);
+  _hit(e) {
+    if (e.isShotgun && e.screenX !== undefined && e.screenY !== undefined) {
+      // Hitmarkers dinâmicos descentralizados para espingardas (pellets)
+      const hm = document.createElement('div');
+      hm.innerHTML = '×';
+      hm.style.position = 'fixed';
+      hm.style.left = e.screenX + 'px';
+      hm.style.top = e.screenY + 'px';
+      hm.style.color = e.headshot ? '#ffd166' : 'var(--warn)';
+      hm.style.fontSize = '24px';
+      hm.style.fontWeight = 'bold';
+      hm.style.fontFamily = "'Oswald',sans-serif";
+      hm.style.pointerEvents = 'none';
+      hm.style.zIndex = '110';
+      hm.style.textShadow = '0 0 2px rgba(0,0,0,0.8)';
+      hm.style.transition = 'opacity 0.12s, transform 0.12s';
+      
+      const rot = (Math.random() - 0.5) * 60;
+      hm.style.transform = `translate(-50%, -50%) scale(1.3) rotate(${rot}deg)`;
+      hm.style.opacity = '1';
+      
+      document.body.appendChild(hm);
+      
+      requestAnimationFrame(() => {
+        hm.style.transform = `translate(-50%, -50%) scale(1) rotate(${rot}deg)`;
+      });
+      
+      setTimeout(() => {
+        hm.style.opacity = '0';
+        setTimeout(() => hm.remove(), 120);
+      }, 120);
+    } else {
+      // Hitmarker central clássico
+      const el = this.el.hitmarker;
+      el.classList.toggle('head', !!e.headshot);
+      el.style.opacity = '1';
+      el.style.transform = 'translate(-50%,-50%) scale(1.3)';
+      clearTimeout(this._hitT);
+      this._hitT = setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transform = 'translate(-50%,-50%) scale(1)';
+      }, 110);
+    }
   }
 
   _addKillFeed(html) {
