@@ -44,6 +44,15 @@ O projeto prioriza **jogabilidade responsiva (60 FPS cravados)**, fidelidade mec
 ### 4. Áudio 100% Sintetizado em Tempo Real (Zero Assets de Áudio)
 * O jogo **não faz download de arquivos MP3 ou WAV**. Todos os disparos, recargas, passos, impactos de bala e headshots são sintetizados proceduralmente em tempo real pelo navegador usando a `Web Audio API` (osciladores harmônicos, filtros passa-faixa e envelopes ADSR) configurados no [`assets/config/audio.json`](./assets/config/audio.json).
 
+### 5. Arquitetura "Godot-Ready": Separação de Física e Renderização
+* **O Desafio:** Desacoplar a lógica matemática de tiro e movimentação para que o protótipo sirva de base 1:1 para a engine Godot (GDScript), sem gargalos de CPU e draw calls no Three.js.
+* **A Conquista:**
+  - **Loop Dividido (`Engine.js`):** Implementação de `fixedUpdate(120Hz)` (equivalente ao `_physics_process` da Godot para física, movimentação e estado) e `renderUpdate(alpha)` (equivalente ao `_process` para sway, câmera e HUD).
+  - **InstancedMesh & Draw Calls (`MapLoader.js`):** Agrupamento de blocos de mapa estáticos via `THREE.InstancedMesh`, reduzindo centenas de draw calls a 1 por material.
+  - **Raycaster AABB Matemático Puro (`CollisionWorld.js`):** Hitscan e colisão via algoritmo de *Slabs*, desacoplado da cena gráfica.
+  - **Object Pooling:** Fim de alocações dinâmicas no loop de tiro e IA, erradicando micro-stutters de Garbage Collector.
+  - **Roadmap Sequencial:** Veja o arquivo [`REFACTOR_PLAN_GODOT_READY.md`](./REFACTOR_PLAN_GODOT_READY.md) e [`DEFECTS_AND_VULNERABILITIES.md`](./DEFECTS_AND_VULNERABILITIES.md).
+
 ---
 
 ## 🎯 Features & Game Feel
