@@ -8,6 +8,9 @@
 
 **Objetivo Central:** Transformar o protótipo em uma base limpa onde a Lógica (Modelo/Física) seja completamente agnóstica em relação à Visão (Renderização/Three.js), preparando os scripts para conversão direta para GDScript (Godot).
 
+> **🧊 DIRETRIZ DE CÓDIGO LEGADO (FROZEN):**
+> O diretório `src/weapons/models/*.js` (HK416, AK47, etc.) contém geração procedural de malhas (Three.js estrito). Na Godot, usaremos modelos `.gltf`. Portanto, **NÃO REFATORE** nem otimize esses arquivos. Eles são código descartável e só existem para validação visual provisória.
+
 **Regras para Agentes Implementadores:**
 1. Leia o arquivo `DEFECTS_AND_VULNERABILITIES.md` e resolva a FASE 1 primeiro.
 2. Não quebre as mecânicas atuais. Valide cada mudança.
@@ -89,6 +92,12 @@
 
 ## 🔵 FASE 5: Inversão de Dependência, InputMap e Desacoplamento Visual
 *Alvo: Espelhar a hierarquia de nós da Godot (Scene Tree) e isolar completamente o Character de nós Three.js.*
+
+### Passo 5.0: Limpeza Estrutural (Scripts e Redundâncias)
+- **Alvo:** Raiz do projeto e `src/core/Config.js`
+- **Ação:**
+  - Mover os scripts python soltos na raiz (`generate_cargo.py`, `test_suite.py`) para uma nova pasta `tools/`.
+  - Remover o arquivo redundante `src/core/Config.js` e atualizar todos os arquivos que o importavam para importar diretamente de `src/core/ConfigLoader.js`.
 
 ### Passo 5.1: Abstração do Input (Padrão InputMap / Action Buffer)
 - **Alvo:** `src/core/Input.js`
