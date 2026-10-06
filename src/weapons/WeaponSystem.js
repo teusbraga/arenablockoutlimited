@@ -8,6 +8,20 @@ const _camPos = new THREE.Vector3();
 const _quat = new THREE.Quaternion();
 const _right = new THREE.Vector3();
 const _up = new THREE.Vector3();
+const _tempMuzzle = new THREE.Vector3();
+const _tempEject = new THREE.Vector3();
+const _muzzleWorld = new THREE.Vector3();
+const _ejectWorld = new THREE.Vector3();
+const _pelletDir = new THREE.Vector3();
+const _impactPoint = new THREE.Vector3();
+const _screenPos = new THREE.Vector3();
+const _playerPos = new THREE.Vector3();
+const _forwardCopy = new THREE.Vector3();
+const _rightCopy = new THREE.Vector3();
+const _upCopy = new THREE.Vector3();
+const _botHitPoint = new THREE.Vector3();
+const _worldHitPoint = new THREE.Vector3();
+const _smokeMuzzleWorld = new THREE.Vector3();
 
 export class WeaponSystem {
   constructor({ camera, viewmodel, input, player, world, botsProvider, inventory }) {
@@ -191,10 +205,10 @@ export class WeaponSystem {
 
         if (count > 0) {
           const mz = def.muzzleLocal || [0, 0.02, -0.5];
-          const muzzleLocal = new THREE.Vector3(mz[0], mz[1], mz[2]);
-          const muzzleWorld = this.viewmodel.mount.localToWorld(muzzleLocal.clone());
+          _smokeMuzzleWorld.set(mz[0], mz[1], mz[2]);
+          this.viewmodel.mount.localToWorld(_smokeMuzzleWorld);
           emit('weapon:smoke:residual', {
-            muzzleWorld,
+            muzzleWorld: _smokeMuzzleWorld,
             count,
             color: def.smokeResidualColor
           });
@@ -311,26 +325,34 @@ export class WeaponSystem {
 
     // Calcula muzzle em coords de mundo a partir do mount do viewmodel
     const mz = def.muzzleLocal || [0, 0.02, -0.5];
-    const muzzleLocal = new THREE.Vector3(mz[0], mz[1], mz[2]);
-    const muzzleWorld = this.viewmodel.mount.localToWorld(muzzleLocal.clone());
+    _tempMuzzle.set(mz[0], mz[1], mz[2]);
+    _muzzleWorld.copy(_tempMuzzle);
+    this.viewmodel.mount.localToWorld(_muzzleWorld);
 
     // Ponto de ejeção do estojo vazio em coordenadas de mundo (apenas para armas com ejeção de cartucho)
     let ejectWorld = null;
     if (def.ejectCasings !== false) {
       const ej = def.ejectLocal || [0.02, 0.02, -0.06];
-      const ejectLocal = new THREE.Vector3(ej[0], ej[1], ej[2]);
-      ejectWorld = this.viewmodel.mount.localToWorld(ejectLocal.clone());
+      _tempEject.set(ej[0], ej[1], ej[2]);
+      _ejectWorld.copy(_tempEject);
+      this.viewmodel.mount.localToWorld(_ejectWorld);
+      ejectWorld = _ejectWorld;
     }
+
+    _playerPos.copy(this.player.pos);
+    _forwardCopy.copy(_dir);
+    _rightCopy.copy(_right);
+    _upCopy.copy(_up);
 
     emit('weapon:fired', {
       weapon: def,
       weaponId: def.id,
-      pos: this.player.pos.clone(),
-      muzzleWorld,
+      pos: _playerPos,
+      muzzleWorld: _muzzleWorld,
       ejectWorld,
-      forward: _dir.clone(),
-      right: _right.clone(),
-      up: _up.clone(),
+      forward: _forwardCopy,
+      right: _rightCopy,
+      up: _upCopy,
       ads: this.ads,
       streak: streakMul,
     });
@@ -351,33 +373,33 @@ export class WeaponSystem {
     }
 
     const pelletCount = def.pellets || 1;
-    const maxPelletSpread = def.pelletSpread || 0.10; // Raio de 2m a 20m de distância
+    const maxPelletSpread = def.pelletSpread || 0.01333; // Raio de 0.80m a 60m
 
     for (let p = 0; p < pelletCount; p++) {
-      const pelletDir = _dir.clone();
+      _pelletDir.copy(_dir);
       if (pelletCount > 1) {
         let rx, ry;
         if (p === 0) {
-          // Pellet central com leve tremor
-          rx = (Math.random() - 0.5) * 0.015;
-          ry = (Math.random() - 0.5) * 0.015;
+          // Pellet central com leve tremor concêntrico proporcional ao cone
+          rx = (Math.random() - 0.5) * (maxPelletSpread * 0.25);
+          ry = (Math.random() - 0.5) * (maxPelletSpread * 0.25);
         } else {
           // 6 pellets distribuídos em anel no cone (raio proporcional à distância)
           const ang = (p * Math.PI * 2) / (pelletCount - 1) + (Math.random() - 0.5) * 0.35;
-          const r = (0.45 + Math.random() * 0.55) * maxPelletSpread;
+          const r = (0.35 + Math.random() * 0.65) * maxPelletSpread;
           rx = Math.cos(ang) * r;
           ry = Math.sin(ang) * r;
         }
-        pelletDir.addScaledVector(_right, rx).addScaledVector(_up, ry).normalize();
+        _pelletDir.addScaledVector(_right, rx).addScaledVector(_up, ry).normalize();
       }
 
       // Primeiro raycast contra meshes dos bots
-      this.raycaster.set(_camPos, pelletDir);
+      this.raycaster.set(_camPos, _pelletDir);
       this.raycaster.far = 200;
       const hitsBot = this.raycaster.intersectObjects(hittableMeshes, false);
 
       // Depois raycast contra o mundo físico
-      const hitWorld = this.world.raycast(_camPos, pelletDir, 200);
+      const hitWorld = this.world.raycast(_camPos, _pelletDir, 200);
 
       const botDist = hitsBot.length ? hitsBot[0].distance : Infinity;
       const worldDist = hitWorld ? hitWorld.distance : Infinity;
@@ -386,7 +408,8 @@ export class WeaponSystem {
       const traceDist = Number.isFinite(hitDist) ? hitDist : 120;
 
       // Ponto de impacto e traçante colineares com o cano
-      const impactPoint = (this.ads ? _camPos : muzzleWorld).clone().addScaledVector(pelletDir, traceDist);
+      const originPoint = this.ads ? _camPos : _muzzleWorld;
+      _impactPoint.copy(originPoint).addScaledVector(_pelletDir, traceDist);
 
       if (botDist < worldDist && hitsBot.length) {
         const h = hitsBot[0];
@@ -395,18 +418,20 @@ export class WeaponSystem {
         const dmg = part === 'head' ? def.damageHead : def.damageBody;
         const killed = bot.takeDamage(dmg, part);
         
-        const screenPos = h.point.clone().project(this.camera);
-        const px = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
-        const py = -(screenPos.y * 0.5 - 0.5) * window.innerHeight;
+        _screenPos.copy(h.point).project(this.camera);
+        const px = (_screenPos.x * 0.5 + 0.5) * window.innerWidth;
+        const py = -(_screenPos.y * 0.5 - 0.5) * window.innerHeight;
         
-        emit('shot:bot', { point: h.point.clone(), headshot: part === 'head', killed, screenX: px, screenY: py, isShotgun: def.pellets > 1 });
+        _botHitPoint.copy(h.point);
+        emit('shot:bot', { point: _botHitPoint, headshot: part === 'head', killed, screenX: px, screenY: py, isShotgun: def.pellets > 1 });
       } else if (hitWorld) {
-        emit('shot:world', { point: hitWorld.point.clone(), box: hitWorld.box });
+        _worldHitPoint.copy(hitWorld.point);
+        emit('shot:world', { point: _worldHitPoint, box: hitWorld.box });
       }
 
       emit('shot:tracer', {
-        from: muzzleWorld,
-        to: impactPoint,
+        from: _muzzleWorld,
+        to: _impactPoint,
         color: def.tracerColor,
       });
     }

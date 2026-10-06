@@ -25,6 +25,7 @@ export class Player extends Character {
     this.ads = false;
     this.lastDamageTime = -999;
     this.stepTimer = 0;
+    this.respawnTimer = 0;
     this.crouchAmount = 0;
 
     // Escuta evento de ADS para garantir sincronismo
@@ -62,7 +63,20 @@ export class Player extends Character {
     if (this.rig) this.rig.eyeHeight = v;
   }
 
-  update(dt, input) {
+    // ---- Respawn Timer (quando morto) ----
+    if (!this.alive && this.respawnTimer > 0) {
+      const prevSecond = Math.ceil(this.respawnTimer);
+      this.respawnTimer -= dt;
+      const currentSecond = Math.ceil(this.respawnTimer);
+      if (currentSecond > 0 && currentSecond !== prevSecond) {
+        emit('player:respawn_tick', currentSecond);
+      }
+      if (this.respawnTimer <= 0) {
+        this.respawnTimer = 0;
+        this.respawn();
+      }
+    }
+
     // ---- Look & Input (só se estiver vivo) ----
     if (this.alive) {
       // Atualiza ADS imediatamente com a ação do botão direito do mouse
@@ -175,21 +189,14 @@ export class Player extends Character {
     super.die();
     emit('player:died');
     
-    // Morte dura 3 segundos antes do respawn
-    let t = 3;
-    const iv = setInterval(() => {
-      t--;
-      if (t > 0) {
-        emit('player:respawn_tick', t);
-      } else {
-        clearInterval(iv);
-        this.respawn();
-      }
-    }, 1000);
+    // Morte dura 3 segundos antes do respawn, controlada no loop update(dt)
+    this.respawnTimer = 3.0;
+    emit('player:respawn_tick', 3);
   }
 
   respawn() {
     super.respawn();
+    this.respawnTimer = 0;
     if (this.spawnPos) {
       this.pos.set(this.spawnPos[0], this.spawnPos[1], this.spawnPos[2]);
     } else {
