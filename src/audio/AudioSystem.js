@@ -259,44 +259,52 @@ export class AudioSystem {
   }
 
   _bind() {
-    on('weapon:fired', e => {
-      if (e.weapon?.id === 'rifle_proto' || e.weapon?.audioKey === 'shot_proto') {
-        this.playPrototypeShot();
-        return;
-      }
-      if (e.weapon?.id === 'sw500' || e.weapon?.audioKey === 'shot_sw500') {
-        this.playMagnumBoom();
-        return;
-      }
-      if (e.weapon?.id === 'm12' || e.weapon?.audioKey === 'shot_m12') {
-        this.playShotgunBlast();
-        return;
-      }
-      const key = e.weapon?.audioKey || (e.weapon?.id === 'p9' ? 'shot_p9' : 'shot_hk416');
-      if (this.sounds[key]) {
-        this.play(key);
-      } else if (e.weapon?.audioShot) {
-        const shot = e.weapon.audioShot;
-        this._tone(shot.freqA, shot.freqB, shot.dur, shot.type, shot.gain);
-      }
-    });
+    this._unsubs = [
+      on('weapon:fired', e => {
+        if (e.weapon?.id === 'rifle_proto' || e.weapon?.audioKey === 'shot_proto') {
+          this.playPrototypeShot();
+          return;
+        }
+        if (e.weapon?.id === 'sw500' || e.weapon?.audioKey === 'shot_sw500') {
+          this.playMagnumBoom();
+          return;
+        }
+        if (e.weapon?.id === 'm12' || e.weapon?.audioKey === 'shot_m12') {
+          this.playShotgunBlast();
+          return;
+        }
+        const key = e.weapon?.audioKey || (e.weapon?.id === 'p9' ? 'shot_p9' : 'shot_hk416');
+        if (this.sounds[key]) {
+          this.play(key);
+        } else if (e.weapon?.audioShot) {
+          const shot = e.weapon.audioShot;
+          this._tone(shot.freqA, shot.freqB, shot.dur, shot.type, shot.gain);
+        }
+      }),
+      on('weapon:empty', () => this.playClickSound(900, 0.08)),
+      on('weapon:pump', e => this.playPumpRackSound(e?.stage || 'back')),
+      on('weapon:cycle',        () => this.play('weapon_cycle')),
+      on('weapon:reload:start', () => this.play('reload_start')),
+      on('weapon:reload:end',   () => this.play('reload_end')),
+      on('shot:bot', e => this.play(e.headshot ? 'hit_headshot' : 'hit_bot')),
+      on('shot:world', () => this.play('hit_world')),
+      on('bot:died', () => this.play('bot_died')),
+      on('bot:fired', () => this.play('bot_shot')),
+      on('player:damaged',  () => this.play('player_damaged')),
+      on('player:died',     () => this.play('player_died')),
+      on('player:footstep', () => this.play('footstep')),
+      on('cheat:activated', () => this.play('hit_headshot')),
+    ];
+  }
 
-    on('weapon:empty', () => this.playClickSound(900, 0.08));
-    on('weapon:pump', e => this.playPumpRackSound(e?.stage || 'back'));
-
-    on('weapon:cycle',        () => this.play('weapon_cycle'));
-    on('weapon:reload:start', () => this.play('reload_start'));
-    on('weapon:reload:end',   () => this.play('reload_end'));
-
-    on('shot:bot', e => this.play(e.headshot ? 'hit_headshot' : 'hit_bot'));
-    on('shot:world', () => this.play('hit_world'));
-
-    on('bot:died', () => this.play('bot_died'));
-    on('bot:fired', () => this.play('bot_shot'));
-
-    on('player:damaged',  () => this.play('player_damaged'));
-    on('player:died',     () => this.play('player_died'));
-    on('player:footstep', () => this.play('footstep'));
-    on('cheat:activated', () => this.play('hit_headshot'));
+  destroy() {
+    if (this._unsubs) {
+      for (const unsub of this._unsubs) unsub();
+      this._unsubs = [];
+    }
+    if (this.ctx && this.ctx.state !== 'closed') {
+      try { this.ctx.close(); } catch (_) {}
+      this.ctx = null;
+    }
   }
 }

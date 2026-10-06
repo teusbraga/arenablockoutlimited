@@ -5,6 +5,13 @@ import { emit } from '../core/EventBus.js';
 const _toPlayer = new THREE.Vector3();
 const _from = new THREE.Vector3();
 const _dir = new THREE.Vector3();
+const _muzzleLocal = new THREE.Vector3(0.10, 1.03, 0.85);
+const _upAxis = new THREE.Vector3(0, 1, 0);
+const _botQuat = new THREE.Quaternion();
+const _muzzleWorld = new THREE.Vector3();
+const _targetPos = new THREE.Vector3();
+const _forward = new THREE.Vector3();
+const _endPos = new THREE.Vector3();
 
 export class AIController {
   constructor(bot, world) {
@@ -12,12 +19,14 @@ export class AIController {
     this.world = world;
     this.state = 'patrol';               // patrol | engage | search
     this.desiredMove = new THREE.Vector3();
-    this.lastKnownPlayerPos = null;
+    this.lastKnownPlayerPos = new THREE.Vector3();
+    this.hasKnownPlayerPos = false;
     this.losTimer = 0;
     this.searchTimer = 0;
     this.reactionTimer = 0;
     this.fireTimer = 1 + Math.random();
-    this.patrolTarget = null;
+    this.patrolTarget = { x: 0, z: 0 };
+    this.hasPatrolTarget = false;
     this.strafeDir = Math.random() < 0.5 ? -1 : 1;
     this.strafeTimer = 1;
   }
@@ -31,7 +40,8 @@ export class AIController {
     const canSee = player.alive && this._hasLOS(player, dist);
 
     if (canSee) {
-      this.lastKnownPlayerPos = player.pos.clone();
+      this.lastKnownPlayerPos.copy(player.pos);
+      this.hasKnownPlayerPos = true;
       this.losTimer = CONFIG.BOTS.losMemory;
       if (this.state !== 'engage') {
         this.state = 'engage';
@@ -113,9 +123,16 @@ export class AIController {
   _search(dt) {
     const bot = this.bot;
     this.searchTimer -= dt;
-    if (this.searchTimer <= 0) { this.state = 'patrol'; this.patrolTarget = null; return; }
+    if (this.searchTimer <= 0) {
+      this.state = 'patrol';
+      this.hasPatrolTarget = false;
+      return;
+    }
 
-    if (!this.lastKnownPlayerPos) { this.state = 'patrol'; return; }
+    if (!this.hasKnownPlayerPos) {
+      this.state = 'patrol';
+      return;
+    }
     const dx = this.lastKnownPlayerPos.x - bot.pos.x;
     const dz = this.lastKnownPlayerPos.z - bot.pos.z;
     const d = Math.hypot(dx, dz);
@@ -132,11 +149,14 @@ export class AIController {
 
   _patrol(dt) {
     const bot = this.bot;
-    if (!this.patrolTarget || Math.hypot(this.patrolTarget.x - bot.pos.x, this.patrolTarget.z - bot.pos.z) < 1.5) {
-      this.patrolTarget = {
-        x: (Math.random() * 2 - 1) * 16,
-        z: (Math.random() * 2 - 1) * 16,
-      };
+    if (!this.patrolTarget) {
+      this.patrolTarget = { x: 0, z: 0 };
+      this.hasPatrolTarget = false;
+    }
+    if (!this.hasPatrolTarget || Math.hypot(this.patrolTarget.x - bot.pos.x, this.patrolTarget.z - bot.pos.z) < 1.5) {
+      this.patrolTarget.x = (Math.random() * 2 - 1) * 16;
+      this.patrolTarget.z = (Math.random() * 2 - 1) * 16;
+      this.hasPatrolTarget = true;
     }
     const dx = this.patrolTarget.x - bot.pos.x;
     const dz = this.patrolTarget.z - bot.pos.z;
@@ -147,37 +167,35 @@ export class AIController {
   }
 
   _fire(player, dist) {
-    const muzzleLocal = new THREE.Vector3(0.10, 1.03, 0.85); // Cano da arma do bot
-    const botQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), this.bot.yaw);
-    const muzzleWorld = this.bot.pos.clone().add(muzzleLocal.applyQuaternion(botQuat));
+    _botQuat.setFromAxisAngle(_upAxis, this.bot.yaw);
+    _muzzleWorld.copy(_muzzleLocal).applyQuaternion(_botQuat).add(this.bot.pos);
 
     // Vector de direcao real: da arma pro player
-    const targetPos = player.pos.clone();
-    targetPos.y += 1.4; // Altura do peito do player
-    const forward = targetPos.clone().sub(muzzleWorld).normalize();
+    _targetPos.copy(player.pos);
+    _targetPos.y += 1.4; // Altura do peito do player
+    _forward.subVectors(_targetPos, _muzzleWorld).normalize();
 
     // Evento de tiro para flash/dano
     emit('bot:fired', { bot: this.bot, player, dist });
     
     // Evento de muzzle flash
-    emit('weapon:fired', { muzzleWorld, forward });
+    emit('weapon:fired', { muzzleWorld: _muzzleWorld, forward: _forward });
 
     // Evento de tracer
     const hitChance = Math.max(0.15, 1 - dist / 35);
     const hit = Math.random() < hitChance;
     
-    let endPos;
     if (hit) {
-      endPos = targetPos; // Acertou o player
+      _endPos.copy(_targetPos); // Acertou o player
     } else {
       // Errou, desvia o tracer
-      endPos = targetPos.clone().add(new THREE.Vector3(
-        (Math.random() - 0.5) * 4,
-        (Math.random() - 0.5) * 2,
-        (Math.random() - 0.5) * 4
-      ));
+      _endPos.set(
+        _targetPos.x + (Math.random() - 0.5) * 4,
+        _targetPos.y + (Math.random() - 0.5) * 2,
+        _targetPos.z + (Math.random() - 0.5) * 4
+      );
     }
     
-    emit('shot:tracer', { from: muzzleWorld, to: endPos });
+    emit('shot:tracer', { from: _muzzleWorld, to: _endPos });
   }
 }

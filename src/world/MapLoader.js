@@ -62,19 +62,52 @@ export async function loadMap(url, scene) {
 
   const bounds = data.bounds || [-w/2, w/2, -d/2, d/2];
 
-  // Geometria estática
+  // Geometria estática usando InstancedMesh para otimização de Draw Calls
+  const itemsByMaterial = new Map();
   for (const item of data.staticGeometry || []) {
     const [x, y, z] = item.pos;
     const [sx, sy, sz] = item.size;
     const matName = item.material || 'wall';
-    const mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(sx, sy, sz),
-      (MATERIALS[matName] || MATERIALS.wall)()
-    );
-    mesh.position.set(x, y + sy/2, z);
-    mesh.castShadow = true; mesh.receiveShadow = true;
-    scene.add(mesh);
+
+    if (!itemsByMaterial.has(matName)) {
+      itemsByMaterial.set(matName, []);
+    }
+    itemsByMaterial.get(matName).push(item);
+
+    // Registra hitbox pura no CollisionWorld (purificada de Mesh)
     world.addBox(x, y + sy/2, z, sx, sy, sz, { vaultable: !!item.vaultable });
+  }
+
+  // Caixa unitária compartilhada por todas as instâncias
+  const sharedBoxGeo = new THREE.BoxGeometry(1, 1, 1);
+  const dummyMatrix = new THREE.Matrix4();
+  const dummyPos = new THREE.Vector3();
+  const dummyScale = new THREE.Vector3();
+  const dummyQuat = new THREE.Quaternion(); // Rotação identidade
+
+  for (const [matName, items] of itemsByMaterial.entries()) {
+    const count = items.length;
+    const matCreator = MATERIALS[matName] || MATERIALS.wall;
+    const material = matCreator();
+
+    const instancedMesh = new THREE.InstancedMesh(sharedBoxGeo, material, count);
+    instancedMesh.castShadow = true;
+    instancedMesh.receiveShadow = true;
+
+    for (let i = 0; i < count; i++) {
+      const item = items[i];
+      const [x, y, z] = item.pos;
+      const [sx, sy, sz] = item.size;
+
+      dummyPos.set(x, y + sy / 2, z);
+      dummyScale.set(sx, sy, sz);
+      dummyMatrix.compose(dummyPos, dummyQuat, dummyScale);
+
+      instancedMesh.setMatrixAt(i, dummyMatrix);
+    }
+
+    instancedMesh.instanceMatrix.needsUpdate = true;
+    scene.add(instancedMesh);
   }
 
   // Portas

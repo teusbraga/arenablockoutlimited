@@ -155,27 +155,47 @@ export class ScopeSystem {
     // Inicializa Retículo SVG literal do Arquivo 1
     this.buildReticle();
 
-    // Listener para redimensionamento
-    window.addEventListener('resize', () => this.onResize());
-
-    // Listener de Scroll do Mouse (ajusta zoom durante scope)
-    window.addEventListener('wheel', e => {
-      if (!this.adsTarget) return;
-      e.preventDefault();
-      this.scopeFov *= (e.deltaY < 0) ? 0.9 : 1 / 0.9;
-      this.scopeFov = Math.max(SCOPE_CONFIG.SCOPE_FOV_MIN, Math.min(SCOPE_CONFIG.SCOPE_FOV_MAX, this.scopeFov));
-    }, { passive: false });
-
     // Tremor interno cinético exclusivo da ótica (Scope Concussion / Recoil Shockwave)
     this.opticShake = 0;
     this.mainCameraRef = null;
 
-    on('weapon:fired', e => {
+    this._onResize = () => this.onResize();
+    window.addEventListener('resize', this._onResize);
+
+    this._onWheel = e => {
+      if (!this.adsTarget) return;
+      e.preventDefault();
+      this.scopeFov *= (e.deltaY < 0) ? 0.9 : 1 / 0.9;
+      this.scopeFov = Math.max(SCOPE_CONFIG.SCOPE_FOV_MIN, Math.min(SCOPE_CONFIG.SCOPE_FOV_MAX, this.scopeFov));
+    };
+    window.addEventListener('wheel', this._onWheel, { passive: false });
+
+    this._unsubFired = on('weapon:fired', e => {
       const wepId = e.weapon?.id || e.weaponId;
       if (wepId === 'rifle_proto' && (this.adsTarget || this.scopeOn)) {
         this.addOpticShake(0.95);
       }
     });
+  }
+
+  destroy() {
+    window.removeEventListener('resize', this._onResize);
+    window.removeEventListener('wheel', this._onWheel);
+    if (this._unsubFired) {
+      this._unsubFired();
+      this._unsubFired = null;
+    }
+
+    if (this.scopeRT) {
+      this.scopeRT.dispose();
+      this.scopeRT = null;
+    }
+    if (this.lensMesh) {
+      this.lensMesh.geometry.dispose();
+    }
+    if (this.lensMat) {
+      this.lensMat.dispose();
+    }
   }
 
   addOpticShake(amount = 0.95) {

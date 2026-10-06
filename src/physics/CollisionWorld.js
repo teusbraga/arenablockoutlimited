@@ -1,7 +1,5 @@
-import * as THREE from 'three';
-
 /**
- * Mundo de colisão com AABBs.
+ * Mundo de colisão com AABBs puras (Agnóstico a Three.js / GDScript Ready).
  * Convenção: entidade.pos = PÉS (bottom-center).
  *            entidade.size = extents totais {x, y, z}.
  */
@@ -146,11 +144,11 @@ export class CollisionWorld {
     return {
       box: bestBox,
       distance: bestT,
-      point: new THREE.Vector3(
-        origin.x + dir.x * bestT,
-        origin.y + dir.y * bestT,
-        origin.z + dir.z * bestT,
-      ),
+      point: {
+        x: origin.x + dir.x * bestT,
+        y: origin.y + dir.y * bestT,
+        z: origin.z + dir.z * bestT,
+      },
     };
   }
 }

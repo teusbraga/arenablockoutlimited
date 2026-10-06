@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { Character } from './Character.js';
 import { CONFIG } from '../core/Config.js';
 import { AIController } from '../ai/AIController.js';
-import { emit, on } from '../core/EventBus.js';
+import { emit, on, off } from '../core/EventBus.js';
 
 const GHOST_COLORS = [
   0xff1e1e, // Blinky (Vermelho)
@@ -356,6 +356,35 @@ export class Bot extends Character {
     this.floatTime = Math.random() * 10;
     this.walkTime = Math.random() * 10;
     this.idleTime = Math.random() * 10;
+  }
+
+  destroy() {
+    if (this._onFired) {
+      off('bot:fired', this._onFired);
+      this._onFired = null;
+    }
+
+    if (this.root) {
+      this.root.traverse(o => {
+        if (o.geometry) {
+          o.geometry.dispose();
+        }
+        if (o.material) {
+          if (Array.isArray(o.material)) {
+            o.material.forEach(m => {
+              if (m.map) m.map.dispose();
+              m.dispose();
+            });
+          } else {
+            if (o.material.map) o.material.map.dispose();
+            o.material.dispose();
+          }
+        }
+      });
+      if (this.root.parent) {
+        this.root.parent.remove(this.root);
+      }
+    }
   }
 
   /** Retorna as malhas de hitbox ativas */

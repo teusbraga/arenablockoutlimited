@@ -6,10 +6,31 @@ const MAX_TRACERS = 30;
 const MAX_SPARKS = 80;
 const MAX_SMOKE = 40;
 const MAX_CASINGS = 24;
+const MAX_BLOOD_VOXELS = 180;
+const MAX_GHOST_SMOKE = 60;
+
+const _dummy = new THREE.Object3D();
+const _tempColor = new THREE.Color();
+const _bloodPalette = [
+  0xd90429, // Carmine red
+  0xef233c, // Vivid arcade crimson
+  0xa4161a, // Dark arterial red
+  0x800f2f, // Deep blood ruby
+  0xba181b, // Punchy red
+  0xff4d6d  // Bright arcade splash
+];
+const _ghostPalette = [
+  0xffffff, // Pure white
+  0xf5f7fa, // Soft white cloud
+  0xe4e7eb, // Light puff
+  0xd0d5dd, // Ghost grey
+  0x9aa4b2  // Cartoon shadow grey
+];
 
 export class Effects {
-  constructor(scene) {
+  constructor(scene, world = null) {
     this.scene = scene;
+    this.world = world;
 
     // Constantes
     this.TRACER_LIFE = 0.09;
@@ -131,42 +152,195 @@ export class Effects {
         active: false
       });
     }
+
+    // 7. Pixels de Sangue Arcade para Soldados Blocky (InstancedMesh: 1 único draw call na GPU)
+    this.bloodGeo = new THREE.BoxGeometry(1, 1, 1);
+    this.bloodMat = new THREE.MeshLambertMaterial({
+      roughness: 0.45,
+      metalness: 0.10
+    });
+    this.bloodMesh = new THREE.InstancedMesh(this.bloodGeo, this.bloodMat, MAX_BLOOD_VOXELS);
+    this.bloodMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+    this.bloodMesh.frustumCulled = false;
+    this.scene.add(this.bloodMesh);
+
+    this.bloodVoxels = [];
+    this.bloodIdx = 0;
+    for (let i = 0; i < MAX_BLOOD_VOXELS; i++) {
+      _dummy.position.set(0, -999, 0);
+      _dummy.scale.set(0, 0, 0);
+      _dummy.updateMatrix();
+      this.bloodMesh.setMatrixAt(i, _dummy.matrix);
+      this.bloodMesh.setColorAt(i, _tempColor.setHex(0xd90429));
+      this.bloodVoxels.push({
+        active: false,
+        x: 0, y: -999, z: 0,
+        vx: 0, vy: 0, vz: 0,
+        rx: 0, ry: 0, rz: 0,
+        vrx: 0, vry: 0, vrz: 0,
+        size: 0.1,
+        life: 0,
+        maxLife: 3.0,
+        settled: false
+      });
+    }
+    this.bloodMesh.instanceMatrix.needsUpdate = true;
+    if (this.bloodMesh.instanceColor) this.bloodMesh.instanceColor.needsUpdate = true;
+
+    // 8. Fumaça de Fantasma (Explosão poof cartoon cinza/branca)
+    this.ghostSmokeGeo = new THREE.SphereGeometry(0.18, 7, 7);
+    this.ghostSmokePool = [];
+    this.ghostSmokeIdx = 0;
+    for (let i = 0; i < MAX_GHOST_SMOKE; i++) {
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false
+      });
+      const mesh = new THREE.Mesh(this.ghostSmokeGeo, mat);
+      mesh.visible = false;
+      this.scene.add(mesh);
+      this.ghostSmokePool.push({
+        mesh,
+        active: false,
+        vel: new THREE.Vector3(),
+        life: 0,
+        maxLife: 1.0,
+        startScale: 0.5,
+        growth: 3.0
+      });
+    }
+  }
+
+  setWorld(world) {
+    this.world = world;
   }
 
   _bind() {
-    on('shot:tracer', e => this._spawnTracer(e.from, e.to, e.color));
-    on('shot:world', e => this._spawnImpact(e.point, 0xd9c79b, 5));
-    on('shot:bot', e => this._spawnImpact(e.point, e.headshot ? 0xffd166 : 0xc4504a, 6));
-    on('bot:died', e => {
-      const p = e.bot.pos.clone(); p.y += 1.0;
-      this._spawnImpact(p, 0xc4504a, 14);
-    });
-    on('weapon:fired', e => {
-      // Ejeção do cartucho vazio em todas as armas (Ignora m12 que tem ejeção manual)
-      if (e.ejectWorld && e.right && e.up && e.weapon?.id !== 'm12') {
-        const isShotgun = (e.weapon?.casingType === 'shotgun' || e.weapon?.id === 'm12');
-        this._spawnCasing(e.ejectWorld, e.right, e.up, e.forward, isShotgun);
-      }
+    this._unsubs = [
+      on('shot:tracer', e => this._spawnTracer(e.from, e.to, e.color)),
+      on('shot:world', e => this._spawnImpact(e.point, 0xd9c79b, 5)),
+      on('shot:bot', e => this._spawnImpact(e.point, e.headshot ? 0xffd166 : 0xc4504a, 6)),
+      on('bot:died', e => {
+        if (!e?.bot) return;
+        const pos = e.bot.pos;
+        const isGhost = e.bot.skinType === 'ghost';
+        const isHeadshot = !!e.headshot;
 
-      if (!e.muzzleWorld) return;
-      if (e.weapon?.id === 'rifle_proto') {
-        this._spawnProtoSparks(e.muzzleWorld, e.forward, 9);
-        this._spawnProtoSmoke(e.muzzleWorld, e.forward, 2);
-        return;
-      }
-      const opacity = e.weapon?.smokeConeOpacity ?? 0.06;
-      this._spawnMuzzleSmoke(e.muzzleWorld, e.forward, opacity);
-    });
+        if (isGhost) {
+          this._spawnGhostDeathSmoke(pos, isHeadshot);
+        } else {
+          this._spawnSoldierBloodVoxels(pos, isHeadshot);
+        }
+      }),
+      on('weapon:fired', e => {
+        // Ejeção do cartucho vazio em todas as armas (Ignora m12 que tem ejeção manual)
+        if (e.ejectWorld && e.right && e.up && e.weapon?.id !== 'm12') {
+          const isShotgun = (e.weapon?.casingType === 'shotgun' || e.weapon?.id === 'm12');
+          this._spawnCasing(e.ejectWorld, e.right, e.up, e.forward, isShotgun);
+        }
 
-    on('weapon:manual_eject_fx', e => {
-      if (e.ejectWorld && e.right && e.up) {
-        this._spawnCasing(e.ejectWorld, e.right, e.up, e.forward, e.isShotgun);
+        if (!e.muzzleWorld) return;
+        if (e.weapon?.id === 'rifle_proto') {
+          this._spawnProtoSparks(e.muzzleWorld, e.forward, 9);
+          this._spawnProtoSmoke(e.muzzleWorld, e.forward, 2);
+          return;
+        }
+        const opacity = e.weapon?.smokeConeOpacity ?? 0.06;
+        this._spawnMuzzleSmoke(e.muzzleWorld, e.forward, opacity);
+      }),
+      on('weapon:manual_eject_fx', e => {
+        if (e.ejectWorld && e.right && e.up) {
+          this._spawnCasing(e.ejectWorld, e.right, e.up, e.forward, e.isShotgun);
+        }
+      }),
+      on('weapon:smoke:residual', e => {
+        if (!e.muzzleWorld || !e.count) return;
+        this._spawnBarrelHeatSmoke(e.muzzleWorld, e.count, e.color);
+      }),
+    ];
+  }
+
+  destroy() {
+    if (this._unsubs) {
+      for (const unsub of this._unsubs) unsub();
+      this._unsubs = [];
+    }
+
+    // Libera geometrias base
+    if (this.sparkGeo) this.sparkGeo.dispose();
+    if (this.casingGeo) this.casingGeo.dispose();
+    if (this.shotgunCasingGeo) this.shotgunCasingGeo.dispose();
+    if (this.casingMat) this.casingMat.dispose();
+    if (this.shotgunCasingMat) this.shotgunCasingMat.dispose();
+
+    // Libera tracres
+    for (const t of this.tracers) {
+      if (t.line) {
+        if (t.line.parent) t.line.parent.remove(t.line);
+        t.line.geometry.dispose();
+        t.line.material.dispose();
       }
-    });
-    on('weapon:smoke:residual', e => {
-      if (!e.muzzleWorld || !e.count) return;
-      this._spawnBarrelHeatSmoke(e.muzzleWorld, e.count, e.color);
-    });
+    }
+    this.tracers = [];
+
+    // Libera sparks
+    for (const s of this.sparks) {
+      if (s.mesh) {
+        if (s.mesh.parent) s.mesh.parent.remove(s.mesh);
+        s.mesh.material.dispose();
+      }
+    }
+    this.sparks = [];
+
+    // Libera smokes
+    for (const sm of this.smokes) {
+      if (sm.mesh) {
+        if (sm.mesh.parent) sm.mesh.parent.remove(sm.mesh);
+        sm.mesh.material.dispose();
+      }
+    }
+    this.smokes = [];
+
+    // Libera casings
+    for (const c of this.casings) {
+      if (c.mesh && c.mesh.parent) c.mesh.parent.remove(c.mesh);
+    }
+    this.casings = [];
+
+    // Libera proto sparks e smoke
+    if (this.sparkPoints) {
+      if (this.sparkPoints.parent) this.sparkPoints.parent.remove(this.sparkPoints);
+      this.sparkPointsGeo.dispose();
+      this.sparkPointsMat.dispose();
+    }
+    for (const ps of this.protoSmokePool) {
+      if (ps.mesh) {
+        if (ps.mesh.parent) ps.mesh.parent.remove(ps.mesh);
+        ps.mesh.geometry.dispose();
+        ps.mesh.material.dispose();
+      }
+    }
+    this.protoSmokePool = [];
+
+    // Libera blood voxels
+    if (this.bloodMesh) {
+      if (this.bloodMesh.parent) this.bloodMesh.parent.remove(this.bloodMesh);
+      if (this.bloodGeo) this.bloodGeo.dispose();
+      if (this.bloodMat) this.bloodMat.dispose();
+    }
+    this.bloodVoxels = [];
+
+    // Libera ghost smoke
+    for (const g of this.ghostSmokePool) {
+      if (g.mesh) {
+        if (g.mesh.parent) g.mesh.parent.remove(g.mesh);
+        g.mesh.material.dispose();
+      }
+    }
+    if (this.ghostSmokeGeo) this.ghostSmokeGeo.dispose();
+    this.ghostSmokePool = [];
   }
 
   _spawnProtoSparks(pos, dir, count = 9) {
@@ -359,6 +533,99 @@ export class Effects {
     }
   }
 
+  _getFloorY(x, y, z) {
+    if (!this.world || !this.world.boxes) return 0.01;
+    let floorY = 0.01;
+    const boxes = this.world.boxes;
+    for (let i = 0; i < boxes.length; i++) {
+      const b = boxes[i];
+      if (!b.solid) continue;
+      if (x >= b.min.x && x <= b.max.x && z >= b.min.z && z <= b.max.z) {
+        if (b.max.y <= y + 0.15 && b.max.y > floorY) {
+          floorY = b.max.y;
+        }
+      }
+    }
+    return floorY;
+  }
+
+  _spawnSoldierBloodVoxels(pos, isHeadshot = false) {
+    const count = isHeadshot ? 36 : 26;
+    const baseY = pos.y + 0.85;
+
+    for (let i = 0; i < count; i++) {
+      const idx = this.bloodIdx;
+      this.bloodIdx = (this.bloodIdx + 1) % MAX_BLOOD_VOXELS;
+      const v = this.bloodVoxels[idx];
+
+      v.active = true;
+      v.x = pos.x + (Math.random() - 0.5) * 0.45;
+      v.y = baseY + (Math.random() - 0.5) * 0.70;
+      v.z = pos.z + (Math.random() - 0.5) * 0.45;
+
+      const ang = Math.random() * Math.PI * 2;
+      const hSpeed = 1.2 + Math.random() * (isHeadshot ? 4.2 : 3.2);
+      v.vx = Math.cos(ang) * hSpeed;
+      v.vz = Math.sin(ang) * hSpeed;
+      v.vy = (isHeadshot ? 3.5 : 2.0) + Math.random() * (isHeadshot ? 5.5 : 3.8);
+
+      v.rx = Math.random() * Math.PI * 2;
+      v.ry = Math.random() * Math.PI * 2;
+      v.rz = Math.random() * Math.PI * 2;
+
+      v.vrx = (Math.random() - 0.5) * 22;
+      v.vry = (Math.random() - 0.5) * 22;
+      v.vrz = (Math.random() - 0.5) * 22;
+
+      v.size = 0.075 + Math.random() * 0.055;
+      v.maxLife = 2.8 + Math.random() * 0.8;
+      v.life = v.maxLife;
+      v.settled = false;
+
+      const hex = _bloodPalette[Math.floor(Math.random() * _bloodPalette.length)];
+      _tempColor.setHex(hex);
+      this.bloodMesh.setColorAt(idx, _tempColor);
+    }
+    if (this.bloodMesh.instanceColor) this.bloodMesh.instanceColor.needsUpdate = true;
+  }
+
+  _spawnGhostDeathSmoke(pos, isHeadshot = false) {
+    const count = isHeadshot ? 26 : 20;
+    const baseY = pos.y + 0.9;
+
+    for (let i = 0; i < count; i++) {
+      const idx = this.ghostSmokeIdx;
+      this.ghostSmokeIdx = (this.ghostSmokeIdx + 1) % MAX_GHOST_SMOKE;
+      const s = this.ghostSmokePool[idx];
+
+      s.active = true;
+      s.mesh.visible = true;
+      s.mesh.position.set(
+        pos.x + (Math.random() - 0.5) * 0.4,
+        baseY + (Math.random() - 0.5) * 0.5,
+        pos.z + (Math.random() - 0.5) * 0.4
+      );
+
+      const hex = _ghostPalette[Math.floor(Math.random() * _ghostPalette.length)];
+      s.mesh.material.color.setHex(hex);
+      s.startScale = 0.4 + Math.random() * 0.35;
+      s.mesh.scale.setScalar(s.startScale);
+      s.mesh.material.opacity = 0.85;
+
+      const spd = 1.4 + Math.random() * 2.5;
+      const theta = Math.random() * Math.PI * 2;
+      s.vel.set(
+        Math.cos(theta) * spd,
+        1.2 + Math.random() * 2.8,
+        Math.sin(theta) * spd
+      );
+
+      s.growth = 2.5 + Math.random() * 1.5;
+      s.maxLife = 0.85 + Math.random() * 0.40;
+      s.life = s.maxLife;
+    }
+  }
+
   update(dt, camera) {
     // 1. Tracers
     for (let i = 0; i < MAX_TRACERS; i++) {
@@ -494,6 +761,101 @@ export class Effects {
         c.vel.z *= 0.65;
         c.rotVel.multiplyScalar(0.45);
       }
+    }
+
+    // 7. Pixels de Sangue Arcade para Soldados Blocky (Física, quique no chão e encolhimento)
+    let bloodNeedsUpdate = false;
+    for (let i = 0; i < MAX_BLOOD_VOXELS; i++) {
+      const v = this.bloodVoxels[i];
+      if (!v.active) continue;
+
+      bloodNeedsUpdate = true;
+      v.life -= dt;
+      if (v.life <= 0) {
+        v.active = false;
+        _dummy.position.set(0, -999, 0);
+        _dummy.scale.set(0, 0, 0);
+        _dummy.updateMatrix();
+        this.bloodMesh.setMatrixAt(i, _dummy.matrix);
+        continue;
+      }
+
+      if (!v.settled) {
+        // Gravidade arcade e arrasto aerodinâmico
+        v.vy -= 18.0 * dt;
+        v.vx *= Math.max(0, 1 - 0.40 * dt);
+        v.vz *= Math.max(0, 1 - 0.40 * dt);
+
+        v.x += v.vx * dt;
+        v.y += v.vy * dt;
+        v.z += v.vz * dt;
+
+        v.rx += v.vrx * dt;
+        v.ry += v.vry * dt;
+        v.rz += v.vrz * dt;
+
+        // Colisão com chão ou topo de obstáculos e quique (bounce/kick)
+        const floorY = this._getFloorY(v.x, v.y, v.z);
+        if (v.y - v.size * 0.5 <= floorY) {
+          v.y = floorY + v.size * 0.5;
+          if (Math.abs(v.vy) > 0.85) {
+            // Kick / Bounce no chão
+            v.vy = -v.vy * (0.35 + Math.random() * 0.15);
+            v.vx *= 0.65;
+            v.vz *= 0.65;
+            v.vrx *= 0.6;
+            v.vry *= 0.6;
+            v.vrz *= 0.6;
+          } else {
+            // Assenta no chão
+            v.vy = 0;
+            v.vx = 0;
+            v.vz = 0;
+            v.vrx = 0;
+            v.vry = 0;
+            v.vrz = 0;
+            v.settled = true;
+          }
+        }
+      }
+
+      // Encolhimento gradual nos últimos 0.6s de vida
+      let curSize = v.size;
+      if (v.life < 0.6) {
+        curSize = v.size * Math.max(0, v.life / 0.6);
+      }
+
+      _dummy.position.set(v.x, v.y, v.z);
+      _dummy.rotation.set(v.rx, v.ry, v.rz);
+      _dummy.scale.setScalar(curSize);
+      _dummy.updateMatrix();
+      this.bloodMesh.setMatrixAt(i, _dummy.matrix);
+    }
+    if (bloodNeedsUpdate) {
+      this.bloodMesh.instanceMatrix.needsUpdate = true;
+    }
+
+    // 8. Fumaça de Fantasma (Explosão poof cinza/branca que expande e dissipa)
+    for (let i = 0; i < MAX_GHOST_SMOKE; i++) {
+      const s = this.ghostSmokePool[i];
+      if (!s.active) continue;
+
+      s.life -= dt;
+      if (s.life <= 0) {
+        s.active = false;
+        s.mesh.visible = false;
+        continue;
+      }
+
+      const t = s.life / s.maxLife; // 1 -> 0
+      s.vel.y += 0.85 * dt; // sustentação térmica ascendente
+      s.vel.x *= Math.max(0, 1 - 2.8 * dt);
+      s.vel.z *= Math.max(0, 1 - 2.8 * dt);
+
+      s.mesh.position.addScaledVector(s.vel, dt);
+      const grow = 1 + (1 - t) * s.growth;
+      s.mesh.scale.setScalar(s.startScale * grow);
+      s.mesh.material.opacity = t * t * 0.85;
     }
   }
 }

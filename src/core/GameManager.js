@@ -34,22 +34,35 @@ export class GameManager {
   }
 
   _setupEvents() {
-    // Danos causados por tiro de Bot no Player
-    on('bot:fired', ({ bot, player: p, dist }) => {
-      const chance = Math.max(0.15, 1 - dist / 35);
-      if (Math.random() < chance) {
-        const dmg = CONFIG.BOTS.damageBody + Math.random() * 6;
-        p.takeDamage(dmg, bot);
-      }
-    });
+    this._unsubs = [
+      // Danos causados por tiro de Bot no Player
+      on('bot:fired', ({ bot, player: p, dist }) => {
+        const chance = Math.max(0.15, 1 - dist / 35);
+        if (Math.random() < chance) {
+          const dmg = CONFIG.BOTS.damageBody + Math.random() * 6;
+          p.takeDamage(dmg, bot);
+        }
+      }),
 
-    // Quando qualquer bot morre: registra kill e agenda respawn com lock-in de posição
-    on('bot:died', e => {
-      this.registerKill(e.headshot);
-      if (e.bot) {
-        this.scheduleBotRespawn(e.bot);
-      }
-    });
+      // Quando qualquer bot morre: registra kill e agenda respawn com lock-in de posição
+      on('bot:died', e => {
+        this.registerKill(e.headshot);
+        if (e.bot) {
+          this.scheduleBotRespawn(e.bot);
+        }
+      }),
+    ];
+  }
+
+  destroy() {
+    if (this._unsubs) {
+      for (const unsub of this._unsubs) unsub();
+      this._unsubs = [];
+    }
+    while (this.bots.length > 0) {
+      const b = this.bots.pop();
+      b.destroy();
+    }
   }
 
   setDoors(doors) {
@@ -192,7 +205,7 @@ export class GameManager {
       b.ai.reactionTimer = 0;
       b.ai.losTimer = 0;
       b.ai.searchTimer = 0;
-      b.ai.patrolTarget = null;
+      b.ai.hasPatrolTarget = false;
       b.ai.fireTimer = 0.8 + Math.random() * 0.5;
     }
   }
@@ -212,10 +225,7 @@ export class GameManager {
 
     while (this.bots.length > n) {
       const b = this.bots.pop();
-      this.scene.remove(b.root);
-      b.root.traverse(o => {
-        if (o.geometry) o.geometry.dispose();
-      });
+      b.destroy();
     }
 
     while (this.bots.length < n) {
@@ -228,10 +238,7 @@ export class GameManager {
     const n = this.bots.length;
     while (this.bots.length > 0) {
       const b = this.bots.pop();
-      this.scene.remove(b.root);
-      b.root.traverse(o => {
-        if (o.geometry) o.geometry.dispose();
-      });
+      b.destroy();
     }
     for (let i = 1; i <= n; i++) {
       this.bots.push(this.spawnBot(i));

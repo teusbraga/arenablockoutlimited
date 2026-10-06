@@ -29,9 +29,16 @@ export class Player extends Character {
     this.crouchAmount = 0;
 
     // Escuta evento de ADS para garantir sincronismo
-    on('player:ads', e => {
+    this._unsubAds = on('player:ads', e => {
       this.ads = !!e.ads;
     });
+  }
+
+  destroy() {
+    if (this._unsubAds) {
+      this._unsubAds();
+      this._unsubAds = null;
+    }
   }
 
   get yaw() {
@@ -63,6 +70,7 @@ export class Player extends Character {
     if (this.rig) this.rig.eyeHeight = v;
   }
 
+  update(dt, input) {
     // ---- Respawn Timer (quando morto) ----
     if (!this.alive && this.respawnTimer > 0) {
       const prevSecond = Math.ceil(this.respawnTimer);

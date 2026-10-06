@@ -57,133 +57,128 @@ export class HUD {
   }
 
   _bind() {
-    on('player:hp', e => {
-      const val = Math.round(e.hp);
-      if (this.el.hpNum) {
-        this.el.hpNum.textContent = val;
-        this.triggerFlash(this.el.hpHud || this.el.hpNum);
-      }
-    });
-
-    on('player:damaged', e => {
-      // Screen Flash
-      this.el.screenFlash.style.transition = 'none';
-      this.el.screenFlash.style.background = 'rgba(224,87,74,0.35)';
-      requestAnimationFrame(() => {
-        this.el.screenFlash.style.transition = 'background 0.35s ease';
-        this.el.screenFlash.style.background = 'rgba(224,87,74,0)';
-      });
-
-      // Salva vetor de dano relativo ao player
-      if (e.source) {
-        this.damageMarks.push({
-          dx: e.source.pos.x - e.playerPos.x,
-          dz: e.source.pos.z - e.playerPos.z,
-          t: 1.0
+    this._unsubs = [
+      on('player:hp', e => {
+        const val = Math.round(e.hp);
+        if (this.el.hpNum) {
+          this.el.hpNum.textContent = val;
+          this.triggerFlash(this.el.hpHud || this.el.hpNum);
+        }
+      }),
+      on('player:damaged', e => {
+        this.el.screenFlash.style.transition = 'none';
+        this.el.screenFlash.style.background = 'rgba(224,87,74,0.35)';
+        requestAnimationFrame(() => {
+          this.el.screenFlash.style.transition = 'background 0.35s ease';
+          this.el.screenFlash.style.background = 'rgba(224,87,74,0)';
         });
-      }
-    });
+        if (e.source) {
+          this.damageMarks.push({
+            dx: e.source.pos.x - e.playerPos.x,
+            dz: e.source.pos.z - e.playerPos.z,
+            t: 1.0
+          });
+        }
+      }),
+      on('weapon:ammo', e => {
+        if (this.el.ammoNum) {
+          this.el.ammoNum.textContent = e.ammo;
+          this.triggerFlash(this.el.ammoNum);
+        }
+        if (this.el.ammoMax) {
+          this.el.ammoMax.textContent = e.max;
+        }
+      }),
+      on('weapon:equipped', e => {
+        if (this.el.weaponName) {
+          this.el.weaponName.textContent = e.name;
+          this.triggerFlash(this.el.weaponHud || this.el.weaponName);
+        }
+        if (this.el.fireMode && e.fireMode) {
+          this.el.fireMode.textContent = e.fireMode.toUpperCase();
+          this.triggerFlash(this.el.fireMode);
+        }
+      }),
+      on('weapon:firemode', e => {
+        if (this.el.fireMode && e.fireMode) {
+          this.el.fireMode.textContent = e.fireMode.toUpperCase();
+          this.el.fireMode.style.display = e.canToggle || e.fireMode ? 'inline-block' : 'none';
+          this.triggerFlash(this.el.fireMode);
+        }
+      }),
+      on('shot:bot', e => this._hit(e)),
+      on('bot:died', e => {
+        this.kills++; 
+        this.el.kills.textContent = this.kills;
+        this.triggerFlash(this.el.kills);
+        this._addKillFeed(`Você eliminou <b>Bot</b>${e.headshot ? ' <span class="hs">HEADSHOT</span>' : ''}`);
+      }),
+      on('player:died', () => { 
+        this.deaths++; 
+        this.el.deaths.textContent = this.deaths; 
+        this.triggerFlash(this.el.deaths);
+        this.el.deathScreen.classList.add('show');
+      }),
+      on('player:respawn', () => {
+        this.el.deathScreen.classList.remove('show');
+      }),
+      on('player:respawn_tick', t => {
+        this.setRespawnText(t);
+      }),
+      on('game:reset', () => {
+        this.kills = 0;
+        this.deaths = 0;
+        this.el.kills.textContent = '0';
+        this.el.deaths.textContent = '0';
+        this.el.deathScreen.classList.remove('show');
+        this.el.killfeed.innerHTML = '';
+        this.damageMarks = [];
+      }),
+      on('kill:combo', e => {
+        let text = '';
+        let color = '#e8933a';
+        if (e.combo >= 3) text = 'TRIPLE KILL!';
+        else if (e.combo === 2) text = 'DOUBLE KILL!';
+        else if (e.headshot) { text = 'HEADSHOT!'; color = '#ffd166'; }
+        
+        if (text) this._showKillPopup(text, color);
+      }),
+      on('round:timer', t => {
+        this.setTimer(t);
+      }),
+      on('hud:popup', ({ text, color, duration }) => {
+        this._showKillPopup(text, color || '#06d6a0', duration || 1600);
+      }),
+      on('round:over', () => {
+        const screen = document.getElementById('roundover-screen');
+        const stats = document.getElementById('final-stats');
+        stats.textContent = `${this.kills} abates · ${this.deaths} mortes`;
+        screen.style.opacity = '1';
+        screen.style.pointerEvents = 'auto';
+      }),
+      on('input:lock', locked => {
+        this.el.overlay.classList.toggle('hidden', locked);
+        const controls = document.getElementById('controls');
+        if (controls) controls.style.display = locked ? 'none' : 'block';
+      }),
+      on('interact:target', target => {
+        this.el.prompt.style.opacity = target ? '1' : '0';
+      }),
+    ];
 
-    on('weapon:ammo', e => {
-      if (this.el.ammoNum) {
-        this.el.ammoNum.textContent = e.ammo;
-        this.triggerFlash(this.el.ammoNum);
-      }
-      if (this.el.ammoMax) {
-        this.el.ammoMax.textContent = e.max;
-      }
-    });
-    
-    on('weapon:equipped', e => {
-      if (this.el.weaponName) {
-        this.el.weaponName.textContent = e.name;
-        this.triggerFlash(this.el.weaponHud || this.el.weaponName);
-      }
-      if (this.el.fireMode && e.fireMode) {
-        this.el.fireMode.textContent = e.fireMode.toUpperCase();
-        this.triggerFlash(this.el.fireMode);
-      }
-    });
-
-    on('weapon:firemode', e => {
-      if (this.el.fireMode && e.fireMode) {
-        this.el.fireMode.textContent = e.fireMode.toUpperCase();
-        this.el.fireMode.style.display = e.canToggle || e.fireMode ? 'inline-block' : 'none';
-        this.triggerFlash(this.el.fireMode);
-      }
-    });
-    
-    on('shot:bot', e => this._hit(e));
-
-    on('bot:died', e => {
-      this.kills++; 
-      this.el.kills.textContent = this.kills;
-      this.triggerFlash(this.el.kills);
-      this._addKillFeed(`Você eliminou <b>Bot</b>${e.headshot ? ' <span class="hs">HEADSHOT</span>' : ''}`);
-    });
-
-    on('player:died', () => { 
-      this.deaths++; 
-      this.el.deaths.textContent = this.deaths; 
-      this.triggerFlash(this.el.deaths);
-      this.el.deathScreen.classList.add('show');
-    });
-
-    on('player:respawn', () => {
-      this.el.deathScreen.classList.remove('show');
-    });
-
-    on('player:respawn_tick', t => {
-      this.setRespawnText(t);
-    });
-
-    on('game:reset', () => {
-      this.kills = 0;
-      this.deaths = 0;
-      this.el.kills.textContent = '0';
-      this.el.deaths.textContent = '0';
-      this.el.deathScreen.classList.remove('show');
-      this.el.killfeed.innerHTML = '';
-      this.damageMarks = [];
-    });
-
-    on('kill:combo', e => {
-      let text = '';
-      let color = '#e8933a';
-      if (e.combo >= 3) text = 'TRIPLE KILL!';
-      else if (e.combo === 2) text = 'DOUBLE KILL!';
-      else if (e.headshot) { text = 'HEADSHOT!'; color = '#ffd166'; }
-      
-      if (text) this._showKillPopup(text, color);
-    });
-
-    on('round:timer', t => {
-      this.setTimer(t);
-    });
-
-    on('hud:popup', ({ text, color, duration }) => {
-      this._showKillPopup(text, color || '#06d6a0', duration || 1600);
-    });
-
-    on('round:over', () => {
-      const screen = document.getElementById('roundover-screen');
-      const stats = document.getElementById('final-stats');
-      stats.textContent = `${this.kills} abates · ${this.deaths} mortes`;
-      screen.style.opacity = '1';
-      screen.style.pointerEvents = 'auto';
-    });
-    
     document.getElementById('restart-btn')?.addEventListener('click', () => location.reload());
+  }
 
-    on('input:lock', locked => {
-      this.el.overlay.classList.toggle('hidden', locked);
-      const controls = document.getElementById('controls');
-      if (controls) controls.style.display = locked ? 'none' : 'block';
-    });
-    
-    on('interact:target', target => {
-      this.el.prompt.style.opacity = target ? '1' : '0';
-    });
+  destroy() {
+    if (this._unsubs) {
+      for (const unsub of this._unsubs) unsub();
+      this._unsubs = [];
+    }
+    for (const [, timer] of this._flashTimers) {
+      clearTimeout(timer);
+    }
+    this._flashTimers.clear();
+    clearTimeout(this._hitT);
   }
 
   _hit(e) {

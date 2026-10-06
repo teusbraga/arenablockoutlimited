@@ -8,6 +8,13 @@ export function on(type, fn) {
 export function off(type, fn) {
   listeners.get(type)?.delete(fn);
 }
+export function clearBus(type = null) {
+  if (type) {
+    listeners.delete(type);
+  } else {
+    listeners.clear();
+  }
+}
 export function emit(type, detail) {
   const set = listeners.get(type);
   if (!set) return;

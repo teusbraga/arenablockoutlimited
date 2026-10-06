@@ -1,4 +1,14 @@
-export function startEngine({ update, render, fixedDt = 1/120, maxFrame = 0.1 }) {
+export function startEngine({
+  fixedUpdate,
+  renderUpdate,
+  update, // Fallback de retrocompatibilidade
+  render, // Fallback de retrocompatibilidade
+  fixedDt = 1 / 120,
+  maxFrame = 0.1,
+}) {
+  const onFixed = fixedUpdate || update;
+  const onRender = renderUpdate || render;
+
   let acc = 0;
   let last = performance.now() / 1000;
 
@@ -12,11 +22,13 @@ export function startEngine({ update, render, fixedDt = 1/120, maxFrame = 0.1 })
     acc += dt;
     let steps = 0;
     while (acc >= fixedDt && steps < 5) {
-      update(fixedDt);
+      if (onFixed) onFixed(fixedDt);
       acc -= fixedDt;
       steps++;
     }
-    render(acc / fixedDt, dt);
+
+    const alpha = acc / fixedDt;
+    if (onRender) onRender(alpha, dt);
   }
   requestAnimationFrame(frame);
 }

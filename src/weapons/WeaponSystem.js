@@ -22,6 +22,7 @@ const _upCopy = new THREE.Vector3();
 const _botHitPoint = new THREE.Vector3();
 const _worldHitPoint = new THREE.Vector3();
 const _smokeMuzzleWorld = new THREE.Vector3();
+const _hittableMeshes = [];
 
 export class WeaponSystem {
   constructor({ camera, viewmodel, input, player, world, botsProvider, inventory }) {
@@ -366,10 +367,13 @@ export class WeaponSystem {
         .addScaledVector(_up, Math.sin(a) * m)
         .normalize();
 
-    // Alvos: parede + bots
-    const hittableMeshes = [];
+    // Alvos: hitboxes dos bots
+    _hittableMeshes.length = 0;
     for (const bot of this.botsProvider()) {
-      hittableMeshes.push(...bot.hittables());
+      const hits = bot.hittables();
+      for (let i = 0; i < hits.length; i++) {
+        _hittableMeshes.push(hits[i]);
+      }
     }
 
     const pelletCount = def.pellets || 1;
@@ -396,7 +400,7 @@ export class WeaponSystem {
       // Primeiro raycast contra meshes dos bots
       this.raycaster.set(_camPos, _pelletDir);
       this.raycaster.far = 200;
-      const hitsBot = this.raycaster.intersectObjects(hittableMeshes, false);
+      const hitsBot = this.raycaster.intersectObjects(_hittableMeshes, false);
 
       // Depois raycast contra o mundo físico
       const hitWorld = this.world.raycast(_camPos, _pelletDir, 200);
