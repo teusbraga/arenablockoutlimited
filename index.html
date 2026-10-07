@@ -356,6 +356,12 @@
     width: 54px; height: 54px; font-size: 11px;
     display: none; /* Só exibido durante ADS */
   }
+  #btn-touch-fire-top {
+    right: calc(16px + env(safe-area-inset-right, 0px));
+    top: calc(12px + env(safe-area-inset-top, 0px));
+    width: 56px; height: 56px; font-size: 12px;
+    display: none; /* Ativado no mobile */
+  }
   #btn-touch-jump {
     right: calc(24px + env(safe-area-inset-right, 0px));
     bottom: calc(110px + env(safe-area-inset-bottom, 0px));
@@ -385,6 +391,7 @@
     right: calc(240px + env(safe-area-inset-right, 0px));
     bottom: calc(140px + env(safe-area-inset-bottom, 0px));
     width: 56px; height: 56px; font-size: 11px; border-radius: 6px;
+    display: none; /* Só exibido quando próximo a portas ou drops */
   }
   #btn-touch-pause {
     left: calc(16px + env(safe-area-inset-left, 0px));
@@ -410,7 +417,7 @@
   /* Compactação para telas menores / celulares */
   @media (max-width: 900px) {
     #controls { display: none !important; }
-    #score-hud { right: 14px; top: 12px; gap: 8px; padding: 4px 10px; }
+    #score-hud { right: calc(80px + env(safe-area-inset-right, 0px)); top: 12px; gap: 8px; padding: 4px 10px; }
     .score-val { font-size: 16px; }
     #round-timer-hud { top: 12px; padding: 4px 10px; }
     #round-timer { font-size: 18px !important; }
@@ -422,6 +429,7 @@
 
     /* Touch Controls - Ergonomia Mobile */
     #btn-touch-fire { right: calc(80px + env(safe-area-inset-right, 0px)); bottom: calc(100px + env(safe-area-inset-bottom, 0px)); width: 72px; height: 72px; font-size: 13px; }
+    #btn-touch-fire-top { display: flex; right: calc(14px + env(safe-area-inset-right, 0px)); top: calc(10px + env(safe-area-inset-top, 0px)); width: 54px; height: 54px; font-size: 11px; }
     #btn-touch-ads { right: calc(80px + env(safe-area-inset-right, 0px)); bottom: calc(190px + env(safe-area-inset-bottom, 0px)); width: 56px; height: 56px; font-size: 11px; }
     #btn-touch-zoom { right: calc(150px + env(safe-area-inset-right, 0px)); bottom: calc(190px + env(safe-area-inset-bottom, 0px)); width: 48px; height: 48px; font-size: 10px; }
     #btn-touch-jump { right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(80px + env(safe-area-inset-bottom, 0px)); width: 52px; height: 52px; font-size: 11px; }
@@ -532,7 +540,7 @@
 </div>
 <div id="lens"><svg id="reticle" viewBox="-50 -50 100 100" xmlns="http://www.w3.org/2000/svg"></svg></div>
 <div id="hitmarker">×</div>
-<div id="prompt">[E] ABRIR</div>
+<div id="prompt">[F] INTERAGIR</div>
 
 <!-- Camada de Controles Móveis (Touch) -->
 <div id="mobile-controls">
@@ -544,6 +552,7 @@
   <div id="touch-zone-right"></div>
   
   <button id="btn-touch-fire" class="touch-btn">TIRO</button>
+  <button id="btn-touch-fire-top" class="touch-btn">TIRO</button>
   <button id="btn-touch-ads" class="touch-btn">MIRA</button>
   <button id="btn-touch-zoom" class="touch-btn">ZOOM</button>
   <button id="btn-touch-jump" class="touch-btn">PULO</button>
@@ -551,7 +560,7 @@
   <button id="btn-touch-reload" class="touch-btn">RELOAD</button>
   <button id="btn-touch-cycle" class="touch-btn">ARMA</button>
   <button id="btn-touch-firemode" class="touch-btn">MODO</button>
-  <button id="btn-touch-interact" class="touch-btn">PORTA</button>
+  <button id="btn-touch-interact" class="touch-btn">INTERAGIR</button>
   <button id="btn-touch-pause" class="touch-btn">⏸</button>
 </div>
 
@@ -569,7 +578,7 @@
     </div>
     <div class="menu-instructions">
       WASD mover · Shift correr · C agachar · Space pular<br>
-      LMB atirar · RMB mirar · R reload · B modo tiro · Q arma · E porta<br>
+      LMB atirar · RMB mirar · R reload · B modo tiro · Q/E inclinar · F interagir<br>
       ESC pausa
     </div>
 

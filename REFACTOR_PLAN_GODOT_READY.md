@@ -249,3 +249,56 @@
 ## FASE 12: Layout Mobile Ergon�mico (Estilo PUBG)
 - **Objetivo**: Traduzir refer�ncias do PUBG Mobile em CSS e PWA Mobile touch.
 - **A��es**: Ajustar index.html e TouchInput.js [x] (CONCLU�DO)
+
+## FASE 13: Evolução Tática, Controles, Inventário de 2 Armas, Drops 3D e Lean
+- **Objetivo**: Implementar controles táticos refinados (lean, rebinds, mobile), inventário restrito a 2 slots com troca de drop, drops 3D giratórios, bots com armas randômicas, mira ótica da VSS unificada e tracers visíveis.
+
+### Passo 13.1: Rebind de Teclado & Botões Touch Especializados [x] (CONCLUÍDO)
+- **Alvo:** src/core/Input.js, src/core/TouchInput.js, index.html
+- **Ações:**
+  - Rebind de interação: mudar tecla de interação de E para F.
+  - Adicionar ações de inclinação leanLeft (Q) e leanRight (E) no Input.js.
+  - Criar novo botão de tiro no canto superior direito apenas no mobile (#btn-touch-fire-top) para suporte a pegada claw/4 dedos.
+  - Tornar o botão de interação touch (#btn-touch-interact) contextual: visível apenas quando próximo a portas ou drops de armas (interact:target).
+
+### Passo 13.2: Menu de Configurações Mobile Master-Detail (1/4 Navegação + 3/4 Conteúdo) [ ]
+- **Alvo:** index.html, src/ui/MenuController.js
+- **Ações:**
+  - Estilização responsiva em telas pequenas: menu lateral em 1/4 da tela com abas e 3/4 para conteúdo (sensibilidade, arma, áudio, etc.).
+  - Adequação de toques e sliders para ergonomia mobile.
+
+### Passo 13.3: Sistema de Lean / Inclinação de Tronco (Player e Bots) [ ]
+- **Alvo:** src/entities/Player.js, src/weapons/Viewmodel.js, src/ai/AIController.js
+- **Ações:**
+  - Implementar transição suave de lean no Player.js com offset lateral da câmera e inclinação angular suave (oll/eixo Z).
+  - Inclinar viewmodel da arma proporcionalmente com inércia natural.
+  - Implementar lógica na IA dos bots para realizar peek/lean em quinas e coberturas durante combate.
+
+### Passo 13.4: Sistema de Inventário de 2 Armas (Slots 1 e 2) & Mecânica de Substituição de Drop [ ]
+- **Alvo:** src/weapons/WeaponSystem.js, src/core/GameManager.js, src/ui/HUD.js
+- **Ações:**
+  - Limitar inventário do jogador a 2 slots: [slot1, slot2].
+  - O jogador inicia somente com a arma escolhida (slot 1); slot 2 vazio.
+  - Teclas 1 e 2 (e toque no HUD/Touch) selecionam estritamente o slot ativo.
+  - Ao interagir (F ou touch) com um drop no chão:
+    - Se o slot atual estiver vazio, equipa no slot.
+    - Se já tiver arma em mãos, dropa a arma atual no chão e equipa a nova no slot ativo.
+  - Atualizar HUD com indicadores dos 2 slots de arma e munição individual.
+
+### Passo 13.5: Bots com Armas Randômicas & Drop 3D Giratório no Chão [ ]
+- **Alvo:** src/core/GameManager.js, src/world/ItemDrop.js
+- **Ações:**
+  - Sortear armas variadas do catálogo para os bots na inicialização.
+  - Ao morrer, bot dropa a arma específica que estava empunhando.
+  - No ItemDrop.js, instanciar modelo/silhueta 3D representativa da arma girando suavemente (otation.y += dt * 1.5) e flutuando com oscilação senoidal suave.
+
+### Passo 13.6: Unificação do Scope da VSS (Sistema ScopeSystem) [ ]
+- **Alvo:** src/weapons/ScopeSystem.js, src/weapons/WeaponSystem.js
+- **Ações:**
+  - Eliminar mira antiga/de teste da VSS.
+  - Integrar VSS ao ScopeSystem utilizando a ótica/render target dinâmico e retículo iluminado com telemetria e zoom variável.
+
+### Passo 13.7: Refinamento Visual de Tracers Físicos (Legibilidade e Contraste) [ ]
+- **Alvo:** src/fx/Effects.js
+- **Ações:**
+  - Ajustar contraste, espessura, opacidade e curva temporal do traçante no Effects.js para garantir alta visibilidade cinematográfica em movimento sem estagnação no ar.

@@ -1,4 +1,4 @@
-import { emit } from './EventBus.js';
+import { emit, on } from './EventBus.js';
 import { CONFIG } from './ConfigLoader.js';
 
 export class TouchInput {
@@ -266,6 +266,43 @@ export class TouchInput {
       });
     }
 
+    // --- NOVO BOTÃO DE TIRO NO CANTO SUPERIOR DIREITO (CLAW SETUP MOBILE) ---
+    const fireTopBtn = document.getElementById('btn-touch-fire-top');
+    if (fireTopBtn) {
+      let fireTopTouchId = null;
+      const startFireTop = e => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.input.actions.fire = true;
+        this.input._actionQueue.add('fire');
+        fireTopBtn.classList.add('active');
+        if (e.changedTouches && e.changedTouches[0]) {
+          fireTopTouchId = e.changedTouches[0].identifier;
+        }
+      };
+      const stopFireTop = e => {
+        if (e.changedTouches && fireTopTouchId !== null) {
+          for (let i = 0; i < e.changedTouches.length; i++) {
+            if (e.changedTouches[i].identifier === fireTopTouchId) {
+              fireTopTouchId = null;
+              break;
+            }
+          }
+          if (fireTopTouchId !== null) return;
+        }
+        if (this.fireTouchId === null) {
+          this.input.actions.fire = false;
+        }
+        fireTopBtn.classList.remove('active');
+      };
+
+      fireTopBtn.addEventListener('touchstart', startFireTop, { passive: false });
+      fireTopBtn.addEventListener('touchend', stopFireTop);
+      fireTopBtn.addEventListener('touchcancel', stopFireTop);
+      fireTopBtn.addEventListener('mousedown', startFireTop);
+      window.addEventListener('mouseup', stopFireTop);
+    }
+
     // Botão de Pausa Mobile
     const pauseBtn = document.getElementById('btn-touch-pause');
     if (pauseBtn) {
@@ -299,5 +336,14 @@ export class TouchInput {
     bindBtn('btn-touch-cycle', 'nextWeapon');
     bindBtn('btn-touch-firemode', 'toggleFireMode');
     bindBtn('btn-touch-interact', 'interact');
+
+    // Botão de Interagir Contextual (aparece somente próximo a portas ou drops)
+    const interactBtn = document.getElementById('btn-touch-interact');
+    if (interactBtn) {
+      interactBtn.style.display = 'none';
+      on('interact:target', target => {
+        interactBtn.style.display = target ? 'flex' : 'none';
+      });
+    }
   }
 }

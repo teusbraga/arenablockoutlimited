@@ -30,7 +30,11 @@ export class Input {
       'slot2': 'slot2',
       'interact': 'interact',
       'toggle_fire_mode': 'toggleFireMode',
-      'toggleFireMode': 'toggleFireMode'
+      'toggleFireMode': 'toggleFireMode',
+      'lean_left': 'leanLeft',
+      'leanLeft': 'leanLeft',
+      'lean_right': 'leanRight',
+      'leanRight': 'leanRight'
     };
 
     // Mapeamento de botões físicos para ações canônicas
@@ -46,10 +50,11 @@ export class Input {
       'Mouse0': 'fire',
       'Mouse2': 'ads',
       'KeyR': 'reload',
-      'KeyQ': 'next_weapon',
+      'KeyQ': 'lean_left',
+      'KeyE': 'lean_right',
       'Digit1': 'slot_1',
       'Digit2': 'slot_2',
-      'KeyE': 'interact',
+      'KeyF': 'interact',
       'KeyB': 'toggle_fire_mode',
       'KeyV': 'toggle_fire_mode'
     };
@@ -59,7 +64,8 @@ export class Input {
       forward: false, backward: false, left: false, right: false,
       jump: false, sprint: false, crouch: false,
       fire: false, ads: false, reload: false, nextWeapon: false,
-      slot1: false, slot2: false, interact: false, toggleFireMode: false
+      slot1: false, slot2: false, interact: false, toggleFireMode: false,
+      leanLeft: false, leanRight: false
     };
 
     // Cria Proxy em this.actions para aceitar tanto snake_case quanto camelCase

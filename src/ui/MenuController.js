@@ -28,6 +28,7 @@ export class MenuController {
     this.btnFullscreen = document.getElementById('btn-fullscreen');
 
     this._bindDOM();
+    this._bindTabs();
     this._bindLockEvents();
   }
 
@@ -144,8 +145,27 @@ export class MenuController {
     });
 
     this.overlayElRef?.addEventListener('click', async (e) => {
-      if (e.target.closest('input, button, select')) return;
+      if (e.target.closest('input, button, select, .menu-tab-btn')) return;
       await this.input.requestLock();
+    });
+  }
+
+  _bindTabs() {
+    const tabBtns = document.querySelectorAll('.menu-tab-btn');
+    const tabPanels = document.querySelectorAll('.menu-tab-panel');
+    tabBtns.forEach(btn => {
+      const handleTab = e => {
+        e.preventDefault();
+        e.stopPropagation();
+        const targetTab = btn.getAttribute('data-tab');
+        tabBtns.forEach(b => b.classList.toggle('active', b === btn));
+        tabPanels.forEach(p => {
+          const isTarget = p.getAttribute('data-panel') === targetTab;
+          p.classList.toggle('active', isTarget);
+        });
+      };
+      btn.addEventListener('click', handleTab);
+      btn.addEventListener('touchstart', handleTab, { passive: false });
     });
   }
 
