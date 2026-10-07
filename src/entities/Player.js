@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { Character } from './Character.js';
-import { CONFIG } from '../core/Config.js';
+import { CONFIG } from '../core/ConfigLoader.js';
 import { emit, on } from '../core/EventBus.js';
 import { CameraRig } from '../core/CameraRig.js';
 
@@ -88,8 +88,8 @@ export class Player extends Character {
     // ---- Look & Input (só se estiver vivo) ----
     if (this.alive) {
       // Atualiza ADS imediatamente com a ação do botão direito do mouse
-      if (input && input.actions) {
-        this.ads = !!input.actions.ads;
+      if (input) {
+        this.ads = input.isActionPressed ? input.isActionPressed('ads') : !!input.actions?.ads;
       }
 
       const { dx, dy } = input.consumeMouseDelta();
@@ -100,16 +100,18 @@ export class Player extends Character {
       _fwd.set(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
       _right.set(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
       _wish.set(0, 0, 0);
-      if (input.actions.forward) _wish.add(_fwd);
-      if (input.actions.backward) _wish.sub(_fwd);
-      if (input.actions.right) _wish.add(_right);
-      if (input.actions.left) _wish.sub(_right);
+      
+      const isPressed = (action) => input.isActionPressed ? input.isActionPressed(action) : !!input.actions?.[action];
+      if (isPressed('move_forward')) _wish.add(_fwd);
+      if (isPressed('move_back')) _wish.sub(_fwd);
+      if (isPressed('move_right')) _wish.add(_right);
+      if (isPressed('move_left')) _wish.sub(_right);
 
-      this.sprinting = input.actions.sprint && _wish.lengthSq() > 0 && !this.ads && !this.crouched;
-      this.crouched = input.actions.crouch;
+      this.sprinting = isPressed('sprint') && _wish.lengthSq() > 0 && !this.ads && !this.crouched;
+      this.crouched = isPressed('crouch');
 
       // Pulo
-      if (input.actions.jump && this.onGround) {
+      if (isPressed('jump') && this.onGround) {
         this.vel.y = CONFIG.PLAYER.jumpSpeed;
         this.onGround = false;
       }
@@ -174,6 +176,9 @@ export class Player extends Character {
       this.hp = Math.min(this.maxHp, this.hp + CONFIG.PLAYER.regenRate * dt);
       emit('player:hp', { hp: this.hp, max: this.maxHp });
     }
+
+    // ---- Atualização do subsistema de armas acoplado ----
+    this.updateWeapons(dt);
   }
 
   updateCamera(camera, dt) {

@@ -93,27 +93,27 @@
 ## 🔵 FASE 5: Inversão de Dependência, InputMap e Desacoplamento Visual
 *Alvo: Espelhar a hierarquia de nós da Godot (Scene Tree) e isolar completamente o Character de nós Three.js.*
 
-### Passo 5.0: Limpeza Estrutural (Scripts e Redundâncias)
+### Passo 5.0: Limpeza Estrutural (Scripts e Redundâncias) [x] (CONCLUÍDO)
 - **Alvo:** Raiz do projeto e `src/core/Config.js`
 - **Ação:**
   - Mover os scripts python soltos na raiz (`generate_cargo.py`, `test_suite.py`) para uma nova pasta `tools/`.
   - Remover o arquivo redundante `src/core/Config.js` e atualizar todos os arquivos que o importavam para importar diretamente de `src/core/ConfigLoader.js`.
 
-### Passo 5.1: Abstração do Input (Padrão InputMap / Action Buffer)
+### Passo 5.1: Abstração do Input (Padrão InputMap / Action Buffer) [x] (CONCLUÍDO)
 - **Alvo:** `src/core/Input.js`
 - **Ação:** 
   - Mapear teclas do DOM para nomes abstratos de ações configuráveis (`move_forward`, `move_back`, `jump`, `fire`, `ads`, `reload`).
   - Implementar métodos padrão Godot: `isActionPressed(action)`, `isActionJustPressed(action)` / `consumeAction(action)`.
   - Desacoplar leitura de eventos de teclado/mouse da lógica de estado puro.
 
-### Passo 5.2: Inversão de Dependência de Armas (`Character` é dono do `WeaponManager`)
+### Passo 5.2: Inversão de Dependência de Armas (`Character` é dono do `WeaponManager`) [x] (CONCLUÍDO)
 - **Alvo:** `src/entities/Character.js`, `src/weapons/WeaponSystem.js`, `src/main.js`
 - **Ação:**
   - `Character` passa a instanciar e ser dono de um `WeaponManager` (componente filho).
   - O `main.js` não deve orquestrar armas soltas. `player.update(dt)` gerencia o `player.weaponManager`.
   - Como `Bot` também herda de `Character`, bots ganham a mesma capacidade de portar armas de forma simétrica.
 
-### Passo 5.3: Remoção do "Lixo" Visual do Bot e Player (`CharacterView`)
+### Passo 5.3: Remoção do "Lixo" Visual do Bot e Player (`CharacterView`) [x] (CONCLUÍDO)
 - **Alvo:** `src/entities/Character.js`, `src/entities/Bot.js`, novo `src/view/CharacterView.js`
 - **Ação:**
   - Extrair criação de `THREE.Mesh`, materiais e hierarquias 3D de dentro de `Character` e `Bot`.
@@ -125,7 +125,7 @@
 ## ⚡ FASE 6: Escala Física (Particionamento Espacial no `CollisionWorld`)
 *Alvo: Erradicar o gargalo O(N) nas checagens de colisão e raycasts sem quebrar a física.*
 
-### Passo 6.1: Grid Espacial (Spatial Hash Grid)
+### Passo 6.1: Grid Espacial (Spatial Hash Grid) [x] (CONCLUÍDO)
 - **Alvo:** `src/physics/CollisionWorld.js`
 - **Ação:**
   - Dividir o mundo em células 2D/3D (ex: grades de 4x4 metros).
@@ -137,7 +137,7 @@
 ## 🧠 FASE 7: IA Tática para Bots (Finite State Machine / FSM)
 *Alvo: Mudar a IA ingênua para uma arquitetura orientada a estados modular (1:1 com nós de Behavior da Godot).*
 
-### Passo 7.1: Máquina de Estados Finita (FSM)
+### Passo 7.1: Máquina de Estados Finita (FSM) [x] (CONCLUÍDO)
 - **Alvo:** `src/ai/AIController.js`, novo diretório `src/ai/states/`
 - **Ação:**
   - Quebrar o `switch(this.state)` em classes de estado: `PatrolState`, `EngageState`, `CoverState`, `FleeState`, `SearchState`.
@@ -150,13 +150,13 @@
 ## 🟤 FASE 8: Sistema de Loot in-Game e Weapon Drops
 *Alvo: Permitir que armas sejam dropadas no chão ao morrer e coletadas por outras entidades.*
 
-### Passo 8.1: Entidade `ItemDrop` (Física + Visual)
+### Passo 8.1: Entidade `ItemDrop` (Física + Visual) [x] (CONCLUÍDO)
 - **Alvo:** novo `src/world/ItemDrop.js`, `src/physics/CollisionWorld.js`
 - **Ação:**
   - Objeto com AABB de gatilho (trigger) no chão, contendo metadados da arma (`weaponId`, munição no pente).
   - Representação visual simples no chão (mesh da arma ou caixa de loot).
 
-### Passo 8.2: Mecânica de Drop e Coleta
+### Passo 8.2: Mecânica de Drop e Coleta [x] (CONCLUÍDO)
 - **Alvo:** `src/core/GameManager.js`, `src/entities/Player.js`, `src/entities/Bot.js`
 - **Ação:**
   - Ao morrer (`die()`), a entidade solta sua arma equipada instanciando um `ItemDrop` na posição.
@@ -167,7 +167,7 @@
 ## ⚫ FASE 9: Validação "Headless" (Prova de Fogo Server/Multiplayer)
 *Alvo: Comprovar que todo o ecossistema roda de forma autônoma sem DOM e sem WebGL/Three.js.*
 
-### Passo 9.1: Teste de Simulação Headless
+### Passo 9.1: Teste de Simulação Headless [x] (CONCLUÍDO)
 - **Alvo:** novo `test/headless_sim.js` (executável via `node test/headless_sim.js`)
 - **Ação:**
   - Instanciar `CollisionWorld`, `GameManager`, bots com IA e jogador simulado sem criar `renderer` ou canvas.

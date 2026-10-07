@@ -1,0 +1,9 @@
+{
+  "type": "module",
+  "scripts": {
+    "test": "node test/headless_sim.js"
+  },
+  "dependencies": {
+    "three": "^0.186.1"
+  }
+}

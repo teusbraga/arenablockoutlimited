@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CONFIG } from './Config.js';
+import { CONFIG } from './ConfigLoader.js';
 import { on } from './EventBus.js';
 
 /**

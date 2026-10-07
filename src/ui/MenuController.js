@@ -1,4 +1,4 @@
-import { CONFIG } from '../core/Config.js';
+import { CONFIG } from '../core/ConfigLoader.js';
 import { on } from '../core/EventBus.js';
 
 /**

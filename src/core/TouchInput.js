@@ -1,5 +1,5 @@
 import { emit } from './EventBus.js';
-import { CONFIG } from './Config.js';
+import { CONFIG } from './ConfigLoader.js';
 
 export class TouchInput {
   constructor(inputManager) {

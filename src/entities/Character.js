@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CONFIG } from '../core/Config.js';
+import { CONFIG } from '../core/ConfigLoader.js';
 
 export class Character {
   constructor(world) {
@@ -12,6 +12,20 @@ export class Character {
     this.hp = 100;
     this.maxHp = 100;
     this.alive = true;
+    this.weaponManager = null;
+  }
+
+  setWeaponManager(weaponManager) {
+    this.weaponManager = weaponManager;
+    if (weaponManager) {
+      weaponManager.player = this;
+    }
+  }
+
+  updateWeapons(dt) {
+    if (this.weaponManager) {
+      this.weaponManager.update(dt);
+    }
   }
 
   applyPhysics(dt, stepHeight = 0.5) {

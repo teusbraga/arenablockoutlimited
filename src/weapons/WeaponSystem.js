@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { WEAPONS } from './WeaponDefs.js';
-import { CONFIG } from '../core/Config.js';
+import { CONFIG } from '../core/ConfigLoader.js';
 import { emit } from '../core/EventBus.js';
 
 const _dir = new THREE.Vector3();
@@ -123,18 +123,18 @@ export class WeaponSystem {
     const def = this.def;
 
     // 1. Troca de arma (tecla Q, slots 1/2 ou botão mobile ARMA)
-    if (this.input.consumeAction('nextWeapon')) {
+    if (this.input.consumeAction('next_weapon')) {
       this.cycle();
     }
-    if (this.input.consumeAction('slot1')) {
+    if (this.input.consumeAction('slot_1')) {
       this.selectSlot(0);
     }
-    if (this.input.consumeAction('slot2')) {
+    if (this.input.consumeAction('slot_2')) {
       this.selectSlot(1);
     }
 
     // Modo de disparo seletivo (tecla B / V)
-    if (this.input.consumeAction('toggleFireMode')) {
+    if (this.input.consumeAction('toggle_fire_mode')) {
       this.toggleFireMode();
     }
 

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Bot } from '../entities/Bot.js';
-import { CONFIG } from './Config.js';
+import { ItemDrop } from '../world/ItemDrop.js';
+import { CONFIG } from './ConfigLoader.js';
 import { emit, on } from './EventBus.js';
 
 export class GameManager {
@@ -15,6 +16,7 @@ export class GameManager {
 
     this.bots = [];
     this.doors = [];
+    this.itemDrops = [];
     this.hasStarted = false;
     this.roundOver = false;
     this.roundDuration = 210; // Padrão 3m 30s
@@ -44,20 +46,37 @@ export class GameManager {
         }
       }),
 
-      // Quando qualquer bot morre: registra kill e agenda respawn com lock-in de posição
+      // Quando qualquer bot morre: registra kill, dropa arma/loot e agenda respawn
       on('bot:died', e => {
         this.registerKill(e.headshot);
         if (e.bot) {
+          this.spawnItemDrop(e.bot.pos, 'ar15', 30);
           this.scheduleBotRespawn(e.bot);
         }
       }),
     ];
   }
 
+  spawnItemDrop(pos, weaponId = 'ar15', ammo = 30) {
+    const drop = new ItemDrop({
+      weaponId,
+      ammo,
+      pos: { x: pos.x, y: pos.y + 0.3, z: pos.z },
+      scene: this.scene,
+      world: this.world,
+    });
+    this.itemDrops.push(drop);
+    return drop;
+  }
+
   destroy() {
     if (this._unsubs) {
       for (const unsub of this._unsubs) unsub();
       this._unsubs = [];
+    }
+    while (this.itemDrops.length > 0) {
+      const d = this.itemDrops.pop();
+      d.destroy();
     }
     while (this.bots.length > 0) {
       const b = this.bots.pop();
@@ -197,8 +216,10 @@ export class GameManager {
     b.respawnTimer = 0;
     b.nextSpawnPos = null;
 
-    b.root.position.copy(b.pos);
-    b.root.visible = true;
+    if (b.root) {
+      b.root.position.copy(b.pos);
+      b.root.visible = true;
+    }
 
     if (b.ai) {
       b.ai.state = 'patrol';
@@ -301,6 +322,40 @@ export class GameManager {
     emit('interact:target', nearDoor);
     if (nearDoor && this.player.alive && this.weapons?.input?.consumeAction('interact')) {
       nearDoor.toggle();
+    }
+
+    // Atualiza Drops e Coleta de Itens
+    for (let i = this.itemDrops.length - 1; i >= 0; i--) {
+      const drop = this.itemDrops[i];
+      drop.update(dt);
+
+      if (drop.checkPickup(this.player)) {
+        // Se o player passar por cima do drop e não estiver cheio de munição ou quiser a arma
+        if (this.weapons) {
+          // Se tiver a mesma arma equipada, reabastece munição
+          if (this.weapons.current === drop.weaponId) {
+            if (this.weapons.ammo < this.weapons.def.magSize) {
+              this.weapons.ammo = this.weapons.def.magSize;
+              emit('weapon:ammo', { ammo: this.weapons.ammo, max: this.weapons.def.magSize });
+              emit('notification', { message: `+Munição: ${drop.weaponId.toUpperCase()}` });
+              drop.destroy();
+              this.itemDrops.splice(i, 1);
+              continue;
+            }
+          } else if (this.weapons.input?.consumeAction('interact')) {
+            // Tecla E para trocar de arma pelo drop no chão
+            const oldWeapon = this.weapons.current;
+            this.weapons._equip(drop.weaponId);
+            emit('notification', { message: `Equipou: ${drop.weaponId.toUpperCase()}` });
+            drop.destroy();
+            this.itemDrops.splice(i, 1);
+
+            // Deixa a arma antiga no chão
+            this.spawnItemDrop(this.player.pos, oldWeapon, 30);
+            continue;
+          }
+        }
+      }
     }
 
     // Atualiza bots e Colisões Bot-Player

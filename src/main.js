@@ -1,7 +1,6 @@
 import { startEngine } from './core/Engine.js';
 import { Input } from './core/Input.js';
-import { CONFIG } from './core/Config.js';
-import { ConfigLoader } from './core/ConfigLoader.js';
+import { CONFIG, ConfigLoader } from './core/ConfigLoader.js';
 import { GameManager } from './core/GameManager.js';
 import { SceneSetup } from './core/SceneSetup.js';
 
@@ -71,6 +70,7 @@ import { ScopeSystem } from './weapons/ScopeSystem.js';
       botsProvider: () => (gameManager ? gameManager.bots : []),
     });
     weapons._equip(initialWeapon);
+    player.setWeaponManager(weapons);
 
     gameManager = new GameManager({
       scene,
@@ -104,7 +104,6 @@ import { ScopeSystem } from './weapons/ScopeSystem.js';
         if (!gameManager.hasStarted || !input.locked) return;
 
         player.update(dt, input);
-        weapons.update(dt);
         gameManager.update(dt);
       },
 
