@@ -3,7 +3,7 @@ export function startEngine({
   renderUpdate,
   update, // Fallback de retrocompatibilidade
   render, // Fallback de retrocompatibilidade
-  fixedDt = 1 / 120,
+  fixedDt = 1 / 60,
   maxFrame = 0.1,
 }) {
   const onFixed = fixedUpdate || update;

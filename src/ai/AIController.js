@@ -84,7 +84,14 @@ export class AIController {
     _toPlayer.y = 0;
     const dist = _toPlayer.length();
 
-    const canSee = player.alive && this._hasLOS(player, dist);
+    // CPU Optimization: Não rodar raycast a 60Hz. 
+    // Verifica apenas a cada ~100ms (10Hz).
+    this._losTimerTick = (this._losTimerTick || 0) - dt;
+    if (this._losTimerTick <= 0) {
+      this._canSee = player.alive && this._hasLOS(player, dist);
+      this._losTimerTick = 0.1 + Math.random() * 0.05; // 100ms + jitter
+    }
+    const canSee = this._canSee;
 
     if (canSee) {
       this.lastKnownPlayerPos.copy(player.pos);

@@ -16,7 +16,8 @@ export class SceneSetup {
       powerPreference: 'high-performance'
     });
     this.renderer.setSize(window.innerWidth, window.innerHeight);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isTouch ? 1.5 : 2));
+    // Em mobile (high-dpi nativo), travar o pixel ratio perto de 1.0 ou 1.2 destrava o FPS.
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isTouch ? 1.2 : 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -50,7 +51,9 @@ export class SceneSetup {
     this.sun = new THREE.DirectionalLight(0xffe9c8, 1.7);
     this.sun.position.set(14, 22, 8);
     this.sun.castShadow = true;
-    this.sun.shadow.mapSize.set(2048, 2048);
+    const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const shadowMapRes = isTouch ? 1024 : 2048;
+    this.sun.shadow.mapSize.set(shadowMapRes, shadowMapRes);
     this.sun.shadow.camera.left = -35;
     this.sun.shadow.camera.right = 35;
     this.sun.shadow.camera.top = 35;
