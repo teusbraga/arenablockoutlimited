@@ -13,6 +13,7 @@ export class MenuController {
 
     this.mapSelect = document.getElementById('map-select');
     this.weaponSelect = document.getElementById('weapon-select');
+    this.weaponSecondarySelect = document.getElementById('weapon-secondary-select');
     this.botSkinSelect = document.getElementById('bot-skin-select');
 
     this.botSlider = document.getElementById('bot-count');
@@ -46,6 +47,13 @@ export class MenuController {
     return weaponSelect ? weaponSelect.value : defaultWeapon;
   }
 
+  static getSavedSecondaryWeapon(defaultWeapon = 'p9') {
+    const weaponSecondarySelect = document.getElementById('weapon-secondary-select');
+    const saved = localStorage.getItem('blocky_weapon_secondary');
+    if (saved && weaponSecondarySelect) weaponSecondarySelect.value = saved;
+    return weaponSecondarySelect ? weaponSecondarySelect.value : defaultWeapon;
+  }
+
   static getSavedBotSkin() {
     const botSkinSelect = document.getElementById('bot-skin-select');
     const saved = localStorage.getItem('blocky_botskin');
@@ -61,7 +69,12 @@ export class MenuController {
 
     this.weaponSelect?.addEventListener('change', () => {
       localStorage.setItem('blocky_weapon', this.weaponSelect.value);
-      this.weapons._equip(this.weaponSelect.value);
+      this.weapons.setSlot(0, this.weaponSelect.value);
+    });
+
+    this.weaponSecondarySelect?.addEventListener('change', () => {
+      localStorage.setItem('blocky_weapon_secondary', this.weaponSecondarySelect.value);
+      this.weapons.setSlot(1, this.weaponSecondarySelect.value);
     });
 
     this.botSkinSelect?.addEventListener('change', () => {

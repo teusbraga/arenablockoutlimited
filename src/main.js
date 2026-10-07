@@ -73,6 +73,7 @@ import { ScopeSystem } from './weapons/ScopeSystem.js';
     });
 
     const initialWeapon = MenuController.getSavedWeapon('ar15');
+    const secondaryWeapon = MenuController.getSavedSecondaryWeapon('p9');
     viewmodel.equip(initialWeapon);
 
     let gameManager = null;
@@ -83,6 +84,7 @@ import { ScopeSystem } from './weapons/ScopeSystem.js';
       player,
       world,
       botsProvider: () => (gameManager ? gameManager.bots : []),
+      inventory: [initialWeapon, secondaryWeapon === 'none' ? null : secondaryWeapon],
     });
     weapons._equip(initialWeapon);
     player.setWeaponManager(weapons);

@@ -140,6 +140,24 @@ export class WeaponSystem {
     emit('weapon:cycle');
   }
 
+  setSlot(slotIdx, weaponId) {
+    if (slotIdx !== 0 && slotIdx !== 1) return;
+    const validId = (weaponId && weaponId !== 'none' && WEAPONS[weaponId]) ? weaponId : null;
+    this.slots[slotIdx] = validId;
+    if (this.currentSlot === slotIdx) {
+      if (validId) {
+        this._equip(validId);
+      } else {
+        const otherSlot = 1 - slotIdx;
+        if (this.slots[otherSlot]) {
+          this.currentSlot = otherSlot;
+          this._equip(this.slots[otherSlot]);
+        }
+      }
+    }
+    emit('weapon:slots', { slots: this.slots, currentSlot: this.currentSlot });
+  }
+
   pickupWeapon(newWeaponId) {
     if (!newWeaponId || !WEAPONS[newWeaponId]) return null;
     const oldWeapon = this.slots[this.currentSlot];
