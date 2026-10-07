@@ -25,6 +25,7 @@ export class MenuController {
 
     this.sensSlider = document.getElementById('sens-slider');
     this.sensSliderVal = document.getElementById('sens-val');
+    this.btnFullscreen = document.getElementById('btn-fullscreen');
 
     this._bindDOM();
     this._bindLockEvents();
@@ -108,6 +109,23 @@ export class MenuController {
 
     this.btnReset?.addEventListener('click', () => {
       this.gameManager.resetGame();
+    });
+
+    this.btnFullscreen?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      if (!document.fullscreenElement) {
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(err => console.warn(err));
+        } else if (document.documentElement.webkitRequestFullscreen) {
+          document.documentElement.webkitRequestFullscreen();
+        } else if (isIOS) {
+          alert("Safari no iPhone: Para jogar em Tela Cheia e sumir com a barra, toque no botão 'Compartilhar' do navegador e selecione 'Adicionar à Tela de Início'.");
+        }
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      }
     });
 
     this.overlayElRef?.addEventListener('click', async (e) => {

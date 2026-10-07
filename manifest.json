@@ -1,0 +1,17 @@
+{
+  "name": "Arena Blockout",
+  "short_name": "Arena FPS",
+  "start_url": ".",
+  "display": "fullscreen",
+  "background_color": "#0d0f11",
+  "theme_color": "#e8933a",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "./assets/ui/favicon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
