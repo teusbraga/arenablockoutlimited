@@ -113,6 +113,41 @@ import { ScopeSystem } from './weapons/ScopeSystem.js';
       scopeSystem.attachWeaponModel('vss', viewmodel.models['vss'].details);
     }
 
+    // ---------------------------------------------------------
+    // SHADER PRE-LOAD WARMUP (Elimina stutter de compilacao)
+    // ---------------------------------------------------------
+    const dummyDropGroup = new THREE.Group();
+    if (ItemDrop && ItemDrop.builders) {
+      if (!ItemDrop._templates) ItemDrop._templates = {};
+      for (const id in ItemDrop.builders) {
+        if (!ItemDrop._templates[id]) {
+          try {
+            const res = ItemDrop.builders[id]();
+            ItemDrop._templates[id] = res.group ?? res;
+          } catch(e) {}
+        }
+        if (ItemDrop._templates[id]) {
+          dummyDropGroup.add(ItemDrop._templates[id]);
+        }
+      }
+      dummyDropGroup.position.set(0, -999, 0);
+      scene.add(dummyDropGroup);
+    }
+
+    for (const id in viewmodel.models) {
+      viewmodel.models[id].mesh.visible = true; // Força compilação
+    }
+
+    renderer.compile(scene, camera);
+
+    for (const id in viewmodel.models) {
+      viewmodel.models[id].mesh.visible = false;
+    }
+    if (viewmodel.models[weapons.current]) {
+      viewmodel.models[weapons.current].mesh.visible = true;
+    }
+    scene.remove(dummyDropGroup);
+
     // 5. Interface e Menus
     new MenuController({ input, gameManager, weapons });
 

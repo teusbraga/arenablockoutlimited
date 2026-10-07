@@ -72,6 +72,20 @@ export class Effects {
     this._bind();
   }
 
+  _spawnTracer(p) {
+    const t = this.tracers[this.tracerIdx];
+    this.tracerIdx = (this.tracerIdx + 1) % MAX_TRACERS;
+    t.active = true;
+    t.life = 0;
+    t.proj = p;
+    t.isDummy = p.isDummy;
+    if (t.isDummy) {
+       t.dummyPos = p.startPos.clone();
+       t.dummyDistance = 0;
+    }
+    t.mesh.visible = true;
+  }
+
   _initPools() {
     // 1. Tracers 3D Volumétricos e Aerodinâmicos (Cilindro cônico com degradê de intensidade)
     this.tracerGeo = new THREE.CylinderGeometry(0.05, 0.006, 1.0, 6, 1, true);
@@ -242,7 +256,22 @@ export class Effects {
 
   _bind() {
     this._unsubs = [
-      on('shot:world', e => this._spawnImpact(e.point, 0xd9c79b, 5)),
+      on('projectile:spawned', e => this._spawnTracer(e.projectile)),
+        on('shot:tracer', e => {
+           const dist = e.from.distanceTo(e.to);
+           const p = {
+              isDummy: true,
+              active: true,
+              speed: 550,
+              isPellet: false,
+              startPos: e.from,
+              vel: new THREE.Vector3().subVectors(e.to, e.from).normalize().multiplyScalar(550),
+              color: 0xff2222,
+              distanceToTarget: dist
+           };
+           this._spawnTracer(p);
+        }),
+        on('shot:world', e => this._spawnImpact(e.point, 0xd9c79b, 5)),
       on('shot:bot', e => this._spawnImpact(e.point, e.headshot ? 0xffd166 : 0xc4504a, 6)),
       on('bot:died', e => {
         if (!e?.bot) return;
@@ -622,50 +651,73 @@ export class Effects {
 
   update(dt, camera) {
     // 1. Tracers Dinamicos (Cinematicos) atrelados a simulacao fisica real
-    const projManager = this.gameManager && this.gameManager.player && this.gameManager.player.weapons ? this.gameManager.player.weapons.projectileManager : null;
-    if (projManager) {
-      const activeProjs = projManager.getActiveProjectiles();
-      for (let i = 0; i < MAX_TRACERS; i++) {
-        const t = this.tracers[i];
-        if (i < activeProjs.length) {
-          const p = activeProjs[i];
-          const speed = p.speed || 700;
-          
-          // Janela temporal cinemática curta (~25-28ms) para evitar varas estáticas no ar
-          const visualTime = p.isPellet ? 0.020 : 0.028;
-          let tracerLen = speed * visualTime;
-          // Limita para escala esteticamente cinematográfica (entre 1.2m e 6.5m)
-          tracerLen = Math.max(1.2, Math.min(6.5, tracerLen));
-          
-          // Se recém-disparado, comprimento não ultrapassa a distância percorrida da boca do cano
-          if (p.distanceTraveled < tracerLen) {
-            tracerLen = Math.max(0.05, p.distanceTraveled);
-          }
-          
-          _tracerDir.copy(p.vel).normalize();
-          const headX = p.pos.x;
-          const headY = p.pos.y;
-          const headZ = p.pos.z;
-          const tailX = headX - _tracerDir.x * tracerLen;
-          const tailY = headY - _tracerDir.y * tracerLen;
-          const tailZ = headZ - _tracerDir.z * tracerLen;
-
-          t.mesh.position.set((headX + tailX) * 0.5, (headY + tailY) * 0.5, (headZ + tailZ) * 0.5);
-          t.mesh.scale.set(1, tracerLen, 1);
-          t.mesh.quaternion.setFromUnitVectors(_tracerUp, _tracerDir);
-
-          t.mat.color.set(p.color || 0xffd27f);
-          t.mat.opacity = 0.95;
-          t.mesh.visible = true;
-        } else {
-          t.mesh.visible = false;
-        }
+    for (let i = 0; i < MAX_TRACERS; i++) {
+      const t = this.tracers[i];
+      if (!t.active) {
+        t.mesh.visible = false;
+        continue;
       }
-    } else {
-      // Fallback
-      for (let i = 0; i < MAX_TRACERS; i++) {
-        this.tracers[i].mesh.visible = false;
+
+      t.life += dt;
+      const p = t.proj;
+
+      if (t.isDummy) {
+         if (p.active) {
+            t.dummyDistance += p.speed * dt;
+            t.dummyPos.addScaledVector(p.vel, dt);
+            if (t.dummyDistance >= p.distanceToTarget) {
+               p.active = false;
+               t.dummyPos.copy(p.startPos).addScaledVector(p.vel, p.distanceToTarget / p.speed);
+            }
+         }
       }
+
+      if (!p || (!p.active && t.life > 0.05)) { 
+         t.active = false;
+         t.mesh.visible = false;
+         continue;
+      }
+      
+      if (t.life > 2.0) {
+         t.active = false;
+         t.mesh.visible = false;
+         continue;
+      }
+
+      const speed = p.speed || 700;
+      const visualTime = p.isPellet ? 0.020 : 0.028;
+      let tracerLen = speed * visualTime;
+      tracerLen = Math.max(1.2, Math.min(6.5, tracerLen));
+      
+      const traveled = t.isDummy ? t.dummyDistance : p.distanceTraveled;
+      if (traveled < tracerLen) {
+        tracerLen = Math.max(0.05, traveled);
+      }
+      
+      _tracerDir.copy(p.vel).normalize();
+      
+      const headX = t.isDummy ? t.dummyPos.x : p.pos.x;
+      const headY = t.isDummy ? t.dummyPos.y : p.pos.y;
+      const headZ = t.isDummy ? t.dummyPos.z : p.pos.z;
+
+      let opacity = 0.95;
+      if (!p.active) {
+          const fade = Math.max(0, 1 - (t.life / 0.05));
+          tracerLen *= fade;
+          opacity *= fade;
+      }
+
+      const tailX = headX - _tracerDir.x * tracerLen;
+      const tailY = headY - _tracerDir.y * tracerLen;
+      const tailZ = headZ - _tracerDir.z * tracerLen;
+
+      t.mesh.position.set((headX + tailX) * 0.5, (headY + tailY) * 0.5, (headZ + tailZ) * 0.5);
+      t.mesh.scale.set(1, tracerLen, 1);
+      t.mesh.quaternion.setFromUnitVectors(_tracerUp, _tracerDir);
+
+      t.mat.color.set(p.color || 0xffd27f);
+      t.mat.opacity = opacity;
+      t.mesh.visible = tracerLen > 0.1;
     }
 
     // 2. Sparks
@@ -886,3 +938,9 @@ export class Effects {
     }
   }
 }
+
+
+
+
+
+

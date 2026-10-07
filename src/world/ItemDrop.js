@@ -60,17 +60,23 @@ export class ItemDrop {
     }
 
     let weaponObj = null;
-    const builder = ItemDrop.builders[this.weaponId];
-    if (typeof builder === 'function') {
-      try {
-        const res = builder();
-        weaponObj = res.group ?? res;
-      } catch (err) {
-        console.warn(`[ItemDrop] Falha ao construir modelo 3D para ${this.weaponId}:`, err);
+    
+    if (!ItemDrop._templates) ItemDrop._templates = {};
+
+    if (!ItemDrop._templates[this.weaponId]) {
+      const builder = ItemDrop.builders[this.weaponId];
+      if (typeof builder === 'function') {
+        try {
+          const res = builder();
+          ItemDrop._templates[this.weaponId] = res.group ?? res;
+        } catch (err) {
+          console.warn(`[ItemDrop] Falha ao construir modelo 3D para ${this.weaponId}:`, err);
+        }
       }
     }
 
-    if (weaponObj) {
+    if (ItemDrop._templates[this.weaponId]) {
+      weaponObj = ItemDrop._templates[this.weaponId].clone();
       // Centraliza perfeitamente o modelo 3D da arma no ponto de rotação
       const bbox = new THREE.Box3().setFromObject(weaponObj);
       const center = new THREE.Vector3();
