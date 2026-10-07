@@ -38,20 +38,20 @@ import * as THREE from 'three';
 // Materiais PBR Fiéis ao Smith & Wesson 500 Magnum
 export const M_SW_STAINLESS = new THREE.MeshStandardMaterial({
   color: 0xd8dde4,
-  roughness: 0.18,
-  metalness: 0.94
+  roughness: 0.25,
+  metalness: 0.75
 });
 
 export const M_SW_STEEL_DARK = new THREE.MeshStandardMaterial({
   color: 0x25282c,
-  roughness: 0.38,
-  metalness: 0.88
+  roughness: 0.35,
+  metalness: 0.50
 });
 
 export const M_SW_RUBBER = new THREE.MeshStandardMaterial({
   color: 0x16181a,
-  roughness: 0.88,
-  metalness: 0.10
+  roughness: 0.65,
+  metalness: 0.15
 });
 
 export const M_SW_BORE = new THREE.MeshStandardMaterial({

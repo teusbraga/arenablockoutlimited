@@ -17,13 +17,13 @@
 import * as THREE from 'three';
 
 // Paleta PBR Fiel à UZI Militar da Imagem de Referência
-const M_UZI_BODY     = new THREE.MeshStandardMaterial({ color: 0x5a5849, roughness: 0.38, metalness: 0.82 });
-const M_UZI_DARK     = new THREE.MeshStandardMaterial({ color: 0x3d3d35, roughness: 0.42, metalness: 0.85 });
-const M_UZI_STEEL    = new THREE.MeshStandardMaterial({ color: 0x767568, roughness: 0.28, metalness: 0.90 });
-const M_UZI_NUT      = new THREE.MeshStandardMaterial({ color: 0x484639, roughness: 0.45, metalness: 0.80 });
-const M_UZI_GRIP     = new THREE.MeshStandardMaterial({ color: 0x4b4c37, roughness: 0.85, metalness: 0.12 });
-const M_UZI_STOCK    = new THREE.MeshStandardMaterial({ color: 0x545447, roughness: 0.35, metalness: 0.88 });
-const M_PARKERIZED   = new THREE.MeshStandardMaterial({ color: 0x505247, roughness: 0.30, metalness: 0.84 });
+const M_UZI_BODY     = new THREE.MeshStandardMaterial({ color: 0x5a5849, roughness: 0.35, metalness: 0.50 });
+const M_UZI_DARK     = new THREE.MeshStandardMaterial({ color: 0x3d3d35, roughness: 0.40, metalness: 0.45 });
+const M_UZI_STEEL    = new THREE.MeshStandardMaterial({ color: 0x767568, roughness: 0.25, metalness: 0.80 });
+const M_UZI_NUT      = new THREE.MeshStandardMaterial({ color: 0x484639, roughness: 0.35, metalness: 0.50 });
+const M_UZI_GRIP     = new THREE.MeshStandardMaterial({ color: 0x4b4c37, roughness: 0.65, metalness: 0.15 });
+const M_UZI_STOCK    = new THREE.MeshStandardMaterial({ color: 0x545447, roughness: 0.35, metalness: 0.50 });
+const M_PARKERIZED   = new THREE.MeshStandardMaterial({ color: 0x505247, roughness: 0.35, metalness: 0.50 });
 const M_TRIT         = new THREE.MeshBasicMaterial({ color: 0x55ff77 });
 
 export function buildUZI() {

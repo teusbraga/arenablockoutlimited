@@ -71,14 +71,14 @@ export const SMOKE_TEX = makeSmokeTexture();
    ============================================================ */
 
 const M = {
-  steel:       new THREE.MeshStandardMaterial({ color: 0x828a92, metalness: 0.70, roughness: 0.35 }),
-  darkSteel:   new THREE.MeshStandardMaterial({ color: 0x4e5156, metalness: 0.40, roughness: 0.50 }),
-  receiver:    new THREE.MeshStandardMaterial({ color: 0x4e5156, metalness: 0.35, roughness: 0.55 }),
-  black:       new THREE.MeshStandardMaterial({ color: 0x4e5156, metalness: 0.20, roughness: 0.70 }),
-  polymer:     new THREE.MeshStandardMaterial({ color: 0x4e5156, metalness: 0.15, roughness: 0.75 }),
-  fdePolymer:  new THREE.MeshStandardMaterial({ color: 0x4e5156, metalness: 0.20, roughness: 0.70 }),
+  steel:       new THREE.MeshStandardMaterial({ color: 0x828a92, metalness: 0.80, roughness: 0.25 }),
+  darkSteel:   new THREE.MeshStandardMaterial({ color: 0x4e5156, metalness: 0.50, roughness: 0.35 }),
+  receiver:    new THREE.MeshStandardMaterial({ color: 0x4e5156, metalness: 0.45, roughness: 0.40 }),
+  black:       new THREE.MeshStandardMaterial({ color: 0x4e5156, metalness: 0.30, roughness: 0.55 }),
+  polymer:     new THREE.MeshStandardMaterial({ color: 0x4e5156, metalness: 0.22, roughness: 0.60 }),
+  fdePolymer:  new THREE.MeshStandardMaterial({ color: 0x4e5156, metalness: 0.25, roughness: 0.55 }),
   accent:      new THREE.MeshStandardMaterial({ color: 0xb5823e, metalness: 0.85, roughness: 0.30 }),
-  sightBody:   new THREE.MeshStandardMaterial({ color: 0x4e5156, metalness: 0.40, roughness: 0.50 }),
+  sightBody:   new THREE.MeshStandardMaterial({ color: 0x4e5156, metalness: 0.50, roughness: 0.35 }),
 
   // Lente óptica leve otimizada (StandardMaterial com transparência simples)
   opticGlass:  new THREE.MeshStandardMaterial({

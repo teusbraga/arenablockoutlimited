@@ -33,11 +33,11 @@ import * as THREE from 'three';
 // Paleta PBR Fiel à AK-47 (Madeira Quente Envernizada + Aço Fosfatizado Escuro)
 export const M_AK_WOOD       = new THREE.MeshStandardMaterial({ color: 0x9e5222, roughness: 0.38, metalness: 0.08 });
 export const M_AK_WOOD_DARK  = new THREE.MeshStandardMaterial({ color: 0x733612, roughness: 0.44, metalness: 0.05 });
-export const M_AK_RECEIVER   = new THREE.MeshStandardMaterial({ color: 0x2e3237, roughness: 0.35, metalness: 0.88 });
-export const M_AK_STEEL      = new THREE.MeshStandardMaterial({ color: 0x3d4147, roughness: 0.28, metalness: 0.92 });
-export const M_AK_STEEL_BRT  = new THREE.MeshStandardMaterial({ color: 0x727982, roughness: 0.20, metalness: 0.96 });
-export const M_AK_MAG        = new THREE.MeshStandardMaterial({ color: 0x272a2e, roughness: 0.42, metalness: 0.85 });
-export const M_AK_DARK       = new THREE.MeshStandardMaterial({ color: 0x1b1d20, roughness: 0.50, metalness: 0.80 });
+export const M_AK_RECEIVER   = new THREE.MeshStandardMaterial({ color: 0x2e3237, roughness: 0.40, metalness: 0.45 });
+export const M_AK_STEEL      = new THREE.MeshStandardMaterial({ color: 0x3d4147, roughness: 0.35, metalness: 0.50 });
+export const M_AK_STEEL_BRT  = new THREE.MeshStandardMaterial({ color: 0x727982, roughness: 0.25, metalness: 0.80 });
+export const M_AK_MAG        = new THREE.MeshStandardMaterial({ color: 0x272a2e, roughness: 0.45, metalness: 0.35 });
+export const M_AK_DARK       = new THREE.MeshStandardMaterial({ color: 0x1b1d20, roughness: 0.50, metalness: 0.30 });
 
 export function buildAK47() {
   const g = new THREE.Group();

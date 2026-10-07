@@ -15,15 +15,15 @@ import * as THREE from 'three';
 import { GLOW_TEX } from './RiflePrototype.js';
 
 // Materiais PBR Táticos da P-9
-const M_SLIDE_MATTE  = new THREE.MeshStandardMaterial({ color: 0x6e7681, roughness: 0.22, metalness: 0.90 });
-const M_SLIDE_BEVEL  = new THREE.MeshStandardMaterial({ color: 0x868e96, roughness: 0.18, metalness: 0.94 });
-const M_FRAME_POLY   = new THREE.MeshStandardMaterial({ color: 0x2c3138, roughness: 0.72, metalness: 0.15 });
-const M_GRIP_PANEL   = new THREE.MeshStandardMaterial({ color: 0x212529, roughness: 0.90, metalness: 0.05 });
-const M_BARREL_STEEL = new THREE.MeshStandardMaterial({ color: 0x8f99a5, roughness: 0.14, metalness: 0.96 });
+const M_SLIDE_MATTE  = new THREE.MeshStandardMaterial({ color: 0x6e7681, roughness: 0.35, metalness: 0.50 });
+const M_SLIDE_BEVEL  = new THREE.MeshStandardMaterial({ color: 0x868e96, roughness: 0.25, metalness: 0.70 });
+const M_FRAME_POLY   = new THREE.MeshStandardMaterial({ color: 0x2c3138, roughness: 0.60, metalness: 0.15 });
+const M_GRIP_PANEL   = new THREE.MeshStandardMaterial({ color: 0x212529, roughness: 0.75, metalness: 0.05 });
+const M_BARREL_STEEL = new THREE.MeshStandardMaterial({ color: 0x8f99a5, roughness: 0.25, metalness: 0.80 });
 const M_CHAMBER_GOLD = new THREE.MeshStandardMaterial({ color: 0xdfb850, roughness: 0.20, metalness: 0.92 });
-const M_EXTRACTOR    = new THREE.MeshStandardMaterial({ color: 0x9ca6b3, roughness: 0.15, metalness: 0.95 });
+const M_EXTRACTOR    = new THREE.MeshStandardMaterial({ color: 0x9ca6b3, roughness: 0.25, metalness: 0.80 });
 const M_TRIT_GREEN   = new THREE.MeshBasicMaterial({ color: 0x39ff14 });
-const M_SIGHT_BODY   = new THREE.MeshStandardMaterial({ color: 0x545b64, roughness: 0.35, metalness: 0.80 });
+const M_SIGHT_BODY   = new THREE.MeshStandardMaterial({ color: 0x545b64, roughness: 0.35, metalness: 0.50 });
 
 /* ============================================================
    FÍSICA DO SLIDE & SISTEMA DE BLOWBACK DA P-9

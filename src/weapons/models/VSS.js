@@ -29,15 +29,15 @@ const GLOW_TEX = makeGlowTexture();
    ============================================================ */
 
 const M = {
-  steel:       new THREE.MeshStandardMaterial({ color: 0x828a92, metalness: 0.90, roughness: 0.35 }),
-  darkSteel:   new THREE.MeshStandardMaterial({ color: 0x242628, metalness: 0.85, roughness: 0.45 }),
-  receiver:    new THREE.MeshStandardMaterial({ color: 0x222426, metalness: 0.88, roughness: 0.40 }),
-  black:       new THREE.MeshStandardMaterial({ color: 0x181a1c, metalness: 0.40, roughness: 0.70 }),
-  polymer:     new THREE.MeshStandardMaterial({ color: 0x282c30, metalness: 0.20, roughness: 0.80 }),
+  steel:       new THREE.MeshStandardMaterial({ color: 0x828a92, metalness: 0.80, roughness: 0.25 }),
+  darkSteel:   new THREE.MeshStandardMaterial({ color: 0x242628, metalness: 0.50, roughness: 0.35 }),
+  receiver:    new THREE.MeshStandardMaterial({ color: 0x222426, metalness: 0.45, roughness: 0.40 }),
+  black:       new THREE.MeshStandardMaterial({ color: 0x181a1c, metalness: 0.30, roughness: 0.55 }),
+  polymer:     new THREE.MeshStandardMaterial({ color: 0x282c30, metalness: 0.22, roughness: 0.60 }),
   wood:        new THREE.MeshStandardMaterial({ color: 0x472f1b, metalness: 0.05, roughness: 0.85 }),
   lightWood:   new THREE.MeshStandardMaterial({ color: 0x5a3e26, metalness: 0.05, roughness: 0.80 }),
-  accent:      new THREE.MeshStandardMaterial({ color: 0xa4aeb5, metalness: 0.95, roughness: 0.25 }),
-  sightBody:   new THREE.MeshStandardMaterial({ color: 0xb9c1cb, metalness: 0.90, roughness: 0.30 }),
+  accent:      new THREE.MeshStandardMaterial({ color: 0xa4aeb5, metalness: 0.85, roughness: 0.25 }),
+  sightBody:   new THREE.MeshStandardMaterial({ color: 0xb9c1cb, metalness: 0.80, roughness: 0.25 }),
   brass:       new THREE.MeshStandardMaterial({ color: 0xb5924a, metalness: 0.90, roughness: 0.35 }),
   glass:       new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.10, metalness: 0.90 }),
   glow:        new THREE.MeshBasicMaterial({ color: 0xffffff })
