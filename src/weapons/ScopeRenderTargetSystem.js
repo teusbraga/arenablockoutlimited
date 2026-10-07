@@ -44,7 +44,6 @@ export class ScopeRenderTargetSystem {
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }`,
       fragmentShader: `
-        precision highp float;
         uniform sampler2D tMap;
         uniform float uAdsT;
         varying vec2 vUv;
@@ -57,7 +56,7 @@ export class ScopeRenderTargetSystem {
           
           // Chevron
           float d1 = abs(p.y - abs(p.x)) * 0.707; // Distância para V invertido
-          float chevron = smoothstep(lineThick, 0.0, d1) * step(p.y, 0.0) * step(-size, p.y);
+          float chevron = (1.0 - smoothstep(0.0, lineThick, d1)) * step(p.y, 0.0) * step(-size, p.y);
           
           return chevron;
         }
@@ -80,8 +79,8 @@ export class ScopeRenderTargetSystem {
           float reticle = 0.0;
           
           // Linhas verticais e horizontais centrais
-          reticle += smoothstep(0.002, 0.0, abs(p.x)) * step(p.y, 0.0); // Linha vertical inferior
-          reticle += smoothstep(0.002, 0.0, abs(p.y)) * step(abs(p.x), 0.3); // Linha horizontal
+          reticle += (1.0 - smoothstep(0.0, 0.002, abs(p.x))) * step(p.y, 0.0); // Linha vertical inferior
+          reticle += (1.0 - smoothstep(0.0, 0.002, abs(p.y))) * step(abs(p.x), 0.3); // Linha horizontal
           
           // Chevrons (Marcações de queda)
           reticle += drawChevron(uv, vec2(0.5, 0.5), 0.03);
@@ -93,7 +92,7 @@ export class ScopeRenderTargetSystem {
           vec3 finalColor = mix(texColor, reticleColor, clamp(reticle, 0.0, 1.0));
           
           // Simula a escuridão quando não está em ADS (eye relief)
-          float vignette = smoothstep(0.5, 0.45, r);
+          float vignette = 1.0 - smoothstep(0.45, 0.5, r);
           finalColor *= mix(0.02, vignette, uAdsT); // Quase preto fora do ADS
 
           gl_FragColor = vec4(finalColor, 1.0);

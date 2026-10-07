@@ -380,10 +380,8 @@ export function buildVSS() {
     rifle,
     bolt,
     physics,
-    details: {
-      opticBody: opticGroup,
-      rearLens: rearLens,
-      frontLens: frontLens
-    }
+    opticBody: opticGroup,
+    rearLens: rearLens,
+    frontLens: frontLens
   };
 }
