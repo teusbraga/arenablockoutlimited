@@ -78,11 +78,14 @@ export class Effects {
     t.active = true;
     t.life = 0;
     t.proj = p;
-    t.isDummy = p.isDummy;
+    t.isDummy = !!p.isDummy;
     if (t.isDummy) {
        t.dummyPos = p.startPos.clone();
        t.dummyDistance = 0;
     }
+    // Variação cinematográfica orgânica ("assim ou assado")
+    t.randScale = 0.85 + Math.random() * 0.30;
+    t.distOffset = (Math.random() - 0.5) * 0.4;
     t.mesh.visible = true;
   }
 
@@ -686,8 +689,8 @@ export class Effects {
 
       const speed = p.speed || 700;
       const visualTime = p.isPellet ? 0.020 : 0.028;
-      let tracerLen = speed * visualTime;
-      tracerLen = Math.max(1.2, Math.min(6.5, tracerLen));
+      let tracerLen = speed * visualTime * (t.randScale || 1.0);
+      tracerLen = Math.max(1.0, Math.min(5.0, tracerLen));
 
       const traveled = t.isDummy ? t.dummyDistance : p.distanceTraveled;
       if (traveled < tracerLen) {
@@ -707,54 +710,46 @@ export class Effects {
           opacity *= fade;
       }
 
-      // --- MUZZLE PIN: ancora a cauda no ponto exato de nascimento da bala
-      // para armas subsônicas (baixa velocidade), a bala fica próxima da câmera
-      // por tempo suficiente para o deslocamento de sway/frame ser perceptível.
-      // Ancoramos a cauda ao spawnOrigin nos primeiros `pinDistance` metros,
-      // depois transicionamos suavemente para o cálculo padrão.
-      let tailX, tailY, tailZ;
-      const hasMuzzlePin = !t.isDummy && p.spawnOrigin;
-      if (hasMuzzlePin) {
-        const pinDistance = Math.max(tracerLen * 2, 4.0); // primeiros 4m ou 2x o comprimento do tracer
-        const pinT = Math.min(traveled / pinDistance, 1.0);
-        // Cauda padrão (calculada "para trás" a partir da cabeça)
-        const stdTailX = headX - _tracerDir.x * tracerLen;
-        const stdTailY = headY - _tracerDir.y * tracerLen;
-        const stdTailZ = headZ - _tracerDir.z * tracerLen;
-        // Cauda ancorada ao muzzle (cresce a partir da boca do cano)
-        const pinTailX = p.spawnOrigin.x;
-        const pinTailY = p.spawnOrigin.y;
-        const pinTailZ = p.spawnOrigin.z;
-        // Lerp suave: começa ancorado no cano, transiciona para o cálculo padrão
-        tailX = pinTailX + (stdTailX - pinTailX) * pinT;
-        tailY = pinTailY + (stdTailY - pinTailY) * pinT;
-        tailZ = pinTailZ + (stdTailZ - pinTailZ) * pinT;
-      } else {
-        tailX = headX - _tracerDir.x * tracerLen;
-        tailY = headY - _tracerDir.y * tracerLen;
-        tailZ = headZ - _tracerDir.z * tracerLen;
+      // --- FILTRO DE MOVIMENTO DINÂMICO & DISTÂNCIA DE DISPARO (Near-Cull + Smooth Fade-in) ---
+      // Quando o jogador se move ou dá strafe lateral, a arma se move em relação ao mundo.
+      // Parado: o tracer surge pertinho (~0.8m) com alinhamento preciso.
+      // Em movimento: o tracer só surge quando a bala já viajou para a frente (~2.2m a 3.2m),
+      // entrando com um fade-in suave cinematográfico. A essa distância, o efeito de paralaxe é imperceptível!
+      const isPlayer = !t.isDummy && (p.owner === 'player' || !p.owner);
+      if (isPlayer) {
+        const playerVel = this.gameManager?.player?.vel;
+        const speedXZ = playerVel ? Math.hypot(playerVel.x, playerVel.z) : 0;
+        const isMoving = speedXZ > 0.6;
+
+        const minDist = isMoving ? (2.2 + Math.min(1.0, speedXZ * 0.18) + (t.distOffset || 0)) : 0.8;
+        const fadeDist = minDist + 1.2;
+
+        if (traveled < minDist) {
+          t.mesh.visible = false;
+          continue;
+        }
+
+        const fadeIn = Math.min(1.0, Math.max(0.0, (traveled - minDist) / (fadeDist - minDist)));
+        opacity *= fadeIn;
       }
 
-      // Comprimento real do tracer baseado na distância head-tail (pode diferir durante o pin)
-      const realLen = Math.sqrt(
-        (headX - tailX) ** 2 + (headY - tailY) ** 2 + (headZ - tailZ) ** 2
-      );
+      // Cauda 100% reta (nunca deforma, nunca curva)
+      const tailX = headX - _tracerDir.x * tracerLen;
+      const tailY = headY - _tracerDir.y * tracerLen;
+      const tailZ = headZ - _tracerDir.z * tracerLen;
 
-      if (realLen < 0.05) {
+      if (tracerLen < 0.05 || opacity < 0.02) {
         t.mesh.visible = false;
         continue;
       }
 
-      // Recalcula direção real para o quaternion (head-tail pode divergir do vel durante pin)
-      _tracerDir.set(headX - tailX, headY - tailY, headZ - tailZ).normalize();
-
       t.mesh.position.set((headX + tailX) * 0.5, (headY + tailY) * 0.5, (headZ + tailZ) * 0.5);
-      t.mesh.scale.set(1, realLen, 1);
+      t.mesh.scale.set(1, tracerLen, 1);
       t.mesh.quaternion.setFromUnitVectors(_tracerUp, _tracerDir);
 
       t.mat.color.set(p.color || 0xffd27f);
       t.mat.opacity = opacity;
-      t.mesh.visible = opacity > 0.01;
+      t.mesh.visible = true;
     }
 
     // 2. Sparks
@@ -975,6 +970,7 @@ export class Effects {
     }
   }
 }
+
 
 
 
