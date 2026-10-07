@@ -13,7 +13,7 @@ export class Player extends Character {
     super(world);
     this.bounds = bounds;
     this.spawnPos = spawnPos;
-    this.pos.set(spawnPos[0], spawnPos[1], spawnPos[2]);
+    this.setPosition(spawnPos[0], spawnPos[1], spawnPos[2]);
     this.size.set(0.6, CONFIG.PLAYER.height, 0.6);
 
     // Instancia o CameraRig (Layer 1 da câmera)
@@ -213,9 +213,9 @@ export class Player extends Character {
     super.respawn();
     this.respawnTimer = 0;
     if (this.spawnPos) {
-      this.pos.set(this.spawnPos[0], this.spawnPos[1], this.spawnPos[2]);
+      this.setPosition(this.spawnPos[0], this.spawnPos[1], this.spawnPos[2]);
     } else {
-      this.pos.set(0, 0.1, 12);
+      this.setPosition(0, 0.1, 12);
     }
     this.rig.reset();
     emit('player:hp', { hp: this.hp, max: this.maxHp });

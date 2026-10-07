@@ -267,10 +267,11 @@ export class CharacterView {
     }
 
     // Animações Procedurais
+    const charPos = this.character.renderPos || this.character.pos;
     if (this.skinType === 'ghost') {
       this.floatTime += dt * 4.5;
       const yOffset = Math.sin(this.floatTime) * 0.08 + 0.12;
-      this.root.position.set(this.character.pos.x, this.character.pos.y + yOffset, this.character.pos.z);
+      this.root.position.set(charPos.x, charPos.y + yOffset, charPos.z);
     } else {
       const speed = Math.hypot(this.character.vel.x, this.character.vel.z);
       if (speed > 0.15) {
@@ -292,7 +293,7 @@ export class CharacterView {
         this.gunGroup.rotation.z *= Math.max(0, 1 - dt * 8);
       }
 
-      this.root.position.set(this.character.pos.x, this.character.pos.y, this.character.pos.z);
+      this.root.position.set(charPos.x, charPos.y, charPos.z);
     }
 
     this.root.rotation.y = this.character.yaw;

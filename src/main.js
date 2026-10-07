@@ -44,7 +44,7 @@ import { ScopeRenderTargetSystem } from './weapons/ScopeRenderTargetSystem.js';
     const spawn = map.playerSpawns[0];
 
     const player = new Player(world, map.bounds, spawn);
-    player.pos.set(spawn[0], spawn[1], spawn[2]);
+    player.setPosition(spawn[0], spawn[1], spawn[2]);
     player.updateCamera(camera, 0.016);
 
     // 3. Viewmodel e Armas

@@ -209,7 +209,7 @@ export class GameManager {
     b.respawn();
 
     const spawnPos = b.nextSpawnPos || this._findClearSpawnPos(3.0, 11.0, b);
-    b.pos.set(spawnPos.x, spawnPos.y || 0.6, spawnPos.z);
+    b.setPosition(spawnPos.x, spawnPos.y || 0.6, spawnPos.z);
     b.vel.set(0, 0, 0);
     b.hp = b.maxHp;
     b.alive = true;
@@ -279,9 +279,9 @@ export class GameManager {
     this.player.hp = this.player.maxHp;
     this.player.alive = true;
     if (this.playerSpawn) {
-      this.player.pos.set(this.playerSpawn[0], this.playerSpawn[1], this.playerSpawn[2]);
+      this.player.setPosition(this.playerSpawn[0], this.playerSpawn[1], this.playerSpawn[2]);
     } else {
-      this.player.pos.set(0, 0.1, 12);
+      this.player.setPosition(0, 0.1, 12);
     }
     this.player.vel.set(0, 0, 0);
     emit('player:hp', { hp: this.player.hp, max: this.player.maxHp });

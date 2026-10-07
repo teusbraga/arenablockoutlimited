@@ -23,6 +23,12 @@ export class Character {
     this.prevPos.copy(this.pos);
   }
 
+  setPosition(x, y, z) {
+    this.pos.set(x, y, z);
+    this.prevPos.copy(this.pos);
+    this.renderPos.copy(this.pos);
+  }
+
   interpolatePosition(alpha) {
     this.renderPos.lerpVectors(this.prevPos, this.pos, alpha);
   }
