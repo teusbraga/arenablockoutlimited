@@ -37,7 +37,7 @@ const M = {
   wood:        new THREE.MeshStandardMaterial({ color: 0x472f1b, metalness: 0.05, roughness: 0.85 }),
   lightWood:   new THREE.MeshStandardMaterial({ color: 0x5a3e26, metalness: 0.05, roughness: 0.80 }),
   accent:      new THREE.MeshStandardMaterial({ color: 0xa4aeb5, metalness: 0.95, roughness: 0.25 }),
-  sightBody:   new THREE.MeshStandardMaterial({ color: 0x9099a0, metalness: 0.90, roughness: 0.30 }),
+  sightBody:   new THREE.MeshStandardMaterial({ color: 0xb9c1cb, metalness: 0.90, roughness: 0.30 }),
   brass:       new THREE.MeshStandardMaterial({ color: 0xb5924a, metalness: 0.90, roughness: 0.35 }),
   glass:       new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.10, metalness: 0.90 }),
   glow:        new THREE.MeshBasicMaterial({ color: 0xffffff })
@@ -381,7 +381,7 @@ export function buildVSS() {
     bolt,
     physics,
     details: {
-      opticBody: tubeGeo, // apenas p n falhar caso peçam 
+      opticBody: opticGroup,
       rearLens: rearLens,
       frontLens: frontLens
     }
