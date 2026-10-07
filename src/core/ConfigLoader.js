@@ -9,7 +9,7 @@ export const DEFAULT_CONFIG = {
   PLAYER: {
     height: 1.8, crouchHeight: 1.2, eyeHeight: 1.6, eyeCrouch: 1.05,
     radius: 0.35,
-    walkSpeed: 5.2, strafeMul: 0.72, sprintMul: 1.75, crouchMul: 0.5, adsMul: 0.5,
+    walkSpeed: 5.2, sprintMul: 1.75, crouchMul: 0.5, adsMul: 0.5,
     accel: 40.0, airAccel: 6.0, friction: 22.0,
     jumpSpeed: 7.0, gravity: 20.0,
     stepHeight: 0.55,
@@ -81,7 +81,6 @@ export class ConfigLoader {
         const gp = gameplayRes.value;
         if (gp.player) {
           CONFIG.PLAYER.walkSpeed = gp.player.walkSpeed ?? CONFIG.PLAYER.walkSpeed;
-          CONFIG.PLAYER.strafeMul = gp.player.strafeMultiplier ?? CONFIG.PLAYER.strafeMul;
           CONFIG.PLAYER.sprintMul = gp.player.sprintMultiplier ?? CONFIG.PLAYER.sprintMul;
           CONFIG.PLAYER.crouchMul = gp.player.crouchMultiplier ?? CONFIG.PLAYER.crouchMul;
           CONFIG.PLAYER.adsMul = gp.player.adsMultiplier ?? CONFIG.PLAYER.adsMul;
