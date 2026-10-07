@@ -78,6 +78,14 @@ export class GameManager {
       world: this.world,
     });
     this.itemDrops.push(drop);
+
+    // Limit persistent drops to avoid lag (FIFO queue)
+    const MAX_DROPS = 2;
+    while (this.itemDrops.length > MAX_DROPS) {
+      const oldestDrop = this.itemDrops.shift();
+      if (oldestDrop) oldestDrop.destroy();
+    }
+
     return drop;
   }
 

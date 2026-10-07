@@ -241,8 +241,15 @@ export class TouchInput {
           const t = e.changedTouches[i];
           if (t.identifier === this.fireTouchId) {
             this.fireTouchId = null;
-            this.input.actions.fire = false;
             fireBtn.classList.remove('active');
+            
+            const topFire = document.getElementById('btn-touch-fire-top');
+            const leftFire = document.getElementById('btn-touch-fire-left');
+            const isTopFireActive = topFire && topFire.classList.contains('active');
+            const isLeftFireActive = leftFire && leftFire.classList.contains('active');
+            if (!isTopFireActive && !isLeftFireActive) {
+              this.input.actions.fire = false;
+            }
             break;
           }
         }
@@ -259,49 +266,70 @@ export class TouchInput {
         fireBtn.classList.add('active');
       });
       window.addEventListener('mouseup', () => {
-        if (this.fireTouchId === null && this.input.actions.fire) {
-          this.input.actions.fire = false;
+        if (this.fireTouchId === null && fireBtn.classList.contains('active')) {
           fireBtn.classList.remove('active');
+          const topFire = document.getElementById('btn-touch-fire-top');
+          const leftFire = document.getElementById('btn-touch-fire-left');
+          const isTopFireActive = topFire && topFire.classList.contains('active');
+          const isLeftFireActive = leftFire && leftFire.classList.contains('active');
+          if (!isTopFireActive && !isLeftFireActive) {
+            this.input.actions.fire = false;
+          }
         }
       });
     }
-
-    // --- NOVO BOTÃO DE TIRO NO CANTO SUPERIOR DIREITO (CLAW SETUP MOBILE) ---
-    const fireTopBtn = document.getElementById('btn-touch-fire-top');
-    if (fireTopBtn) {
-      let fireTopTouchId = null;
-      const startFireTop = e => {
+    // --- BOTÕES DE TIRO ADICIONAIS (TOP DIREITO E ESQUERDO) ---
+    const setupAdditionalFireButton = (id) => {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      let touchId = null;
+      
+      const startFire = e => {
         e.preventDefault();
         e.stopPropagation();
         this.input.actions.fire = true;
         this.input._actionQueue.add('fire');
-        fireTopBtn.classList.add('active');
+        btn.classList.add('active');
         if (e.changedTouches && e.changedTouches[0]) {
-          fireTopTouchId = e.changedTouches[0].identifier;
+          touchId = e.changedTouches[0].identifier;
         }
       };
-      const stopFireTop = e => {
-        if (e.changedTouches && fireTopTouchId !== null) {
+      
+      const stopFire = e => {
+        if (e.changedTouches && touchId !== null) {
+          let found = false;
           for (let i = 0; i < e.changedTouches.length; i++) {
-            if (e.changedTouches[i].identifier === fireTopTouchId) {
-              fireTopTouchId = null;
+            if (e.changedTouches[i].identifier === touchId) {
+              touchId = null;
+              found = true;
               break;
             }
           }
-          if (fireTopTouchId !== null) return;
+          if (!found) return;
         }
-        if (this.fireTouchId === null) {
+        
+        btn.classList.remove('active');
+        
+        const isMainFireActive = this.fireTouchId !== null;
+        const topFire = document.getElementById('btn-touch-fire-top');
+        const leftFire = document.getElementById('btn-touch-fire-left');
+        const isTopFireActive = topFire && topFire.classList.contains('active');
+        const isLeftFireActive = leftFire && leftFire.classList.contains('active');
+        
+        if (!isMainFireActive && !isTopFireActive && !isLeftFireActive) {
           this.input.actions.fire = false;
         }
-        fireTopBtn.classList.remove('active');
       };
 
-      fireTopBtn.addEventListener('touchstart', startFireTop, { passive: false });
-      fireTopBtn.addEventListener('touchend', stopFireTop);
-      fireTopBtn.addEventListener('touchcancel', stopFireTop);
-      fireTopBtn.addEventListener('mousedown', startFireTop);
-      window.addEventListener('mouseup', stopFireTop);
-    }
+      btn.addEventListener('touchstart', startFire, { passive: false });
+      btn.addEventListener('touchend', stopFire);
+      btn.addEventListener('touchcancel', stopFire);
+      btn.addEventListener('mousedown', startFire);
+      window.addEventListener('mouseup', stopFire);
+    };
+
+    setupAdditionalFireButton('btn-touch-fire-top');
+    setupAdditionalFireButton('btn-touch-fire-left');
 
     // Botão de Pausa Mobile
     const pauseBtn = document.getElementById('btn-touch-pause');

@@ -74,7 +74,7 @@ export class Effects {
 
   _initPools() {
     // 1. Tracers 3D Volumétricos e Aerodinâmicos (Cilindro cônico com degradê de intensidade)
-    this.tracerGeo = new THREE.CylinderGeometry(0.022, 0.003, 1.0, 6, 1, true);
+    this.tracerGeo = new THREE.CylinderGeometry(0.05, 0.006, 1.0, 6, 1, true);
     const vertCount = this.tracerGeo.attributes.position.count;
     const colors = new Float32Array(vertCount * 3);
     const posArr = this.tracerGeo.attributes.position.array;
@@ -621,9 +621,10 @@ export class Effects {
   }
 
   update(dt, camera) {
-    // 1. Tracers Dinâmicos (Cinemáticos) atrelados à simulação física real
-    if (this.gameManager && this.gameManager.projectileManager) {
-      const activeProjs = this.gameManager.projectileManager.getActiveProjectiles();
+    // 1. Tracers Dinamicos (Cinematicos) atrelados a simulacao fisica real
+    const projManager = this.gameManager && this.gameManager.player && this.gameManager.player.weapons ? this.gameManager.player.weapons.projectileManager : null;
+    if (projManager) {
+      const activeProjs = projManager.getActiveProjectiles();
       for (let i = 0; i < MAX_TRACERS; i++) {
         const t = this.tracers[i];
         if (i < activeProjs.length) {

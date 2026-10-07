@@ -450,6 +450,13 @@
     width: 56px; height: 56px; font-size: 12px;
     display: none; /* Ativado no mobile */
   }
+  #btn-touch-fire-left {
+    left: calc(60px + env(safe-area-inset-left, 0px));
+    bottom: calc(160px + env(safe-area-inset-bottom, 0px));
+    width: 72px; height: 72px; font-size: 13px;
+    border-color: var(--accent); background: rgba(232,147,58,0.25);
+    box-shadow: 0 0 12px rgba(232,147,58,0.2);
+  }
   #btn-touch-jump {
     right: calc(24px + env(safe-area-inset-right, 0px));
     bottom: calc(110px + env(safe-area-inset-bottom, 0px));
@@ -518,6 +525,7 @@
     /* Touch Controls - Ergonomia Mobile */
     #btn-touch-fire { right: calc(80px + env(safe-area-inset-right, 0px)); bottom: calc(100px + env(safe-area-inset-bottom, 0px)); width: 72px; height: 72px; font-size: 13px; }
     #btn-touch-fire-top { display: flex; right: calc(14px + env(safe-area-inset-right, 0px)); top: calc(10px + env(safe-area-inset-top, 0px)); width: 54px; height: 54px; font-size: 11px; }
+    #btn-touch-fire-left { display: flex; left: calc(20px + env(safe-area-inset-left, 0px)); bottom: calc(140px + env(safe-area-inset-bottom, 0px)); width: 64px; height: 64px; font-size: 11px; }
     #btn-touch-ads { right: calc(80px + env(safe-area-inset-right, 0px)); bottom: calc(190px + env(safe-area-inset-bottom, 0px)); width: 56px; height: 56px; font-size: 11px; }
     #btn-touch-zoom { right: calc(150px + env(safe-area-inset-right, 0px)); bottom: calc(190px + env(safe-area-inset-bottom, 0px)); width: 48px; height: 48px; font-size: 10px; }
     #btn-touch-jump { right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(80px + env(safe-area-inset-bottom, 0px)); width: 52px; height: 52px; font-size: 11px; }
@@ -692,6 +700,7 @@
   
   <button id="btn-touch-fire" class="touch-btn">TIRO</button>
   <button id="btn-touch-fire-top" class="touch-btn">TIRO</button>
+  <button id="btn-touch-fire-left" class="touch-btn">TIRO</button>
   <button id="btn-touch-ads" class="touch-btn">MIRA</button>
   <button id="btn-touch-zoom" class="touch-btn">ZOOM</button>
   <button id="btn-touch-jump" class="touch-btn">PULO</button>
