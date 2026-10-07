@@ -111,16 +111,31 @@ export class MenuController {
       this.gameManager.resetGame();
     });
 
+    const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    const isStandalone = typeof window !== 'undefined' && (window.navigator?.standalone === true || window.matchMedia?.('(display-mode: standalone)')?.matches);
+
+    if (isStandalone && this.btnFullscreen) {
+      this.btnFullscreen.textContent = "✓ TELA CHEIA (PWA)";
+      this.btnFullscreen.style.borderColor = "rgba(123, 198, 126, 0.6)";
+      this.btnFullscreen.style.color = "var(--ok)";
+    }
+
     this.btnFullscreen?.addEventListener('click', (e) => {
       e.stopPropagation();
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      if (isStandalone) {
+        alert("🎮 Você já está executando o jogo no modo PWA em Tela Cheia!");
+        return;
+      }
+      if (isIOS) {
+        alert("📱 Safari no iPhone:\n\nPara jogar em TELA CHEIA (sem as barras do navegador):\n1. Toque no botão 'Compartilhar' (ícone de quadrado com seta ⎋ na barra do Safari)\n2. Role para baixo e selecione 'Adicionar à Tela de Início' (+)\n3. Abra o jogo pelo novo ícone na tela inicial!");
+        return;
+      }
+
       if (!document.fullscreenElement) {
         if (document.documentElement.requestFullscreen) {
           document.documentElement.requestFullscreen().catch(err => console.warn(err));
         } else if (document.documentElement.webkitRequestFullscreen) {
           document.documentElement.webkitRequestFullscreen();
-        } else if (isIOS) {
-          alert("Safari no iPhone: Para jogar em Tela Cheia e sumir com a barra, toque no botão 'Compartilhar' do navegador e selecione 'Adicionar à Tela de Início'.");
         }
       } else {
         if (document.exitFullscreen) document.exitFullscreen();

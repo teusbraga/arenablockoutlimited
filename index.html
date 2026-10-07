@@ -7,8 +7,17 @@
 <link rel="icon" type="image/svg+xml" href="./assets/ui/favicon.svg">
 <link rel="manifest" href="./manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Arena FPS">
+<meta name="theme-color" content="#0d0f11">
+
+<!-- iOS Icons (PNG required for Apple Home Screen WebClip PWA) -->
+<link rel="apple-touch-icon" href="./assets/ui/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="./assets/ui/apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="192x192" href="./assets/ui/icon-192.png">
+<link rel="apple-touch-icon" sizes="512x512" href="./assets/ui/icon-512.png">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Oswald:wght@500;600&display=swap" rel="stylesheet">
 <style>
@@ -41,7 +50,7 @@
 
   /* HP no Centro Inferior */
   #hp-hud {
-    left: 50%; bottom: 20px;
+    left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px));
     transform: translateX(-50%);
     display: flex; align-items: baseline; gap: 8px;
     font-size: 13px; letter-spacing: 0.05em;
@@ -51,7 +60,8 @@
 
   /* HUD de Armas no Canto Inferior Direito */
   #weapon-hud {
-    right: 20px; bottom: 20px;
+    right: calc(20px + env(safe-area-inset-right, 0px));
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
     text-align: right;
     display: flex; flex-direction: column; align-items: flex-end; gap: 3px;
   }
@@ -95,7 +105,8 @@
 
   /* Topo Central: Cronômetro de Rodada com Cápsula Escura Translúcida */
   #round-timer-hud {
-    top: 16px; left: 50%;
+    top: calc(16px + env(safe-area-inset-top, 0px));
+    left: 50%;
     transform: translateX(-50%);
     text-align: center;
     display: flex; flex-direction: column; align-items: center;
@@ -114,7 +125,8 @@
 
   /* Topo Direito: Placar Discreto com Cápsula Escura Translúcida */
   #score-hud {
-    top: 16px; right: 20px;
+    top: calc(16px + env(safe-area-inset-top, 0px));
+    right: calc(20px + env(safe-area-inset-right, 0px));
     text-align: right;
     display: flex; align-items: center; gap: 12px;
     background: rgba(14, 17, 21, 0.76);
@@ -131,7 +143,9 @@
 
   /* Topo Esquerdo: Kill Feed Dinâmico com Fundo Escuro Translúcido */
   #killfeed {
-    position: fixed; top: 16px; left: 20px;
+    position: fixed;
+    top: calc(16px + env(safe-area-inset-top, 0px));
+    left: calc(20px + env(safe-area-inset-left, 0px));
     display: flex; flex-direction: column; align-items: flex-start; gap: 6px;
     pointer-events: none; z-index: 105;
   }
@@ -325,33 +339,51 @@
   }
   /* Botão de Tiro afastado da borda com ampla área para mira/drag */
   #btn-touch-fire {
-    right: 85px; bottom: 85px; width: 76px; height: 76px;
+    right: calc(85px + env(safe-area-inset-right, 0px));
+    bottom: calc(85px + env(safe-area-inset-bottom, 0px));
+    width: 76px; height: 76px;
     font-size: 15px; border-color: var(--accent); background: rgba(232,147,58,0.25);
     box-shadow: 0 0 12px rgba(232,147,58,0.2);
   }
   #btn-touch-ads {
-    right: 176px; bottom: 108px; width: 54px; height: 54px;
+    right: calc(176px + env(safe-area-inset-right, 0px));
+    bottom: calc(108px + env(safe-area-inset-bottom, 0px));
+    width: 54px; height: 54px;
   }
   #btn-touch-jump {
-    right: 22px; bottom: 168px; width: 52px; height: 52px;
+    right: calc(22px + env(safe-area-inset-right, 0px));
+    bottom: calc(168px + env(safe-area-inset-bottom, 0px));
+    width: 52px; height: 52px;
   }
   #btn-touch-crouch {
-    right: 22px; bottom: 88px; width: 48px; height: 48px; font-size: 11px;
+    right: calc(22px + env(safe-area-inset-right, 0px));
+    bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+    width: 48px; height: 48px; font-size: 11px;
   }
   #btn-touch-reload {
-    right: 176px; bottom: 44px; width: 48px; height: 48px; font-size: 11px;
+    right: calc(176px + env(safe-area-inset-right, 0px));
+    bottom: calc(44px + env(safe-area-inset-bottom, 0px));
+    width: 48px; height: 48px; font-size: 11px;
   }
   #btn-touch-cycle {
-    right: 24px; top: 76px; width: 46px; height: 46px; font-size: 11px; border-radius: 6px;
+    right: calc(24px + env(safe-area-inset-right, 0px));
+    top: calc(76px + env(safe-area-inset-top, 0px));
+    width: 46px; height: 46px; font-size: 11px; border-radius: 6px;
   }
   #btn-touch-interact {
-    right: 80px; top: 76px; width: 46px; height: 46px; font-size: 11px; border-radius: 6px;
+    right: calc(80px + env(safe-area-inset-right, 0px));
+    top: calc(76px + env(safe-area-inset-top, 0px));
+    width: 46px; height: 46px; font-size: 11px; border-radius: 6px;
   }
   #btn-touch-firemode {
-    right: 80px; top: 22px; width: 46px; height: 46px; font-size: 10px; border-radius: 6px;
+    right: calc(80px + env(safe-area-inset-right, 0px));
+    top: calc(22px + env(safe-area-inset-top, 0px));
+    width: 46px; height: 46px; font-size: 10px; border-radius: 6px;
   }
   #btn-touch-pause {
-    left: 16px; top: 16px; width: 44px; height: 44px; font-size: 16px; border-radius: 8px;
+    left: calc(16px + env(safe-area-inset-left, 0px));
+    top: calc(16px + env(safe-area-inset-top, 0px));
+    width: 44px; height: 44px; font-size: 16px; border-radius: 8px;
     background: rgba(18,22,26,0.85); border-color: rgba(255,255,255,0.3);
   }
 
@@ -618,5 +650,14 @@
 }
 </script>
 <script type="module" src="./src/main.js"></script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(err => {
+        console.warn('PWA ServiceWorker error:', err);
+      });
+    });
+  }
+</script>
 </body>
 </html>
