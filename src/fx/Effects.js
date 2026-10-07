@@ -214,9 +214,12 @@ export class Effects {
     this.world = world;
   }
 
+  setGameManager(gm) {
+    this.gameManager = gm;
+  }
+
   _bind() {
     this._unsubs = [
-      on('shot:tracer', e => this._spawnTracer(e.from, e.to, e.color)),
       on('shot:world', e => this._spawnImpact(e.point, 0xd9c79b, 5)),
       on('shot:bot', e => this._spawnImpact(e.point, e.headshot ? 0xffd166 : 0xc4504a, 6)),
       on('bot:died', e => {
@@ -422,34 +425,6 @@ export class Effects {
     );
   }
 
-  _spawnTracer(from, to, color = null) {
-    if (!from || !to) return;
-    if (!Number.isFinite(from.x) || !Number.isFinite(from.y) || !Number.isFinite(from.z) ||
-        !Number.isFinite(to.x) || !Number.isFinite(to.y) || !Number.isFinite(to.z)) {
-      return;
-    }
-
-    const t = this.tracers[this.tracerIdx];
-    this.tracerIdx = (this.tracerIdx + 1) % MAX_TRACERS;
-
-    const positions = t.line.geometry.attributes.position.array;
-    positions[0] = from.x; positions[1] = from.y; positions[2] = from.z;
-    positions[3] = to.x;   positions[4] = to.y;   positions[5] = to.z;
-    t.line.geometry.attributes.position.needsUpdate = true;
-    t.line.geometry.computeBoundingSphere();
-
-    if (color) {
-      t.line.material.color.set(color);
-    } else {
-      t.line.material.color.setHex(0xffd27f);
-    }
-
-    t.line.material.opacity = 0.9;
-    t.line.visible = true;
-    t.life = this.TRACER_LIFE;
-    t.active = true;
-  }
-
   _spawnImpact(pos, color, count) {
     for (let i = 0; i < count; i++) {
       const p = this.sparks[this.sparkIdx];
@@ -624,17 +599,44 @@ export class Effects {
   }
 
   update(dt, camera) {
-    // 1. Tracers
-    for (let i = 0; i < MAX_TRACERS; i++) {
-      const t = this.tracers[i];
-      if (!t.active) continue;
-      
-      t.life -= dt;
-      if (t.life <= 0) {
-        t.active = false;
-        t.line.visible = false;
-      } else {
-        t.line.material.opacity = Math.max(0, t.life / this.TRACER_LIFE);
+    // 1. Tracers Dinâmicos (Cinemáticos) atrelados à simulação física real
+    if (this.gameManager && this.gameManager.projectileManager) {
+      const activeProjs = this.gameManager.projectileManager.getActiveProjectiles();
+      for (let i = 0; i < MAX_TRACERS; i++) {
+        const t = this.tracers[i];
+        if (i < activeProjs.length) {
+          const p = activeProjs[i];
+          const speed = p.speed || 700;
+          
+          // Janela temporal visual de ~35ms para o comprimento do rastro
+          const visualTime = 0.035;
+          let tracerLen = speed * visualTime;
+          // Limita fisicamente e artisticamente para não virar uma "lança flutuante" enorme ou um ponto
+          tracerLen = Math.max(1.5, Math.min(30.0, tracerLen));
+          
+          // Se recém spawnou, o comprimento não pode ser maior que a distância viajada
+          if (p.distanceTraveled < tracerLen) tracerLen = Math.max(0.01, p.distanceTraveled);
+          
+          const dir = p.vel.clone().normalize();
+          const tail = p.pos.clone().sub(dir.multiplyScalar(tracerLen));
+          
+          const positions = t.line.geometry.attributes.position.array;
+          positions[0] = tail.x; positions[1] = tail.y; positions[2] = tail.z;
+          positions[3] = p.pos.x; positions[4] = p.pos.y; positions[5] = p.pos.z;
+          t.line.geometry.attributes.position.needsUpdate = true;
+          t.line.geometry.computeBoundingSphere();
+          
+          t.line.material.color.set(p.color || 0xffd27f);
+          t.line.material.opacity = 0.95;
+          t.line.visible = true;
+        } else {
+          t.line.visible = false;
+        }
+      }
+    } else {
+      // Fallback
+      for (let i = 0; i < MAX_TRACERS; i++) {
+        this.tracers[i].line.visible = false;
       }
     }
 

@@ -84,6 +84,7 @@ import { ScopeRenderTargetSystem } from './weapons/ScopeRenderTargetSystem.js';
       bounds: map.bounds,
     });
     gameManager.setDoors(map.doors);
+    effects.setGameManager(gameManager);
 
     const savedBotSkin = MenuController.getSavedBotSkin();
     if (savedBotSkin) gameManager.setBotSkin(savedBotSkin);

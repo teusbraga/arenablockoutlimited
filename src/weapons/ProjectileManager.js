@@ -335,11 +335,7 @@ export class ProjectileManager {
           });
         }
 
-        emit('shot:tracer', {
-          from: p.prevPos,
-          to: p.pos,
-          color: p.color
-        });
+
         continue;
       }
 
@@ -359,11 +355,7 @@ export class ProjectileManager {
           soundDelay: acousticDelay
         });
 
-        emit('shot:tracer', {
-          from: p.prevPos,
-          to: p.pos,
-          color: p.color
-        });
+
         continue;
       }
 
@@ -373,11 +365,7 @@ export class ProjectileManager {
       p.life += dt;
 
       // Traçante contínuo em voo (para renderizar a parábola em tempo real)
-      emit('shot:tracer', {
-        from: p.prevPos,
-        to: p.pos,
-        color: p.color
-      });
+
 
       if (p.life >= p.maxLife || p.distanceTraveled >= p.maxDistance || p.pos.y < -40) {
         p.active = false;
@@ -396,3 +384,4 @@ export class ProjectileManager {
     return list;
   }
 }
+
