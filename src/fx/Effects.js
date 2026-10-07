@@ -688,14 +688,14 @@ export class Effects {
       const visualTime = p.isPellet ? 0.020 : 0.028;
       let tracerLen = speed * visualTime;
       tracerLen = Math.max(1.2, Math.min(6.5, tracerLen));
-      
+
       const traveled = t.isDummy ? t.dummyDistance : p.distanceTraveled;
       if (traveled < tracerLen) {
         tracerLen = Math.max(0.05, traveled);
       }
-      
+
       _tracerDir.copy(p.vel).normalize();
-      
+
       const headX = t.isDummy ? t.dummyPos.x : p.pos.x;
       const headY = t.isDummy ? t.dummyPos.y : p.pos.y;
       const headZ = t.isDummy ? t.dummyPos.z : p.pos.z;
@@ -707,17 +707,54 @@ export class Effects {
           opacity *= fade;
       }
 
-      const tailX = headX - _tracerDir.x * tracerLen;
-      const tailY = headY - _tracerDir.y * tracerLen;
-      const tailZ = headZ - _tracerDir.z * tracerLen;
+      // --- MUZZLE PIN: ancora a cauda no ponto exato de nascimento da bala
+      // para armas subsônicas (baixa velocidade), a bala fica próxima da câmera
+      // por tempo suficiente para o deslocamento de sway/frame ser perceptível.
+      // Ancoramos a cauda ao spawnOrigin nos primeiros `pinDistance` metros,
+      // depois transicionamos suavemente para o cálculo padrão.
+      let tailX, tailY, tailZ;
+      const hasMuzzlePin = !t.isDummy && p.spawnOrigin;
+      if (hasMuzzlePin) {
+        const pinDistance = Math.max(tracerLen * 2, 4.0); // primeiros 4m ou 2x o comprimento do tracer
+        const pinT = Math.min(traveled / pinDistance, 1.0);
+        // Cauda padrão (calculada "para trás" a partir da cabeça)
+        const stdTailX = headX - _tracerDir.x * tracerLen;
+        const stdTailY = headY - _tracerDir.y * tracerLen;
+        const stdTailZ = headZ - _tracerDir.z * tracerLen;
+        // Cauda ancorada ao muzzle (cresce a partir da boca do cano)
+        const pinTailX = p.spawnOrigin.x;
+        const pinTailY = p.spawnOrigin.y;
+        const pinTailZ = p.spawnOrigin.z;
+        // Lerp suave: começa ancorado no cano, transiciona para o cálculo padrão
+        tailX = pinTailX + (stdTailX - pinTailX) * pinT;
+        tailY = pinTailY + (stdTailY - pinTailY) * pinT;
+        tailZ = pinTailZ + (stdTailZ - pinTailZ) * pinT;
+      } else {
+        tailX = headX - _tracerDir.x * tracerLen;
+        tailY = headY - _tracerDir.y * tracerLen;
+        tailZ = headZ - _tracerDir.z * tracerLen;
+      }
+
+      // Comprimento real do tracer baseado na distância head-tail (pode diferir durante o pin)
+      const realLen = Math.sqrt(
+        (headX - tailX) ** 2 + (headY - tailY) ** 2 + (headZ - tailZ) ** 2
+      );
+
+      if (realLen < 0.05) {
+        t.mesh.visible = false;
+        continue;
+      }
+
+      // Recalcula direção real para o quaternion (head-tail pode divergir do vel durante pin)
+      _tracerDir.set(headX - tailX, headY - tailY, headZ - tailZ).normalize();
 
       t.mesh.position.set((headX + tailX) * 0.5, (headY + tailY) * 0.5, (headZ + tailZ) * 0.5);
-      t.mesh.scale.set(1, tracerLen, 1);
+      t.mesh.scale.set(1, realLen, 1);
       t.mesh.quaternion.setFromUnitVectors(_tracerUp, _tracerDir);
 
       t.mat.color.set(p.color || 0xffd27f);
       t.mat.opacity = opacity;
-      t.mesh.visible = tracerLen > 0.1;
+      t.mesh.visible = opacity > 0.01;
     }
 
     // 2. Sparks
@@ -938,6 +975,7 @@ export class Effects {
     }
   }
 }
+
 
 
 

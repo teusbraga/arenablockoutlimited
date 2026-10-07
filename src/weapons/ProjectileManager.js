@@ -26,6 +26,7 @@ export class Projectile {
     this.life = 0;
     this.maxLife = 3.0;
     this.isPellet = false;
+    this.spawnOrigin = new THREE.Vector3(); // Ponto exato de nascimento (Muzzle Pin)
   }
 
   reset() {
@@ -105,6 +106,7 @@ export class ProjectileManager {
 
     p.pos.copy(origin);
     p.prevPos.copy(origin);
+    p.spawnOrigin.copy(origin); // Ancora para o tracer "Muzzle Pin"
     p.vel.copy(direction).normalize().multiplyScalar(speed);
     p.gravity = drop;
     p.drag = drag;
