@@ -261,7 +261,7 @@
   - Criar novo botão de tiro no canto superior direito apenas no mobile (#btn-touch-fire-top) para suporte a pegada claw/4 dedos.
   - Tornar o botão de interação touch (#btn-touch-interact) contextual: visível apenas quando próximo a portas ou drops de armas (interact:target).
 
-### Passo 13.2: Menu de Configurações Mobile Master-Detail (1/4 Navegação + 3/4 Conteúdo) [ ]
+### Passo 13.2: Menu de Configurações Mobile Master-Detail (1/4 Navegação + 3/4 Conteúdo) [x] (CONCLUÍDO)
 - **Alvo:** index.html, src/ui/MenuController.js
 - **Ações:**
   - Estilização responsiva em telas pequenas: menu lateral em 1/4 da tela com abas e 3/4 para conteúdo (sensibilidade, arma, áudio, etc.).

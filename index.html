@@ -267,22 +267,82 @@
     display: block;
     object-fit: contain;
   }
-  #overlay .menu-instructions{color:rgba(165,174,185,0.55);font-size:11.5px;max-width:520px;line-height:1.9;margin-bottom:12px;}
+  #overlay .menu-instructions{color:rgba(165,174,185,0.55);font-size:11.5px;max-width:520px;line-height:1.9;margin-bottom:10px;}
   #overlay .cta{
-    margin-top:20px;border:1px solid rgba(255,255,255,0.22);background:rgba(255,255,255,0.03);
-    color:rgba(250,252,255,0.92);padding:10px 28px;border-radius:2px;font-size:11.5px;letter-spacing:.12em;
+    margin-top:10px;border:1px solid rgba(255,255,255,0.22);background:rgba(255,255,255,0.03);
+    color:rgba(250,252,255,0.92);padding:9px 26px;border-radius:2px;font-size:11.5px;letter-spacing:.12em;
     transition:border-color .2s, background .2s, color .2s;
   }
   #overlay .cta:hover{border-color:rgba(255,255,255,0.6);background:rgba(255,255,255,0.08);color:#fff;}
-  #overlay .menu-options-grid {
-    display:flex; flex-direction:column; gap:9px; width:100%; max-width:380px; margin-top:8px;
+
+  /* Master-Detail Menu: 1/4 Tabs Navegação + 3/4 Painel de Opções */
+  .menu-body {
+    display: flex;
+    width: 100%;
+    gap: 14px;
+    margin: 8px 0;
+    background: rgba(12, 15, 18, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    padding: 12px;
+    box-sizing: border-box;
   }
+  .menu-tabs {
+    display: flex;
+    flex-direction: column;
+    width: 25%;
+    min-width: 105px;
+    gap: 6px;
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    padding-right: 10px;
+    box-sizing: border-box;
+  }
+  .menu-tab-btn {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(180, 188, 198, 0.65);
+    padding: 9px 8px;
+    text-align: left;
+    font-size: 11px;
+    border-radius: 2px;
+    font-family: 'JetBrains Mono', monospace;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .menu-tab-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(245, 248, 255, 0.9);
+  }
+  .menu-tab-btn.active {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.35);
+    color: #fff;
+    box-shadow: inset 3px 0 0 rgba(255, 255, 255, 0.85);
+  }
+  .menu-panels {
+    width: 75%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 120px;
+    box-sizing: border-box;
+  }
+  .menu-tab-panel {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+  }
+  .menu-tab-panel.active {
+    display: flex;
+  }
+
   #overlay .menu-option{
-    font-size:11.5px;color:rgba(180,188,198,0.55);display:flex;align-items:center;justify-content:space-between;gap:12px;
+    font-size:11.5px;color:rgba(180,188,198,0.65);display:flex;align-items:center;justify-content:space-between;gap:12px;
   }
   #overlay .menu-option select{
-    background:rgba(20,24,28,0.6);border:1px solid rgba(255,255,255,0.14);color:rgba(235,240,248,0.85);
-    font-family:'JetBrains Mono',monospace;font-size:11px;padding:4px 8px;
+    background:rgba(20,24,28,0.7);border:1px solid rgba(255,255,255,0.14);color:rgba(235,240,248,0.9);
+    font-family:'JetBrains Mono',monospace;font-size:11px;padding:5px 8px;
     border-radius:2px;outline:none;cursor:pointer;min-width:180px;text-align:right;
     transition:border-color .2s;
   }
@@ -442,15 +502,62 @@
     #btn-touch-pause { left: calc(12px + env(safe-area-inset-left, 0px)); top: calc(12px + env(safe-area-inset-top, 0px)); width: 38px; height: 38px; font-size: 14px; }
   }
 
-  /* Landscape em Celulares (Altura Reduzida) - Essencial para Menus */
-  @media (max-height: 500px) {
-    .menu-logo { max-height: 65px; }
-    .menu-logo-wrap { margin-bottom: 6px; }
+  /* Landscape em Celulares (Altura Reduzida) - Essencial para Menus Mobile Master-Detail */
+  @media (max-height: 520px), (max-width: 900px) {
+    #overlay .menu-content {
+      width: 96%;
+      max-width: 100%;
+      padding: calc(6px + env(safe-area-inset-top, 0px)) calc(12px + env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) calc(12px + env(safe-area-inset-left, 0px));
+      box-sizing: border-box;
+    }
+    .menu-header {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .menu-logo-wrap { max-width: 200px; margin-bottom: 2px; }
+    .menu-logo { max-height: 38px; }
     #overlay .menu-instructions { display: none; }
-    #overlay .menu-options-grid { gap: 5px; max-width: 360px; }
-    #overlay .menu-option select { padding: 2px 6px; min-width: 160px; }
-    #overlay .menu-option input[type="range"] { width: 100px; }
-    #overlay .cta { margin-top: 10px; padding: 8px 24px; }
+    .menu-body {
+      gap: 10px;
+      padding: 8px 10px;
+      margin: 4px 0;
+    }
+    .menu-tabs {
+      width: 25%;
+      min-width: 85px;
+      gap: 4px;
+      padding-right: 6px;
+    }
+    .menu-tab-btn {
+      padding: 8px 6px;
+      font-size: 10px;
+    }
+    .menu-panels {
+      width: 75%;
+      min-height: auto;
+    }
+    .menu-tab-panel {
+      gap: 6px;
+    }
+    #overlay .menu-option {
+      font-size: 10.5px;
+      gap: 8px;
+    }
+    #overlay .menu-option select {
+      padding: 3px 6px;
+      min-width: 140px;
+      font-size: 10px;
+    }
+    #overlay .menu-option input[type="range"] {
+      width: 95px;
+    }
+    #overlay .cta {
+      margin-top: 6px;
+      padding: 6px 20px;
+      font-size: 10.5px;
+    }
     #kill-popup { font-size: 32px; top: 30%; }
     #death-screen h2 { font-size: 26px; margin-bottom: 4px; }
     #roundover-screen h2 { font-size: 32px; }
@@ -582,65 +689,85 @@
       ESC pausa
     </div>
 
-    <div class="menu-options-grid">
-      <div class="menu-option">
-        <label for="map-select">Mapa</label>
-        <select id="map-select">
-          <option value="./assets/maps/vice.json" selected>Vice City 2000x2000 (Afronta GTA 6)</option>
-          <option value="./assets/maps/city.json">Cidade Abandonada 1000x1000 (Torre Central &amp; Ruas)</option>
-          <option value="./assets/maps/woods.json">Woods 300x300 (Bosque &amp; Colinas)</option>
-          <option value="./assets/maps/village.json">Vila Ensolarada (Casas &amp; Árvores)</option>
-          <option value="./assets/maps/dust.json">Dust Block (Mirage Dunes)</option>
-          <option value="./assets/maps/vertigo.json">Vertigo Skyscraper (Em Construção)</option>
-          <option value="./assets/maps/range.json">Campo de Tiro (Range)</option>
-          <option value="./assets/maps/cargo.json">Cargo (Assault &amp; Train)</option>
-        </select>
+    <!-- Layout Master-Detail: 1/4 Abas Laterais + 3/4 Painel de Opções -->
+    <div class="menu-body">
+      <!-- 1/4 da tela no mobile: Abas Verticais -->
+      <div class="menu-tabs">
+        <button type="button" class="menu-tab-btn active" data-tab="loadout">🔫 LOADOUT</button>
+        <button type="button" class="menu-tab-btn" data-tab="match">🎮 PARTIDA</button>
+        <button type="button" class="menu-tab-btn" data-tab="system">⚙️ AJUSTES</button>
       </div>
 
-      <div class="menu-option">
-        <label for="weapon-select">Arma</label>
-        <select id="weapon-select">
-          <option value="ar15" selected>HK416 (Fuzil 5.56)</option>
-          <option value="ak47">AK-47 (Fuzil 7.62 Soviético)</option>
-          <option value="uzi">UZI (Micro-SMG 9mm)</option>
-          <option value="m249">M249 SAW (LMG 100 Tiros)</option>
-          <option value="p9">P-9 (Pistola Tática)</option>
-          <option value="sw500">S&W 500 Magnum (Canhão 1-Hit Kill)</option>
-          <option value="m12">Winchester M12 (Trench Shotgun Cal. 12)</option>
-          <option value="vss">VSS Vintorez (Subsonic 9x39mm Sniper)</option>
-          <option value="rifle_proto">Rifle Prototype</option>
-        </select>
-      </div>
-
-      <div class="menu-option">
-        <label for="sens-slider">Sensibilidade</label>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <input id="sens-slider" type="range" min="0.5" max="5.0" step="0.1" value="2.0">
-          <span id="sens-val">2.0x</span>
+      <!-- 3/4 da tela no mobile: Painéis de Conteúdo -->
+      <div class="menu-panels">
+        <!-- Aba 1: Loadout -->
+        <div class="menu-tab-panel active" data-panel="loadout">
+          <div class="menu-option">
+            <label for="weapon-select">Arma Inicial</label>
+            <select id="weapon-select">
+              <option value="ar15" selected>HK416 (Fuzil 5.56)</option>
+              <option value="ak47">AK-47 (Fuzil 7.62 Soviético)</option>
+              <option value="uzi">UZI (Micro-SMG 9mm)</option>
+              <option value="m249">M249 SAW (LMG 100 Tiros)</option>
+              <option value="p9">P-9 (Pistola Tática)</option>
+              <option value="sw500">S&W 500 Magnum (Canhão 1-Hit Kill)</option>
+              <option value="m12">Winchester M12 (Trench Shotgun Cal. 12)</option>
+              <option value="vss">VSS Vintorez (Subsonic 9x39mm Sniper)</option>
+              <option value="rifle_proto">Rifle Prototype</option>
+            </select>
+          </div>
+          <div class="menu-option">
+            <label for="bot-skin-select">Tipo de Inimigos</label>
+            <select id="bot-skin-select">
+              <option value="soldier" selected>Soldados Blocky</option>
+              <option value="ghost">Fantasmas Pac-Man</option>
+            </select>
+          </div>
         </div>
-      </div>
 
-      <div class="menu-option">
-        <label for="bot-skin-select">Inimigos</label>
-        <select id="bot-skin-select">
-          <option value="soldier" selected>Soldados Blocky</option>
-          <option value="ghost">Fantasmas Pac-Man</option>
-        </select>
-      </div>
-
-      <div class="menu-option">
-        <label for="bot-count">Bots</label>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <input id="bot-count" type="range" min="0" max="10" value="4">
-          <span id="bot-count-val">4</span>
+        <!-- Aba 2: Partida -->
+        <div class="menu-tab-panel" data-panel="match">
+          <div class="menu-option">
+            <label for="map-select">Mapa</label>
+            <select id="map-select">
+              <option value="./assets/maps/vice.json" selected>Vice City 2000x2000 (Afronta GTA 6)</option>
+              <option value="./assets/maps/city.json">Cidade Abandonada 1000x1000</option>
+              <option value="./assets/maps/woods.json">Woods 300x300 (Bosque &amp; Colinas)</option>
+              <option value="./assets/maps/village.json">Vila Ensolarada (Casas &amp; Árvores)</option>
+              <option value="./assets/maps/dust.json">Dust Block (Mirage Dunes)</option>
+              <option value="./assets/maps/vertigo.json">Vertigo Skyscraper</option>
+              <option value="./assets/maps/range.json">Campo de Tiro (Range)</option>
+              <option value="./assets/maps/cargo.json">Cargo (Assault &amp; Train)</option>
+            </select>
+          </div>
+          <div class="menu-option">
+            <label for="bot-count">Inimigos (Bots)</label>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input id="bot-count" type="range" min="0" max="10" value="4">
+              <span id="bot-count-val">4</span>
+            </div>
+          </div>
+          <div class="menu-option">
+            <label for="round-time">Duração da Partida</label>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input id="round-time" type="range" min="30" max="600" step="30" value="210">
+              <span id="round-time-val">3:30</span>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div class="menu-option">
-        <label for="round-time">Tempo</label>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <input id="round-time" type="range" min="30" max="600" step="30" value="210">
-          <span id="round-time-val">3:30</span>
+        <!-- Aba 3: Ajustes e Sistema -->
+        <div class="menu-tab-panel" data-panel="system">
+          <div class="menu-option">
+            <label for="sens-slider">Sensibilidade Câmera</label>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input id="sens-slider" type="range" min="0.5" max="5.0" step="0.1" value="2.0">
+              <span id="sens-val">2.0x</span>
+            </div>
+          </div>
+          <div class="menu-option" style="justify-content:flex-end;">
+            <button id="btn-fullscreen" type="button" style="font-size:11px; padding:8px 16px;">⛶ TELA CHEIA</button>
+          </div>
         </div>
       </div>
     </div>
@@ -649,13 +776,9 @@
       <div class="cta">CLIQUE PARA COMEÇAR</div>
     </div>
 
-    <div id="menu-pause" class="menu-buttons" style="margin-top:20px;display:none;">
+    <div id="menu-pause" class="menu-buttons" style="display:none;">
       <button id="btn-resume">CONTINUAR</button>
       <button id="btn-reset">RESET</button>
-    </div>
-
-    <div style="margin-top:20px;">
-      <button id="btn-fullscreen" style="font-size:10px; padding:6px 14px; opacity:0.7;">⛶ TELA CHEIA</button>
     </div>
   </div>
 </div>
