@@ -36,3 +36,9 @@ Este documento atua como um rastreador de dívida técnica, bugs ocultos, vazame
   - *Arquivo Alvo:* `src/world/MapLoader.js`
   - *Problema:* Para cada parede/cubo do JSON do mapa, um novo `BoxGeometry` e um novo `MeshStandardMaterial` são criados. Isso explode o número de draw calls na GPU.
   - *Ação:* Substituído por `THREE.InstancedMesh` agrupando blocos por material com geometria unitária compartilhada e instanciamento por matrizes. Redução maciça de draw calls na GPU.
+
+## 4. Gerenciamento Global do Barramento de Eventos e Tear-Down
+- [ ] **Limpeza Centralizada via `clearBus`**
+  - *Arquivo Alvo:* `src/core/EventBus.js` / `src/core/GameManager.js` / `src/main.js`
+  - *Problema:* A função `clearBus(type = null)` foi criada no `EventBus.js`, porém ainda não está conectada ao ciclo de reset/troca de mapas ou reinicialização de partidas. Em transições dinâmicas de mapas ou reinicialização sem reload total de página (`location.reload()`), listeners residuais globais podem acumular no barramento.
+  - *Ação:* Integrar chamadas a `clearBus()` nos fluxos de desmontagem/reset do `GameManager` e ciclo de vida de cenas para garantir zeramento completo de ouvintes por tópico ou globalmente.
