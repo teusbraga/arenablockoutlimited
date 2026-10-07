@@ -51,6 +51,20 @@ export class EngageState extends AIState {
     controller.desiredMove.x += Math.sin(bot.yaw) * forward;
     controller.desiredMove.z += Math.cos(bot.yaw) * forward;
 
+    // Tática de Lean / Peek atrás de quinas e durante disparos
+    controller.leanTimer = (controller.leanTimer || 0) - dt;
+    if (controller.leanTimer <= 0) {
+      const roll = Math.random();
+      if (roll < 0.35) {
+        bot.targetLean = -1.0; // Peek esquerdo
+      } else if (roll < 0.70) {
+        bot.targetLean = 1.0;  // Peek direito
+      } else {
+        bot.targetLean = 0.0;  // Tronco ereto
+      }
+      controller.leanTimer = 1.0 + Math.random() * 1.5;
+    }
+
     // Disparo
     if (canSee && controller.reactionTimer <= 0) {
       controller.fireTimer -= dt;
@@ -60,6 +74,12 @@ export class EngageState extends AIState {
       }
     } else if (controller.reactionTimer > 0) {
       controller.reactionTimer -= dt;
+    }
+  }
+
+  exit(controller) {
+    if (controller.bot) {
+      controller.bot.targetLean = 0;
     }
   }
 }

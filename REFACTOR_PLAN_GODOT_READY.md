@@ -267,7 +267,7 @@
   - Estilização responsiva em telas pequenas: menu lateral em 1/4 da tela com abas e 3/4 para conteúdo (sensibilidade, arma, áudio, etc.).
   - Adequação de toques e sliders para ergonomia mobile.
 
-### Passo 13.3: Sistema de Lean / Inclinação de Tronco (Player e Bots) [ ]
+### Passo 13.3: Sistema de Lean / Inclinação de Tronco (Player e Bots) [x] (CONCLUÍDO)
 - **Alvo:** src/entities/Player.js, src/weapons/Viewmodel.js, src/ai/AIController.js
 - **Ações:**
   - Implementar transição suave de lean no Player.js com offset lateral da câmera e inclinação angular suave (oll/eixo Z).

@@ -75,6 +75,10 @@ export class CameraRig {
     // ---- Altura dos Olhos (Eye Height) ----
     this.eyeHeight = CONFIG.PLAYER.eyeHeight;
 
+    // ---- Lean / Inclinação de Tronco (Q / E) ----
+    this.currentLean = 0;
+    this.targetLean = 0;
+
     // ---- Flinch (Impacto de Tiro Recebido) ----
     this.flinchPitch = 0;
     this.flinchYaw = 0;
@@ -329,7 +333,13 @@ export class CameraRig {
     const deathRoll = !player.alive ? -0.8 : 0;
     this.currentRoll += (deathRoll - this.currentRoll) * Math.min(dt * 4, 1);
 
-    // ---- 8. Posição no Espaço World (Incluindo coice linear transformado na orientação da câmera) ----
+    // ---- 8. Lean / Inclinação de Tronco (Layer 1.5) ----
+    this.targetLean = player.alive ? (player.lean || 0) : 0;
+    this.currentLean += (this.targetLean - this.currentLean) * Math.min(dt * 14, 1);
+    const leanOffsetDist = this.currentLean * 0.35; // 35cm de deslocamento lateral da cabeça
+    const leanDrop = Math.abs(this.currentLean) * 0.05; // 5cm de flexão natural ao inclinar
+
+    // ---- 9. Posição no Espaço World (Incluindo coice linear transformado na orientação da câmera) ----
     const rightX = Math.cos(this.currentYaw);
     const rightZ = -Math.sin(this.currentYaw);
     // Vetor de recuo em profundidade (-forward = para trás da câmera)
@@ -337,9 +347,9 @@ export class CameraRig {
     const backZ = Math.cos(this.currentYaw);
 
     this.position.set(
-      player.renderPos.x + bobX * rightX + rightX * this.recoilPos.x + backX * this.recoilPos.z + this.shakePos.x,
-      player.renderPos.y + this.eyeHeight + bobY + this.recoilPos.y + this.shakePos.y,
-      player.renderPos.z + bobX * rightZ + rightZ * this.recoilPos.x + backZ * this.recoilPos.z + this.shakePos.z
+      player.renderPos.x + (bobX + leanOffsetDist) * rightX + rightX * this.recoilPos.x + backX * this.recoilPos.z + this.shakePos.x,
+      player.renderPos.y + this.eyeHeight - leanDrop + bobY + this.recoilPos.y + this.shakePos.y,
+      player.renderPos.z + (bobX + leanOffsetDist) * rightZ + rightZ * this.recoilPos.x + backZ * this.recoilPos.z + this.shakePos.z
     );
   }
 
@@ -351,6 +361,9 @@ export class CameraRig {
     camera.rotation.order = 'YXZ';
     camera.rotation.y = this.currentYaw + this.flinchYaw + this.recoilRot.y + this.shakeRot.y;
     camera.rotation.x = this.currentPitch + this.bobPitch + this.flinchPitch + this.recoilRot.x + this.shakeRot.x;
-    camera.rotation.z = this.bobRoll + this.currentRoll + this.recoilRot.z + this.shakeRot.z;
+    
+    // Inclinação angular de lean (roll): ~7.5 graus negativos para a direita, positivos para a esquerda
+    const leanRoll = -this.currentLean * 0.13;
+    camera.rotation.z = this.bobRoll + this.currentRoll + this.recoilRot.z + this.shakeRot.z + leanRoll;
   }
 }

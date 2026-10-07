@@ -293,6 +293,17 @@ export class CharacterView {
         this.gunGroup.rotation.z *= Math.max(0, 1 - dt * 8);
       }
 
+      // Aplicação de Lean / Peek tático no tronco e arma do Soldado
+      const lean = this.character.lean || 0;
+      if (this.torso) {
+        this.torso.rotation.z = -lean * 0.20; // ~11.5 graus de inclinação
+        this.torso.position.x = lean * 0.15;  // 15cm de deslocamento lateral da cabeça/tronco
+      }
+      if (this.gunGroup) {
+        this.gunGroup.rotation.z += -lean * 0.16;
+        this.gunGroup.position.x = 0.08 + lean * 0.14;
+      }
+
       this.root.position.set(charPos.x, charPos.y, charPos.z);
     }
 

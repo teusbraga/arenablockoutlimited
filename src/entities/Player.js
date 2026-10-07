@@ -27,6 +27,8 @@ export class Player extends Character {
     this.stepTimer = 0;
     this.respawnTimer = 0;
     this.crouchAmount = 0;
+    this.lean = 0;
+    this.targetLean = 0;
 
     // Escuta evento de ADS para garantir sincronismo
     this._unsubAds = on('player:ads', e => {
@@ -112,6 +114,18 @@ export class Player extends Character {
       this.sprinting = isPressed('sprint') && _wish.lengthSq() > 0 && !this.ads && !this.crouched;
       this.crouched = isPressed('crouch');
 
+      // Lean (Inclinação tática com Q / E)
+      const isLeanL = isPressed('lean_left');
+      const isLeanR = isPressed('lean_right');
+      if (isLeanL && !isLeanR) {
+        this.targetLean = -1.0;
+      } else if (isLeanR && !isLeanL) {
+        this.targetLean = 1.0;
+      } else {
+        this.targetLean = 0.0;
+      }
+      this.lean += (this.targetLean - this.lean) * Math.min(dt * 14, 1);
+
       // Pulo
       if (isPressed('jump') && this.onGround) {
         this.vel.y = CONFIG.PLAYER.jumpSpeed;
@@ -122,6 +136,8 @@ export class Player extends Character {
       this.sprinting = false;
       this.crouched = false;
       this.ads = false;
+      this.targetLean = 0;
+      this.lean += (0 - this.lean) * Math.min(dt * 14, 1);
     }
 
     // ---- Velocidade alvo ----
@@ -218,6 +234,8 @@ export class Player extends Character {
       this.setPosition(0, 0.1, 12);
     }
     this.rig.reset();
+    this.lean = 0;
+    this.targetLean = 0;
     emit('player:hp', { hp: this.hp, max: this.maxHp });
     emit('player:respawn');
   }

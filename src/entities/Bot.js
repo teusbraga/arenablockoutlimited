@@ -12,6 +12,8 @@ export class Bot extends Character {
     this.skinType = skinType;
     this.size.set(0.8, 1.7, 0.8);
     this.respawnTimer = 0;
+    this.lean = 0;
+    this.targetLean = 0;
     this.ai = new AIController(this, world);
 
     // Desacoplamento da View Three.js
@@ -48,6 +50,9 @@ export class Bot extends Character {
 
     this.ai.update(dt, player);
 
+    // Interpolação suave do lean do bot
+    this.lean += ((this.targetLean || 0) - this.lean) * Math.min(dt * 10, 1);
+
     // Aplica física unificada
     this.applyPhysics(dt, 0.5);
 
@@ -78,6 +83,8 @@ export class Bot extends Character {
 
   die() {
     super.die();
+    this.lean = 0;
+    this.targetLean = 0;
     if (this.view?.root) {
       this.view.root.visible = false;
     }
@@ -86,6 +93,8 @@ export class Bot extends Character {
 
   respawn() {
     super.respawn();
+    this.lean = 0;
+    this.targetLean = 0;
     if (this.view?.root) {
       this.view.root.visible = true;
     }
