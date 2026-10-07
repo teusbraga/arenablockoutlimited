@@ -74,6 +74,8 @@ export class Player extends Character {
 
   update(dt, input) {
     this.savePreviousState();
+    let fwdInput = 0;
+    let sideInput = 0;
 
     // ---- Respawn Timer (quando morto) ----
     if (!this.alive && this.respawnTimer > 0) {
@@ -105,8 +107,6 @@ export class Player extends Character {
       _right.set(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
       _wish.set(0, 0, 0);
       
-      let fwdInput = 0;
-      let sideInput = 0;
       const isPressed = (action) => input.isActionPressed ? input.isActionPressed(action) : !!input.actions?.[action];
       if (isPressed('move_forward')) fwdInput += 1;
       if (isPressed('move_back')) fwdInput -= 1;
