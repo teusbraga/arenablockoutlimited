@@ -155,10 +155,7 @@ export class Effects {
 
     // 7. Pixels de Sangue Arcade para Soldados Blocky (InstancedMesh: 1 único draw call na GPU)
     this.bloodGeo = new THREE.BoxGeometry(1, 1, 1);
-    this.bloodMat = new THREE.MeshLambertMaterial({
-      roughness: 0.45,
-      metalness: 0.10
-    });
+    this.bloodMat = new THREE.MeshLambertMaterial({});
     this.bloodMesh = new THREE.InstancedMesh(this.bloodGeo, this.bloodMat, MAX_BLOOD_VOXELS);
     this.bloodMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     this.bloodMesh.frustumCulled = false;
