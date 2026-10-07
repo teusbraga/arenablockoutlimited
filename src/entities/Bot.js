@@ -6,10 +6,11 @@ import { emit, on, off } from '../core/EventBus.js';
 export class Bot extends Character {
   static skinType = 'soldier'; // 'soldier' | 'ghost'
 
-  constructor(id, world, scene = null, skinType = Bot.skinType) {
+  constructor(id, world, scene = null, skinType = Bot.skinType, weaponId = 'ar15') {
     super(world);
     this.id = id;
     this.skinType = skinType;
+    this.weaponId = weaponId;
     this.size.set(0.8, 1.7, 0.8);
     this.respawnTimer = 0;
     this.lean = 0;

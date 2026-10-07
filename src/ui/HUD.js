@@ -1,4 +1,5 @@
-import { on } from '../core/EventBus.js';
+import { emit, on } from '../core/EventBus.js';
+import { WEAPONS } from '../weapons/WeaponDefs.js';
 
 export class HUD {
   constructor() {
@@ -26,6 +27,8 @@ export class HUD {
       ammoMax: document.getElementById('ammo-max'),
       hpHud: document.getElementById('hp-hud'),
       weaponHud: document.getElementById('weapon-hud'),
+      slot1Pill: document.getElementById('slot-1-pill'),
+      slot2Pill: document.getElementById('slot-2-pill'),
     };
     
     this.diCtx = this.el.diCanvas.getContext('2d');
@@ -106,6 +109,18 @@ export class HUD {
           this.triggerFlash(this.el.fireMode);
         }
       }),
+      on('weapon:slots', ({ slots, currentSlot }) => {
+        if (this.el.slot1Pill) {
+          const w1 = slots[0];
+          this.el.slot1Pill.textContent = `[1] ${w1 ? (WEAPONS[w1]?.name || w1.toUpperCase()) : 'VAZIO'}`;
+          this.el.slot1Pill.classList.toggle('active', currentSlot === 0);
+        }
+        if (this.el.slot2Pill) {
+          const w2 = slots[1];
+          this.el.slot2Pill.textContent = `[2] ${w2 ? (WEAPONS[w2]?.name || w2.toUpperCase()) : 'VAZIO'}`;
+          this.el.slot2Pill.classList.toggle('active', currentSlot === 1);
+        }
+      }),
       on('shot:bot', e => this._hit(e)),
       on('bot:died', e => {
         this.kills++; 
@@ -165,6 +180,20 @@ export class HUD {
         this.el.prompt.style.opacity = target ? '1' : '0';
       }),
     ];
+
+    // Alternância de slot ao tocar/clicar diretamente nos pills
+    const bindPill = (el, slotIdx) => {
+      if (!el) return;
+      const select = e => {
+        e.preventDefault();
+        e.stopPropagation();
+        emit('weapon:select_slot', slotIdx);
+      };
+      el.addEventListener('click', select);
+      el.addEventListener('touchstart', select, { passive: false });
+    };
+    bindPill(this.el.slot1Pill, 0);
+    bindPill(this.el.slot2Pill, 1);
 
     document.getElementById('restart-btn')?.addEventListener('click', () => location.reload());
   }

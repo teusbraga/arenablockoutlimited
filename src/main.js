@@ -7,6 +7,7 @@ import { SceneSetup } from './core/SceneSetup.js';
 import { loadMap } from './world/MapLoader.js';
 import { Player } from './entities/Player.js';
 import { Viewmodel, buildHK416, buildP9, buildUZI, buildM249, buildRiflePrototype, buildAK47, buildSW500, buildM12, buildVSS } from './weapons/Viewmodel.js';
+import { ItemDrop } from './world/ItemDrop.js';
 import { WeaponSystem } from './weapons/WeaponSystem.js';
 import { initWeaponsFromData } from './weapons/WeaponDefs.js';
 import { Effects } from './fx/Effects.js';
@@ -58,6 +59,19 @@ import { ScopeRenderTargetSystem } from './weapons/ScopeRenderTargetSystem.js';
     viewmodel.registerModel('m249', buildM249);
     viewmodel.registerModel('rifle_proto', buildRiflePrototype);
     viewmodel.registerModel('vss', buildVSS);
+
+    // Registra construtores 3D para drops de armas no chão
+    ItemDrop.setBuilders({
+      ar15: buildHK416,
+      ak47: buildAK47,
+      p9: buildP9,
+      sw500: buildSW500,
+      m12: buildM12,
+      uzi: buildUZI,
+      m249: buildM249,
+      rifle_proto: buildRiflePrototype,
+      vss: buildVSS,
+    });
 
     const initialWeapon = MenuController.getSavedWeapon('ar15');
     viewmodel.equip(initialWeapon);

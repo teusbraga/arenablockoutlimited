@@ -274,7 +274,7 @@
   - Inclinar viewmodel da arma proporcionalmente com inércia natural.
   - Implementar lógica na IA dos bots para realizar peek/lean em quinas e coberturas durante combate.
 
-### Passo 13.4: Sistema de Inventário de 2 Armas (Slots 1 e 2) & Mecânica de Substituição de Drop [ ]
+### Passo 13.4: Sistema de Inventário de 2 Armas (Slots 1 e 2) & Mecânica de Substituição de Drop [x] (CONCLUÍDO)
 - **Alvo:** src/weapons/WeaponSystem.js, src/core/GameManager.js, src/ui/HUD.js
 - **Ações:**
   - Limitar inventário do jogador a 2 slots: [slot1, slot2].
@@ -285,7 +285,7 @@
     - Se já tiver arma em mãos, dropa a arma atual no chão e equipa a nova no slot ativo.
   - Atualizar HUD com indicadores dos 2 slots de arma e munição individual.
 
-### Passo 13.5: Bots com Armas Randômicas & Drop 3D Giratório no Chão [ ]
+### Passo 13.5: Bots com Armas Randômicas & Drop 3D Giratório no Chão [x] (CONCLUÍDO)
 - **Alvo:** src/core/GameManager.js, src/world/ItemDrop.js
 - **Ações:**
   - Sortear armas variadas do catálogo para os bots na inicialização.

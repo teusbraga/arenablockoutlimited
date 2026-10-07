@@ -3,7 +3,7 @@ import { WEAPONS } from './WeaponDefs.js';
 import { BallisticsCalculator } from './BallisticsCalculator.js';
 import { ProjectileManager } from './ProjectileManager.js';
 import { CONFIG } from '../core/ConfigLoader.js';
-import { emit } from '../core/EventBus.js';
+import { emit, on } from '../core/EventBus.js';
 
 const _dir = new THREE.Vector3();
 const _camPos = new THREE.Vector3();
@@ -43,9 +43,10 @@ export class WeaponSystem {
       camera: this.camera
     });
 
-    // Inventário dinâmico baseado nas armas carregadas do weapons.json
-    this.inventory = inventory || (Object.keys(WEAPONS).length > 0 ? Object.keys(WEAPONS) : ['ar15', 'p9']);
-    this.currentIndex = 0;
+    // Inventário tático limitado estritamente a 2 slots de armas
+    const initialId = (inventory && inventory[0]) || 'ar15';
+    this.slots = [initialId, (inventory && inventory[1]) || null];
+    this.currentSlot = 0;
     this.current = null;
     this.ammo = 0;
     this.ammoByWeapon = {};
@@ -64,7 +65,12 @@ export class WeaponSystem {
     this.precisionPenalty = 0;
     this.currentSway = { x: 0, y: 0, amplitude: 0 };
 
-    this._equip(this.inventory[0], true);
+    this._equip(this.slots[0], true);
+
+    this._unsubEvents = [
+      on('weapon:select_slot', idx => this.selectSlot(idx)),
+      on('weapon:cycle_action', () => this.cycle()),
+    ];
   }
 
   get def() { return WEAPONS[this.current]; }
@@ -76,6 +82,7 @@ export class WeaponSystem {
   }
 
   _equip(id, instant = false) {
+    if (!id || !WEAPONS[id]) return;
     if (this.current) {
       this.ammoByWeapon[this.current] = this.ammo;
     }
@@ -96,12 +103,13 @@ export class WeaponSystem {
     emit('weapon:equipped', { id, name: WEAPONS[id].name, fireMode: this.fireModeByWeapon[id] });
     emit('weapon:ammo', { ammo: this.ammo, max: WEAPONS[id].magSize });
     emit('weapon:firemode', { fireMode: this.fireModeByWeapon[id], canToggle: (WEAPONS[id].fireModes?.length || 1) > 1 });
+    emit('weapon:slots', { slots: this.slots, currentSlot: this.currentSlot });
   }
 
   toggleFireMode() {
     const def = this.def;
     const modes = def.fireModes || (def.auto ? ['auto'] : ['semi']);
-    if (modes.length <= 1) return; // Arma não possui modo seletivo (ex: UZI só auto, P-9 só semi)
+    if (modes.length <= 1) return; // Arma não possui modo seletivo
 
     const cur = this.fireModeByWeapon[this.current] || modes[0];
     const nextIdx = (modes.indexOf(cur) + 1) % modes.length;
@@ -112,16 +120,32 @@ export class WeaponSystem {
   }
 
   cycle() {
-    this.currentIndex = (this.currentIndex + 1) % this.inventory.length;
-    this._equip(this.inventory[this.currentIndex]);
-    emit('weapon:cycle');
+    const targetSlot = 1 - this.currentSlot;
+    if (this.slots[targetSlot]) {
+      this.selectSlot(targetSlot);
+    } else {
+      emit('notification', { message: `Slot ${targetSlot + 1} vazio! Pegue uma arma no chão.` });
+    }
   }
 
   selectSlot(idx) {
-    if (idx < 0 || idx >= this.inventory.length || idx === this.currentIndex) return;
-    this.currentIndex = idx;
-    this._equip(this.inventory[this.currentIndex]);
+    if (idx !== 0 && idx !== 1) return;
+    if (idx === this.currentSlot) return;
+    if (!this.slots[idx]) {
+      emit('notification', { message: `Slot ${idx + 1} vazio! Pegue uma arma no chão.` });
+      return;
+    }
+    this.currentSlot = idx;
+    this._equip(this.slots[idx]);
     emit('weapon:cycle');
+  }
+
+  pickupWeapon(newWeaponId) {
+    if (!newWeaponId || !WEAPONS[newWeaponId]) return null;
+    const oldWeapon = this.slots[this.currentSlot];
+    this.slots[this.currentSlot] = newWeaponId;
+    this._equip(newWeaponId);
+    return oldWeapon;
   }
 
   reload() {
@@ -420,6 +444,13 @@ export class WeaponSystem {
         ownerEntity: this.player,
         isPellet: pelletCount > 1
       });
+    }
+  }
+
+  destroy() {
+    if (this._unsubEvents) {
+      for (const unsub of this._unsubEvents) unsub();
+      this._unsubEvents = [];
     }
   }
 }
