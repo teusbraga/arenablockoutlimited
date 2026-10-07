@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { startEngine } from './core/Engine.js';
 import { Input } from './core/Input.js';
 import { CONFIG, ConfigLoader } from './core/ConfigLoader.js';
