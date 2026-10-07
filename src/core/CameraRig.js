@@ -337,9 +337,9 @@ export class CameraRig {
     const backZ = Math.cos(this.currentYaw);
 
     this.position.set(
-      player.pos.x + bobX * rightX + rightX * this.recoilPos.x + backX * this.recoilPos.z + this.shakePos.x,
-      player.pos.y + this.eyeHeight + bobY + this.recoilPos.y + this.shakePos.y,
-      player.pos.z + bobX * rightZ + rightZ * this.recoilPos.x + backZ * this.recoilPos.z + this.shakePos.z
+      player.renderPos.x + bobX * rightX + rightX * this.recoilPos.x + backX * this.recoilPos.z + this.shakePos.x,
+      player.renderPos.y + this.eyeHeight + bobY + this.recoilPos.y + this.shakePos.y,
+      player.renderPos.z + bobX * rightZ + rightZ * this.recoilPos.x + backZ * this.recoilPos.z + this.shakePos.z
     );
   }
 

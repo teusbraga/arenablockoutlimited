@@ -8,13 +8,7 @@ export function on(type, fn) {
 export function off(type, fn) {
   listeners.get(type)?.delete(fn);
 }
-export function clearBus(type = null) {
-  if (type) {
-    listeners.delete(type);
-  } else {
-    listeners.clear();
-  }
-}
+// Removido clearBus para evitar apocalipse global de eventos. Use unsub() e destroy() no lugar.
 export function emit(type, detail) {
   const set = listeners.get(type);
   if (!set) return;

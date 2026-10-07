@@ -71,6 +71,8 @@ export class Player extends Character {
   }
 
   update(dt, input) {
+    this.savePreviousState();
+
     // ---- Respawn Timer (quando morto) ----
     if (!this.alive && this.respawnTimer > 0) {
       const prevSecond = Math.ceil(this.respawnTimer);

@@ -1,10 +1,14 @@
 import * as THREE from 'three';
 import { CONFIG } from '../core/ConfigLoader.js';
 
+const _delta = new THREE.Vector3();
+
 export class Character {
   constructor(world) {
     this.world = world;
     this.pos = new THREE.Vector3();
+    this.prevPos = new THREE.Vector3();
+    this.renderPos = new THREE.Vector3();
     this.vel = new THREE.Vector3();
     this.yaw = 0;
     this.size = new THREE.Vector3(0.6, 1.8, 0.6);
@@ -13,6 +17,14 @@ export class Character {
     this.maxHp = 100;
     this.alive = true;
     this.weaponManager = null;
+  }
+
+  savePreviousState() {
+    this.prevPos.copy(this.pos);
+  }
+
+  interpolatePosition(alpha) {
+    this.renderPos.lerpVectors(this.prevPos, this.pos, alpha);
   }
 
   setWeaponManager(weaponManager) {
@@ -33,8 +45,8 @@ export class Character {
     this.vel.y -= CONFIG.PLAYER.gravity * dt;
 
     // Integração e colisão com o mundo
-    const delta = new THREE.Vector3(this.vel.x * dt, this.vel.y * dt, this.vel.z * dt);
-    const res = this.world.moveAndSlide(this.pos, this.size, delta, { stepHeight });
+    _delta.set(this.vel.x * dt, this.vel.y * dt, this.vel.z * dt);
+    const res = this.world.moveAndSlide(this.pos, this.size, _delta, { stepHeight });
 
     this.onGround = res.onGround;
     if (res.onGround && this.vel.y < 0) this.vel.y = 0;

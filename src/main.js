@@ -121,6 +121,9 @@ import { ScopeRenderTargetSystem } from './weapons/ScopeRenderTargetSystem.js';
         const isProto = weapons.current === 'rifle_proto';
         const isVSS = weapons.current === 'vss';
 
+        player.interpolatePosition(alpha);
+        gameManager.renderUpdate(alpha, dt);
+
         if (!gameManager.hasStarted) {
           player.updateCamera(camera, dt);
           viewmodel.updatePose(dt, weapons.current, {

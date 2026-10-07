@@ -43,6 +43,7 @@ export class Bot extends Character {
   }
 
   update(dt, player) {
+    this.savePreviousState();
     if (!this.alive) return;
 
     this.ai.update(dt, player);
@@ -51,6 +52,17 @@ export class Bot extends Character {
     this.applyPhysics(dt, 0.5);
 
     // Atualiza representação visual (se acoplada)
+    if (this.view) {
+      // Movido para renderUpdate
+    }
+  }
+
+  renderUpdate(alpha, dt) {
+    if (!this.alive) {
+      if (this.view) this.view.root.visible = false;
+      return;
+    }
+    this.interpolatePosition(alpha);
     if (this.view) {
       this.view.update(dt);
     }

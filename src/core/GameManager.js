@@ -299,6 +299,13 @@ export class GameManager {
     }
   }
 
+  renderUpdate(alpha, dt) {
+    if (!this.hasStarted || this.roundOver) return;
+    for (const b of this.bots) {
+      if (b.renderUpdate) b.renderUpdate(alpha, dt);
+    }
+  }
+
   update(dt) {
     if (!this.hasStarted || this.roundOver) return;
 
