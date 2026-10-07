@@ -173,7 +173,7 @@ export class ScopeSystem {
 
     this._unsubFired = on('weapon:fired', e => {
       const wepId = e.weapon?.id || e.weaponId;
-      if (wepId === 'rifle_proto' && (this.adsTarget || this.scopeOn)) {
+      if ((wepId === 'rifle_proto' || wepId === 'vss') && (this.adsTarget || this.scopeOn)) {
         this.addOpticShake(0.95);
       }
     });
@@ -218,9 +218,42 @@ export class ScopeSystem {
     this.opticShake = Math.min(this.opticShake + amount, 1.8);
   }
 
-  buildReticle() {
+  buildReticle(type = 'duplex') {
     const el = document.getElementById('reticle');
     if (!el) return;
+
+    if (type === 'pso1') {
+      const L = (x1, y1, x2, y2, w, color = '#ff3311') => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${w}"/>`;
+      let s = '';
+      // Linhas mestras horizontais com intervalo central
+      s += L(-45, 0, -10, 0, .85);
+      s += L(10, 0, 45, 0, .85);
+      // Barra vertical inferior
+      s += L(0, 18, 0, 45, .85);
+      
+      // Chevrons táticos PSO-1 (topo ^ e marcas de queda balística)
+      const chevron = (cy, sz, color = '#ff2200') => {
+        return `<path d="M ${-sz} ${cy + sz} L 0 ${cy} L ${sz} ${cy + sz}" fill="none" stroke="${color}" stroke-width="0.75" stroke-linejoin="miter"/>`;
+      };
+      s += chevron(0, 2.2, '#ff1a00');    // Chevron principal central
+      s += chevron(5.5, 1.8, '#ff2a11');  // 200m
+      s += chevron(11.0, 1.6, '#ff2a11'); // 300m
+      s += chevron(16.5, 1.4, '#ff2a11'); // 400m
+
+      // Escala estadiamétrica / telêmetro balístico (quadrante inferior esquerdo)
+      s += L(-34, 18, -12, 18, .55);
+      s += `<path d="M -34 10 Q -24 12 -12 18" fill="none" stroke="#ff3311" stroke-width="0.55"/>`;
+      s += L(-30, 18, -30, 11.2, .45);
+      s += L(-24, 18, -24, 12.8, .45);
+      s += L(-18, 18, -18, 15.0, .45);
+
+      // Ponto de iluminação central trítio / retículo russo iluminado
+      s += '<circle cx="0" cy="0" r="0.4" fill="#ff1100" stroke="none"/>';
+      el.innerHTML = s;
+      return;
+    }
+
+    // Retículo Duplex Padrão (Rifle Prototype)
     const L = (x1, y1, x2, y2, w) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke-width="${w}"/>`;
     let s = '';
     // Linhas grossas externas + finas internas (estilo duplex)
@@ -239,19 +272,34 @@ export class ScopeSystem {
     return Math.min(innerWidth, innerHeight) * SCOPE_CONFIG.LENS_SIZE;
   }
 
-  attachToModel(protoDetails) {
-    if (!protoDetails || !protoDetails.rearLens) return;
-    this.protoDetails = protoDetails;
-    // Vincula a textura do scopeRender à lente traseira do modelo 3D
-    if (protoDetails.rearLens.material) {
-      protoDetails.rearLens.material.map = this.scopeRT.texture;
-      protoDetails.rearLens.material.roughness = 0.08;
-      protoDetails.rearLens.material.metalness = 0.2;
-      protoDetails.rearLens.material.transmission = 0.0;
-      protoDetails.rearLens.material.opacity = 1.0;
-      protoDetails.rearLens.material.transparent = false;
-      protoDetails.rearLens.material.needsUpdate = true;
+  attachWeaponModel(weaponId, details) {
+    if (!details || !details.rearLens) return;
+    this.models = this.models || {};
+    this.models[weaponId] = details;
+    if (details.rearLens.material) {
+      details.rearLens.material.map = this.scopeRT.texture;
+      details.rearLens.material.roughness = 0.08;
+      details.rearLens.material.metalness = 0.2;
+      details.rearLens.material.transmission = 0.0;
+      details.rearLens.material.opacity = 1.0;
+      details.rearLens.material.transparent = false;
+      details.rearLens.material.needsUpdate = true;
     }
+  }
+
+  setActiveWeapon(weaponId) {
+    if (this.activeWeaponId === weaponId) return;
+    this.activeWeaponId = weaponId;
+    this.activeDetails = this.models?.[weaponId] || null;
+    this.protoDetails = this.activeDetails;
+    this.baseDepth = null;
+    this.buildReticle(weaponId === 'vss' ? 'pso1' : 'duplex');
+  }
+
+  attachToModel(protoDetails) {
+    this.protoDetails = protoDetails;
+    this.attachWeaponModel('rifle_proto', protoDetails);
+    this.setActiveWeapon('rifle_proto');
   }
 
   apparentZoom() {
@@ -347,16 +395,19 @@ export class ScopeSystem {
     mainCamera.updateMatrixWorld();
     this.scopeCamera.position.copy(mainCamera.position);
 
-    if (this.protoDetails && this.protoDetails.rearLens && this.protoDetails.frontLens) {
+    const details = this.activeDetails || this.protoDetails;
+    if (details && details.rearLens && details.frontLens) {
       const vRear = new THREE.Vector3();
       const vFront = new THREE.Vector3();
-      this.protoDetails.rearLens.getWorldPosition(vRear);
-      this.protoDetails.frontLens.getWorldPosition(vFront);
+      details.rearLens.getWorldPosition(vRear);
+      details.frontLens.getWorldPosition(vFront);
       
       const dir = new THREE.Vector3().subVectors(vFront, vRear).normalize();
       
       const vUp = new THREE.Vector3(0, 1, 0);
-      vUp.transformDirection(this.protoDetails.opticBody.matrixWorld).normalize();
+      if (details.opticBody) {
+        vUp.transformDirection(details.opticBody.matrixWorld).normalize();
+      }
 
       const target = new THREE.Vector3().copy(this.scopeCamera.position).add(dir);
       this.scopeCamera.up.copy(vUp);
@@ -416,18 +467,21 @@ export class ScopeSystem {
     }
 
     // Atualiza orientação da scopeCamera com as matrizes mais recentes antes do render
-    if (this.protoDetails && this.protoDetails.rearLens && this.protoDetails.frontLens) {
-      this.protoDetails.rearLens.updateMatrixWorld(true);
-      this.protoDetails.frontLens.updateMatrixWorld(true);
+    const details = this.activeDetails || this.protoDetails;
+    if (details && details.rearLens && details.frontLens) {
+      details.rearLens.updateMatrixWorld(true);
+      details.frontLens.updateMatrixWorld(true);
       
       const vRear = new THREE.Vector3();
       const vFront = new THREE.Vector3();
-      this.protoDetails.rearLens.getWorldPosition(vRear);
-      this.protoDetails.frontLens.getWorldPosition(vFront);
+      details.rearLens.getWorldPosition(vRear);
+      details.frontLens.getWorldPosition(vFront);
       
       const dir = new THREE.Vector3().subVectors(vFront, vRear).normalize();
       const vUp = new THREE.Vector3(0, 1, 0);
-      vUp.transformDirection(this.protoDetails.opticBody.matrixWorld).normalize();
+      if (details.opticBody) {
+        vUp.transformDirection(details.opticBody.matrixWorld).normalize();
+      }
 
       const target = new THREE.Vector3().copy(this.scopeCamera.position).add(dir);
       this.scopeCamera.up.copy(vUp);
@@ -477,12 +531,13 @@ export class ScopeSystem {
 
     // ── SINCRONIZAÇÃO MATEMÁTICA EXATA COM O RECUO E ORIENTAÇÃO DO RIFLE ────────
     // Força atualização mundial da câmera e de toda a hierarquia de nós da arma
+    const details = this.activeDetails || this.protoDetails;
     mainCamera.updateMatrixWorld(true);
-    if (this.protoDetails?.rearLens) {
-      this.protoDetails.rearLens.updateMatrixWorld(true);
+    if (details?.rearLens) {
+      details.rearLens.updateMatrixWorld(true);
     }
-    if (this.protoDetails?.frontLens) {
-      this.protoDetails.frontLens.updateMatrixWorld(true);
+    if (details?.frontLens) {
+      details.frontLens.updateMatrixWorld(true);
     }
 
     let offsetX = 0;
@@ -490,8 +545,8 @@ export class ScopeSystem {
     let rollAngle = 0;
     let depthScale = 1.0;
 
-    if (this.protoDetails && this.protoDetails.rearLens) {
-      const rearLens = this.protoDetails.rearLens;
+    if (details && details.rearLens) {
+      const rearLens = details.rearLens;
       const v = new THREE.Vector3();
       rearLens.getWorldPosition(v);
 
@@ -503,7 +558,7 @@ export class ScopeSystem {
       // Calibra a distância base em repouso da ocular para sincronismo de escala 1:1 perfeito
       if (!this.baseDepth) {
         this.baseDepth = depthZ;
-      } else if (this.adsT > 0.95 && (!this.protoDetails?.physics || this.protoDetails.physics.recoil < 0.005)) {
+      } else if (this.adsT > 0.95 && (!details?.physics || details.physics.recoil < 0.005)) {
         this.baseDepth += (depthZ - this.baseDepth) * 0.05;
       }
 
@@ -518,16 +573,16 @@ export class ScopeSystem {
       offsetY = (-v.y * (h / 2));
 
       // Calcula o roll (torção/inclinação) da carcaça da ótica no plano de visão da tela
-      if (this.protoDetails.opticBody) {
+      if (details.opticBody) {
         const vUp = new THREE.Vector3(0, 1, 0);
-        vUp.transformDirection(this.protoDetails.opticBody.matrixWorld);
+        vUp.transformDirection(details.opticBody.matrixWorld);
         vUp.transformDirection(mainCamera.matrixWorldInverse);
         rollAngle = Math.atan2(vUp.x, vUp.y);
       }
 
-      if (this.protoDetails.frontLens) {
+      if (details.frontLens) {
         const vFront = new THREE.Vector3();
-        this.protoDetails.frontLens.getWorldPosition(vFront);
+        details.frontLens.getWorldPosition(vFront);
         vFront.project(mainCamera);
         this.pxShiftX = (vFront.x * (w / 2)) - offsetX;
         this.pxShiftY = (-vFront.y * (h / 2)) - offsetY;

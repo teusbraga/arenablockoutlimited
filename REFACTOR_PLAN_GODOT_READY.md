@@ -292,13 +292,13 @@
   - Ao morrer, bot dropa a arma específica que estava empunhando.
   - No ItemDrop.js, instanciar modelo/silhueta 3D representativa da arma girando suavemente (otation.y += dt * 1.5) e flutuando com oscilação senoidal suave.
 
-### Passo 13.6: Unificação do Scope da VSS (Sistema ScopeSystem) [ ]
+### Passo 13.6: Unificação do Scope da VSS (Sistema ScopeSystem) [x] (CONCLUÍDO)
 - **Alvo:** src/weapons/ScopeSystem.js, src/weapons/WeaponSystem.js
 - **Ações:**
   - Eliminar mira antiga/de teste da VSS.
   - Integrar VSS ao ScopeSystem utilizando a ótica/render target dinâmico e retículo iluminado com telemetria e zoom variável.
 
-### Passo 13.7: Refinamento Visual de Tracers Físicos (Legibilidade e Contraste) [ ]
+### Passo 13.7: Refinamento Visual de Tracers Físicos (Legibilidade e Contraste) [x] (CONCLUÍDO)
 - **Alvo:** src/fx/Effects.js
 - **Ações:**
   - Ajustar contraste, espessura, opacidade e curva temporal do traçante no Effects.js para garantir alta visibilidade cinematográfica em movimento sem estagnação no ar.

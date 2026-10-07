@@ -15,7 +15,6 @@ import { AudioSystem } from './audio/AudioSystem.js';
 import { HUD } from './ui/HUD.js';
 import { MenuController } from './ui/MenuController.js';
 import { ScopeSystem } from './weapons/ScopeSystem.js';
-import { ScopeRenderTargetSystem } from './weapons/ScopeRenderTargetSystem.js';
 
 /* =========================================================
    BOOTSTRAP & INICIALIZAÇÃO DO JOGO
@@ -103,16 +102,13 @@ import { ScopeRenderTargetSystem } from './weapons/ScopeRenderTargetSystem.js';
     const savedBotSkin = MenuController.getSavedBotSkin();
     if (savedBotSkin) gameManager.setBotSkin(savedBotSkin);
 
-    // 4. Scope System (Rifle Prototype)
+    // 4. Scope System Unificado (Rifle Prototype & VSS Vintorez)
     const scopeSystem = new ScopeSystem(renderer, scene);
     if (viewmodel.models['rifle_proto']?.details) {
-      scopeSystem.attachToModel(viewmodel.models['rifle_proto'].details);
+      scopeSystem.attachWeaponModel('rifle_proto', viewmodel.models['rifle_proto'].details);
     }
-    
-    // Teste: Scope Render Target System (VSS Vintorez)
-    const scopeRTSystem = new ScopeRenderTargetSystem(renderer, scene);
     if (viewmodel.models['vss']?.details) {
-      scopeRTSystem.attachToModel(viewmodel.models['vss'].details);
+      scopeSystem.attachWeaponModel('vss', viewmodel.models['vss'].details);
     }
 
     // 5. Interface e Menus
@@ -132,8 +128,7 @@ import { ScopeRenderTargetSystem } from './weapons/ScopeRenderTargetSystem.js';
 
       // _process: Animação visual, sway, partículas, interpolações e render (rAF)
       renderUpdate(alpha, dt) {
-        const isProto = weapons.current === 'rifle_proto';
-        const isVSS = weapons.current === 'vss';
+        const isScoped = weapons.current === 'rifle_proto' || weapons.current === 'vss';
 
         player.interpolatePosition(alpha);
         gameManager.renderUpdate(alpha, dt);
@@ -154,10 +149,10 @@ import { ScopeRenderTargetSystem } from './weapons/ScopeRenderTargetSystem.js';
 
           // Shake da câmera
           const shake = viewmodel.getShake();
-          if (shake > 0.002 && player.rig && !isProto) {
+          if (shake > 0.002 && player.rig && !isScoped) {
             player.rig.addShake(shake * 0.14);
           }
-          if (isProto && player.rig) {
+          if (isScoped && player.rig) {
             player.rig.shakeIntensity = 0;
           }
 
@@ -177,48 +172,38 @@ import { ScopeRenderTargetSystem } from './weapons/ScopeRenderTargetSystem.js';
 
           // FOV Dinâmico
           const targetFov = weapons.ads
-            ? (isProto ? 60 : (weapons.def?.adsFov || CONFIG.CAMERA.adsFov))
+            ? (isScoped ? 60 : (weapons.def?.adsFov || CONFIG.CAMERA.adsFov))
             : (player.sprinting ? CONFIG.CAMERA.hipFov + 8 : CONFIG.CAMERA.hipFov);
           camera.fov += (targetFov - camera.fov) * Math.min(dt * 12, 1);
           camera.updateProjectionMatrix();
 
-          // Scope System
-          if (isProto) {
+          // Scope System Unificado
+          if (isScoped) {
+            scopeSystem.setActiveWeapon(weapons.current);
             scopeSystem.update(dt, camera, weapons.ads, player.rig, viewmodel);
-            scopeRTSystem.update(dt, camera, false, player.rig, viewmodel);
             player.customSensMul = scopeSystem.getSensitivityFactor();
-          } else if (isVSS) {
-            scopeRTSystem.update(dt, camera, weapons.ads, player.rig, viewmodel);
-            scopeSystem.update(dt, camera, false, player.rig, viewmodel);
-            player.customSensMul = scopeRTSystem.getSensitivityFactor();
           } else {
             scopeSystem.update(dt, camera, false, player.rig, viewmodel);
-            scopeRTSystem.update(dt, camera, false, player.rig, viewmodel);
             player.customSensMul = 1.0;
           }
 
           // HUD
-          const hideCrosshair = (isProto && scopeSystem.scopeOn) || (isVSS && scopeRTSystem.scopeOn);
+          const hideCrosshair = isScoped && scopeSystem.scopeOn;
           hud.updateCrosshair(hideCrosshair ? 1.0 : weapons.adsAmount, weapons._currentSpread(), player.sprinting, weapons.current);
           hud.update(dt, player.yaw);
         }
 
         // Renderização Three.js
-        const protoModel = viewmodel.models['rifle_proto']?.mesh;
-        const vssModel = viewmodel.models['vss']?.mesh;
+        const activeScopedModel = viewmodel.models[weapons.current]?.mesh;
 
-        if (isProto && scopeSystem.scopeOn) {
-          scopeSystem.renderScopePass(protoModel);
-        } else if (isVSS && scopeRTSystem.scopeOn) {
-          scopeRTSystem.renderScopePass(vssModel);
+        if (isScoped && scopeSystem.scopeOn) {
+          scopeSystem.renderScopePass(activeScopedModel);
         }
 
         renderer.render(scene, camera);
 
-        if (isProto && scopeSystem.scopeOn) {
+        if (isScoped && scopeSystem.scopeOn) {
           scopeSystem.render(camera);
-        } else if (isVSS && scopeRTSystem.scopeOn) {
-          scopeRTSystem.render(camera);
         }
       },
     });

@@ -27,6 +27,9 @@ const _ghostPalette = [
   0x9aa4b2  // Cartoon shadow grey
 ];
 
+const _tracerUp = new THREE.Vector3(0, 1, 0);
+const _tracerDir = new THREE.Vector3();
+
 export class Effects {
   constructor(scene, world = null) {
     this.scene = scene;
@@ -70,15 +73,34 @@ export class Effects {
   }
 
   _initPools() {
-    // 1. Tracers
+    // 1. Tracers 3D Volumétricos e Aerodinâmicos (Cilindro cônico com degradê de intensidade)
+    this.tracerGeo = new THREE.CylinderGeometry(0.022, 0.003, 1.0, 6, 1, true);
+    const vertCount = this.tracerGeo.attributes.position.count;
+    const colors = new Float32Array(vertCount * 3);
+    const posArr = this.tracerGeo.attributes.position.array;
+    for (let j = 0; j < vertCount; j++) {
+      const y = posArr[j * 3 + 1]; // -0.5 na cauda, +0.5 na cabeça
+      const t = y + 0.5;
+      const intensity = Math.pow(Math.max(0.04, t), 1.4);
+      colors[j * 3] = intensity;
+      colors[j * 3 + 1] = intensity;
+      colors[j * 3 + 2] = intensity;
+    }
+    this.tracerGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
     for (let i = 0; i < MAX_TRACERS; i++) {
-      const geo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 0)]);
-      geo.computeBoundingSphere();
-      const mat = new THREE.LineBasicMaterial({ color: 0xffd27f, transparent: true, opacity: 0.9 });
-      const line = new THREE.Line(geo, mat);
-      line.visible = false;
-      this.scene.add(line);
-      this.tracers.push({ line, life: 0, active: false });
+      const mat = new THREE.MeshBasicMaterial({
+        color: 0xffd27f,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.95,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const mesh = new THREE.Mesh(this.tracerGeo, mat);
+      mesh.visible = false;
+      this.scene.add(mesh);
+      this.tracers.push({ mesh, mat, life: 0, active: false });
     }
 
     // 2. Sparks (Faíscas / Sangue / Impacto)
@@ -275,12 +297,12 @@ export class Effects {
     if (this.casingMat) this.casingMat.dispose();
     if (this.shotgunCasingMat) this.shotgunCasingMat.dispose();
 
-    // Libera tracres
+    // Libera tracers
+    if (this.tracerGeo) this.tracerGeo.dispose();
     for (const t of this.tracers) {
-      if (t.line) {
-        if (t.line.parent) t.line.parent.remove(t.line);
-        t.line.geometry.dispose();
-        t.line.material.dispose();
+      if (t.mesh) {
+        if (t.mesh.parent) t.mesh.parent.remove(t.mesh);
+        if (t.mat) t.mat.dispose();
       }
     }
     this.tracers = [];
@@ -608,35 +630,40 @@ export class Effects {
           const p = activeProjs[i];
           const speed = p.speed || 700;
           
-          // Janela temporal visual de ~35ms para o comprimento do rastro
-          const visualTime = 0.035;
+          // Janela temporal cinemática curta (~25-28ms) para evitar varas estáticas no ar
+          const visualTime = p.isPellet ? 0.020 : 0.028;
           let tracerLen = speed * visualTime;
-          // Limita fisicamente e artisticamente para não virar uma "lança flutuante" enorme ou um ponto
-          tracerLen = Math.max(1.5, Math.min(30.0, tracerLen));
+          // Limita para escala esteticamente cinematográfica (entre 1.2m e 6.5m)
+          tracerLen = Math.max(1.2, Math.min(6.5, tracerLen));
           
-          // Se recém spawnou, o comprimento não pode ser maior que a distância viajada
-          if (p.distanceTraveled < tracerLen) tracerLen = Math.max(0.01, p.distanceTraveled);
+          // Se recém-disparado, comprimento não ultrapassa a distância percorrida da boca do cano
+          if (p.distanceTraveled < tracerLen) {
+            tracerLen = Math.max(0.05, p.distanceTraveled);
+          }
           
-          const dir = p.vel.clone().normalize();
-          const tail = p.pos.clone().sub(dir.multiplyScalar(tracerLen));
-          
-          const positions = t.line.geometry.attributes.position.array;
-          positions[0] = tail.x; positions[1] = tail.y; positions[2] = tail.z;
-          positions[3] = p.pos.x; positions[4] = p.pos.y; positions[5] = p.pos.z;
-          t.line.geometry.attributes.position.needsUpdate = true;
-          t.line.geometry.computeBoundingSphere();
-          
-          t.line.material.color.set(p.color || 0xffd27f);
-          t.line.material.opacity = 0.95;
-          t.line.visible = true;
+          _tracerDir.copy(p.vel).normalize();
+          const headX = p.pos.x;
+          const headY = p.pos.y;
+          const headZ = p.pos.z;
+          const tailX = headX - _tracerDir.x * tracerLen;
+          const tailY = headY - _tracerDir.y * tracerLen;
+          const tailZ = headZ - _tracerDir.z * tracerLen;
+
+          t.mesh.position.set((headX + tailX) * 0.5, (headY + tailY) * 0.5, (headZ + tailZ) * 0.5);
+          t.mesh.scale.set(1, tracerLen, 1);
+          t.mesh.quaternion.setFromUnitVectors(_tracerUp, _tracerDir);
+
+          t.mat.color.set(p.color || 0xffd27f);
+          t.mat.opacity = 0.95;
+          t.mesh.visible = true;
         } else {
-          t.line.visible = false;
+          t.mesh.visible = false;
         }
       }
     } else {
       // Fallback
       for (let i = 0; i < MAX_TRACERS; i++) {
-        this.tracers[i].line.visible = false;
+        this.tracers[i].mesh.visible = false;
       }
     }
 
