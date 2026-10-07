@@ -52,11 +52,11 @@
 import * as THREE from 'three';
 
 // Materiais PBR Táticos da HK416 (Preto Anodizado Brilhante de Alta Definição)
-export const M_HK_GLOSS    = new THREE.MeshStandardMaterial({ color: 0x7a838c, roughness: 0.12, metalness: 0.95 });
-export const M_HK_RECEIVER = new THREE.MeshStandardMaterial({ color: 0x626a73, roughness: 0.20, metalness: 0.90 });
+export const M_HK_GLOSS    = new THREE.MeshStandardMaterial({ color: 0x100f14, roughness: 0.12, metalness: 0.95 });
+export const M_HK_RECEIVER = new THREE.MeshStandardMaterial({ color: 0x100f14, roughness: 0.20, metalness: 0.90 });
 export const M_HK_STEEL    = new THREE.MeshStandardMaterial({ color: 0x8a939c, roughness: 0.12, metalness: 0.98 });
-export const M_HK_POLYMER  = new THREE.MeshStandardMaterial({ color: 0x2d3238, roughness: 0.52, metalness: 0.30 });
-export const M_HK_MAG      = new THREE.MeshStandardMaterial({ color: 0x3d434a, roughness: 0.30, metalness: 0.70 });
+export const M_HK_POLYMER  = new THREE.MeshStandardMaterial({ color: 0x100f14, roughness: 0.52, metalness: 0.30 });
+export const M_HK_MAG      = new THREE.MeshStandardMaterial({ color: 0x100f14, roughness: 0.30, metalness: 0.70 });
 export const M_HK_BRASS    = new THREE.MeshStandardMaterial({ color: 0xdfb850, roughness: 0.18, metalness: 0.92 });
 export const M_HK_TRIT     = new THREE.MeshBasicMaterial({ color: 0x33ff66 });
 export const M_HK_RED      = new THREE.MeshBasicMaterial({ color: 0xdd2222 });
