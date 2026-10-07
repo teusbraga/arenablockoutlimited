@@ -448,7 +448,7 @@
             "minMultiplier": 0.45
           },
           "bulletDrop": 12,
-          "bulletSpeed": 400
+          "bulletSpeed": 600
         }
       }
     },
@@ -673,7 +673,7 @@
             "minMultiplier": 0.5
           },
           "bulletDrop": 10.5,
-          "bulletSpeed": 380
+          "bulletSpeed": 580
         }
       }
     },
@@ -1010,7 +1010,7 @@
             "minMultiplier": 0.8
           },
           "bulletDrop": 20,
-          "bulletSpeed": 290
+          "bulletSpeed": 490
         }
       }
     }

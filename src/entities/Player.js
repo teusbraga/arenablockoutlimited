@@ -105,11 +105,16 @@ export class Player extends Character {
       _right.set(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
       _wish.set(0, 0, 0);
       
+      let fwdInput = 0;
+      let sideInput = 0;
       const isPressed = (action) => input.isActionPressed ? input.isActionPressed(action) : !!input.actions?.[action];
-      if (isPressed('move_forward')) _wish.add(_fwd);
-      if (isPressed('move_back')) _wish.sub(_fwd);
-      if (isPressed('move_right')) _wish.add(_right);
-      if (isPressed('move_left')) _wish.sub(_right);
+      if (isPressed('move_forward')) fwdInput += 1;
+      if (isPressed('move_back')) fwdInput -= 1;
+      if (isPressed('move_right')) sideInput += 1;
+      if (isPressed('move_left')) sideInput -= 1;
+
+      if (fwdInput !== 0) _wish.addScaledVector(_fwd, fwdInput);
+      if (sideInput !== 0) _wish.addScaledVector(_right, sideInput);
 
       this.sprinting = isPressed('sprint') && _wish.lengthSq() > 0 && !this.ads && !this.crouched;
       this.crouched = isPressed('crouch');
@@ -147,6 +152,16 @@ export class Player extends Character {
     } else if (this.crouched || this.ads) {
       // Valor fixo de 0.5x tanto no agachado quanto no ADS, sem acumular
       speed *= 0.5;
+    }
+
+    // Penalidade tática de velocidade lateral (strafe é perceptivelmente menor que andar para frente)
+    if (this.alive && (fwdInput !== 0 || sideInput !== 0)) {
+      const strafeMul = CONFIG.PLAYER.strafeMul ?? 0.72;
+      const localLen = Math.hypot(fwdInput, sideInput);
+      const normFwd = Math.abs(fwdInput) / localLen;
+      const normSide = Math.abs(sideInput) / localLen;
+      const moveFactor = Math.hypot(normFwd, normSide * strafeMul);
+      speed *= moveFactor;
     }
 
     // ---- Aceleração e Atrito ----
