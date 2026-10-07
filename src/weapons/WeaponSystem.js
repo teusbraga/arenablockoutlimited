@@ -322,11 +322,11 @@ export class WeaponSystem {
         this.player.rig.addRecoilImpulse({
           climbPitch: pitchAdd * climbRatio,
           climbYaw: yawAdd,
-          punchPitch: this.ads ? pitchAdd * (1 - climbRatio) * 0.4 : pitchAdd * (1 - climbRatio),
+          punchPitch: this.ads ? pitchAdd * (1 - climbRatio) : pitchAdd * (1 - climbRatio) * 0.4,
           punchRoll: (Math.random() - 0.5) * 0.004,
-          posKickZ: this.ads ? kickbackZ * 0.4 : kickbackZ,
+          posKickZ: this.ads ? kickbackZ : kickbackZ * 0.4,
           posKickY: kickbackZ * 0.2,
-          shake: (this.ads ? 0.08 : 0.18) * streakMul
+          shake: (this.ads ? 0.18 : 0.08) * streakMul
         });
       }
     } else {
