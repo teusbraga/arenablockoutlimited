@@ -916,7 +916,7 @@
       "recoilYaw": 0.001,
       "recoilYawBias": 0.1,
       "adsFov": 60,
-      "adsSightDistance": 0.16,
+      "adsSightDistance": 0.065,
       "hipPos": [
         0.13,
         -0.12,
@@ -948,7 +948,7 @@
       "sightLocal": [
         -0.015,
         0.05,
-        -0.171
+        0.131
       ],
       "muzzleLocal": [
         0,

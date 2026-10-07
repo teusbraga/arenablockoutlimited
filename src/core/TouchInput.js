@@ -279,6 +279,18 @@ export class TouchInput {
       pauseBtn.addEventListener('click', triggerPause);
     }
 
+    // Botão de Seleção de Zoom
+    const zoomBtn = document.getElementById('btn-touch-zoom');
+    if (zoomBtn) {
+      const triggerZoom = e => {
+        e.preventDefault();
+        e.stopPropagation();
+        emit('input:zoom-toggle');
+      };
+      zoomBtn.addEventListener('touchstart', triggerZoom, { passive: false });
+      zoomBtn.addEventListener('click', triggerZoom);
+    }
+
     // Demais Botões de Ação Táteis
     bindBtn('btn-touch-ads', 'ads', true); // Toggle ADS no mobile para conforto
     bindBtn('btn-touch-jump', 'jump');

@@ -245,3 +245,7 @@
 
 
 
+
+## FASE 12: Layout Mobile Ergonômico (Estilo PUBG)
+- **Objetivo**: Traduzir referências do PUBG Mobile em CSS e PWA Mobile touch.
+- **Ações**: Ajustar index.html e TouchInput.js [x] (CONCLUÍDO)

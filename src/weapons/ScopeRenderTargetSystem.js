@@ -44,6 +44,7 @@ export class ScopeRenderTargetSystem {
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }`,
       fragmentShader: `
+        precision highp float;
         uniform sampler2D tMap;
         uniform float uAdsT;
         varying vec2 vUv;

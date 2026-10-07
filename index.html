@@ -339,46 +339,52 @@
   }
   /* Botão de Tiro afastado da borda com ampla área para mira/drag */
   #btn-touch-fire {
-    right: calc(85px + env(safe-area-inset-right, 0px));
-    bottom: calc(85px + env(safe-area-inset-bottom, 0px));
-    width: 76px; height: 76px;
-    font-size: 15px; border-color: var(--accent); background: rgba(232,147,58,0.25);
+    right: calc(120px + env(safe-area-inset-right, 0px));
+    bottom: calc(140px + env(safe-area-inset-bottom, 0px));
+    width: 86px; height: 86px;
+    font-size: 16px; border-color: var(--accent); background: rgba(232,147,58,0.25);
     box-shadow: 0 0 12px rgba(232,147,58,0.2);
   }
   #btn-touch-ads {
-    right: calc(176px + env(safe-area-inset-right, 0px));
-    bottom: calc(108px + env(safe-area-inset-bottom, 0px));
-    width: 54px; height: 54px;
+    right: calc(120px + env(safe-area-inset-right, 0px));
+    bottom: calc(250px + env(safe-area-inset-bottom, 0px));
+    width: 64px; height: 64px; font-size: 13px;
+  }
+  #btn-touch-zoom {
+    right: calc(200px + env(safe-area-inset-right, 0px));
+    bottom: calc(250px + env(safe-area-inset-bottom, 0px));
+    width: 54px; height: 54px; font-size: 11px;
+    display: none; /* Só exibido durante ADS */
   }
   #btn-touch-jump {
-    right: calc(22px + env(safe-area-inset-right, 0px));
-    bottom: calc(168px + env(safe-area-inset-bottom, 0px));
-    width: 52px; height: 52px;
+    right: calc(24px + env(safe-area-inset-right, 0px));
+    bottom: calc(110px + env(safe-area-inset-bottom, 0px));
+    width: 60px; height: 60px; font-size: 12px;
   }
   #btn-touch-crouch {
-    right: calc(22px + env(safe-area-inset-right, 0px));
-    bottom: calc(88px + env(safe-area-inset-bottom, 0px));
-    width: 48px; height: 48px; font-size: 11px;
+    right: calc(100px + env(safe-area-inset-right, 0px));
+    bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+    width: 56px; height: 56px; font-size: 11px;
   }
   #btn-touch-reload {
-    right: calc(176px + env(safe-area-inset-right, 0px));
-    bottom: calc(44px + env(safe-area-inset-bottom, 0px));
-    width: 48px; height: 48px; font-size: 11px;
+    right: calc(180px + env(safe-area-inset-right, 0px));
+    bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+    width: 56px; height: 56px; font-size: 11px;
   }
   #btn-touch-cycle {
-    right: calc(24px + env(safe-area-inset-right, 0px));
-    top: calc(76px + env(safe-area-inset-top, 0px));
-    width: 46px; height: 46px; font-size: 11px; border-radius: 6px;
-  }
-  #btn-touch-interact {
-    right: calc(80px + env(safe-area-inset-right, 0px));
-    top: calc(76px + env(safe-area-inset-top, 0px));
-    width: 46px; height: 46px; font-size: 11px; border-radius: 6px;
+    left: calc(50% - 40px);
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    width: 80px; height: 48px; font-size: 12px; border-radius: 6px;
   }
   #btn-touch-firemode {
-    right: calc(80px + env(safe-area-inset-right, 0px));
-    top: calc(22px + env(safe-area-inset-top, 0px));
-    width: 46px; height: 46px; font-size: 10px; border-radius: 6px;
+    left: calc(50% - 30px);
+    bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+    width: 60px; height: 40px; font-size: 10px; border-radius: 6px;
+  }
+  #btn-touch-interact {
+    right: calc(240px + env(safe-area-inset-right, 0px));
+    bottom: calc(140px + env(safe-area-inset-bottom, 0px));
+    width: 56px; height: 56px; font-size: 11px; border-radius: 6px;
   }
   #btn-touch-pause {
     left: calc(16px + env(safe-area-inset-left, 0px));
@@ -415,15 +421,17 @@
     .ammo-counter-row { font-size: 22px; }
 
     /* Touch Controls - Ergonomia Mobile */
-    #btn-touch-fire { right: 65px; bottom: 55px; width: 68px; height: 68px; font-size: 13px; }
-    #btn-touch-ads { right: 145px; bottom: 85px; width: 50px; height: 50px; font-size: 11px; }
-    #btn-touch-jump { right: 12px; bottom: 140px; width: 48px; height: 48px; font-size: 11px; }
-    #btn-touch-crouch { right: 12px; bottom: 75px; width: 46px; height: 46px; font-size: 10px; }
-    #btn-touch-reload { right: 145px; bottom: 25px; width: 46px; height: 46px; font-size: 10px; }
-    #btn-touch-cycle { right: 14px; top: 60px; width: 42px; height: 42px; font-size: 10px; }
-    #btn-touch-interact { right: 64px; top: 60px; width: 42px; height: 42px; font-size: 10px; }
-    #btn-touch-firemode { right: 64px; top: 12px; width: 42px; height: 42px; font-size: 9px; }
-    #btn-touch-pause { left: 12px; top: 12px; width: 38px; height: 38px; font-size: 14px; }
+    #btn-touch-fire { right: calc(80px + env(safe-area-inset-right, 0px)); bottom: calc(100px + env(safe-area-inset-bottom, 0px)); width: 72px; height: 72px; font-size: 13px; }
+    #btn-touch-ads { right: calc(80px + env(safe-area-inset-right, 0px)); bottom: calc(190px + env(safe-area-inset-bottom, 0px)); width: 56px; height: 56px; font-size: 11px; }
+    #btn-touch-zoom { right: calc(150px + env(safe-area-inset-right, 0px)); bottom: calc(190px + env(safe-area-inset-bottom, 0px)); width: 48px; height: 48px; font-size: 10px; }
+    #btn-touch-jump { right: calc(16px + env(safe-area-inset-right, 0px)); bottom: calc(80px + env(safe-area-inset-bottom, 0px)); width: 52px; height: 52px; font-size: 11px; }
+    #btn-touch-crouch { right: calc(80px + env(safe-area-inset-right, 0px)); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); width: 48px; height: 48px; font-size: 10px; }
+    #btn-touch-reload { right: calc(140px + env(safe-area-inset-right, 0px)); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); width: 48px; height: 48px; font-size: 10px; }
+    
+    #btn-touch-cycle { left: calc(50% - 35px); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); width: 70px; height: 44px; font-size: 10px; }
+    #btn-touch-firemode { left: calc(50% - 25px); bottom: calc(75px + env(safe-area-inset-bottom, 0px)); width: 50px; height: 36px; font-size: 9px; }
+    #btn-touch-interact { right: calc(180px + env(safe-area-inset-right, 0px)); bottom: calc(100px + env(safe-area-inset-bottom, 0px)); width: 48px; height: 48px; font-size: 10px; }
+    #btn-touch-pause { left: calc(12px + env(safe-area-inset-left, 0px)); top: calc(12px + env(safe-area-inset-top, 0px)); width: 38px; height: 38px; font-size: 14px; }
   }
 
   /* Landscape em Celulares (Altura Reduzida) - Essencial para Menus */
@@ -537,6 +545,7 @@
   
   <button id="btn-touch-fire" class="touch-btn">TIRO</button>
   <button id="btn-touch-ads" class="touch-btn">MIRA</button>
+  <button id="btn-touch-zoom" class="touch-btn">ZOOM</button>
   <button id="btn-touch-jump" class="touch-btn">PULO</button>
   <button id="btn-touch-crouch" class="touch-btn">AGACHA</button>
   <button id="btn-touch-reload" class="touch-btn">RELOAD</button>

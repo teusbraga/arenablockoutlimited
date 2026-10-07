@@ -140,6 +140,7 @@ export class ScopeSystem {
     this.zoomTextEl = document.getElementById('scope-zoom-text');
     this.fovTextEl = document.getElementById('scope-fov-text');
     this.dotEl = document.getElementById('crosshair');
+    this.zoomBtnTouch = document.getElementById('btn-touch-zoom');
 
     // Variáveis de oscilação orgânica (Scope Sway / Respiração)
     this.swayTime = 0;
@@ -176,6 +177,17 @@ export class ScopeSystem {
         this.addOpticShake(0.95);
       }
     });
+
+    this._unsubZoomToggle = on('input:zoom-toggle', () => {
+      if (!this.adsTarget) return;
+      // Cycle zoom: se estiver perto do mínimo (max zoom), volta pro fov máximo, senão dá step
+      if (this.scopeFov <= SCOPE_CONFIG.SCOPE_FOV_MIN * 1.1) {
+        this.scopeFov = SCOPE_CONFIG.SCOPE_FOV_MAX;
+      } else {
+        this.scopeFov *= 0.6; // step mais agressivo pra touch cycle
+        this.scopeFov = Math.max(SCOPE_CONFIG.SCOPE_FOV_MIN, this.scopeFov);
+      }
+    });
   }
 
   destroy() {
@@ -184,6 +196,10 @@ export class ScopeSystem {
     if (this._unsubFired) {
       this._unsubFired();
       this._unsubFired = null;
+    }
+    if (this._unsubZoomToggle) {
+      this._unsubZoomToggle();
+      this._unsubZoomToggle = null;
     }
 
     if (this.scopeRT) {
@@ -366,6 +382,7 @@ export class ScopeSystem {
     if (this.scopeHudEl) {
       if (this.adsT > 0.45) {
         this.scopeHudEl.classList.add('show');
+        if (this.zoomBtnTouch) this.zoomBtnTouch.style.display = 'flex';
         if (this.zoomTextEl) {
           this.zoomTextEl.textContent = `${this.apparentZoom().toFixed(1)}x`;
         }
@@ -374,6 +391,7 @@ export class ScopeSystem {
         }
       } else {
         this.scopeHudEl.classList.remove('show');
+        if (this.zoomBtnTouch) this.zoomBtnTouch.style.display = 'none';
       }
     }
 
