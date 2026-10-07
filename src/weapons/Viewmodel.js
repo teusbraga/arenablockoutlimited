@@ -8,9 +8,10 @@ import { buildRiflePrototype } from './models/RiflePrototype.js';
 import { buildAK47 } from './models/AK47.js';
 import { buildSW500 } from './models/SW500.js';
 import { buildWinchester1912 } from './models/Winchester1912.js';
+import { buildVSS } from './models/VSS.js';
 
 // Re-exporta construtores para compatibilidade com main.js / WeaponRegistry
-export { buildHK416, buildHK416 as buildAR15, buildP9, buildUZI, buildM249, buildRiflePrototype, buildAK47, buildSW500, buildWinchester1912, buildWinchester1912 as buildM12 };
+export { buildHK416, buildHK416 as buildAR15, buildP9, buildUZI, buildM249, buildRiflePrototype, buildAK47, buildSW500, buildWinchester1912, buildWinchester1912 as buildM12, buildVSS };
 
 /**
  * Viewmodel: Gerenciador de pose, física de mola (sway), recuo e animações da arma em 1ª pessoa.

@@ -10,30 +10,109 @@
       "fireInterval": 0.09,
       "magSize": 30,
       "reloadTime": 1.65,
-      "spreadHip": 0.020,
+      "spreadHip": 0.02,
       "spreadAds": 0.0015,
       "recoilPitch": 0.008,
       "recoilYaw": 0.0025,
       "recoilYawBias": -0.4,
       "adsFov": 56,
       "adsSightDistance": 0.24,
-      "hipPos": [0.14, -0.15, -0.30],
-      "hipRot": [0, 0, 0],
-      "adsRot": [0, 0, 0],
-      "sprintPos": [0.22, -0.26, -0.32],
-      "sprintRot": [0.62, -0.45, 0.20],
+      "hipPos": [
+        0.14,
+        -0.15,
+        -0.3
+      ],
+      "hipRot": [
+        0,
+        0,
+        0
+      ],
+      "adsRot": [
+        0,
+        0,
+        0
+      ],
+      "sprintPos": [
+        0.22,
+        -0.26,
+        -0.32
+      ],
+      "sprintRot": [
+        0.62,
+        -0.45,
+        0.2
+      ],
       "model": "ar15",
       "audioKey": "shot_hk416",
-      "sightLocal": [0, 0.076, -0.26],
-      "muzzleLocal": [0, 0.018, -0.51],
-      "ejectLocal": [0.024, 0.022, -0.01],
+      "sightLocal": [
+        0,
+        0.076,
+        -0.26
+      ],
+      "muzzleLocal": [
+        0,
+        0.018,
+        -0.51
+      ],
+      "ejectLocal": [
+        0.024,
+        0.022,
+        -0.01
+      ],
       "kickbackZ": 0.008,
       "tracerColor": "#ffd27f",
       "smokeConeOpacity": 0.06,
       "smokeResidualMax": 5,
       "smokeResidualColor": "#d2d8e0",
-      "fireModes": ["auto", "semi"],
-      "mods": ["heavyBarrel"]
+      "fireModes": [
+        "auto",
+        "semi"
+      ],
+      "mods": [
+        "heavyBarrel"
+      ],
+      "ballistics": {
+        "internal": {
+          "fireInterval": 0.09,
+          "adsTime": 0.2,
+          "reloadTime": 1.65
+        },
+        "external": {
+          "recoil": {
+            "vertical": 0.008,
+            "horizontal": 0.0025,
+            "yawBias": -0.4,
+            "pattern": "linear_left",
+            "recoveryTime": 0.26
+          },
+          "sway": {
+            "base": 0.0022,
+            "multiplierAds": 0.22,
+            "speed": 1.4
+          },
+          "precision": {
+            "baseSpread": 0.0015,
+            "swaySpreadImpact": 0.45,
+            "dynamicLoss": {
+              "strafe": 0.022,
+              "walk": 0.015,
+              "run": 0.04
+            },
+            "recoveryTime": 0.28
+          }
+        },
+        "terminal": {
+          "damageBody": 24,
+          "damageHead": 52,
+          "damageFalloff": {
+            "startDistance": 35,
+            "endDistance": 90,
+            "minMultiplier": 0.65
+          },
+          "bulletDrop": 9.8,
+          "bulletSpeed": 880
+        }
+      }
     },
     "ak47": {
       "id": "ak47",
@@ -42,33 +121,110 @@
       "weight": 3.8,
       "damageBody": 34,
       "damageHead": 75,
-      "fireInterval": 0.10,
+      "fireInterval": 0.1,
       "magSize": 30,
-      "reloadTime": 1.80,
+      "reloadTime": 1.8,
       "spreadHip": 0.022,
-      "spreadAds": 0.0010,
+      "spreadAds": 0.001,
       "recoilPitch": 0.0105,
       "recoilYaw": 0.0032,
       "recoilYawBias": 0.35,
       "adsFov": 58,
       "adsSightDistance": 0.65,
-      "hipPos": [0.14, -0.14, -0.28],
-      "hipRot": [0, 0, 0],
-      "adsRot": [0, 0, 0],
-      "sprintPos": [0.22, -0.25, -0.32],
-      "sprintRot": [0.60, -0.42, 0.18],
+      "hipPos": [
+        0.14,
+        -0.14,
+        -0.28
+      ],
+      "hipRot": [
+        0,
+        0,
+        0
+      ],
+      "adsRot": [
+        0,
+        0,
+        0
+      ],
+      "sprintPos": [
+        0.22,
+        -0.25,
+        -0.32
+      ],
+      "sprintRot": [
+        0.6,
+        -0.42,
+        0.18
+      ],
       "model": "ak47",
       "audioKey": "shot_ak47",
-      "sightLocal": [0, 0.063, -0.49],
-      "muzzleLocal": [0, 0.020, -0.54],
-      "ejectLocal": [0.022, 0.030, -0.035],
+      "sightLocal": [
+        0,
+        0.063,
+        -0.49
+      ],
+      "muzzleLocal": [
+        0,
+        0.02,
+        -0.54
+      ],
+      "ejectLocal": [
+        0.022,
+        0.03,
+        -0.035
+      ],
       "kickbackZ": 0.009,
       "tracerColor": "#ffaa44",
       "smokeConeOpacity": 0.07,
       "smokeResidualMax": 5,
       "smokeResidualColor": "#d5dadf",
-      "fireModes": ["auto", "semi"],
-      "mods": []
+      "fireModes": [
+        "auto",
+        "semi"
+      ],
+      "mods": [],
+      "ballistics": {
+        "internal": {
+          "fireInterval": 0.1,
+          "adsTime": 0.24,
+          "reloadTime": 1.8
+        },
+        "external": {
+          "recoil": {
+            "vertical": 0.0105,
+            "horizontal": 0.0032,
+            "yawBias": 0.35,
+            "pattern": "kick_right",
+            "recoveryTime": 0.34
+          },
+          "sway": {
+            "base": 0.0028,
+            "multiplierAds": 0.25,
+            "speed": 1.2
+          },
+          "precision": {
+            "baseSpread": 0.001,
+            "swaySpreadImpact": 0.55,
+            "dynamicLoss": {
+              "strafe": 0.026,
+              "walk": 0.018,
+              "run": 0.048
+            },
+            "recoveryTime": 0.35
+          }
+        },
+        "terminal": {
+          "damageBody": 34,
+          "damageHead": 75,
+          "damageFalloff": {
+            "startDistance": 40,
+            "endDistance": 100,
+            "minMultiplier": 0.7
+          },
+          "bulletDrop": 9.8,
+          "bulletSpeed": 715
+        }
+      }
     },
     "rifle_proto": {
       "id": "rifle_proto",
@@ -87,24 +243,101 @@
       "recoilYawBias": 0.2,
       "adsFov": 60,
       "adsSightDistance": 0.16,
-      "hipPos": [0.14, -0.14, -0.32],
-      "hipRot": [0, 0, 0],
-      "adsRot": [0, 0, 0],
-      "sprintPos": [0.22, -0.26, -0.32],
-      "sprintRot": [0.62, -0.45, 0.20],
+      "hipPos": [
+        0.14,
+        -0.14,
+        -0.32
+      ],
+      "hipRot": [
+        0,
+        0,
+        0
+      ],
+      "adsRot": [
+        0,
+        0,
+        0
+      ],
+      "sprintPos": [
+        0.22,
+        -0.26,
+        -0.32
+      ],
+      "sprintRot": [
+        0.62,
+        -0.45,
+        0.2
+      ],
       "model": "rifle_proto",
       "audioKey": "shot_proto",
-      "sightLocal": [0, 0.108, -0.060],
-      "muzzleLocal": [0, 0.012, -0.765],
-      "ejectLocal": [0.038, 0.024, 0.035],
+      "sightLocal": [
+        0,
+        0.108,
+        -0.06
+      ],
+      "muzzleLocal": [
+        0,
+        0.012,
+        -0.765
+      ],
+      "ejectLocal": [
+        0.038,
+        0.024,
+        0.035
+      ],
       "kickbackZ": 0.008,
       "kickRotFactor": 1.5,
       "tracerColor": "#ffc061",
       "smokeConeOpacity": 0.06,
       "smokeResidualMax": 5,
       "smokeResidualColor": "#d2d8e0",
-      "fireModes": ["auto", "semi"],
-      "mods": []
+      "fireModes": [
+        "auto",
+        "semi"
+      ],
+      "mods": [],
+      "ballistics": {
+        "internal": {
+          "fireInterval": 0.085,
+          "adsTime": 0.22,
+          "reloadTime": 1.65
+        },
+        "external": {
+          "recoil": {
+            "vertical": 0.0075,
+            "horizontal": 0.002,
+            "yawBias": 0.2,
+            "pattern": "climb_smooth",
+            "recoveryTime": 0.24
+          },
+          "sway": {
+            "base": 0.0018,
+            "multiplierAds": 0.15,
+            "speed": 1.6
+          },
+          "precision": {
+            "baseSpread": 0.0005,
+            "swaySpreadImpact": 0.35,
+            "dynamicLoss": {
+              "strafe": 0.02,
+              "walk": 0.014,
+              "run": 0.038
+            },
+            "recoveryTime": 0.25
+          }
+        },
+        "terminal": {
+          "damageBody": 24,
+          "damageHead": 52,
+          "damageFalloff": {
+            "startDistance": 45,
+            "endDistance": 120,
+            "minMultiplier": 0.8
+          },
+          "bulletDrop": 6.5,
+          "bulletSpeed": 950
+        }
+      }
     },
     "uzi": {
       "id": "uzi",
@@ -115,7 +348,7 @@
       "damageHead": 38,
       "fireInterval": 0.065,
       "magSize": 32,
-      "reloadTime": 1.30,
+      "reloadTime": 1.3,
       "spreadHip": 0.024,
       "spreadAds": 0.002,
       "recoilPitch": 0.006,
@@ -123,23 +356,101 @@
       "recoilYawBias": 0.5,
       "adsFov": 58,
       "adsSightDistance": 0.45,
-      "hipPos": [0.12, -0.13, -0.26],
-      "hipRot": [0, 0, 0],
-      "adsRot": [0, 0, 0],
-      "sprintPos": [0.20, -0.24, -0.30],
-      "sprintRot": [0.55, -0.40, 0.16],
+      "hipPos": [
+        0.12,
+        -0.13,
+        -0.26
+      ],
+      "hipRot": [
+        0,
+        0,
+        0
+      ],
+      "adsRot": [
+        0,
+        0,
+        0
+      ],
+      "sprintPos": [
+        0.2,
+        -0.24,
+        -0.3
+      ],
+      "sprintRot": [
+        0.55,
+        -0.4,
+        0.16
+      ],
       "model": "uzi",
       "audioKey": "shot_uzi",
-      "sightLocal": [0, 0.054, -0.15],
-      "muzzleLocal": [0, 0.012, -0.22],
-      "ejectLocal": [0.020, 0.024, -0.02],
+      "sightLocal": [
+        0,
+        0.054,
+        -0.15
+      ],
+      "muzzleLocal": [
+        0,
+        0.012,
+        -0.22
+      ],
+      "ejectLocal": [
+        0.02,
+        0.024,
+        -0.02
+      ],
       "kickbackZ": 0.006,
       "tracerColor": "#55ff88",
       "smokeConeOpacity": 0.05,
       "smokeResidualMax": 5,
       "smokeResidualColor": "#cfd6df",
-      "fireModes": ["auto"],
-      "mods": ["lightGrip"]
+      "fireModes": [
+        "auto"
+      ],
+      "mods": [
+        "lightGrip"
+      ],
+      "ballistics": {
+        "internal": {
+          "fireInterval": 0.065,
+          "adsTime": 0.15,
+          "reloadTime": 1.3
+        },
+        "external": {
+          "recoil": {
+            "vertical": 0.006,
+            "horizontal": 0.003,
+            "yawBias": 0.5,
+            "pattern": "spray_wide",
+            "recoveryTime": 0.2
+          },
+          "sway": {
+            "base": 0.0015,
+            "multiplierAds": 0.3,
+            "speed": 2
+          },
+          "precision": {
+            "baseSpread": 0.002,
+            "swaySpreadImpact": 0.4,
+            "dynamicLoss": {
+              "strafe": 0.015,
+              "walk": 0.01,
+              "run": 0.03
+            },
+            "recoveryTime": 0.2
+          }
+        },
+        "terminal": {
+          "damageBody": 18,
+          "damageHead": 38,
+          "damageFalloff": {
+            "startDistance": 15,
+            "endDistance": 50,
+            "minMultiplier": 0.45
+          },
+          "bulletDrop": 12,
+          "bulletSpeed": 400
+        }
+      }
     },
     "m249": {
       "id": "m249",
@@ -150,31 +461,110 @@
       "damageHead": 62,
       "fireInterval": 0.082,
       "magSize": 100,
-      "reloadTime": 4.20,
+      "reloadTime": 4.2,
       "spreadHip": 0.032,
       "spreadAds": 0.0022,
       "recoilPitch": 0.011,
       "recoilYaw": 0.0035,
       "recoilYawBias": 0.4,
       "adsFov": 54,
-      "adsSightDistance": 0.40,
-      "hipPos": [0.15, -0.17, -0.32],
-      "hipRot": [0, 0, 0],
-      "adsRot": [0, 0, 0],
-      "sprintPos": [0.24, -0.28, -0.35],
-      "sprintRot": [0.65, -0.48, 0.22],
+      "adsSightDistance": 0.4,
+      "hipPos": [
+        0.15,
+        -0.17,
+        -0.32
+      ],
+      "hipRot": [
+        0,
+        0,
+        0
+      ],
+      "adsRot": [
+        0,
+        0,
+        0
+      ],
+      "sprintPos": [
+        0.24,
+        -0.28,
+        -0.35
+      ],
+      "sprintRot": [
+        0.65,
+        -0.48,
+        0.22
+      ],
       "model": "m249",
       "audioKey": "shot_m249",
-      "sightLocal": [0, 0.082, -0.28],
-      "muzzleLocal": [0, 0.022, -0.58],
-      "ejectLocal": [0.030, 0.015, -0.06],
-      "kickbackZ": 0.010,
+      "sightLocal": [
+        0,
+        0.082,
+        -0.28
+      ],
+      "muzzleLocal": [
+        0,
+        0.022,
+        -0.58
+      ],
+      "ejectLocal": [
+        0.03,
+        0.015,
+        -0.06
+      ],
+      "kickbackZ": 0.01,
       "tracerColor": "#ffaa33",
       "smokeConeOpacity": 0.08,
       "smokeResidualMax": 6,
       "smokeResidualColor": "#e0e4eb",
-      "fireModes": ["auto", "semi"],
-      "mods": ["heavyBarrel"]
+      "fireModes": [
+        "auto",
+        "semi"
+      ],
+      "mods": [
+        "heavyBarrel"
+      ],
+      "ballistics": {
+        "internal": {
+          "fireInterval": 0.082,
+          "adsTime": 0.38,
+          "reloadTime": 4.2
+        },
+        "external": {
+          "recoil": {
+            "vertical": 0.011,
+            "horizontal": 0.0035,
+            "yawBias": 0.4,
+            "pattern": "heavy_churn",
+            "recoveryTime": 0.45
+          },
+          "sway": {
+            "base": 0.0035,
+            "multiplierAds": 0.35,
+            "speed": 1
+          },
+          "precision": {
+            "baseSpread": 0.0022,
+            "swaySpreadImpact": 0.6,
+            "dynamicLoss": {
+              "strafe": 0.035,
+              "walk": 0.025,
+              "run": 0.06
+            },
+            "recoveryTime": 0.5
+          }
+        },
+        "terminal": {
+          "damageBody": 28,
+          "damageHead": 62,
+          "damageFalloff": {
+            "startDistance": 40,
+            "endDistance": 110,
+            "minMultiplier": 0.7
+          },
+          "bulletDrop": 9.8,
+          "bulletSpeed": 850
+        }
+      }
     },
     "p9": {
       "id": "p9",
@@ -190,26 +580,102 @@
       "spreadAds": 0.0012,
       "recoilPitch": 0.012,
       "recoilYaw": 0.002,
-      "recoilYawBias": 0.0,
+      "recoilYawBias": 0,
       "adsFov": 58,
       "adsSightDistance": 0.35,
-      "hipPos": [0.12, -0.13, -0.28],
-      "hipRot": [0, 0, 0],
-      "adsRot": [0, 0, 0],
-      "sprintPos": [0.18, -0.22, -0.28],
-      "sprintRot": [0.48, -0.36, 0.14],
+      "hipPos": [
+        0.12,
+        -0.13,
+        -0.28
+      ],
+      "hipRot": [
+        0,
+        0,
+        0
+      ],
+      "adsRot": [
+        0,
+        0,
+        0
+      ],
+      "sprintPos": [
+        0.18,
+        -0.22,
+        -0.28
+      ],
+      "sprintRot": [
+        0.48,
+        -0.36,
+        0.14
+      ],
       "model": "p9",
       "audioKey": "shot_p9",
-      "sightLocal": [0, 0.038, -0.083],
-      "muzzleLocal": [0, 0.014, -0.11],
-      "ejectLocal": [0.018, 0.022, -0.01],
+      "sightLocal": [
+        0,
+        0.038,
+        -0.083
+      ],
+      "muzzleLocal": [
+        0,
+        0.014,
+        -0.11
+      ],
+      "ejectLocal": [
+        0.018,
+        0.022,
+        -0.01
+      ],
       "kickbackZ": 0.005,
       "tracerColor": "#ffea70",
       "smokeConeOpacity": 0.04,
       "smokeResidualMax": 2,
       "smokeResidualColor": "#ccd1d9",
-      "fireModes": ["semi"],
-      "mods": []
+      "fireModes": [
+        "semi"
+      ],
+      "mods": [],
+      "ballistics": {
+        "internal": {
+          "fireInterval": 0.16,
+          "adsTime": 0.14,
+          "reloadTime": 1.15
+        },
+        "external": {
+          "recoil": {
+            "vertical": 0.012,
+            "horizontal": 0.002,
+            "yawBias": 0,
+            "pattern": "vertical_snap",
+            "recoveryTime": 0.18
+          },
+          "sway": {
+            "base": 0.0018,
+            "multiplierAds": 0.2,
+            "speed": 1.8
+          },
+          "precision": {
+            "baseSpread": 0.0012,
+            "swaySpreadImpact": 0.35,
+            "dynamicLoss": {
+              "strafe": 0.012,
+              "walk": 0.008,
+              "run": 0.025
+            },
+            "recoveryTime": 0.18
+          }
+        },
+        "terminal": {
+          "damageBody": 40,
+          "damageHead": 75,
+          "damageFalloff": {
+            "startDistance": 20,
+            "endDistance": 55,
+            "minMultiplier": 0.5
+          },
+          "bulletDrop": 10.5,
+          "bulletSpeed": 380
+        }
+      }
     },
     "sw500": {
       "id": "sw500",
@@ -228,15 +694,43 @@
       "recoilYawBias": 0.1,
       "adsFov": 62,
       "adsSightDistance": 0.47,
-      "hipPos": [0.12, -0.13, -0.24],
-      "hipRot": [0, 0, 0],
-      "adsRot": [0, 0, 0],
-      "sprintPos": [0.18, -0.22, -0.26],
-      "sprintRot": [0.50, -0.35, 0.15],
+      "hipPos": [
+        0.12,
+        -0.13,
+        -0.24
+      ],
+      "hipRot": [
+        0,
+        0,
+        0
+      ],
+      "adsRot": [
+        0,
+        0,
+        0
+      ],
+      "sprintPos": [
+        0.18,
+        -0.22,
+        -0.26
+      ],
+      "sprintRot": [
+        0.5,
+        -0.35,
+        0.15
+      ],
       "model": "sw500",
       "audioKey": "shot_sw500",
-      "sightLocal": [0, 0.051, -0.32],
-      "muzzleLocal": [0, 0.016, -0.380],
+      "sightLocal": [
+        0,
+        0.051,
+        -0.32
+      ],
+      "muzzleLocal": [
+        0,
+        0.016,
+        -0.38
+      ],
       "ejectCasings": false,
       "kickbackZ": 0.016,
       "kickRotFactor": 2.2,
@@ -244,8 +738,52 @@
       "smokeConeOpacity": 0.15,
       "smokeResidualMax": 6,
       "smokeResidualColor": "#e8edf2",
-      "fireModes": ["semi"],
-      "mods": []
+      "fireModes": [
+        "semi"
+      ],
+      "mods": [],
+      "ballistics": {
+        "internal": {
+          "fireInterval": 1.1,
+          "adsTime": 0.28,
+          "reloadTime": 2.2
+        },
+        "external": {
+          "recoil": {
+            "vertical": 0.034,
+            "horizontal": 0.003,
+            "yawBias": 0.1,
+            "pattern": "massive_kick",
+            "recoveryTime": 0.65
+          },
+          "sway": {
+            "base": 0.0032,
+            "multiplierAds": 0.25,
+            "speed": 1.2
+          },
+          "precision": {
+            "baseSpread": 0.0003,
+            "swaySpreadImpact": 0.7,
+            "dynamicLoss": {
+              "strafe": 0.03,
+              "walk": 0.02,
+              "run": 0.055
+            },
+            "recoveryTime": 0.6
+          }
+        },
+        "terminal": {
+          "damageBody": 160,
+          "damageHead": 360,
+          "damageFalloff": {
+            "startDistance": 30,
+            "endDistance": 90,
+            "minMultiplier": 0.6
+          },
+          "bulletDrop": 11,
+          "bulletSpeed": 500
+        }
+      }
     },
     "m12": {
       "id": "m12",
@@ -259,38 +797,240 @@
       "fireInterval": 0.65,
       "magSize": 6,
       "reloadTime": 2.5,
-      "spreadHip": 0.010,
+      "spreadHip": 0.01,
       "spreadAds": 0.002,
       "recoilPitch": 0.022,
       "recoilYaw": 0.004,
       "recoilYawBias": 0.2,
       "adsFov": 60,
       "adsSightDistance": 0.68,
-      "hipPos": [0.13, -0.13, -0.26],
-      "hipRot": [0, 0, 0],
-      "adsRot": [0, 0, 0],
-      "sprintPos": [0.20, -0.24, -0.30],
-      "sprintRot": [0.55, -0.40, 0.16],
+      "hipPos": [
+        0.13,
+        -0.13,
+        -0.26
+      ],
+      "hipRot": [
+        0,
+        0,
+        0
+      ],
+      "adsRot": [
+        0,
+        0,
+        0
+      ],
+      "sprintPos": [
+        0.2,
+        -0.24,
+        -0.3
+      ],
+      "sprintRot": [
+        0.55,
+        -0.4,
+        0.16
+      ],
       "model": "m12",
       "audioKey": "shot_m12",
       "casingType": "shotgun",
-      "sightLocal": [0, 0.063, -0.56],
-      "muzzleLocal": [0, 0.024, -0.58],
-      "ejectLocal": [0.022, 0.022, -0.01],
+      "sightLocal": [
+        0,
+        0.063,
+        -0.56
+      ],
+      "muzzleLocal": [
+        0,
+        0.024,
+        -0.58
+      ],
+      "ejectLocal": [
+        0.022,
+        0.022,
+        -0.01
+      ],
       "kickbackZ": 0.014,
       "kickRotFactor": 1.8,
       "tracerColor": "#ff9933",
       "smokeConeOpacity": 0.12,
       "smokeResidualMax": 6,
       "smokeResidualColor": "#d8dde2",
-      "fireModes": ["semi"],
-      "mods": []
+      "fireModes": [
+        "semi"
+      ],
+      "mods": [],
+      "ballistics": {
+        "internal": {
+          "fireInterval": 0.65,
+          "adsTime": 0.26,
+          "reloadTime": 2.5
+        },
+        "external": {
+          "recoil": {
+            "vertical": 0.022,
+            "horizontal": 0.004,
+            "yawBias": 0.2,
+            "pattern": "pump_buck",
+            "recoveryTime": 0.5
+          },
+          "sway": {
+            "base": 0.0025,
+            "multiplierAds": 0.3,
+            "speed": 1.3
+          },
+          "precision": {
+            "baseSpread": 0.002,
+            "swaySpreadImpact": 0.3,
+            "dynamicLoss": {
+              "strafe": 0.015,
+              "walk": 0.01,
+              "run": 0.03
+            },
+            "recoveryTime": 0.35
+          }
+        },
+        "terminal": {
+          "damageBody": 22,
+          "damageHead": 51,
+          "damageFalloff": {
+            "startDistance": 10,
+            "endDistance": 35,
+            "minMultiplier": 0.25
+          },
+          "bulletDrop": 14,
+          "bulletSpeed": 360
+        }
+      }
+    },
+    "vss": {
+      "id": "vss",
+      "name": "VSS Vintorez",
+      "auto": true,
+      "weight": 2.6,
+      "damageBody": 42,
+      "damageHead": 90,
+      "fireInterval": 0.085,
+      "magSize": 20,
+      "reloadTime": 1.9,
+      "spreadHip": 0.02,
+      "spreadAds": 0.0001,
+      "recoilPitch": 0.004,
+      "recoilYaw": 0.001,
+      "recoilYawBias": 0.1,
+      "adsFov": 60,
+      "adsSightDistance": 0.16,
+      "hipPos": [
+        0.13,
+        -0.12,
+        -0.28
+      ],
+      "hipRot": [
+        0,
+        0,
+        0
+      ],
+      "adsRot": [
+        0,
+        0,
+        0
+      ],
+      "sprintPos": [
+        0.2,
+        -0.24,
+        -0.3
+      ],
+      "sprintRot": [
+        0.55,
+        -0.4,
+        0.16
+      ],
+      "model": "vss",
+      "audioKey": "shot_proto",
+      "casingType": "brass",
+      "sightLocal": [
+        -0.015,
+        0.05,
+        -0.171
+      ],
+      "muzzleLocal": [
+        0,
+        0.005,
+        -0.69
+      ],
+      "ejectLocal": [
+        0.02,
+        0.02,
+        -0.04
+      ],
+      "kickbackZ": 0.006,
+      "kickRotFactor": 1.2,
+      "tracerColor": "#ffddaa",
+      "smokeConeOpacity": 0.02,
+      "smokeResidualMax": 2,
+      "smokeResidualColor": "#aaaaaa",
+      "fireModes": [
+        "auto",
+        "semi"
+      ],
+      "mods": [],
+      "ballistics": {
+        "internal": {
+          "fireInterval": 0.085,
+          "adsTime": 0.2,
+          "reloadTime": 1.9
+        },
+        "external": {
+          "recoil": {
+            "vertical": 0.004,
+            "horizontal": 0.001,
+            "yawBias": 0.1,
+            "pattern": "smooth",
+            "recoveryTime": 0.2
+          },
+          "sway": {
+            "base": 0.0015,
+            "multiplierAds": 0.1,
+            "speed": 1.1
+          },
+          "precision": {
+            "baseSpread": 0.0001,
+            "swaySpreadImpact": 0.2,
+            "dynamicLoss": {
+              "strafe": 0.01,
+              "walk": 0.008,
+              "run": 0.02
+            },
+            "recoveryTime": 0.2
+          }
+        },
+        "terminal": {
+          "damageBody": 42,
+          "damageHead": 90,
+          "damageFalloff": {
+            "startDistance": 50,
+            "endDistance": 150,
+            "minMultiplier": 0.8
+          },
+          "bulletDrop": 20,
+          "bulletSpeed": 290
+        }
+      }
     }
   },
   "mods": {
-    "heavyBarrel": { "id": "heavyBarrel", "recoilMul": 0.8, "adsTimeMul": 1.2, "spreadMul": 0.85 },
-    "lightGrip": { "id": "lightGrip", "adsTimeMul": 0.8, "spreadMul": 1.1 },
-    "redDot": { "id": "redDot", "adsFov": 50, "adsSightDistance": 0.28 }
+    "heavyBarrel": {
+      "id": "heavyBarrel",
+      "recoilMul": 0.8,
+      "adsTimeMul": 1.2,
+      "spreadMul": 0.85
+    },
+    "lightGrip": {
+      "id": "lightGrip",
+      "adsTimeMul": 0.8,
+      "spreadMul": 1.1
+    },
+    "redDot": {
+      "id": "redDot",
+      "adsFov": 50,
+      "adsSightDistance": 0.28
+    }
   }
 }
-

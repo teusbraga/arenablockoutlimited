@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { WEAPONS } from './WeaponDefs.js';
+import { BallisticsCalculator } from './BallisticsCalculator.js';
+import { ProjectileManager } from './ProjectileManager.js';
 import { CONFIG } from '../core/ConfigLoader.js';
 import { emit } from '../core/EventBus.js';
 
@@ -33,6 +35,14 @@ export class WeaponSystem {
     this.world = world;
     this.botsProvider = botsProvider;
 
+    // Gerenciador de Projéteis Físicos e Balística Externa (CCD)
+    this.projectileManager = new ProjectileManager({
+      world: this.world,
+      botsProvider: this.botsProvider,
+      player: this.player,
+      camera: this.camera
+    });
+
     // Inventário dinâmico baseado nas armas carregadas do weapons.json
     this.inventory = inventory || (Object.keys(WEAPONS).length > 0 ? Object.keys(WEAPONS) : ['ar15', 'p9']);
     this.currentIndex = 0;
@@ -49,6 +59,10 @@ export class WeaponSystem {
     this.raycaster = new THREE.Raycaster();
     this.sprayBullets = 0;
     this.lastShotTimestamp = 0;
+
+    // Estado dinâmico de balística
+    this.precisionPenalty = 0;
+    this.currentSway = { x: 0, y: 0, amplitude: 0 };
 
     this._equip(this.inventory[0], true);
   }
@@ -122,6 +136,9 @@ export class WeaponSystem {
   update(dt) {
     const def = this.def;
 
+    // 0. Atualização determinística da simulação de projéteis físicos (CCD Sweep)
+    this.projectileManager.update(dt);
+
     // 1. Troca de arma (tecla Q, slots 1/2 ou botão mobile ARMA)
     if (this.input.consumeAction('next_weapon')) {
       this.cycle();
@@ -147,8 +164,10 @@ export class WeaponSystem {
     this.ads = this.input.actions.ads && !this.player.sprinting && this.player.alive;
     this.player.ads = this.ads; // Sincroniza diretamente com o jogador
     emit('player:ads', { ads: this.ads }); // Emite evento para todo o jogo
+    const adsTime = def.ballistics?.internal?.adsTime || 0.22;
+    const adsSpeed = 1.0 / Math.max(0.04, adsTime);
     const targetAds = this.ads ? 1 : 0;
-    this.adsAmount += (targetAds - this.adsAmount) * Math.min(dt * 10, 1);
+    this.adsAmount += (targetAds - this.adsAmount) * Math.min(dt * adsSpeed * 2.2, 1);
 
     // 4. Progresso de Recarga
     if (this.reloading) {
@@ -166,7 +185,14 @@ export class WeaponSystem {
     // 5. Disparo (considera modo de disparo selecionado: auto ou semi)
     this.fireCooldown -= dt;
 
-    // Decaimento exponencial suave e imediato da dispersão de tiro (idêntico à inércia do movimento)
+    // Recuperação determinística de precisão por arma (tempo configurado no JSON)
+    const precRecoveryTime = def.ballistics?.external?.precision?.recoveryTime || 0.35;
+    const recoveryRate = 1.0 / Math.max(0.05, precRecoveryTime);
+    if (this.precisionPenalty > 0) {
+      this.precisionPenalty = Math.max(0, this.precisionPenalty - dt * recoveryRate * 0.05);
+    }
+
+    // Decaimento suave e imediato da dispersão de tiro (spray streak)
     const nowSec = performance.now() / 1000;
     const timeSinceLastShot = nowSec - (this.lastShotTimestamp || 0);
     const ceaseDelay = Math.max(def.fireInterval * 1.2, 0.12);
@@ -174,6 +200,11 @@ export class WeaponSystem {
       this.fireStreak += (0 - this.fireStreak) * Math.min(1, dt * 14);
       if (this.fireStreak < 0.01) this.fireStreak = 0;
     }
+
+    // Cálculo contínuo do sway orgânico
+    const walkSpd = CONFIG.PLAYER?.walkSpeed || 5.2;
+    const speedRatio = Math.hypot(this.player.vel.x, this.player.vel.z) / walkSpd;
+    this.currentSway = BallisticsCalculator.calculateSway(def, nowSec, this.ads, speedRatio);
 
     if (!this.player.alive || this.reloading) {
       this.input.consumeAction('fire');
@@ -194,12 +225,10 @@ export class WeaponSystem {
     if (this.ammo === 0 && !this.reloading) this.reload();
 
     // ── Detecção de Término de Spray (Fumaça Residual de Calor) ─────────────
-    // Se o jogador cessou o fogo após uma rajada, solta de 0 a 6 fumaças subindo da boca do cano
     if (this.sprayBullets > 0) {
       const ceaseDelay = Math.max(def.fireInterval * 1.4, 0.14);
       if (!wantsFire || (nowSec - this.lastShotTimestamp) > ceaseDelay || this.reloading || this.ammo === 0) {
         const magSize = def.magSize || 30;
-        // 45% do pente disparado em spray já alcança aquecimento máximo
         const heatRatio = Math.min(1, this.sprayBullets / (magSize * 0.45));
         const maxResidual = def.smokeResidualMax ?? 5;
         const count = Math.round(heatRatio * maxResidual);
@@ -229,18 +258,17 @@ export class WeaponSystem {
     const def = this.def;
     const walkSpd = CONFIG.PLAYER?.walkSpeed || 5.2;
     const speedRatio = Math.hypot(this.player.vel.x, this.player.vel.z) / walkSpd;
+    const isStrafing = (this.input?.isActionPressed?.('move_left') || this.input?.isActionPressed?.('move_right')) && speedRatio > 0.1;
+    const isSprinting = !!this.player.sprinting;
 
-    if (this.ads) {
-      // No ADS: primeiro tiro parado tem precisão absoluta (pinpoint)
-      const movePenalty = speedRatio * 0.008;
-      const streakPenalty = (this.fireStreak || 0) * 0.0012;
-      return def.spreadAds + movePenalty + streakPenalty;
-    }
-
-    // No Hipfire: dispersão clássica arcade controlada
-    const moveSpread = speedRatio * 0.012;
-    const streakSpread = (this.fireStreak || 0) * 0.0025;
-    return def.spreadHip + moveSpread + streakSpread;
+    return BallisticsCalculator.calculateCurrentSpread(def, {
+      isAds: this.ads,
+      speedRatio,
+      isStrafing,
+      isSprinting,
+      precisionPenalty: this.precisionPenalty,
+      swayAmount: this.currentSway?.amplitude ?? 0
+    });
   }
 
   _fire() {
@@ -263,22 +291,16 @@ export class WeaponSystem {
       this.fireStreak = 1;
     }
     this.lastFireGapTime = now;
+    this.precisionPenalty = Math.min(this.precisionPenalty + 0.005, 0.04);
 
     const streakMul = 1 + this.fireStreak * streakFactor;
 
-    // ── Recoil no CameraRig (Layer 2) ───────────────────────────────────────────
+    // ── Recoil no CameraRig (Layer 2 via BallisticsCalculator) ───────────────────
     const isProto = def.id === 'rifle_proto';
-    const pitchScale = this.ads ? (isProto ? 0.65 : 0.25) : 0.85;
-    const pitchAdd = def.recoilPitch * pitchScale * streakMul;
-
-    let yawAdd = 0;
-    if (this.fireStreak > 0) {
-      const yawBias = def.recoilYawBias ?? 0.5;
-      const yawScale = this.ads ? 0.20 : 0.60;
-      yawAdd = yawBias * def.recoilYaw * yawScale * streakMul;
-    }
-
-    const kickbackZ = def.kickbackZ ?? (def.id === 'm249' ? 0.010 : def.id === 'uzi' ? 0.006 : 0.008);
+    const recoil = BallisticsCalculator.calculateRecoilImpulse(def, this.fireStreak, this.ads);
+    const pitchAdd = isProto ? recoil.pitch * 1.4 : recoil.pitch;
+    const yawAdd = recoil.yaw;
+    const kickbackZ = recoil.kickbackZ;
 
     if (this.player.rig) {
       const climbRatio = 0.30;
@@ -367,17 +389,9 @@ export class WeaponSystem {
         .addScaledVector(_up, Math.sin(a) * m)
         .normalize();
 
-    // Alvos: hitboxes dos bots
-    _hittableMeshes.length = 0;
-    for (const bot of this.botsProvider()) {
-      const hits = bot.hittables();
-      for (let i = 0; i < hits.length; i++) {
-        _hittableMeshes.push(hits[i]);
-      }
-    }
-
     const pelletCount = def.pellets || 1;
     const maxPelletSpread = def.pelletSpread || 0.01333; // Raio de 0.80m a 60m
+    const originPoint = this.ads ? _camPos : _muzzleWorld;
 
     for (let p = 0; p < pelletCount; p++) {
       _pelletDir.copy(_dir);
@@ -397,46 +411,14 @@ export class WeaponSystem {
         _pelletDir.addScaledVector(_right, rx).addScaledVector(_up, ry).normalize();
       }
 
-      // Primeiro raycast contra meshes dos bots
-      this.raycaster.set(_camPos, _pelletDir);
-      this.raycaster.far = 200;
-      const hitsBot = this.raycaster.intersectObjects(_hittableMeshes, false);
-
-      // Depois raycast contra o mundo físico
-      const hitWorld = this.world.raycast(_camPos, _pelletDir, 200);
-
-      const botDist = hitsBot.length ? hitsBot[0].distance : Infinity;
-      const worldDist = hitWorld ? hitWorld.distance : Infinity;
-
-      const hitDist = Math.min(botDist, worldDist);
-      const traceDist = Number.isFinite(hitDist) ? hitDist : 120;
-
-      // Ponto de impacto e traçante colineares com o cano
-      const originPoint = this.ads ? _camPos : _muzzleWorld;
-      _impactPoint.copy(originPoint).addScaledVector(_pelletDir, traceDist);
-
-      if (botDist < worldDist && hitsBot.length) {
-        const h = hitsBot[0];
-        const bot = h.object.userData.bot;
-        const part = h.object.userData.part;
-        const dmg = part === 'head' ? def.damageHead : def.damageBody;
-        const killed = bot.takeDamage(dmg, part);
-        
-        _screenPos.copy(h.point).project(this.camera);
-        const px = (_screenPos.x * 0.5 + 0.5) * window.innerWidth;
-        const py = -(_screenPos.y * 0.5 - 0.5) * window.innerHeight;
-        
-        _botHitPoint.copy(h.point);
-        emit('shot:bot', { point: _botHitPoint, headshot: part === 'head', killed, screenX: px, screenY: py, isShotgun: def.pellets > 1 });
-      } else if (hitWorld) {
-        _worldHitPoint.copy(hitWorld.point);
-        emit('shot:world', { point: _worldHitPoint, box: hitWorld.box });
-      }
-
-      emit('shot:tracer', {
-        from: _muzzleWorld,
-        to: _impactPoint,
-        color: def.tracerColor,
+      // Spawna o projétil físico contínuo na piscina (Continuous Collision Detection)
+      this.projectileManager.spawn({
+        origin: originPoint,
+        direction: _pelletDir,
+        weaponDef: def,
+        owner: 'player',
+        ownerEntity: this.player,
+        isPellet: pelletCount > 1
       });
     }
   }

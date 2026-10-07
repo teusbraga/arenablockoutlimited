@@ -1,7 +1,7 @@
 {
   "type": "module",
   "scripts": {
-    "test": "node test/headless_sim.js"
+    "test": "node test/headless_sim.js && node test/ballistics_test.js && node test/projectile_test.js"
   },
   "dependencies": {
     "three": "^0.186.1"

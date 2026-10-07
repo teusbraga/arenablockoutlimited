@@ -6,7 +6,7 @@ import { SceneSetup } from './core/SceneSetup.js';
 
 import { loadMap } from './world/MapLoader.js';
 import { Player } from './entities/Player.js';
-import { Viewmodel, buildHK416, buildP9, buildUZI, buildM249, buildRiflePrototype, buildAK47, buildSW500, buildM12 } from './weapons/Viewmodel.js';
+import { Viewmodel, buildHK416, buildP9, buildUZI, buildM249, buildRiflePrototype, buildAK47, buildSW500, buildM12, buildVSS } from './weapons/Viewmodel.js';
 import { WeaponSystem } from './weapons/WeaponSystem.js';
 import { initWeaponsFromData } from './weapons/WeaponDefs.js';
 import { Effects } from './fx/Effects.js';
@@ -14,6 +14,7 @@ import { AudioSystem } from './audio/AudioSystem.js';
 import { HUD } from './ui/HUD.js';
 import { MenuController } from './ui/MenuController.js';
 import { ScopeSystem } from './weapons/ScopeSystem.js';
+import { ScopeRenderTargetSystem } from './weapons/ScopeRenderTargetSystem.js';
 
 /* =========================================================
    BOOTSTRAP & INICIALIZAÇÃO DO JOGO
@@ -56,6 +57,7 @@ import { ScopeSystem } from './weapons/ScopeSystem.js';
     viewmodel.registerModel('uzi', buildUZI);
     viewmodel.registerModel('m249', buildM249);
     viewmodel.registerModel('rifle_proto', buildRiflePrototype);
+    viewmodel.registerModel('vss', buildVSS);
 
     const initialWeapon = MenuController.getSavedWeapon('ar15');
     viewmodel.equip(initialWeapon);
@@ -91,6 +93,12 @@ import { ScopeSystem } from './weapons/ScopeSystem.js';
     if (viewmodel.models['rifle_proto']?.details) {
       scopeSystem.attachToModel(viewmodel.models['rifle_proto'].details);
     }
+    
+    // Teste: Scope Render Target System (VSS Vintorez)
+    const scopeRTSystem = new ScopeRenderTargetSystem(renderer, scene);
+    if (viewmodel.models['vss']?.details) {
+      scopeRTSystem.attachToModel(viewmodel.models['vss'].details);
+    }
 
     // 5. Interface e Menus
     new MenuController({ input, gameManager, weapons });
@@ -110,6 +118,7 @@ import { ScopeSystem } from './weapons/ScopeSystem.js';
       // _process: Animação visual, sway, partículas, interpolações e render (rAF)
       renderUpdate(alpha, dt) {
         const isProto = weapons.current === 'rifle_proto';
+        const isVSS = weapons.current === 'vss';
 
         if (!gameManager.hasStarted) {
           player.updateCamera(camera, dt);
@@ -158,22 +167,32 @@ import { ScopeSystem } from './weapons/ScopeSystem.js';
           // Scope System
           if (isProto) {
             scopeSystem.update(dt, camera, weapons.ads, player.rig, viewmodel);
+            scopeRTSystem.update(dt, camera, false, player.rig, viewmodel);
             player.customSensMul = scopeSystem.getSensitivityFactor();
+          } else if (isVSS) {
+            scopeRTSystem.update(dt, camera, weapons.ads, player.rig, viewmodel);
+            scopeSystem.update(dt, camera, false, player.rig, viewmodel);
+            player.customSensMul = scopeRTSystem.getSensitivityFactor();
           } else {
             scopeSystem.update(dt, camera, false, player.rig, viewmodel);
+            scopeRTSystem.update(dt, camera, false, player.rig, viewmodel);
             player.customSensMul = 1.0;
           }
 
           // HUD
-          const hideCrosshair = isProto && scopeSystem.scopeOn;
+          const hideCrosshair = (isProto && scopeSystem.scopeOn) || (isVSS && scopeRTSystem.scopeOn);
           hud.updateCrosshair(hideCrosshair ? 1.0 : weapons.adsAmount, weapons._currentSpread(), player.sprinting, weapons.current);
           hud.update(dt, player.yaw);
         }
 
         // Renderização Three.js
         const protoModel = viewmodel.models['rifle_proto']?.mesh;
+        const vssModel = viewmodel.models['vss']?.mesh;
+
         if (isProto && scopeSystem.scopeOn) {
           scopeSystem.renderScopePass(protoModel);
+        } else if (isVSS && scopeRTSystem.scopeOn) {
+          scopeRTSystem.renderScopePass(vssModel);
         }
 
         renderer.render(scene, camera);

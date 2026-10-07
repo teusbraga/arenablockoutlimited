@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { on } from '../core/EventBus.js';
 import { SMOKE_TEX } from '../weapons/models/RiflePrototype.js';
 
-const MAX_TRACERS = 30;
+const MAX_TRACERS = 120;
 const MAX_SPARKS = 80;
 const MAX_SMOKE = 40;
 const MAX_CASINGS = 24;
@@ -33,7 +33,7 @@ export class Effects {
     this.world = world;
 
     // Constantes
-    this.TRACER_LIFE = 0.09;
+    this.TRACER_LIFE = 0.15;
     
     // Geometrias reutilizáveis
     this.sparkGeo = new THREE.SphereGeometry(0.02, 4, 4);

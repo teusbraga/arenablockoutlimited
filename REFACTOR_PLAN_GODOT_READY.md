@@ -174,3 +174,74 @@
   - Rodar 600 ticks de `fixedUpdate(1/120)` em Node.js puro.
   - Validar movimentação, decisão da FSM e tiros puramente na memória (logs de terminal).
   - Conclusão: prova definitiva de compatibilidade para Servidor Dedicado / Godot.
+
+---
+
+## 🟣 FASE 10: Módulo de Balística Avançada (Interna, Externa e Terminal)
+*Alvo: Sistema desacoplado e data-driven para balística, precisão dinâmica, recuo e queda de projétil.*
+
+### Passo 10.1: Expansão do Schema Base de Dados (`weapons.json` & `WeaponDefs.js`) [x] (CONCLUÍDO)
+- **Alvo:** `assets/weapons/weapons.json`, `src/weapons/WeaponDefs.js`
+- **Ação:**
+  - Estruturar metadados de balística (interna, externa e terminal) para as armas com suporte opcional / defensivo.
+  - Garantir backward compatibility no `WeaponDefs.js` com valores padrão (fallbacks) caso alguma chave seja omitida.
+
+### Passo 10.2: Motor Matemático `BallisticsCalculator.js` [x] (CONCLUÍDO)
+- **Alvo:** novo `src/weapons/BallisticsCalculator.js`
+- **Ação:**
+  - Implementar cálculos puros e sem estado (stateless):
+    - `calculateCurrentSpread`: precisão base em zero sway + perda dinâmica por movimento (walk, run, strafe) e disparo contínuo + recuperação temporal.
+    - `calculateRecoilImpulse`: recuo vertical/horizontal e recoil pattern dependente de sequência de disparos e tempo de recuperação.
+    - `calculateSway`: oscilação natural do cano parada e multiplicador em ADS.
+    - `calculateTerminalImpact`: queda de dano por distância e compensação parabólica de queda de projétil (bullet drop).
+
+### Passo 10.3: Integração no `WeaponSystem.js` [x] (CONCLUÍDO)
+- **Alvo:** `src/weapons/WeaponSystem.js`
+- **Ação:**
+  - Delegar dispersão, recoil, sway e dano para o `BallisticsCalculator`.
+  - Gerenciar temporizadores de recuperação de precisão e recoil de forma determinística por arma.
+  - Aplicar dispersão e balística terminal (queda de projétil e atenuação de dano por distância).
+
+### Passo 10.4: Validação Headless & Resiliência Antifrágil [x] (CONCLUÍDO)
+- **Alvo:** `test/headless_sim.js`, `test/ballistics_test.js`
+- **Ação:**
+  - Validar integridade e testar que a deleção de nós opcionais do JSON não quebra o sistema.
+
+---
+
+## 🟣 FASE 11: Sistema de Projéteis Físicos e CCD (Continuous Collision Detection)
+*Alvo: Simulação balística realista com projéteis físicos (Object Pool), trajetória parabólica com gravidade/vento, colisão contínua (CCD sweep raycast) e atraso acústico no hitmarker.*
+
+### Passo 11.1: Gerenciador de Projéteis com Object Pool (`ProjectileManager.js`) [x] (CONCLUÍDO)
+- **Alvo:** novo `src/weapons/ProjectileManager.js`
+- **Ação:**
+  - Criar pool pré-alocado de instâncias de projétil (evita Garbage Collection e congelamentos em mobile/low-end).
+  - Suporte a velocidade vetorial inicial baseada em `bulletSpeed` do JSON, gravidade configurável (`bulletDrop`), arrasto do ar (drag) e vento vetorial global.
+  - Implementar método `spawn(origin, direction, weaponDef, owner)` e `update(dt)`.
+
+### Passo 11.2: Detecção de Colisão Contínua (CCD Sweep) & Resolução de Dano [x] (CONCLUÍDO)
+- **Alvo:** `src/weapons/ProjectileManager.js`
+- **Ação:**
+  - Em cada sub-passo de simulação, testar o segmento `P_ant -> P_atual` via raycast no `CollisionWorld` e hitboxes de bots/jogadores.
+  - Prevenir "tunneling" (balas atravessando alvos velozes entre frames).
+  - Delegar cálculo de atenuação de dano terminal e penetração para o `BallisticsCalculator`.
+
+### Passo 11.3: Integração com `WeaponSystem.js` e `AIController.js` [x] (CONCLUÍDO)
+- **Alvo:** `src/weapons/WeaponSystem.js`, `src/ai/AIController.js`
+- **Ação:**
+  - Substituir raycast hitscan instantâneo pelo spawn de projéteis com velocidade real e dispersão aplicada.
+  - Garantir disparo tanto para armas convencionais quanto espingardas (pellets independentes com dispersão cônica).
+
+### Passo 11.4: Sistema de Áudio Acústico com Atraso Sônico [x] (CONCLUÍDO)
+- **Alvo:** `src/audio/AudioSystem.js`
+- **Ação:**
+  - Enfileirar reprodução de som de impacto / hitmarker com atraso acústico proporcional à distância (`dist / 343.0` s) para tiros a longa distância.
+
+### Passo 11.5: Tracers Parabólicos Dinâmicos & Validação Visual e Headless [x] (CONCLUÍDO)
+- **Alvo:** `src/fx/Effects.js`, `test/projectile_test.js`, `test/headless_sim.js`
+- **Ação:**
+  - Atualizar traçantes visuais para acompanhar a posição real em voo e a curva parabólica das balas.
+  - Criar testes unitários e de simulação headless demonstrando tempo de voo e taxa de quadros estável (>30k ticks/seg).
+
+
+

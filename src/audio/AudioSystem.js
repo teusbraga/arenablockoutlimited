@@ -286,8 +286,21 @@ export class AudioSystem {
       on('weapon:cycle',        () => this.play('weapon_cycle')),
       on('weapon:reload:start', () => this.play('reload_start')),
       on('weapon:reload:end',   () => this.play('reload_end')),
-      on('shot:bot', e => this.play(e.headshot ? 'hit_headshot' : 'hit_bot')),
-      on('shot:world', () => this.play('hit_world')),
+      on('shot:bot', e => {
+        const key = e.headshot ? 'hit_headshot' : 'hit_bot';
+        if (e?.soundDelay && e.soundDelay > 0.04) {
+          setTimeout(() => this.play(key), Math.round(e.soundDelay * 1000));
+        } else {
+          this.play(key);
+        }
+      }),
+      on('shot:world', e => {
+        if (e?.soundDelay && e.soundDelay > 0.04) {
+          setTimeout(() => this.play('hit_world'), Math.round(e.soundDelay * 1000));
+        } else {
+          this.play('hit_world');
+        }
+      }),
       on('bot:died', () => this.play('bot_died')),
       on('bot:fired', () => this.play('bot_shot')),
       on('player:damaged',  () => this.play('player_damaged')),
