@@ -199,6 +199,8 @@ import { ScopeRenderTargetSystem } from './weapons/ScopeRenderTargetSystem.js';
 
         if (isProto && scopeSystem.scopeOn) {
           scopeSystem.render(camera);
+        } else if (isVSS && scopeRTSystem.scopeOn) {
+          scopeRTSystem.render(camera);
         }
       },
     });

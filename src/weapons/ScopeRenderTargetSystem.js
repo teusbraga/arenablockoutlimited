@@ -6,7 +6,8 @@ export const SCOPE_RT_CONFIG = {
   ADS_FOV: 60,
   SCOPE_FOV: 12,
   SCOPE_RT_SIZE: 512,
-  ADS_SPEED: 12
+  ADS_SPEED: 12,
+  LENS_SIZE: 0.42,
 };
 
 export const rad = d => d * Math.PI / 180;
@@ -19,104 +20,116 @@ export class ScopeRenderTargetSystem {
     this.scopeFov = SCOPE_RT_CONFIG.SCOPE_FOV;
     this.adsT = 0;
     this.scopeOn = false;
+    this.baseDepth = null;
+    this.pxShiftX = 0;
+    this.pxShiftY = 0;
 
-    // Scope Camera
+    // ── Scope Camera (second camera, narrow FOV, aspect=1 for square RT)
     this.scopeCamera = new THREE.PerspectiveCamera(this.scopeFov, 1, 0.1, 150);
 
-    // Render Target
+    // ── Render Target (scene rendered from scope POV → texture)
     this.scopeRT = new THREE.WebGLRenderTarget(SCOPE_RT_CONFIG.SCOPE_RT_SIZE, SCOPE_RT_CONFIG.SCOPE_RT_SIZE, {
       minFilter: THREE.LinearFilter,
       magFilter: THREE.LinearFilter,
       format: THREE.RGBAFormat,
     });
 
-    // We will use a custom shader on the weapon's lens mesh to combine the RT texture and a procedural reticle
+    // ── Overlay ShaderMaterial: RT texture + PSO-1 procedural reticle + vignette
     this.lensMat = new THREE.ShaderMaterial({
-      transparent: false,
+      transparent: true,
+      depthTest: false,
+      depthWrite: false,
       uniforms: {
-        tMap: { value: this.scopeRT.texture },
-        uAdsT: { value: 0 }
+        tMap:      { value: this.scopeRT.texture },
+        uOpacity:  { value: 0.0 },
+        uParallax: { value: new THREE.Vector2(0, 0) },
       },
-      vertexShader: `
+      vertexShader: /* glsl */`
         varying vec2 vUv;
         void main() {
           vUv = uv;
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }`,
-      fragmentShader: `
+      fragmentShader: /* glsl */`
         uniform sampler2D tMap;
-        uniform float uAdsT;
+        uniform float uOpacity;
+        uniform vec2 uParallax;
         varying vec2 vUv;
 
-        // Função para desenhar o retículo PSO-1 style (Chevron)
         float drawChevron(vec2 uv, vec2 center, float size) {
           vec2 p = uv - center;
-          p.y = -p.y; // Inverte Y para desenhar "para cima"
+          p.y = -p.y;
           float lineThick = 0.003;
-          
-          // Chevron
-          float d1 = abs(p.y - abs(p.x)) * 0.707; // Distância para V invertido
-          float chevron = (1.0 - smoothstep(0.0, lineThick, d1)) * step(p.y, 0.0) * step(-size, p.y);
-          
-          return chevron;
+          float d1 = abs(p.y - abs(p.x)) * 0.707;
+          return (1.0 - smoothstep(0.0, lineThick, d1)) * step(p.y, 0.0) * step(-size, p.y);
         }
 
         void main() {
-          // Centraliza UV
-          vec2 uv = vUv;
-          
-          // Ligeiro efeito de barrel distortion / chromatic aberration
-          vec2 p = uv - 0.5;
-          float r = length(p);
-          vec2 ca = p * 0.005 * r;
-          
-          vec3 texColor;
-          texColor.r = texture2D(tMap, uv + ca).r;
-          texColor.g = texture2D(tMap, uv).g;
-          texColor.b = texture2D(tMap, uv - ca).b;
-          
-          // Retículo procedural (PSO-1)
-          float reticle = 0.0;
-          
-          // Linhas verticais e horizontais centrais
-          reticle += (1.0 - smoothstep(0.0, 0.002, abs(p.x))) * step(p.y, 0.0); // Linha vertical inferior
-          reticle += (1.0 - smoothstep(0.0, 0.002, abs(p.y))) * step(abs(p.x), 0.3); // Linha horizontal
-          
-          // Chevrons (Marcações de queda)
-          reticle += drawChevron(uv, vec2(0.5, 0.5), 0.03);
-          reticle += drawChevron(uv, vec2(0.5, 0.45), 0.02);
-          reticle += drawChevron(uv, vec2(0.5, 0.4), 0.02);
-          
-          vec3 reticleColor = vec3(1.0, 0.0, 0.0); // Vermelho iluminado
-          
-          vec3 finalColor = mix(texColor, reticleColor, clamp(reticle, 0.0, 1.0));
-          
-          // Simula a escuridão quando não está em ADS (eye relief)
-          float vignette = 1.0 - smoothstep(0.45, 0.5, r);
-          finalColor *= mix(0.02, vignette, uAdsT); // Quase preto fora do ADS
+          vec2 p = vUv - 0.5;
+          float r = length(p) * 2.0;
 
-          gl_FragColor = vec4(finalColor, 1.0);
-        }`
+          // Chromatic aberration
+          vec2 ca = p * 0.006 * r * r;
+          vec3 col;
+          col.r = texture2D(tMap, vUv + ca).r;
+          col.g = texture2D(tMap, vUv).g;
+          col.b = texture2D(tMap, vUv - ca).b;
+          col *= 1.18;
+
+          // PSO-1 procedural reticle (crosshairs + chevron drop marks)
+          vec2 pp = p; // p already centered on 0,0; but shader draws in vUv space so:
+          vec2 uvp = vUv - 0.5; // same as p
+          float reticle = 0.0;
+          reticle += (1.0 - smoothstep(0.0, 0.002, abs(uvp.x))) * step(uvp.y, 0.0);
+          reticle += (1.0 - smoothstep(0.0, 0.002, abs(uvp.y))) * step(abs(uvp.x), 0.3);
+          reticle += drawChevron(vUv, vec2(0.5, 0.5),  0.030);
+          reticle += drawChevron(vUv, vec2(0.5, 0.45), 0.020);
+          reticle += drawChevron(vUv, vec2(0.5, 0.40), 0.020);
+          vec3 reticleColor = vec3(1.0, 0.12, 0.0);
+          col = mix(col, reticleColor, clamp(reticle, 0.0, 1.0));
+
+          // Sharp circular mask (clean 1-px AA edge)
+          float alpha = uOpacity * (1.0 - smoothstep(0.995, 1.0, r));
+
+          gl_FragColor = vec4(col, alpha);
+        }`,
     });
+
+    // ── 2D Overlay: orthographic scene + circular lens mesh (1 unit radius → scaled in px)
+    this.overlayScene = new THREE.Scene();
+    this.overlayCam = new THREE.OrthographicCamera(
+      -innerWidth / 2, innerWidth / 2,
+       innerHeight / 2, -innerHeight / 2,
+      -10, 10
+    );
+    this.lensMesh = new THREE.Mesh(new THREE.CircleGeometry(1, 48), this.lensMat);
+    this.overlayScene.add(this.lensMesh);
 
     this.mainCameraRef = null;
     this.protoDetails = null;
+
+    this._onResize = () => this.onResize();
+    window.addEventListener('resize', this._onResize);
   }
 
   destroy() {
+    window.removeEventListener('resize', this._onResize);
     if (this.scopeRT) {
       this.scopeRT.dispose();
       this.scopeRT = null;
     }
-    if (this.lensMat) {
-      this.lensMat.dispose();
-    }
+    if (this.lensMat) this.lensMat.dispose();
+    if (this.lensMesh) this.lensMesh.geometry.dispose();
+  }
+
+  lensDiameter() {
+    return Math.min(innerWidth, innerHeight) * SCOPE_RT_CONFIG.LENS_SIZE;
   }
 
   attachToModel(protoDetails) {
     if (!protoDetails || !protoDetails.rearLens) return;
     this.protoDetails = protoDetails;
-    // Substitui o material da lente traseira pelo nosso shader
+    // Apply the scope RT shader to the 3D rear lens mesh as well (visible in close-up / ADS lock)
     protoDetails.rearLens.material = this.lensMat;
   }
 
@@ -128,33 +141,34 @@ export class ScopeRenderTargetSystem {
 
   update(dt, mainCamera, isAdsActive, rig, viewmodel) {
     this.mainCameraRef = mainCamera;
-    
+
     const target = isAdsActive ? 1 : 0;
     this.adsT += (target - this.adsT) * (1 - Math.exp(-dt * SCOPE_RT_CONFIG.ADS_SPEED));
     if (Math.abs(target - this.adsT) < 0.001) this.adsT = target;
 
-    this.lensMat.uniforms.uAdsT.value = this.adsT;
     this.scopeOn = this.adsT > 0.01;
 
-    // Atualiza a câmera do scope baseada no cano ou câmera principal
+    // ── Orient scope camera using front/rear lens world positions (tracks weapon sway/recoil)
     if (this.protoDetails && this.protoDetails.rearLens && this.protoDetails.frontLens) {
       this.protoDetails.rearLens.updateMatrixWorld(true);
       this.protoDetails.frontLens.updateMatrixWorld(true);
-      
-      const vRear = new THREE.Vector3();
+
+      const vRear  = new THREE.Vector3();
       const vFront = new THREE.Vector3();
       this.protoDetails.rearLens.getWorldPosition(vRear);
       this.protoDetails.frontLens.getWorldPosition(vFront);
-      
+
       const dir = new THREE.Vector3().subVectors(vFront, vRear).normalize();
-      
+
       const vUp = new THREE.Vector3(0, 1, 0);
-      vUp.transformDirection(this.protoDetails.opticBody.matrixWorld).normalize();
+      if (this.protoDetails.opticBody) {
+        vUp.transformDirection(this.protoDetails.opticBody.matrixWorld).normalize();
+      }
 
       this.scopeCamera.position.copy(mainCamera.position);
-      const targetPos = new THREE.Vector3().copy(this.scopeCamera.position).add(dir);
+      const lookTarget = new THREE.Vector3().copy(this.scopeCamera.position).add(dir);
       this.scopeCamera.up.copy(vUp);
-      this.scopeCamera.lookAt(targetPos);
+      this.scopeCamera.lookAt(lookTarget);
     } else {
       this.scopeCamera.position.copy(mainCamera.position);
       this.scopeCamera.quaternion.copy(mainCamera.quaternion);
@@ -165,17 +179,137 @@ export class ScopeRenderTargetSystem {
     this.scopeCamera.updateProjectionMatrix();
   }
 
-  renderScopePass(protoModel) {
+  // ── PASS 1: Render scene from scope camera → RT (called before main render)
+  renderScopePass(vssModel) {
     if (!this.scopeOn) return;
 
-    if (protoModel) protoModel.visible = false; // Não renderizar a própria arma no scope
-    
-    // Opcionalmente esconder o jogador local, se houver mesh
+    // Re-sync scope camera with latest matrices before rendering
+    if (this.mainCameraRef) {
+      this.scopeCamera.position.copy(this.mainCameraRef.position);
+    }
+    if (this.protoDetails?.rearLens && this.protoDetails?.frontLens) {
+      this.protoDetails.rearLens.updateMatrixWorld(true);
+      this.protoDetails.frontLens.updateMatrixWorld(true);
+      const vRear  = new THREE.Vector3();
+      const vFront = new THREE.Vector3();
+      this.protoDetails.rearLens.getWorldPosition(vRear);
+      this.protoDetails.frontLens.getWorldPosition(vFront);
+      const dir = new THREE.Vector3().subVectors(vFront, vRear).normalize();
+      const vUp = new THREE.Vector3(0, 1, 0);
+      if (this.protoDetails.opticBody) {
+        vUp.transformDirection(this.protoDetails.opticBody.matrixWorld).normalize();
+      }
+      const lookTarget = new THREE.Vector3().copy(this.scopeCamera.position).add(dir);
+      this.scopeCamera.up.copy(vUp);
+      this.scopeCamera.lookAt(lookTarget);
+    } else if (this.mainCameraRef) {
+      this.scopeCamera.quaternion.copy(this.mainCameraRef.quaternion);
+    }
+
+    if (vssModel) vssModel.visible = false;
     this.renderer.setRenderTarget(this.scopeRT);
     this.renderer.clear();
     this.renderer.render(this.scene, this.scopeCamera);
     this.renderer.setRenderTarget(null);
+    if (vssModel) vssModel.visible = true;
+  }
 
-    if (protoModel) protoModel.visible = true;
+  // ── PASS 2: Composite RT texture as 2D overlay disc (called after main render)
+  render(mainCamera) {
+    const w = innerWidth, h = innerHeight;
+    if (!this.scopeOn) return;
+
+    // Overlay fades in only at the final phase of ADS (eye-relief transition)
+    const eyeReliefThreshold = 0.65;
+    const overlayProgress = Math.max(0, (this.adsT - eyeReliefThreshold) / (1 - eyeReliefThreshold));
+    if (overlayProgress <= 0.001) return;
+    const smoothOverlay = Math.pow(overlayProgress, 1.8);
+
+    mainCamera.updateMatrixWorld(true);
+    if (this.protoDetails?.rearLens) this.protoDetails.rearLens.updateMatrixWorld(true);
+    if (this.protoDetails?.frontLens) this.protoDetails.frontLens.updateMatrixWorld(true);
+
+    let offsetX = 0, offsetY = 0, rollAngle = 0, depthScale = 1.0;
+
+    if (this.protoDetails?.rearLens) {
+      const v = new THREE.Vector3();
+      this.protoDetails.rearLens.getWorldPosition(v);
+
+      // Track depth for physically-accurate lens scale during weapon sway/recoil
+      const vCam  = v.clone().applyMatrix4(mainCamera.matrixWorldInverse);
+      const depthZ = -vCam.z;
+      if (!this.baseDepth) {
+        this.baseDepth = depthZ;
+      } else if (this.adsT > 0.95) {
+        this.baseDepth += (depthZ - this.baseDepth) * 0.05;
+      }
+      if (depthZ > 0.02) {
+        const rawScale = this.baseDepth / depthZ;
+        depthScale = Math.max(0.65, Math.min(2.5, rawScale));
+      }
+
+      // Project rear lens world position onto screen
+      v.project(mainCamera);
+      offsetX =  v.x * (w / 2);
+      offsetY = -v.y * (h / 2);
+
+      // Roll: track optic body world orientation to sync disc rotation with weapon tilt
+      if (this.protoDetails.opticBody) {
+        const vUp = new THREE.Vector3(0, 1, 0);
+        vUp.transformDirection(this.protoDetails.opticBody.matrixWorld);
+        vUp.transformDirection(mainCamera.matrixWorldInverse);
+        rollAngle = Math.atan2(vUp.x, vUp.y);
+      }
+
+      // Parallax shift (front vs rear lens offset = parallax depth cue)
+      if (this.protoDetails.frontLens) {
+        const vFront = new THREE.Vector3();
+        this.protoDetails.frontLens.getWorldPosition(vFront);
+        vFront.project(mainCamera);
+        this.pxShiftX = (vFront.x * (w / 2)) - offsetX;
+        this.pxShiftY = (-vFront.y * (h / 2)) - offsetY;
+      }
+    }
+
+    const centerX = (w / 2) + offsetX;
+    const centerY = (h / 2) - offsetY; // WebGL scissor: origin bottom-left
+
+    const D = this.lensDiameter() * (0.68 + 0.32 * smoothOverlay) * depthScale;
+    const R = D / 2;
+
+    // Position and scale the 2D disc mesh in the ortho overlay scene
+    this.lensMesh.position.set(offsetX, -offsetY, 0);
+    this.lensMesh.rotation.z = -rollAngle;
+    this.lensMesh.scale.set(R, R, 1);
+    this.lensMat.uniforms.uOpacity.value = smoothOverlay;
+
+    // Parallax: physical tube depth feeling
+    let shiftX = 0, shiftY = 0;
+    if (D > 0 && this.pxShiftX !== undefined) {
+      const pxMul = 0.80;
+      shiftX = (this.pxShiftX / D) * pxMul;
+      shiftY = (-this.pxShiftY / D) * pxMul;
+    }
+    this.lensMat.uniforms.uParallax.value.set(shiftX, shiftY);
+
+    // Scissor test (render only the lens quad area for performance)
+    const scissorX    = Math.round(centerX - R - 2);
+    const scissorY    = Math.round(centerY - R - 2);
+    const scissorSize = Math.round(D + 4);
+
+    this.renderer.setScissor(scissorX, scissorY, scissorSize, scissorSize);
+    this.renderer.setScissorTest(true);
+    this.renderer.autoClear = false;
+    this.renderer.render(this.overlayScene, this.overlayCam);
+    this.renderer.setScissorTest(false);
+    this.renderer.autoClear = true;
+  }
+
+  onResize() {
+    this.overlayCam.left   = -innerWidth  / 2;
+    this.overlayCam.right  =  innerWidth  / 2;
+    this.overlayCam.top    =  innerHeight / 2;
+    this.overlayCam.bottom = -innerHeight / 2;
+    this.overlayCam.updateProjectionMatrix();
   }
 }
