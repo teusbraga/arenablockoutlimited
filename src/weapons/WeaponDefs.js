@@ -90,6 +90,9 @@ export function compileWeapons(baseList = BASE_WEAPONS, modsList = MODS) {
         }
         if (mod.adsFov)            finalWep.adsFov            = mod.adsFov;
         if (mod.adsSightDistance)  finalWep.adsSightDistance  = mod.adsSightDistance;
+        if (mod.tracerProfile) {
+          finalWep.tracerProfile = { ...(finalWep.tracerProfile || {}), ...mod.tracerProfile };
+        }
       }
     }
     compiled[key] = finalWep;

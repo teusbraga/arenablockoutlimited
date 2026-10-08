@@ -30,6 +30,7 @@ import * as THREE from 'three';
    ============================================================ */
 
 export function makeGlowTexture() {
+  if (typeof document === 'undefined') return new THREE.Texture();
   const s = 64; // Reduzido de 128 para 64 (suficiente para partículas de flash sem desperdício de VRAM)
   const c = document.createElement('canvas');
   c.width = c.height = s;
@@ -48,6 +49,7 @@ export function makeGlowTexture() {
 }
 
 export function makeSmokeTexture() {
+  if (typeof document === 'undefined') return new THREE.Texture();
   const s = 64;
   const c = document.createElement('canvas');
   c.width = c.height = s;

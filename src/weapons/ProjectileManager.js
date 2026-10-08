@@ -41,6 +41,7 @@ export class Projectile {
 // Vetores auxiliares reutilizáveis para zerar alocação de memória no loop a 120Hz
 const _stepVec = new THREE.Vector3();
 const _stepDir = new THREE.Vector3();
+const _tempDir = new THREE.Vector3();
 const _hittableMeshes = [];
 const _screenPos = new THREE.Vector3();
 const _botHitPoint = new THREE.Vector3();
@@ -74,6 +75,7 @@ export class ProjectileManager {
    */
   spawn({
     origin,
+    originTracker,
     direction,
     weaponDef,
     owner = 'player',
@@ -129,7 +131,77 @@ export class ProjectileManager {
       color: p.color
     });
 
+    // Se projétil for rápido (balas de alta velocidade), emite tracer visual desacoplado (estilo CS2)
+    if (p.speed >= 200) {
+      const normDir = _tempDir.copy(direction).normalize();
+      const estHit = this._estimateImpact(origin, normDir, p.maxDistance, owner);
+
+      emit('tracer:fire', {
+        origin: origin.clone(),
+        originTracker: originTracker,
+        end: estHit.point,
+        color: p.color,
+        isPellet: p.isPellet,
+        profile: weaponDef?.tracerProfile
+      });
+    }
+
     return p;
+  }
+
+  /**
+   * Raycast síncrono rápido no momento do disparo para estimar impacto visual imediato.
+   * Totalmente desacoplado do avanço contínuo do projétil (evita atraso de vôo no tracer).
+   */
+  _estimateImpact(origin, dir, maxDist, owner = 'player') {
+    let closestDist = maxDist;
+    let hitPoint = null;
+
+    // 1. Raycast no mundo estático (CollisionWorld)
+    if (this.world) {
+      const hitWorld = this.world.raycast(origin, dir, maxDist);
+      if (hitWorld && hitWorld.distance < closestDist) {
+        closestDist = hitWorld.distance;
+        hitPoint = hitWorld.point;
+      }
+    }
+
+    // 2. Raycast em entidades dinâmicas (Bots / Player)
+    if (owner === 'player') {
+      const bots = this.botsProvider ? this.botsProvider() : [];
+      for (let i = 0; i < bots.length; i++) {
+        const b = bots[i];
+        if (!b || !b.alive) continue;
+        const mHit = this._raycastMathBot(origin, dir, closestDist, b);
+        if (mHit && mHit.distance < closestDist) {
+          closestDist = mHit.distance;
+          hitPoint = mHit.point;
+        }
+      }
+    } else if (owner === 'bot' && this.player && this.player.alive) {
+      // Bots ignoram fogo amigo visual no raycast de tracer para performance
+      const mHit = this._raycastMathBot(origin, dir, closestDist, this.player);
+      if (mHit && mHit.distance < closestDist) {
+        closestDist = mHit.distance;
+        hitPoint = mHit.point;
+      }
+    }
+
+    if (!hitPoint) {
+      return {
+        distance: closestDist,
+        point: new THREE.Vector3(
+          origin.x + dir.x * closestDist,
+          origin.y + dir.y * closestDist,
+          origin.z + dir.z * closestDist
+        )
+      };
+    }
+
+    return {
+      distance: closestDist,
+      point: new THREE.Vector3(hitPoint.x, hitPoint.y, hitPoint.z)
+    };
   }
 
   /**

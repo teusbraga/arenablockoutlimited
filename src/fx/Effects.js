@@ -30,6 +30,18 @@ const _ghostPalette = [
 const _tracerUp = new THREE.Vector3(0, 1, 0);
 const _tracerDir = new THREE.Vector3();
 
+export const DEFAULT_TRACER_PROFILE = {
+  style: 'swipe',     // 'swipe' (CS2 instant) ou 'streak' (BR clÃ¡ssico)
+  ttl: 0.055,         // Tempo de vida total em segundos (~3-4 frames a 60fps)
+  headSpeed: 0.35,    // % do ttl para a cabeÃ§a atingir o alvo (ex: ~19ms)
+  streakLength: 0.45, // 'swipe': atraso relativo da cauda | 'streak': comprimento fixo (15-45%)
+  fadeInEnd: 0.10,    // % do ttl para fade-in suave sem pop-in seco
+  fadeOutStart: 0.65, // % do ttl onde comeÃ§a o fade out
+  width: 1.0,         // Multiplicador de espessura (1.0 = padrÃ£o do cylinderGeo)
+  color: 0xffd27f,    // Cor padrÃ£o
+  maxOpacity: 0.95    // Opacidade mÃ¡xima
+};
+
 export class Effects {
   constructor(scene, world = null) {
     this.scene = scene;
@@ -72,10 +84,53 @@ export class Effects {
     this._bind();
   }
 
+  _sanitizeProfile(rawProfile, fallbackColor) {
+    if (!rawProfile) rawProfile = {};
+    const p = Object.assign({}, DEFAULT_TRACER_PROFILE, rawProfile);
+
+    if (fallbackColor && !rawProfile?.color) {
+      p.color = fallbackColor;
+    }
+
+    // Invariantes matemÃ¡ticas e limites seguros
+    p.style = (p.style === 'streak' || p.style === 'swipe') ? p.style : 'swipe';
+    p.ttl = Math.max(0.01, p.ttl || 0.055);
+    p.headSpeed = Math.max(0.01, Math.min(p.headSpeed ?? 0.35, 1.0));
+    p.streakLength = Math.max(0, Math.min(p.streakLength ?? 0.45, 0.99));
+    p.fadeInEnd = Math.max(0, Math.min(p.fadeInEnd ?? 0.10, 0.95));
+    p.fadeOutStart = Math.max(p.fadeInEnd + 0.01, Math.min(p.fadeOutStart ?? 0.65, 1.0));
+    p.width = Math.max(0.05, p.width ?? 1.0);
+    p.maxOpacity = Math.max(0.01, Math.min(p.maxOpacity ?? 0.95, 1.0));
+
+    return p;
+  }
+
+  _spawnFlashTracer(e) {
+    const t = this.tracers[this.tracerIdx];
+    this.tracerIdx = (this.tracerIdx + 1) % MAX_TRACERS;
+
+    t.active = true;
+    t.mode = 'flash';
+    t.life = 0;
+    t.proj = null;
+    t.isDummy = false;
+    t.origin.copy(e.origin);
+    t.originTracker = e.originTracker || null;
+    t.end.copy(e.end);
+
+    t.profile = this._sanitizeProfile(e.profile, e.color);
+    t.ttl = t.profile.ttl;
+
+    t.mat.color.set(t.profile.color);
+    t.mat.opacity = 0.01;
+    t.mesh.visible = true;
+  }
+
   _spawnTracer(p) {
     const t = this.tracers[this.tracerIdx];
     this.tracerIdx = (this.tracerIdx + 1) % MAX_TRACERS;
     t.active = true;
+    t.mode = 'phys';
     t.life = 0;
     t.proj = p;
     t.isDummy = p.isDummy;
@@ -114,7 +169,19 @@ export class Effects {
       const mesh = new THREE.Mesh(this.tracerGeo, mat);
       mesh.visible = false;
       this.scene.add(mesh);
-      this.tracers.push({ mesh, mat, life: 0, active: false });
+      this.tracers.push({
+        mesh,
+        mat,
+        life: 0,
+        active: false,
+        mode: 'phys',
+        origin: new THREE.Vector3(),
+        end: new THREE.Vector3(),
+        profile: null,
+        ttl: 0.055,
+        proj: null,
+        isDummy: false
+      });
     }
 
     // 2. Sparks (FaÃ­scas / Sangue / Impacto)
@@ -256,21 +323,32 @@ export class Effects {
 
   _bind() {
     this._unsubs = [
-      on('projectile:spawned', e => this._spawnTracer(e.projectile)),
-        on('shot:tracer', e => {
-           const dist = e.from.distanceTo(e.to);
-           const p = {
-              isDummy: true,
-              active: true,
-              speed: 550,
-              isPellet: false,
-              startPos: e.from,
-              vel: new THREE.Vector3().subVectors(e.to, e.from).normalize().multiplyScalar(550),
-              color: 0xff2222,
-              distanceToTarget: dist
-           };
-           this._spawnTracer(p);
-        }),
+      on('tracer:fire', e => this._spawnFlashTracer(e)),
+      on('projectile:spawned', e => {
+        // ProjÃ©teis lentos com CCD (foguetes, flechas) usam tracer fÃ­sico acoplado
+        if (e.projectile && e.projectile.speed < 200) {
+          this._spawnTracer(e.projectile);
+        }
+      }),
+      on('shot:tracer', e => {
+        // Disparo de bots: FlashTracer imediato sem delay de vÃ´o artificial
+        this._spawnFlashTracer({
+          origin: e.from,
+          end: e.to,
+          color: e.color || 0xff2222,
+          profile: e.profile || {
+            style: 'swipe',
+            color: 0xff2222,
+            ttl: 0.055,
+            headSpeed: 0.35,
+            streakLength: 0.45,
+            width: 0.85,
+            fadeInEnd: 0.10,
+            fadeOutStart: 0.65,
+            maxOpacity: 0.90
+          }
+        });
+      }),
         on('shot:world', e => this._spawnImpact(e.point, 0xd9c79b, 5)),
       on('shot:bot', e => this._spawnImpact(e.point, e.headshot ? 0xffd166 : 0xc4504a, 6)),
       on('bot:died', e => {
@@ -658,6 +736,75 @@ export class Effects {
         continue;
       }
 
+      // â”€â”€ CASO A: FLASH TRACER DESACOPLADO (CS2 STYLE) â”€â”€
+      if (t.mode === 'flash') {
+        t.life += dt;
+        if (t.life >= t.ttl) {
+          t.active = false;
+          t.mesh.visible = false;
+          continue;
+        }
+
+        const p = t.profile;
+        const k = Math.min(t.life / t.ttl, 1.0);
+
+        if (t.originTracker) {
+          t.originTracker(t.origin);
+        }
+
+        let headT = 0, tailT = 0;
+
+        if (p.style === 'streak') {
+          // BR ClÃ¡ssico: streak de comprimento fixo viajando pelo ray
+          const travelK = Math.min(k / p.headSpeed, 1.0);
+          headT = travelK;
+          tailT = Math.max(0, travelK - p.streakLength);
+        } else {
+          // CS2 ClÃ¡ssico (Swipe): cresce inteiro atÃ© o alvo e encolhe
+          headT = Math.min(k / p.headSpeed, 1.0);
+          const tailStart = p.headSpeed * (1.0 - p.streakLength);
+          const tailDuration = Math.max(0.001, 1.0 - tailStart);
+          tailT = k <= tailStart ? 0 : Math.min((k - tailStart) / tailDuration, 1.0);
+        }
+
+        const headX = t.origin.x + (t.end.x - t.origin.x) * headT;
+        const headY = t.origin.y + (t.end.y - t.origin.y) * headT;
+        const headZ = t.origin.z + (t.end.z - t.origin.z) * headT;
+
+        const tailX = t.origin.x + (t.end.x - t.origin.x) * tailT;
+        const tailY = t.origin.y + (t.end.y - t.origin.y) * tailT;
+        const tailZ = t.origin.z + (t.end.z - t.origin.z) * tailT;
+
+        const dx = headX - tailX;
+        const dy = headY - tailY;
+        const dz = headZ - tailZ;
+        const realLen = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+        if (realLen < 0.05) {
+          t.mesh.visible = false;
+          continue;
+        }
+
+        _tracerDir.set(dx, dy, dz).normalize();
+
+        t.mesh.position.set((headX + tailX) * 0.5, (headY + tailY) * 0.5, (headZ + tailZ) * 0.5);
+        t.mesh.scale.set(p.width, realLen, p.width);
+        t.mesh.quaternion.setFromUnitVectors(_tracerUp, _tracerDir);
+
+        // 3. Fade in suave e Fade out paramÃ©tricos
+        let opacity = p.maxOpacity;
+        if (k < p.fadeInEnd) {
+          opacity = (k / p.fadeInEnd) * p.maxOpacity;
+        } else if (k > p.fadeOutStart) {
+          opacity = (1.0 - (k - p.fadeOutStart) / (1.0 - p.fadeOutStart)) * p.maxOpacity;
+        }
+
+        t.mat.opacity = Math.max(0, opacity);
+        t.mesh.visible = t.mat.opacity > 0.01;
+        continue;
+      }
+
+      // â”€â”€ CASO B: TRACER FÃSICO ACOPLADO (PROJÃ‰TEIS LENTOS) â”€â”€
       t.life += dt;
       const p = t.proj;
 
@@ -708,16 +855,16 @@ export class Effects {
       }
 
       // --- MUZZLE PIN: ancora a cauda no ponto exato de nascimento da bala
-      // para armas subsônicas (baixa velocidade), a bala fica próxima da câmera
-      // por tempo suficiente para o deslocamento de sway/frame ser perceptível.
+      // para armas subsï¿½nicas (baixa velocidade), a bala fica prï¿½xima da cï¿½mera
+      // por tempo suficiente para o deslocamento de sway/frame ser perceptï¿½vel.
       // Ancoramos a cauda ao spawnOrigin nos primeiros `pinDistance` metros,
-      // depois transicionamos suavemente para o cálculo padrão.
+      // depois transicionamos suavemente para o cï¿½lculo padrï¿½o.
       let tailX, tailY, tailZ;
       const hasMuzzlePin = !t.isDummy && p.spawnOrigin;
       if (hasMuzzlePin) {
         const pinDistance = Math.max(tracerLen * 2, 4.0); // primeiros 4m ou 2x o comprimento do tracer
         const pinT = Math.min(traveled / pinDistance, 1.0);
-        // Cauda padrão (calculada "para trás" a partir da cabeça)
+        // Cauda padrï¿½o (calculada "para trï¿½s" a partir da cabeï¿½a)
         const stdTailX = headX - _tracerDir.x * tracerLen;
         const stdTailY = headY - _tracerDir.y * tracerLen;
         const stdTailZ = headZ - _tracerDir.z * tracerLen;
@@ -725,7 +872,7 @@ export class Effects {
         const pinTailX = p.spawnOrigin.x;
         const pinTailY = p.spawnOrigin.y;
         const pinTailZ = p.spawnOrigin.z;
-        // Lerp suave: começa ancorado no cano, transiciona para o cálculo padrão
+        // Lerp suave: comeï¿½a ancorado no cano, transiciona para o cï¿½lculo padrï¿½o
         tailX = pinTailX + (stdTailX - pinTailX) * pinT;
         tailY = pinTailY + (stdTailY - pinTailY) * pinT;
         tailZ = pinTailZ + (stdTailZ - pinTailZ) * pinT;
@@ -735,7 +882,7 @@ export class Effects {
         tailZ = headZ - _tracerDir.z * tracerLen;
       }
 
-      // Comprimento real do tracer baseado na distância head-tail (pode diferir durante o pin)
+      // Comprimento real do tracer baseado na distï¿½ncia head-tail (pode diferir durante o pin)
       const realLen = Math.sqrt(
         (headX - tailX) ** 2 + (headY - tailY) ** 2 + (headZ - tailZ) ** 2
       );
@@ -745,7 +892,7 @@ export class Effects {
         continue;
       }
 
-      // Recalcula direção real para o quaternion (head-tail pode divergir do vel durante pin)
+      // Recalcula direï¿½ï¿½o real para o quaternion (head-tail pode divergir do vel durante pin)
       _tracerDir.set(headX - tailX, headY - tailY, headZ - tailZ).normalize();
 
       t.mesh.position.set((headX + tailX) * 0.5, (headY + tailY) * 0.5, (headZ + tailZ) * 0.5);

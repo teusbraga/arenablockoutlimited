@@ -302,3 +302,11 @@
 - **Alvo:** src/fx/Effects.js
 - **Ações:**
   - Ajustar contraste, espessura, opacidade e curva temporal do traçante no Effects.js para garantir alta visibilidade cinematográfica em movimento sem estagnação no ar.
+
+### Passo 13.8: Sistema Completo de FlashTracers Desacoplados (CS2-Style) & Muzzle Tracking Dinâmico [x] (CONCLUÍDO)
+- **Alvo:** `src/fx/Effects.js`, `src/weapons/ProjectileManager.js`, `src/weapons/WeaponSystem.js`, `assets/weapons/weapons.json`
+- **Ações:**
+  - Desacoplamento do tracer visual da física contínua do projétil (FlashTracer com raycast síncrono no disparo).
+  - Correção de opacidade/visibilidade no Frame 0 eliminando pop-in e atrasos de renderização.
+  - Refatoração dos perfis de tracer para parametrização intuitiva (`streakLength`, `style: 'swipe' | 'streak'`) totalmente editáveis por arma no JSON.
+  - Implementação do `originTracker` dinâmico para rastreamento em tempo real da ponta do cano (Viewmodel Mount) no espaço de mundo, eliminando a desconexão visual durante strafes e movimentação veloz.

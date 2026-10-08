@@ -456,6 +456,7 @@ export class WeaponSystem {
       // Spawna o projétil físico contínuo na piscina (Continuous Collision Detection)
       this.projectileManager.spawn({
         origin: originPoint,
+        originTracker: (outVec) => this.getMuzzlePosition(outVec),
         direction: _pelletDir,
         weaponDef: def,
         owner: 'player',
@@ -463,6 +464,20 @@ export class WeaponSystem {
         isPellet: pelletCount > 1
       });
     }
+  }
+
+  getMuzzlePosition(outVec) {
+    if (this.ads && this.player && this.player.camera) {
+      this.player.camera.getWorldPosition(outVec);
+    } else {
+      const def = this.def;
+      const mz = def.muzzleLocal || [0, 0.02, -0.5];
+      outVec.set(mz[0], mz[1], mz[2]);
+      if (this.viewmodel && this.viewmodel.mount) {
+        this.viewmodel.mount.localToWorld(outVec);
+      }
+    }
+    return outVec;
   }
 
   destroy() {
