@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { CONFIG } from '../core/ConfigLoader.js';
 import { emit, on } from '../core/EventBus.js';
+import { WEAPONS } from '../weapons/WeaponDefs.js';
 import { PatrolState } from './states/PatrolState.js';
 import { EngageState } from './states/EngageState.js';
 import { SearchState } from './states/SearchState.js';
@@ -164,6 +165,14 @@ export class AIController {
       );
     }
     
-    emit('shot:tracer', { from: _muzzleWorld, to: _endPos });
+    const wep = WEAPONS[this.bot.weaponId];
+    emit('shot:tracer', {
+      from: _muzzleWorld,
+      to: _endPos,
+      color: wep?.tracerColor,
+      profile: wep?.tracerProfile,
+      speed: wep?.ballistics?.terminal?.bulletSpeed,
+      weaponId: this.bot.weaponId
+    });
   }
 }

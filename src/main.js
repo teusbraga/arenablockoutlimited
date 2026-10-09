@@ -34,7 +34,10 @@ import { ScopeSystem } from './weapons/ScopeSystem.js';
 
     // 1. Carrega assets Data-Driven (JSONs)
     const assets = await ConfigLoader.loadAll();
-    if (assets.weapons) initWeaponsFromData(assets.weapons);
+    if (assets.weapons) {
+      assets.weapons.ammo = assets.ammo;
+      initWeaponsFromData(assets.weapons);
+    }
     if (assets.audio) audio.setSoundBank(assets.audio);
 
     // 2. Mapa e Jogador

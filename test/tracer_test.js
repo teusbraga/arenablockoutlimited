@@ -110,6 +110,62 @@ while (tracer.active && timeElapsed < 0.2) {
 if (tracer.active) throw new Error('Tracer permaneceu ativo após TTL');
 console.log(`✅ FlashTracer expirou e foi reciclado no pool perfeitamente em ${timeElapsed.toFixed(3)}s!`);
 
+// [Teste 4] Validação Fotográfica: Ring Buffer N=8, Core + Glow e Muzzle Tracking
+console.log('\n[Teste 4] Validando modelo fotográfico com Ring Buffer N=8 e Core+Glow...');
+
+let currentMuzzle = new THREE.Vector3(0, 1.5, 0);
+const muzzleTracker = (outVec) => outVec.copy(currentMuzzle);
+
+projManager.spawn({
+  origin: currentMuzzle.clone(),
+  originTracker: muzzleTracker,
+  direction: new THREE.Vector3(0, 0, 1),
+  weaponDef: {
+    id: 'photo_rifle',
+    bulletSpeed: 700,
+    tracerProfile: {
+      exposureTime: 0.028,
+      persistenceTime: 0.040,
+      coreRadius: 0.007,
+      glowRadius: 0.038,
+      coreBrightness: 1.0,
+      glowBrightness: 0.50,
+      glowColor: '#44ff88',
+      trackOrigin: true
+    }
+  }
+});
+
+const photoTracers = effects.tracers.filter(t => t.active && t.mode === 'flash');
+if (photoTracers.length === 0) throw new Error('Tracer fotográfico não ativado no pool');
+const photoT = photoTracers[photoTracers.length - 1];
+
+// Simula frame 1: desloca o muzzle ligeiramente (simulando sway da arma)
+currentMuzzle.set(0.05, 1.52, 0.02);
+effects.update(0.016);
+
+if (!photoT.samples || photoT.samples.length !== 8) {
+  throw new Error('Ring Buffer N=8 não inicializado');
+}
+if (!photoT.coreMesh || !photoT.glowMesh) {
+  throw new Error('Camadas concêntricas Core + Glow ausentes');
+}
+if (photoT.coreMat.opacity <= 0 || photoT.glowMat.opacity <= 0) {
+  throw new Error('Opacidade fotográfica não calculada');
+}
+console.log(`✅ Ring Buffer N=8 ativo (samples=${photoT.sampleCount}), Core e Glow sincronizados!`);
+console.log(`✅ Opacidade Core: ${photoT.coreMat.opacity.toFixed(2)}, Opacidade Glow: ${photoT.glowMat.opacity.toFixed(2)}`);
+
+// Simula até expiração completa
+while (photoT.active) {
+  effects.update(0.016);
+}
+if (photoT.originTracker !== null) {
+  throw new Error('originTracker não foi liberado após expiração (vazamento de referência)');
+}
+console.log('✅ Expiração e liberação de memória fotográfica validadas sem vazamentos!');
+
 console.log('\n==================================================');
-console.log('🎉 TODOS OS TESTES DE FLASH TRACER PASSARAM COM SUCESSO!');
+console.log('🎉 TODOS OS TESTES DE FLASH & TRACER FOTOGRÁFICO PASSARAM COM SUCESSO!');
 console.log('==================================================');
+

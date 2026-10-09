@@ -35,6 +35,8 @@ export class WeaponSystem {
     this.world = world;
     this.botsProvider = botsProvider;
 
+    this._boundMuzzleTracker = (outVec) => this.getMuzzlePosition(outVec);
+
     // Gerenciador de Projéteis Físicos e Balística Externa (CCD)
     this.projectileManager = new ProjectileManager({
       world: this.world,
@@ -456,7 +458,7 @@ export class WeaponSystem {
       // Spawna o projétil físico contínuo na piscina (Continuous Collision Detection)
       this.projectileManager.spawn({
         origin: originPoint,
-        originTracker: (outVec) => this.getMuzzlePosition(outVec),
+        originTracker: this._boundMuzzleTracker,
         direction: _pelletDir,
         weaponDef: def,
         owner: 'player',

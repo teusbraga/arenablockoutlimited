@@ -1,0 +1,179 @@
+{
+  "5.56_nato": {
+    "name": "5.56x45mm NATO",
+    "bulletSpeed": 900,
+    "bulletDrop": 9.8,
+    "tracerColor": "#ffc061",
+    "tracerProfile": {
+      "style": "photographic",
+      "exposureTime": 0.05,
+      "persistenceTime": 0.035,
+      "coreRadius": 0.005,
+      "glowRadius": 0.025,
+      "coreColor": "#ffffff",
+      "glowColor": "#ffc061",
+      "coreBrightness": 1.0,
+      "glowBrightness": 0.75,
+      "maxOpacity": 0.85,
+      "width": 1.0
+    }
+  },
+  "5.56_linked": {
+    "name": "5.56x45mm NATO (Tracer)",
+    "bulletSpeed": 850,
+    "bulletDrop": 9.8,
+    "tracerColor": "#ffee00",
+    "tracerProfile": {
+      "style": "laser",
+      "exposureTime": 0.09,
+      "fadeInTime": 0,
+      "persistenceTime": 0.045,
+      "coreRadius": 0.016,
+      "glowRadius": 0.08,
+      "coreColor": "#ffffff",
+      "glowColor": "#ffee00",
+      "coreBrightness": 2.0,
+      "glowBrightness": 1.0,
+      "maxOpacity": 1.0,
+      "width": 2.0
+    }
+  },
+  "7.62_soviet": {
+    "name": "7.62x39mm Soviet",
+    "bulletSpeed": 715,
+    "bulletDrop": 9.8,
+    "tracerColor": "#ffaa44",
+    "tracerProfile": {
+      "style": "streak",
+      "headSpeed": 0.25,
+      "streakLength": 0.35,
+      "coreRadius": 0.008,
+      "glowRadius": 0.045,
+      "coreColor": "#ffffff",
+      "glowColor": "#ffaa44",
+      "coreBrightness": 1.0,
+      "glowBrightness": 0.7,
+      "maxOpacity": 1.0,
+      "width": 1.15
+    }
+  },
+  "energy_cell": {
+    "name": "Plasma Energy Cell",
+    "bulletSpeed": 2500,
+    "bulletDrop": 0,
+    "tracerColor": "#00ffff",
+    "tracerProfile": {
+      "style": "laser",
+      "exposureTime": 0.05,
+      "persistenceTime": 0.03,
+      "coreRadius": 0.005,
+      "glowRadius": 0.025,
+      "coreColor": "#e0ffff",
+      "glowColor": "#00ffff",
+      "coreBrightness": 1.0,
+      "glowBrightness": 0.8,
+      "maxOpacity": 0.95,
+      "width": 1.0
+    }
+  },
+  "9mm_para": {
+    "name": "9x19mm Parabellum",
+    "bulletSpeed": 380,
+    "bulletDrop": 9.8,
+    "tracerColor": "#55ff88",
+    "tracerProfile": {
+      "style": "swipe",
+      "ttl": 0.045,
+      "headSpeed": 0.45,
+      "streakLength": 0.6,
+      "fadeInEnd": 0.2,
+      "fadeOutStart": 0.5,
+      "coreRadius": 0.004,
+      "glowRadius": 0.02,
+      "coreColor": "#aaffaa",
+      "glowColor": "#55ff88",
+      "coreBrightness": 0.8,
+      "glowBrightness": 0.25,
+      "maxOpacity": 0.5,
+      "width": 0.75
+    }
+  },
+  "5.7_fn": {
+    "name": "5.7x28mm FN",
+    "bulletSpeed": 716,
+    "bulletDrop": 9.8,
+    "tracerColor": "#ffea70",
+    "tracerProfile": {
+      "style": "swipe",
+      "ttl": 0.05,
+      "headSpeed": 0.35,
+      "streakLength": 0.4,
+      "fadeInEnd": 0.1,
+      "fadeOutStart": 0.6,
+      "coreRadius": 0.005,
+      "glowRadius": 0.025,
+      "coreColor": "#ffffff",
+      "glowColor": "#ffea70",
+      "coreBrightness": 0.8,
+      "glowBrightness": 0.35,
+      "maxOpacity": 0.75,
+      "width": 0.8
+    }
+  },
+  "500_magnum": {
+    "name": ".500 S&W Magnum",
+    "bulletSpeed": 600,
+    "bulletDrop": 9.8,
+    "tracerColor": "#ffbb33",
+    "tracerProfile": {
+      "style": "photographic",
+      "exposureTime": 0.05,
+      "persistenceTime": 0.04,
+      "coreRadius": 0.012,
+      "glowRadius": 0.06,
+      "coreColor": "#ffffff",
+      "glowColor": "#ffbb33",
+      "coreBrightness": 1.5,
+      "glowBrightness": 0.9,
+      "maxOpacity": 1.0,
+      "width": 1.6
+    }
+  },
+  "12_gauge": {
+    "name": "12 Gauge Buckshot",
+    "bulletSpeed": 400,
+    "bulletDrop": 12.0,
+    "tracerColor": "#ff9933",
+    "tracerProfile": {
+      "style": "streak",
+      "headSpeed": 0.35,
+      "streakLength": 0.3,
+      "coreRadius": 0.005,
+      "glowRadius": 0.025,
+      "coreColor": "#ffffff",
+      "glowColor": "#ff9933",
+      "coreBrightness": 1.0,
+      "glowBrightness": 0.5,
+      "maxOpacity": 0.8,
+      "width": 0.6
+    }
+  },
+  "9x39_sp5": {
+    "name": "9x39mm SP5 Subsonic",
+    "bulletSpeed": 290,
+    "bulletDrop": 15.0,
+    "tracerColor": "#ff1111",
+    "tracerProfile": {
+      "style": "laser",
+      "exposureTime": 0.15,
+      "persistenceTime": 0.05,
+      "coreRadius": 0.008,
+      "glowRadius": 0.04,
+      "glowColor": "#ff1111",
+      "coreColor": "#ffdddd",
+      "glowBrightness": 0.6,
+      "maxOpacity": 1.0,
+      "width": 1.0
+    }
+  }
+}

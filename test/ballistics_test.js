@@ -8,6 +8,7 @@ console.log('==================================================');
 
 // 1. Carregar armas do arquivo JSON real
 const rawData = JSON.parse(fs.readFileSync('assets/weapons/weapons.json', 'utf8'));
+rawData.ammo = JSON.parse(fs.readFileSync('assets/weapons/ammo.json', 'utf8'));
 initWeaponsFromData(rawData);
 
 console.log(`[WeaponDefs] ${Object.keys(WEAPONS).length} armas carregadas e compiladas.`);

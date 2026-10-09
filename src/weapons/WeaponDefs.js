@@ -63,10 +63,24 @@ export function normalizeBallistics(wep) {
   };
 }
 
-export function compileWeapons(baseList = BASE_WEAPONS, modsList = MODS) {
+export let AMMO_TYPES = {};
+
+export function compileWeapons(baseList = BASE_WEAPONS, modsList = MODS, ammoList = AMMO_TYPES) {
   const compiled = {};
   for (const [key, base] of Object.entries(baseList)) {
     const finalWep = { ...base };
+
+    // Apply ammo overrides first before compiling ballistics
+    if (finalWep.ammo && ammoList[finalWep.ammo]) {
+      const ammoDef = ammoList[finalWep.ammo];
+      if (ammoDef.tracerColor) finalWep.tracerColor = ammoDef.tracerColor;
+      if (ammoDef.tracerProfile) finalWep.tracerProfile = { ...(finalWep.tracerProfile || {}), ...ammoDef.tracerProfile };
+      if (!finalWep.ballistics) finalWep.ballistics = {};
+      if (!finalWep.ballistics.terminal) finalWep.ballistics.terminal = {};
+      if (ammoDef.bulletSpeed !== undefined) finalWep.ballistics.terminal.bulletSpeed = ammoDef.bulletSpeed;
+      if (ammoDef.bulletDrop !== undefined) finalWep.ballistics.terminal.bulletDrop = ammoDef.bulletDrop;
+    }
+
     finalWep.ballistics = normalizeBallistics(finalWep);
 
     if (finalWep.mods) {
@@ -104,14 +118,16 @@ export function compileWeapons(baseList = BASE_WEAPONS, modsList = MODS) {
 export let WEAPONS = {};
 
 /**
- * Inicializa WEAPONS a partir dos dados lidos de weapons.json.
+ * Inicializa WEAPONS a partir dos dados lidos de weapons.json e ammo.json.
  * Deve ser chamado uma vez durante o boot, antes de qualquer uso de WEAPONS.
  */
 export function initWeaponsFromData(data) {
   if (!data) return WEAPONS;
   if (data.mods)    Object.assign(MODS,         data.mods);
   if (data.weapons) Object.assign(BASE_WEAPONS, data.weapons);
-  const compiled = compileWeapons(BASE_WEAPONS, MODS);
+  if (data.ammo)    Object.assign(AMMO_TYPES,   data.ammo);
+  
+  const compiled = compileWeapons(BASE_WEAPONS, MODS, AMMO_TYPES);
   for (const k in WEAPONS) delete WEAPONS[k];
   Object.assign(WEAPONS, compiled);
   return WEAPONS;

@@ -69,10 +69,11 @@ function deepMerge(target, source) {
 export class ConfigLoader {
   static async loadAll() {
     try {
-      const [gameplayRes, botsRes, weaponsRes, audioRes] = await Promise.allSettled([
+      const [gameplayRes, botsRes, weaponsRes, ammoRes, audioRes] = await Promise.allSettled([
         fetch('./assets/config/gameplay.json').then(r => r.ok ? r.json() : null),
         fetch('./assets/characters/bots.json').then(r => r.ok ? r.json() : null),
         fetch('./assets/weapons/weapons.json').then(r => r.ok ? r.json() : null),
+        fetch('./assets/weapons/ammo.json').then(r => r.ok ? r.json() : null),
         fetch('./assets/config/audio.json').then(r => r.ok ? r.json() : null),
       ]);
 
@@ -112,11 +113,13 @@ export class ConfigLoader {
       }
 
       const weaponsData = (weaponsRes.status === 'fulfilled' && weaponsRes.value) ? weaponsRes.value : null;
+      const ammoData = (ammoRes.status === 'fulfilled' && ammoRes.value) ? ammoRes.value : null;
       const audioData = (audioRes.status === 'fulfilled' && audioRes.value) ? audioRes.value : null;
 
       return {
         config: CONFIG,
         weapons: weaponsData,
+        ammo: ammoData,
         audio: audioData
       };
     } catch (err) {

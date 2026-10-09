@@ -1,6 +1,7 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 import { on } from '../core/EventBus.js';
 import { SMOKE_TEX } from '../weapons/models/RiflePrototype.js';
+import { WEAPONS } from '../weapons/WeaponDefs.js';
 
 const MAX_TRACERS = 120;
 const MAX_SPARKS = 80;
@@ -29,18 +30,40 @@ const _ghostPalette = [
 
 const _tracerUp = new THREE.Vector3(0, 1, 0);
 const _tracerDir = new THREE.Vector3();
+const _tempHead = new THREE.Vector3();
+const _tempTail = new THREE.Vector3();
 
-export const DEFAULT_TRACER_PROFILE = {
-  style: 'swipe',     // 'swipe' (CS2 instant) ou 'streak' (BR clássico)
-  ttl: 0.055,         // Tempo de vida total em segundos (~3-4 frames a 60fps)
-  headSpeed: 0.35,    // % do ttl para a cabeça atingir o alvo (ex: ~19ms)
-  streakLength: 0.45, // 'swipe': atraso relativo da cauda | 'streak': comprimento fixo (15-45%)
-  fadeInEnd: 0.10,    // % do ttl para fade-in suave sem pop-in seco
-  fadeOutStart: 0.65, // % do ttl onde começa o fade out
-  width: 1.0,         // Multiplicador de espessura (1.0 = padrão do cylinderGeo)
-  color: 0xffd27f,    // Cor padrão
-  maxOpacity: 0.95    // Opacidade máxima
+export const DEFAULT_PHOTOGRAPHIC_PROFILE = {
+  // Parâmetros de Exposição e Persistência Ótica
+  exposureTime: 0.026,    // Janela temporal do obturador/retina (s) -> Comprimento L = speed * exposureTime
+  persistenceTime: 0.045, // Persistência retinal / tempo de dissipação pós-impacto (s)
+  
+  // Parâmetros da PSF (Point Spread Function / Difração Ótica)
+  coreRadius: 0.007,      // Raio do filamento incandescente central (m)
+  coreBrightness: 1.0,    // Intensidade do filamento (branco incandescente)
+  coreColor: 0xffffff,    // Cor do filamento (plasma / alta temperatura)
+  
+  glowRadius: 0.038,      // Raio do halo difuso / dispersão atmosférica e retinal (m)
+  glowBrightness: 0.45,   // Intensidade do halo colorido
+  glowColor: 0xffd27f,    // Cor espectral da queima do traçante
+  
+  // Curva de Falloff na cauda
+  falloffGamma: 1.6,      // Curvatura do degradê de resfriamento ao longo da cauda
+  
+  // Sincronismo de Bocal
+  trackOrigin: true,      // Sincroniza frame-a-frame com o bocal da arma enquanto o rastro emerge
+  
+  // Compatibilidade legada e escala global
+  width: 1.0,
+  ttl: 0.055,
+  headSpeed: 0.35,
+  streakLength: 0.45,
+  fadeInEnd: 0.10,
+  fadeOutStart: 0.65,
+  maxOpacity: 0.95
 };
+
+export const DEFAULT_TRACER_PROFILE = DEFAULT_PHOTOGRAPHIC_PROFILE;
 
 export class Effects {
   constructor(scene, world = null) {
@@ -86,20 +109,32 @@ export class Effects {
 
   _sanitizeProfile(rawProfile, fallbackColor) {
     if (!rawProfile) rawProfile = {};
-    const p = Object.assign({}, DEFAULT_TRACER_PROFILE, rawProfile);
+    const p = Object.assign({}, DEFAULT_PHOTOGRAPHIC_PROFILE, rawProfile);
 
-    if (fallbackColor && !rawProfile?.color) {
+    if (fallbackColor && !rawProfile?.color && !rawProfile?.glowColor) {
+      p.glowColor = fallbackColor;
       p.color = fallbackColor;
+    } else if (rawProfile?.color) {
+      p.glowColor = rawProfile.color;
+      p.color = rawProfile.color;
     }
 
     // Invariantes matemáticas e limites seguros
-    p.style = (p.style === 'streak' || p.style === 'swipe') ? p.style : 'swipe';
-    p.ttl = Math.max(0.01, p.ttl || 0.055);
+    p.exposureTime = Math.max(0.005, Math.min(p.exposureTime ?? 0.026, 0.2));
+    p.persistenceTime = Math.max(0.005, Math.min(p.persistenceTime ?? 0.045, 0.2));
+    p.coreRadius = Math.max(0.001, p.coreRadius ?? 0.007);
+    p.coreBrightness = Math.max(0.01, Math.min(p.coreBrightness ?? 1.0, 1.0));
+    p.glowRadius = Math.max(0.005, p.glowRadius ?? 0.038);
+    p.glowBrightness = Math.max(0.01, Math.min(p.glowBrightness ?? 0.45, 1.0));
+    p.width = Math.max(0.05, p.width ?? 1.0);
+    p.trackOrigin = p.trackOrigin !== false;
+
+    // Compatibilidade com profiles legados (swipe / streak / ttl)
+    p.ttl = Math.max(0.01, p.ttl || (p.exposureTime + p.persistenceTime));
     p.headSpeed = Math.max(0.01, Math.min(p.headSpeed ?? 0.35, 1.0));
     p.streakLength = Math.max(0, Math.min(p.streakLength ?? 0.45, 0.99));
     p.fadeInEnd = Math.max(0, Math.min(p.fadeInEnd ?? 0.10, 0.95));
     p.fadeOutStart = Math.max(p.fadeInEnd + 0.01, Math.min(p.fadeOutStart ?? 0.65, 1.0));
-    p.width = Math.max(0.05, p.width ?? 1.0);
     p.maxOpacity = Math.max(0.01, Math.min(p.maxOpacity ?? 0.95, 1.0));
 
     return p;
@@ -115,15 +150,39 @@ export class Effects {
     t.proj = null;
     t.isDummy = false;
     t.origin.copy(e.origin);
-    t.originTracker = e.originTracker || null;
+    t.originInitial.copy(e.origin);
     t.end.copy(e.end);
 
-    t.profile = this._sanitizeProfile(e.profile, e.color);
-    t.ttl = t.profile.ttl;
+    t.speed = e.speed || 700;
+    t.distanceToTarget = Math.max(0.1, t.origin.distanceTo(t.end));
+    t.dir.subVectors(t.end, t.origin).normalize();
 
-    t.mat.color.set(t.profile.color);
-    t.mat.opacity = 0.01;
-    t.mesh.visible = true;
+    t.profile = this._sanitizeProfile(e.profile, e.color);
+    if (e.isPellet) {
+      t.profile.coreRadius *= 0.7;
+      t.profile.glowRadius *= 0.65;
+      t.profile.exposureTime *= 0.85;
+    }
+
+    t.originTracker = (e.originTracker && t.profile.trackOrigin !== false) ? e.originTracker : null;
+
+    const impactTime = t.distanceToTarget / t.speed;
+    const photographicDuration = impactTime + t.profile.exposureTime + t.profile.persistenceTime;
+    t.ttl = e.profile?.ttl ? Math.min(e.profile.ttl, photographicDuration * 1.5) : photographicDuration;
+
+    // Inicializa Ring Buffer N=8
+    t.sampleCount = 1;
+    t.sampleHead = 0;
+    t.samples[0].pos.copy(t.origin);
+    t.samples[0].time = 0;
+
+    // Aplica cores do profile
+    t.coreMat.color.set(t.profile.coreColor || 0xffffff);
+    t.glowMat.color.set(t.profile.glowColor || t.profile.color || 0xffd27f);
+    t.coreMat.opacity = 0.01;
+    t.glowMat.opacity = 0.01;
+
+    t.group.visible = true;
   }
 
   _spawnTracer(p) {
@@ -138,19 +197,21 @@ export class Effects {
        t.dummyPos = p.startPos.clone();
        t.dummyDistance = 0;
     }
-    t.mesh.visible = true;
+    t.coreMat.color.set(0xffffff);
+    t.glowMat.color.set(p.color || 0xffd27f);
+    t.group.visible = true;
   }
 
   _initPools() {
-    // 1. Tracers 3D Volumétricos e Aerodinâmicos (Cilindro cônico com degradê de intensidade)
+    // 1. Tracers Fotográficos Volumétricos (Concentric Core + Glow Envelope com PSF e Ring Buffer N=8)
     this.tracerGeo = new THREE.CylinderGeometry(0.05, 0.006, 1.0, 6, 1, true);
     const vertCount = this.tracerGeo.attributes.position.count;
     const colors = new Float32Array(vertCount * 3);
     const posArr = this.tracerGeo.attributes.position.array;
     for (let j = 0; j < vertCount; j++) {
       const y = posArr[j * 3 + 1]; // -0.5 na cauda, +0.5 na cabeça
-      const t = y + 0.5;
-      const intensity = Math.pow(Math.max(0.04, t), 1.4);
+      const t = Math.max(0.0, Math.min(1.0, y + 0.5));
+      const intensity = Math.pow(Math.max(0.02, t), 1.6);
       colors[j * 3] = intensity;
       colors[j * 3 + 1] = intensity;
       colors[j * 3 + 2] = intensity;
@@ -158,26 +219,63 @@ export class Effects {
     this.tracerGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
     for (let i = 0; i < MAX_TRACERS; i++) {
-      const mat = new THREE.MeshBasicMaterial({
-        color: 0xffd27f,
+      const group = new THREE.Group();
+
+      // Layer 0: Filamento Central Incandescente (Core - Alta Temperatura/Branco)
+      const coreMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff,
         vertexColors: true,
         transparent: true,
-        opacity: 0.95,
+        opacity: 0,
         blending: THREE.AdditiveBlending,
         depthWrite: false
       });
-      const mesh = new THREE.Mesh(this.tracerGeo, mat);
-      mesh.visible = false;
-      this.scene.add(mesh);
+      const coreMesh = new THREE.Mesh(this.tracerGeo, coreMat);
+      group.add(coreMesh);
+
+      // Layer 1: Halo Difuso / PSF Retinal (Glow - Cor Espectral Saturada)
+      const glowMat = new THREE.MeshBasicMaterial({
+        color: 0xffd27f,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+      const glowMesh = new THREE.Mesh(this.tracerGeo, glowMat);
+      group.add(glowMesh);
+
+      group.visible = false;
+      this.scene.add(group);
+
+      // Ring Buffer pré-alocado de 8 amostras de histórico temporal
+      const samples = Array.from({ length: 8 }, () => ({
+        pos: new THREE.Vector3(),
+        time: 0
+      }));
+
       this.tracers.push({
-        mesh,
-        mat,
+        group,
+        mesh: glowMesh, // compatibilidade para testes que leem tracer.mesh.scale
+        coreMesh,
+        glowMesh,
+        coreMat,
+        glowMat,
+        mat: glowMat,   // compatibilidade
+        samples,
+        sampleHead: 0,
+        sampleCount: 0,
         life: 0,
         active: false,
-        mode: 'phys',
+        mode: 'flash',
         origin: new THREE.Vector3(),
+        originInitial: new THREE.Vector3(),
         end: new THREE.Vector3(),
+        dir: new THREE.Vector3(),
+        speed: 700,
+        distanceToTarget: 0,
         profile: null,
+        originTracker: null,
         ttl: 0.055,
         proj: null,
         isDummy: false
@@ -312,7 +410,6 @@ export class Effects {
       });
     }
   }
-
   setWorld(world) {
     this.world = world;
   }
@@ -331,22 +428,14 @@ export class Effects {
         }
       }),
       on('shot:tracer', e => {
-        // Disparo de bots: FlashTracer imediato sem delay de vôo artificial
+        // Disparo de bots: herda fielmente o tracerProfile e cor da arma/munição em uso
+        const wep = e.weaponId ? WEAPONS[e.weaponId] : null;
         this._spawnFlashTracer({
           origin: e.from,
           end: e.to,
-          color: e.color || 0xff2222,
-          profile: e.profile || {
-            style: 'swipe',
-            color: 0xff2222,
-            ttl: 0.055,
-            headSpeed: 0.35,
-            streakLength: 0.45,
-            width: 0.85,
-            fadeInEnd: 0.10,
-            fadeOutStart: 0.65,
-            maxOpacity: 0.90
-          }
+          color: e.color || wep?.tracerColor || 0xffd27f,
+          profile: e.profile || wep?.tracerProfile || DEFAULT_TRACER_PROFILE,
+          speed: e.speed || wep?.ballistics?.terminal?.bulletSpeed || 700
         });
       }),
         on('shot:world', e => this._spawnImpact(e.point, 0xd9c79b, 5)),
@@ -407,10 +496,14 @@ export class Effects {
     // Libera tracers
     if (this.tracerGeo) this.tracerGeo.dispose();
     for (const t of this.tracers) {
-      if (t.mesh) {
-        if (t.mesh.parent) t.mesh.parent.remove(t.mesh);
-        if (t.mat) t.mat.dispose();
+      if (t.group) {
+        if (t.group.parent) t.group.parent.remove(t.group);
+      } else if (t.mesh && t.mesh.parent) {
+        t.mesh.parent.remove(t.mesh);
       }
+      if (t.coreMat) t.coreMat.dispose();
+      if (t.glowMat) t.glowMat.dispose();
+      t.originTracker = null;
     }
     this.tracers = [];
 
@@ -728,83 +821,250 @@ export class Effects {
   }
 
   update(dt, camera) {
-    // 1. Tracers Dinamicos (Cinematicos) atrelados a simulacao fisica real
+    // ══════════════════════════════════════════════════════════════════════
+    // 1. TRACERS — Sistema Fotográfico Data-Driven por Arma
+    //    Todos os parâmetros visuais são lidos de t.profile (weapons.json).
+    //
+    //    ESTILOS  ("style" no tracerProfile da arma):
+    //    • "photographic" (padrão) — traço de luz emergindo do bocal,
+    //      comprimento = speed * exposureTime. Persistência retinal.
+    //    • "laser" — linha instantânea bocal→alvo. Parece um raio laser.
+    //    • "streak" — ponto brilhante voando pelo ray (bala visível).
+    //    • "swipe" — cresce até o alvo e encolhe (CS2 style).
+    // ══════════════════════════════════════════════════════════════════════
     for (let i = 0; i < MAX_TRACERS; i++) {
       const t = this.tracers[i];
       if (!t.active) {
-        t.mesh.visible = false;
+        if (t.group && t.group.visible) t.group.visible = false;
         continue;
       }
 
-      // ── CASO A: FLASH TRACER DESACOPLADO (CS2 STYLE) ──
+      // ─── MODO FLASH: tracer desacoplado da física (armas rápidas) ───
       if (t.mode === 'flash') {
         t.life += dt;
-        if (t.life >= t.ttl) {
+
+        const p = t.profile;
+        const style = p.style || 'photographic';
+
+        // TTL / expiração
+        const ttl = p.ttl || (p.exposureTime + p.persistenceTime + (t.distanceToTarget / (t.speed || 700)));
+        if (t.life >= ttl || t.life > 4.0) {
           t.active = false;
-          t.mesh.visible = false;
+          if (t.group) t.group.visible = false;
+          t.originTracker = null;
           continue;
         }
 
-        const p = t.profile;
-        const k = Math.min(t.life / t.ttl, 1.0);
-
-        if (t.originTracker) {
+        // Sincronismo de bocal frame-a-frame
+        if (t.originTracker && p.trackOrigin !== false && t.life > 0) {
           t.originTracker(t.origin);
         }
 
-        let headT = 0, tailT = 0;
+        // ═══════════════════════════════════════════════════════════
+        // STYLE: "laser"
+        // Linha instantânea da boca do cano ao ponto de impacto.
+        // Parece um raio laser. Sem animação de viagem da bala.
+        // Parâmetros: exposureTime (duração), persistenceTime (fade),
+        //   glowColor, coreColor, glowRadius, coreRadius, width, maxOpacity
+        // ═══════════════════════════════════════════════════════════
+        if (style === 'laser') {
+          const laserLen = t.origin.distanceTo(t.end);
+          if (laserLen < 0.05) { if (t.group) t.group.visible = false; continue; }
 
-        if (p.style === 'streak') {
-          // BR Clássico: streak de comprimento fixo viajando pelo ray
-          const travelK = Math.min(k / p.headSpeed, 1.0);
-          headT = travelK;
-          tailT = Math.max(0, travelK - p.streakLength);
-        } else {
-          // CS2 Clássico (Swipe): cresce inteiro até o alvo e encolhe
-          headT = Math.min(k / p.headSpeed, 1.0);
-          const tailStart = p.headSpeed * (1.0 - p.streakLength);
-          const tailDuration = Math.max(0.001, 1.0 - tailStart);
-          tailT = k <= tailStart ? 0 : Math.min((k - tailStart) / tailDuration, 1.0);
-        }
+          _tempHead.copy(t.end);
+          _tempTail.copy(t.origin);
+          _tracerDir.subVectors(_tempHead, _tempTail).normalize();
 
-        const headX = t.origin.x + (t.end.x - t.origin.x) * headT;
-        const headY = t.origin.y + (t.end.y - t.origin.y) * headT;
-        const headZ = t.origin.z + (t.end.z - t.origin.z) * headT;
+          const exposureDur = p.exposureTime || 0.04;
+          const persistDur  = p.persistenceTime || 0.02;
+          const fadeInTime  = p.fadeInTime !== undefined ? p.fadeInTime : Math.min(0.006, exposureDur * 0.15);
+          let laserOpacity = 1.0;
+          if (t.life < fadeInTime && fadeInTime > 0) {
+            laserOpacity = t.life / fadeInTime;
+          } else if (t.life > exposureDur) {
+            const fadeT = (t.life - exposureDur) / Math.max(0.001, persistDur);
+            laserOpacity = Math.max(0, 1.0 - fadeT * fadeT);
+          }
+          laserOpacity *= (p.maxOpacity ?? 0.95);
 
-        const tailX = t.origin.x + (t.end.x - t.origin.x) * tailT;
-        const tailY = t.origin.y + (t.end.y - t.origin.y) * tailT;
-        const tailZ = t.origin.z + (t.end.z - t.origin.z) * tailT;
+          const midX = (_tempHead.x + _tempTail.x) * 0.5;
+          const midY = (_tempHead.y + _tempTail.y) * 0.5;
+          const midZ = (_tempHead.z + _tempTail.z) * 0.5;
 
-        const dx = headX - tailX;
-        const dy = headY - tailY;
-        const dz = headZ - tailZ;
-        const realLen = Math.sqrt(dx * dx + dy * dy + dz * dz);
-
-        if (realLen < 0.05) {
-          t.mesh.visible = false;
+          if (t.group) {
+            t.group.position.set(midX, midY, midZ);
+            t.group.quaternion.setFromUnitVectors(_tracerUp, _tracerDir);
+            const glowR     = p.glowRadius || 0.038;
+            const coreRatio = Math.min(0.85, (p.coreRadius || 0.007) / glowR);
+            const w = p.width || 1.0;
+            t.coreMesh.scale.set(w * coreRatio, laserLen, w * coreRatio);
+            t.glowMesh.scale.set(w, laserLen, w);
+            t.coreMat.color.set(p.coreColor || 0xffffff);
+            t.glowMat.color.set(p.glowColor || p.color || 0xffd27f);
+            t.coreMat.opacity = laserOpacity * (p.coreBrightness ?? 1.0);
+            t.glowMat.opacity = laserOpacity * (p.glowBrightness ?? 0.45);
+            t.group.visible   = t.glowMat.opacity > 0.005;
+          }
           continue;
         }
 
-        _tracerDir.set(dx, dy, dz).normalize();
+        // ═══════════════════════════════════════════════════════════
+        // STYLE: "photographic"
+        // Exposição ótica emergindo do bocal. Comprimento = speed * exposureTime.
+        // Persistência retinal após impacto. Parece um traço de luz borrando.
+        // Parâmetros: exposureTime, persistenceTime, coreRadius, glowRadius,
+        //   coreBrightness, glowBrightness, coreColor, glowColor, width, maxOpacity
+        // ═══════════════════════════════════════════════════════════
+        if (style === 'photographic') {
+          const spd              = t.speed || 700;
+          const impactTime       = t.distanceToTarget / spd;
+          const tailDepartureTime = p.exposureTime || 0.026;
+          const tailArrivalTime  = impactTime + tailDepartureTime;
 
-        t.mesh.position.set((headX + tailX) * 0.5, (headY + tailY) * 0.5, (headZ + tailZ) * 0.5);
-        t.mesh.scale.set(p.width, realLen, p.width);
-        t.mesh.quaternion.setFromUnitVectors(_tracerUp, _tracerDir);
+          // Head: posição instantânea da bala no ray
+          const headDist = Math.min(t.distanceToTarget, spd * t.life);
+          _tempHead.copy(t.originInitial).addScaledVector(t.dir, headDist);
 
-        // 3. Fade in suave e Fade out paramétricos
-        let opacity = p.maxOpacity;
-        if (k < p.fadeInEnd) {
-          opacity = (k / p.fadeInEnd) * p.maxOpacity;
-        } else if (k > p.fadeOutStart) {
-          opacity = (1.0 - (k - p.fadeOutStart) / (1.0 - p.fadeOutStart)) * p.maxOpacity;
+          // Atualiza Ring Buffer N=8
+          const nextHead = (t.sampleHead + 1) % 8;
+          t.samples[nextHead].pos.copy(_tempHead);
+          t.samples[nextHead].time = t.life;
+          t.sampleHead = nextHead;
+          if (t.sampleCount < 8) t.sampleCount++;
+
+          // Tail: borda posterior da janela de obturador
+          if (t.life <= tailDepartureTime) {
+            _tempTail.copy(t.origin); // ancorada no bocal durante emergência
+          } else {
+            const tailTime = t.life - tailDepartureTime;
+            if (tailTime >= impactTime) {
+              _tempTail.copy(t.end);
+            } else {
+              let sampled = false;
+              let curr = t.sampleHead;
+              for (let s = 0; s < t.sampleCount - 1; s++) {
+                const prev  = (curr - 1 + 8) % 8;
+                const sCurr = t.samples[curr];
+                const sPrev = t.samples[prev];
+                if (sPrev.time <= tailTime && sCurr.time >= tailTime) {
+                  const denom = Math.max(1e-5, sCurr.time - sPrev.time);
+                  const alpha = Math.max(0, Math.min(1, (tailTime - sPrev.time) / denom));
+                  _tempTail.lerpVectors(sPrev.pos, sCurr.pos, alpha);
+                  sampled = true;
+                  break;
+                }
+                curr = prev;
+              }
+              if (!sampled) {
+                const tailDist = Math.min(t.distanceToTarget, spd * tailTime);
+                _tempTail.copy(t.originInitial).addScaledVector(t.dir, tailDist);
+              }
+            }
+          }
+
+          const dx = _tempHead.x - _tempTail.x;
+          const dy = _tempHead.y - _tempTail.y;
+          const dz = _tempHead.z - _tempTail.z;
+          const realLen = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+          if (realLen < 0.03) { if (t.group) t.group.visible = false; continue; }
+
+          _tracerDir.set(dx, dy, dz).divideScalar(realLen);
+          const midX = (_tempHead.x + _tempTail.x) * 0.5;
+          const midY = (_tempHead.y + _tempTail.y) * 0.5;
+          const midZ = (_tempHead.z + _tempTail.z) * 0.5;
+
+          // Curva de opacidade: fade-in curto, plano, fade-out quadrático
+          let exposureOpacity = 1.0;
+          const fadeInTime = p.fadeInTime !== undefined ? p.fadeInTime : Math.max(0.004, tailDepartureTime * 0.20);
+          if (t.life < fadeInTime && fadeInTime > 0) {
+            exposureOpacity = t.life / fadeInTime;
+          } else if (t.life > tailArrivalTime) {
+            const fadeOutT = (t.life - tailArrivalTime) / Math.max(0.001, p.persistenceTime || 0.045);
+            exposureOpacity = Math.max(0, Math.pow(Math.max(0, 1.0 - fadeOutT), 2));
+          }
+          exposureOpacity *= (p.maxOpacity ?? 0.95);
+
+          if (t.group) {
+            t.group.position.set(midX, midY, midZ);
+            t.group.quaternion.setFromUnitVectors(_tracerUp, _tracerDir);
+            const glowR     = p.glowRadius || 0.038;
+            const coreRatio = Math.min(0.85, (p.coreRadius || 0.007) / glowR);
+            const w = p.width || 1.0;
+            t.coreMesh.scale.set(w * coreRatio, realLen, w * coreRatio);
+            t.glowMesh.scale.set(w, realLen, w);
+            t.coreMat.color.set(p.coreColor || 0xffffff);
+            t.glowMat.color.set(p.glowColor || p.color || 0xffd27f);
+            t.coreMat.opacity = Math.max(0, exposureOpacity * (p.coreBrightness ?? 1.0));
+            t.glowMat.opacity = Math.max(0, exposureOpacity * (p.glowBrightness ?? 0.45));
+            t.group.visible   = t.glowMat.opacity > 0.005;
+          }
+          continue;
         }
 
-        t.mat.opacity = Math.max(0, opacity);
-        t.mesh.visible = t.mat.opacity > 0.01;
-        continue;
+        // ═══════════════════════════════════════════════════════════
+        // STYLE: "streak" — ponto brilhante voando pelo ray (bala visível)
+        // STYLE: "swipe" — cresce até o alvo e encolhe (CS2 style)
+        // Parâmetros: headSpeed, streakLength, fadeInEnd, fadeOutStart,
+        //   maxOpacity, width, glowColor, coreColor, glowBrightness
+        // ═══════════════════════════════════════════════════════════
+        {
+          const k = Math.min(t.life / (p.ttl || 0.055), 1.0);
+          let headT = 0, tailT = 0;
+
+          if (style === 'streak') {
+            const travelK = Math.min(k / (p.headSpeed || 0.35), 1.0);
+            headT = travelK;
+            tailT = Math.max(0, travelK - (p.streakLength || 0.45));
+          } else {
+            // swipe (default)
+            headT = Math.min(k / (p.headSpeed || 0.35), 1.0);
+            const tailStart    = (p.headSpeed || 0.35) * (1.0 - (p.streakLength || 0.45));
+            const tailDuration = Math.max(0.001, 1.0 - tailStart);
+            tailT = k <= tailStart ? 0 : Math.min((k - tailStart) / tailDuration, 1.0);
+          }
+
+          const hx  = t.origin.x + (t.end.x - t.origin.x) * headT;
+          const hy  = t.origin.y + (t.end.y - t.origin.y) * headT;
+          const hz  = t.origin.z + (t.end.z - t.origin.z) * headT;
+          const tx2 = t.origin.x + (t.end.x - t.origin.x) * tailT;
+          const ty2 = t.origin.y + (t.end.y - t.origin.y) * tailT;
+          const tz2 = t.origin.z + (t.end.z - t.origin.z) * tailT;
+
+          const dx = hx - tx2, dy = hy - ty2, dz = hz - tz2;
+          const realLen = Math.sqrt(dx * dx + dy * dy + dz * dz);
+          if (realLen < 0.05) { if (t.group) t.group.visible = false; continue; }
+          _tracerDir.set(dx, dy, dz).normalize();
+
+          let opacity = p.maxOpacity || 0.95;
+          const fadeInEnd    = p.fadeInEnd || 0.10;
+          const fadeOutStart = p.fadeOutStart || 0.65;
+          if (k < fadeInEnd)         opacity *= (k / fadeInEnd);
+          else if (k > fadeOutStart) opacity *= (1.0 - (k - fadeOutStart) / (1.0 - fadeOutStart));
+
+          const midX = (hx + tx2) * 0.5;
+          const midY = (hy + ty2) * 0.5;
+          const midZ = (hz + tz2) * 0.5;
+
+          if (t.group) {
+            t.group.position.set(midX, midY, midZ);
+            t.group.quaternion.setFromUnitVectors(_tracerUp, _tracerDir);
+            const glowR     = p.glowRadius || 0.038;
+            const coreRatio = Math.min(0.85, (p.coreRadius || 0.007) / glowR);
+            const w = p.width || 1.0;
+            t.coreMesh.scale.set(w * coreRatio, realLen, w * coreRatio);
+            t.glowMesh.scale.set(w, realLen, w);
+            t.coreMat.color.set(p.coreColor || 0xffffff);
+            t.glowMat.color.set(p.glowColor || p.color || 0xffd27f);
+            t.coreMat.opacity = Math.max(0, opacity * (p.coreBrightness ?? 1.0));
+            t.glowMat.opacity = Math.max(0, opacity * (p.glowBrightness ?? 0.45));
+            t.group.visible   = t.glowMat.opacity > 0.005;
+          }
+          continue;
+        }
       }
 
-      // ── CASO B: TRACER FÍSICO ACOPLADO (PROJÉTEIS LENTOS) ──
+      // ─── MODO PHYS: tracer físico acoplado a projéteis lentos ───
       t.life += dt;
       const p = t.proj;
 
@@ -819,27 +1079,26 @@ export class Effects {
          }
       }
 
-      if (!p || (!p.active && t.life > 0.05)) { 
+      if (!p || (!p.active && t.life > 0.05)) {
          t.active = false;
-         t.mesh.visible = false;
+         if (t.group) t.group.visible = false;
          continue;
       }
-      
+
       if (t.life > 2.0) {
          t.active = false;
-         t.mesh.visible = false;
+         if (t.group) t.group.visible = false;
          continue;
       }
 
       const speed = p.speed || 700;
-      const visualTime = p.isPellet ? 0.020 : 0.028;
+      const tp = p.tracerProfile;
+      const visualTime = tp?.exposureTime ?? (p.isPellet ? 0.020 : 0.028);
       let tracerLen = speed * visualTime;
-      tracerLen = Math.max(1.2, Math.min(6.5, tracerLen));
+      tracerLen = Math.max(1.2, Math.min(12.0, tracerLen));
 
       const traveled = t.isDummy ? t.dummyDistance : p.distanceTraveled;
-      if (traveled < tracerLen) {
-        tracerLen = Math.max(0.05, traveled);
-      }
+      if (traveled < tracerLen) tracerLen = Math.max(0.05, traveled);
 
       _tracerDir.copy(p.vel).normalize();
 
@@ -854,55 +1113,51 @@ export class Effects {
           opacity *= fade;
       }
 
-      // --- MUZZLE PIN: ancora a cauda no ponto exato de nascimento da bala
-      // para armas subs�nicas (baixa velocidade), a bala fica pr�xima da c�mera
-      // por tempo suficiente para o deslocamento de sway/frame ser percept�vel.
-      // Ancoramos a cauda ao spawnOrigin nos primeiros `pinDistance` metros,
-      // depois transicionamos suavemente para o c�lculo padr�o.
       let tailX, tailY, tailZ;
       const hasMuzzlePin = !t.isDummy && p.spawnOrigin;
       if (hasMuzzlePin) {
-        const pinDistance = Math.max(tracerLen * 2, 4.0); // primeiros 4m ou 2x o comprimento do tracer
+        const pinDistance = Math.max(tracerLen * 2, 4.0);
         const pinT = Math.min(traveled / pinDistance, 1.0);
-        // Cauda padr�o (calculada "para tr�s" a partir da cabe�a)
         const stdTailX = headX - _tracerDir.x * tracerLen;
         const stdTailY = headY - _tracerDir.y * tracerLen;
         const stdTailZ = headZ - _tracerDir.z * tracerLen;
-        // Cauda ancorada ao muzzle (cresce a partir da boca do cano)
-        const pinTailX = p.spawnOrigin.x;
-        const pinTailY = p.spawnOrigin.y;
-        const pinTailZ = p.spawnOrigin.z;
-        // Lerp suave: come�a ancorado no cano, transiciona para o c�lculo padr�o
-        tailX = pinTailX + (stdTailX - pinTailX) * pinT;
-        tailY = pinTailY + (stdTailY - pinTailY) * pinT;
-        tailZ = pinTailZ + (stdTailZ - pinTailZ) * pinT;
+        tailX = p.spawnOrigin.x + (stdTailX - p.spawnOrigin.x) * pinT;
+        tailY = p.spawnOrigin.y + (stdTailY - p.spawnOrigin.y) * pinT;
+        tailZ = p.spawnOrigin.z + (stdTailZ - p.spawnOrigin.z) * pinT;
       } else {
         tailX = headX - _tracerDir.x * tracerLen;
         tailY = headY - _tracerDir.y * tracerLen;
         tailZ = headZ - _tracerDir.z * tracerLen;
       }
 
-      // Comprimento real do tracer baseado na dist�ncia head-tail (pode diferir durante o pin)
       const realLen = Math.sqrt(
         (headX - tailX) ** 2 + (headY - tailY) ** 2 + (headZ - tailZ) ** 2
       );
 
-      if (realLen < 0.05) {
-        t.mesh.visible = false;
-        continue;
-      }
+      if (realLen < 0.05) { if (t.group) t.group.visible = false; continue; }
 
-      // Recalcula dire��o real para o quaternion (head-tail pode divergir do vel durante pin)
       _tracerDir.set(headX - tailX, headY - tailY, headZ - tailZ).normalize();
 
-      t.mesh.position.set((headX + tailX) * 0.5, (headY + tailY) * 0.5, (headZ + tailZ) * 0.5);
-      t.mesh.scale.set(1, realLen, 1);
-      t.mesh.quaternion.setFromUnitVectors(_tracerUp, _tracerDir);
+      const glowColor = tp?.glowColor || p.color || 0xffd27f;
+      const coreColor = tp?.coreColor || 0xffffff;
+      const physW     = tp?.width || 1.0;
+      const coreR     = tp?.coreRadius || 0.007;
+      const glowR     = tp?.glowRadius || 0.038;
 
-      t.mat.color.set(p.color || 0xffd27f);
-      t.mat.opacity = opacity;
-      t.mesh.visible = opacity > 0.01;
+      if (t.group) {
+        t.group.position.set((headX + tailX) * 0.5, (headY + tailY) * 0.5, (headZ + tailZ) * 0.5);
+        t.group.quaternion.setFromUnitVectors(_tracerUp, _tracerDir);
+        const coreRatio = Math.min(0.85, coreR / glowR);
+        t.coreMesh.scale.set(physW * coreRatio, realLen, physW * coreRatio);
+        t.glowMesh.scale.set(physW, realLen, physW);
+        t.coreMat.color.set(coreColor);
+        t.glowMat.color.set(glowColor);
+        t.coreMat.opacity = opacity;
+        t.glowMat.opacity = opacity * (tp?.glowBrightness || 0.6);
+        t.group.visible   = opacity > 0.005;
+      }
     }
+
 
     // 2. Sparks
     for (let i = 0; i < MAX_SPARKS; i++) {
@@ -1122,7 +1377,6 @@ export class Effects {
     }
   }
 }
-
 
 
 

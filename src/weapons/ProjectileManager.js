@@ -140,6 +140,7 @@ export class ProjectileManager {
         origin: origin.clone(),
         originTracker: originTracker,
         end: estHit.point,
+        speed: p.speed,
         color: p.color,
         isPellet: p.isPellet,
         profile: weaponDef?.tracerProfile
