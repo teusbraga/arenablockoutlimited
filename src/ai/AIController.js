@@ -34,6 +34,10 @@ export class AIController {
     this.strafeDir = Math.random() < 0.5 ? -1 : 1;
     this.strafeTimer = 1;
 
+    // Burst Fire state
+    this.burstShotsRemaining = 0;
+    this.burstShotDelay = 0.1;
+
     // FSM States registry
     this.states = {
       patrol: new PatrolState(),
@@ -45,6 +49,17 @@ export class AIController {
     this.state = 'patrol';
 
     this._bindAudioSensory();
+    this._bindPlayerDied();
+  }
+
+  _bindPlayerDied() {
+    this._unsubPlayerDied = on('player:died', () => {
+      if (!this.bot.alive) return;
+      // Ao abater o player, os bots dispersam (flee / recuo para longe da área)
+      this.burstShotsRemaining = 0;
+      this.hasKnownPlayerPos = false;
+      this.changeState('flee');
+    });
   }
 
   changeState(stateName) {
@@ -76,6 +91,10 @@ export class AIController {
     if (this._unsubShot) {
       this._unsubShot();
       this._unsubShot = null;
+    }
+    if (this._unsubPlayerDied) {
+      this._unsubPlayerDied();
+      this._unsubPlayerDied = null;
     }
   }
 
@@ -144,24 +163,26 @@ export class AIController {
     _targetPos.y += 1.4; // Altura do peito do player
     _forward.subVectors(_targetPos, _muzzleWorld).normalize();
 
+    const baseAcc = CONFIG.BOTS?.hitAccuracyBase ?? 0.08;
+    const rangeAcc = CONFIG.BOTS?.hitAccuracyRange ?? 28.0;
+    const maxAcc = CONFIG.BOTS?.hitAccuracyMax ?? 0.55;
+    const hitChance = Math.min(maxAcc, Math.max(baseAcc, 1 - dist / rangeAcc));
+    const hit = Math.random() < hitChance;
+
     // Evento de tiro para flash/dano
-    emit('bot:fired', { bot: this.bot, player, dist });
+    emit('bot:fired', { bot: this.bot, player, dist, hit });
     
     // Evento de muzzle flash
     emit('weapon:fired', { muzzleWorld: _muzzleWorld, forward: _forward });
 
-    // Evento de tracer
-    const hitChance = Math.max(0.15, 1 - dist / 35);
-    const hit = Math.random() < hitChance;
-    
     if (hit) {
       _endPos.copy(_targetPos); // Acertou o player
     } else {
-      // Errou, desvia o tracer
+      // Errou, desvia o tiro e tracer visivelmente
       _endPos.set(
-        _targetPos.x + (Math.random() - 0.5) * 4,
-        _targetPos.y + (Math.random() - 0.5) * 2,
-        _targetPos.z + (Math.random() - 0.5) * 4
+        _targetPos.x + (Math.random() - 0.5) * 5.5,
+        _targetPos.y + (Math.random() - 0.5) * 3.0,
+        _targetPos.z + (Math.random() - 0.5) * 5.5
       );
     }
     

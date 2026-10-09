@@ -11,6 +11,7 @@
   "damageHead": 20.0,
   "respawnTime": 4.0,
   "maxHp": 100.0,
-  "hitAccuracyBase": 0.15,
-  "hitAccuracyRange": 35.0
+  "hitAccuracyBase": 0.08,
+  "hitAccuracyRange": 28.0,
+  "hitAccuracyMax": 0.55
 }

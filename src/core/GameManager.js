@@ -44,10 +44,18 @@ export class GameManager {
 
   _setupEvents() {
     this._unsubs = [
-      // Danos causados por tiro de Bot no Player ajustados pelo perfil da arma
-      on('bot:fired', ({ bot, player: p, dist }) => {
-        const chance = Math.max(0.15, 1 - dist / 35);
-        if (Math.random() < chance) {
+      // Danos causados por tiro de Bot no Player ajustados pelo perfil da arma e precisão configurada
+      on('bot:fired', ({ bot, player: p, dist, hit }) => {
+        // Se a chamada já calculou hit ou calcula respeitando CONFIG
+        const isHit = typeof hit === 'boolean' ? hit : (() => {
+          const base = CONFIG.BOTS?.hitAccuracyBase ?? 0.08;
+          const range = CONFIG.BOTS?.hitAccuracyRange ?? 28.0;
+          const maxAcc = CONFIG.BOTS?.hitAccuracyMax ?? 0.55;
+          const chance = Math.min(maxAcc, Math.max(base, 1 - dist / range));
+          return Math.random() < chance;
+        })();
+
+        if (isHit) {
           const def = bot?.weaponId ? WEAPONS[bot.weaponId] : null;
           const baseDamage = def?.damageBody || CONFIG.BOTS.damageBody || 14;
           const dmg = baseDamage * (0.8 + Math.random() * 0.4);

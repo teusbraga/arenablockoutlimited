@@ -1,4 +1,4 @@
-﻿import * as THREE from 'three';
+import * as THREE from 'three';
 import { on } from '../core/EventBus.js';
 import { SMOKE_TEX } from '../weapons/models/RiflePrototype.js';
 import { WEAPONS } from '../weapons/WeaponDefs.js';
@@ -422,8 +422,9 @@ export class Effects {
     this._unsubs = [
       on('tracer:fire', e => this._spawnFlashTracer(e)),
       on('projectile:spawned', e => {
-        // Projéteis lentos com CCD (foguetes, flechas) usam tracer físico acoplado
-        if (e.projectile && e.projectile.speed < 200) {
+        // Projéteis com física (lentos ou estilo parabola) usam tracer físico acoplado
+        const tp = e.projectile?.tracerProfile || e.projectile?.weaponDef?.tracerProfile;
+        if (e.projectile && (e.projectile.speed < 200 || tp?.style === 'parabola' || tp?.physical)) {
           this._spawnTracer(e.projectile);
         }
       }),
@@ -1012,7 +1013,7 @@ export class Effects {
           const k = Math.min(t.life / (p.ttl || 0.055), 1.0);
           let headT = 0, tailT = 0;
 
-          if (style === 'streak') {
+          if (style === 'streak' || style === 'parabola') {
             const travelK = Math.min(k / (p.headSpeed || 0.35), 1.0);
             headT = travelK;
             tailT = Math.max(0, travelK - (p.streakLength || 0.45));
@@ -1024,12 +1025,19 @@ export class Effects {
             tailT = k <= tailStart ? 0 : Math.min((k - tailStart) / tailDuration, 1.0);
           }
 
-          const hx  = t.origin.x + (t.end.x - t.origin.x) * headT;
-          const hy  = t.origin.y + (t.end.y - t.origin.y) * headT;
-          const hz  = t.origin.z + (t.end.z - t.origin.z) * headT;
-          const tx2 = t.origin.x + (t.end.x - t.origin.x) * tailT;
-          const ty2 = t.origin.y + (t.end.y - t.origin.y) * tailT;
-          const tz2 = t.origin.z + (t.end.z - t.origin.z) * tailT;
+          let hx  = t.origin.x + (t.end.x - t.origin.x) * headT;
+          let hy  = t.origin.y + (t.end.y - t.origin.y) * headT;
+          let hz  = t.origin.z + (t.end.z - t.origin.z) * headT;
+          let tx2 = t.origin.x + (t.end.x - t.origin.x) * tailT;
+          let ty2 = t.origin.y + (t.end.y - t.origin.y) * tailT;
+          let tz2 = t.origin.z + (t.end.z - t.origin.z) * tailT;
+
+          if (style === 'parabola') {
+            const arcHeight = p.arcHeight || 0.6;
+            const gravityDrop = p.gravityDrop || 1.2;
+            hy += Math.sin(headT * Math.PI) * arcHeight - (headT * headT) * gravityDrop;
+            ty2 += Math.sin(tailT * Math.PI) * arcHeight - (tailT * tailT) * gravityDrop;
+          }
 
           const dx = hx - tx2, dy = hy - ty2, dz = hz - tz2;
           const realLen = Math.sqrt(dx * dx + dy * dy + dz * dz);
@@ -1152,7 +1160,7 @@ export class Effects {
         t.glowMesh.scale.set(physW, realLen, physW);
         t.coreMat.color.set(coreColor);
         t.glowMat.color.set(glowColor);
-        t.coreMat.opacity = opacity;
+        t.coreMat.opacity = opacity * (tp?.coreBrightness || 1.0);
         t.glowMat.opacity = opacity * (tp?.glowBrightness || 0.6);
         t.group.visible   = opacity > 0.005;
       }

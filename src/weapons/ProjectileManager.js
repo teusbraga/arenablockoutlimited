@@ -115,6 +115,7 @@ export class ProjectileManager {
     p.speed = speed;
     p.color = weaponDef?.tracerColor || '#ffd27f';
     p.weaponDef = weaponDef;
+    p.tracerProfile = weaponDef?.tracerProfile;
     p.owner = owner;
     p.ownerEntity = ownerEntity;
     p.distanceTraveled = 0;
@@ -131,8 +132,9 @@ export class ProjectileManager {
       color: p.color
     });
 
-    // Se projétil for rápido (balas de alta velocidade), emite tracer visual desacoplado (estilo CS2)
-    if (p.speed >= 200) {
+    // Se projétil usar tracer físico parabólico, desacoplamos do flash tracer retilíneo
+    const isPhysicalTracer = p.speed < 200 || weaponDef?.tracerProfile?.style === 'parabola' || weaponDef?.tracerProfile?.physical;
+    if (!isPhysicalTracer) {
       const normDir = _tempDir.copy(direction).normalize();
       const estHit = this._estimateImpact(origin, normDir, p.maxDistance, owner);
 

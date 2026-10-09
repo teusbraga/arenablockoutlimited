@@ -30,7 +30,7 @@ export const DEFAULT_CONFIG = {
     reactionTime: 0.22, losMemory: 1.6, searchTime: 3.5,
     fireInterval: 0.85, damageBody: 8.0, damageHead: 20.0,
     respawnTime: 4.0, maxHp: 100.0,
-    hitAccuracyBase: 0.15, hitAccuracyRange: 35.0
+    hitAccuracyBase: 0.08, hitAccuracyRange: 28.0, hitAccuracyMax: 0.55
   },
   SWAY: {
     springStiffness: 25.0,
