@@ -66,6 +66,7 @@ export class WeaponSystem {
     // Estado dinâmico de balística
     this.precisionPenalty = 0;
     this.currentSway = { x: 0, y: 0, amplitude: 0 };
+    this.wallCompression = 0;
 
     this._equip(this.slots[0], true);
 
@@ -183,6 +184,24 @@ export class WeaponSystem {
     // 0. Atualização determinística da simulação de projéteis físicos (CCD Sweep)
     this.projectileManager.update(dt);
 
+    // 0.1. Weapon Wall Press (Cano da arma colide/aproxima-se de paredes)
+    // Ativação inicia 50cm antes do cano encostar na parede
+    const barrelLength = def?.barrelLength || (def?.type === 'pistol' || this.current === 'p9' ? 0.35 : (this.current === 'uzi' || this.current === 'sw500' ? 0.45 : 0.78));
+    const safetyBuffer = 0.50; // Inicia a subida 50cm antes de encostar
+    const maxDetectionDist = barrelLength + safetyBuffer;
+    let targetCompression = 0.0;
+    if (this.world && this.camera && this.player?.alive) {
+      _camPos.copy(this.camera.position);
+      this.camera.getWorldDirection(_dir);
+      const wallHit = this.world.raycast(_camPos, _dir, maxDetectionDist);
+      const hitDist = wallHit ? (wallHit.distance ?? wallHit.dist) : Infinity;
+      if (wallHit && hitDist < maxDetectionDist) {
+        // 0.0 a 50cm antes de encostar -> 1.0 quando colado no corpo
+        targetCompression = Math.max(0, Math.min(1.0, 1.0 - ((hitDist - (barrelLength * 0.25)) / (maxDetectionDist - (barrelLength * 0.25)))));
+      }
+    }
+    this.wallCompression += (targetCompression - this.wallCompression) * Math.min(dt * 14, 1.0);
+
     // 1. Troca de arma (tecla Q, slots 1/2 ou botão mobile ARMA)
     if (this.input.consumeAction('next_weapon')) {
       this.cycle();
@@ -204,8 +223,8 @@ export class WeaponSystem {
       this.reload();
     }
 
-    // 3. ADS (Mira com botão direito)
-    this.ads = this.input.actions.ads && !this.player.sprinting && this.player.alive;
+    // 3. ADS (Mira com botão direito, bloqueada se o cano estiver colado na parede)
+    this.ads = this.input.actions.ads && !this.player.sprinting && this.player.alive && (this.wallCompression < 0.45);
     this.player.ads = this.ads; // Sincroniza diretamente com o jogador
     emit('player:ads', { ads: this.ads }); // Emite evento para todo o jogo
     const adsTime = def.ballistics?.internal?.adsTime || 0.22;
@@ -305,7 +324,7 @@ export class WeaponSystem {
     const isStrafing = (this.input?.isActionPressed?.('move_left') || this.input?.isActionPressed?.('move_right')) && speedRatio > 0.1;
     const isSprinting = !!this.player.sprinting;
 
-    return BallisticsCalculator.calculateCurrentSpread(def, {
+    const baseSpread = BallisticsCalculator.calculateCurrentSpread(def, {
       isAds: this.ads,
       speedRatio,
       isStrafing,
@@ -313,9 +332,17 @@ export class WeaponSystem {
       precisionPenalty: this.precisionPenalty,
       swayAmount: this.currentSway?.amplitude ?? 0
     });
+    return baseSpread + (this.wallCompression || 0) * 0.05;
   }
 
   _fire() {
+    if (this.wallCompression > 0.85) {
+      emit('weapon:empty');
+      emit('hud:popup', { text: 'CANO OBSTRUÍDO PELA PAREDE', color: '#e0574a', duration: 700 });
+      this.fireCooldown = 0.20;
+      return;
+    }
+
     const def = this.def;
     this.ammo--;
     this.fireCooldown = def.fireInterval;

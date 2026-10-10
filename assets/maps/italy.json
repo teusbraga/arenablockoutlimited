@@ -1,0 +1,113 @@
+{
+  "name": "CS Italy (Texture Test Map)",
+  "size": [64, 64],
+  "bounds": [-30, 30, -30, 30],
+  "floorMaterial": "cobblestones",
+  "environment": {
+    "fogColor": "#d6be9c",
+    "fogNear": 48,
+    "fogFar": 120
+  },
+  "staticGeometry": [
+    { "type": "wall", "pos": [  0, 0,  31], "size": [62, 7.0, 1.5], "material": "stone" },
+    { "type": "wall", "pos": [  0, 0, -31], "size": [62, 7.0, 1.5], "material": "stone" },
+    { "type": "wall", "pos": [-31, 0,   0], "size": [1.5, 7.0, 62], "material": "stone" },
+    { "type": "wall", "pos": [ 31, 0,   0], "size": [1.5, 7.0, 62], "material": "stone" },
+
+    { "type": "building", "pos": [-11.5, 0, 16], "size": [14, 7.2, 18], "material": "wall_peeling_ochre" },
+    { "type": "roof",     "pos": [-11.5, 7.2, 16], "size": [15, 1.6, 19], "material": "roof" },
+
+    { "type": "building", "pos": [ 11.5, 0, 16], "size": [14, 6.8, 18], "material": "wall_peeling_terra" },
+    { "type": "roof",     "pos": [ 11.5, 6.8, 16], "size": [15, 1.6, 19], "material": "roof" },
+
+    { "type": "building", "pos": [-16.0, 0, -4], "size": [12, 6.5, 14], "material": "wall_white" },
+    { "type": "roof",     "pos": [-16.0, 6.5, -4], "size": [13, 1.5, 15], "material": "roof" },
+
+    { "type": "building", "pos": [ 16.0, 0, -4], "size": [12, 6.5, 14], "material": "wall_peeling_ochre" },
+    { "type": "roof",     "pos": [ 16.0, 6.5, -4], "size": [13, 1.5, 15], "material": "roof" },
+
+    { "type": "building", "pos": [-18.0, 0, -18], "size": [14, 6.0, 12], "material": "wall_peeling_terra" },
+    { "type": "roof",     "pos": [-18.0, 6.0, -18], "size": [15, 1.5, 13], "material": "roof" },
+
+    { "type": "building", "pos": [ 18.0, 0, -18], "size": [14, 6.0, 12], "material": "wall_white" },
+    { "type": "roof",     "pos": [ 18.0, 6.0, -18], "size": [15, 1.5, 13], "material": "roof" },
+
+    { "type": "bench", "pos": [-3.8, 0, 24], "size": [1.4, 0.55, 0.6], "material": "stone", "vaultable": true },
+    { "type": "bench", "pos": [ 3.8, 0, 24], "size": [1.4, 0.55, 0.6], "material": "stone", "vaultable": true },
+
+    { "type": "pillar", "pos": [-4.5, 0, 0], "size": [0.8, 4.5, 0.8], "material": "stone" },
+    { "type": "pillar", "pos": [ 4.5, 0, 0], "size": [0.8, 4.5, 0.8], "material": "stone" },
+
+    { "type": "planter", "pos": [-4.0, 0, 27], "size": [1.2, 0.7, 0.8], "material": "stone", "vaultable": true },
+    { "type": "planter", "pos": [ 4.0, 0, 27], "size": [1.2, 0.7, 0.8], "material": "stone", "vaultable": true },
+    { "type": "planter", "pos": [-4.0, 0, 5],  "size": [1.2, 0.7, 0.8], "material": "stone", "vaultable": true },
+    { "type": "planter", "pos": [ 4.0, 0, 5],  "size": [1.2, 0.7, 0.8], "material": "stone", "vaultable": true }
+  ],
+  "props": [
+    { "type": "archway", "pos": [0, 0, 14], "span": 9.0, "height": 4.8, "thickness": 1.4 },
+
+    { "type": "showcase_wall", "pos": [0, 0, -23], "rotY": 0 },
+
+    { "type": "market_stall", "pos": [7.5, 0, -4.5], "rotY": -0.2, "width": 3.6, "depth": 2.2, "height": 2.7 },
+    { "type": "market_stall", "pos": [-8.0, 0, -5.0], "rotY": 0.2, "width": 3.4, "depth": 2.2, "height": 2.7 },
+
+    { "type": "balcony", "pos": [-4.5, 3.4, 18], "width": 3.2, "depth": 1.1 },
+    { "type": "balcony", "pos": [ 4.5, 3.4, 10], "width": 3.2, "depth": 1.1 },
+
+    { "type": "window", "pos": [-4.4, 2.2, 23], "rotY": 1.5708, "width": 1.3, "height": 1.8 },
+    { "type": "window", "pos": [-4.4, 4.8, 23], "rotY": 1.5708, "width": 1.3, "height": 1.8 },
+    { "type": "window", "pos": [-4.4, 2.2, 12], "rotY": 1.5708, "width": 1.3, "height": 1.8 },
+    { "type": "window", "pos": [-4.4, 4.8, 12], "rotY": 1.5708, "width": 1.3, "height": 1.8 },
+
+    { "type": "window", "pos": [ 4.4, 2.2, 23], "rotY": -1.5708, "width": 1.3, "height": 1.8 },
+    { "type": "window", "pos": [ 4.4, 4.8, 23], "rotY": -1.5708, "width": 1.3, "height": 1.8 },
+    { "type": "window", "pos": [ 4.4, 2.2, 16], "rotY": -1.5708, "width": 1.3, "height": 1.8 },
+    { "type": "window", "pos": [ 4.4, 4.8, 16], "rotY": -1.5708, "width": 1.3, "height": 1.8 },
+
+    { "type": "window", "pos": [-9.8, 3.0, -11.9], "rotY": 0, "width": 1.4, "height": 1.9 },
+    { "type": "window", "pos": [ 9.8, 3.0, -11.9], "rotY": 0, "width": 1.4, "height": 1.9 },
+
+    { "type": "door_frame", "pos": [-4.4, 0, 8.5], "rotY": 1.5708, "width": 1.3, "height": 2.4 },
+    { "type": "door_frame", "pos": [ 4.4, 0, 8.5], "rotY": -1.5708, "width": 1.3, "height": 2.4 },
+    { "type": "door_frame", "pos": [-10.2, 0, 2.8], "rotY": 0, "width": 1.3, "height": 2.4 },
+    { "type": "door_frame", "pos": [ 10.2, 0, 2.8], "rotY": 0, "width": 1.3, "height": 2.4 },
+
+    { "type": "ivy", "pos": [-4.42, 2.6, 15.5], "rotY": 1.5708, "width": 2.6, "height": 4.2 },
+    { "type": "ivy", "pos": [ 4.42, 2.6, 20.5], "rotY": -1.5708, "width": 2.4, "height": 4.0 },
+    { "type": "ivy", "pos": [-10.1, 2.5, -4.0],  "rotY": 1.5708, "width": 3.0, "height": 4.4 },
+    { "type": "ivy", "pos": [ 10.1, 2.5, -4.0],  "rotY": -1.5708, "width": 3.0, "height": 4.4 },
+
+    { "type": "wine_barrel", "pos": [-3.5, 0, 6.5], "scale": 1.0 },
+    { "type": "wine_barrel", "pos": [-3.6, 0, 5.5], "scale": 0.9 },
+    { "type": "wine_barrel", "pos": [ 3.6, 0, 6.5], "scale": 1.05 },
+    { "type": "wine_barrel", "pos": [ 9.5, 0, -2.5], "scale": 1.0 },
+    { "type": "wine_barrel", "pos": [-9.5, 0, -2.5], "scale": 1.0 },
+
+    { "type": "wine_crate", "pos": [ 3.5, 0, 20], "rotY": 0.15, "sx": 1.3, "sy": 1.1, "sz": 1.3 },
+    { "type": "wine_crate", "pos": [ 3.5, 1.1, 20], "rotY": -0.2, "sx": 1.2, "sy": 0.9, "sz": 1.2 },
+    { "type": "wine_crate", "pos": [-3.5, 0, 20], "rotY": -0.1, "sx": 1.3, "sy": 1.0, "sz": 1.3 },
+    { "type": "wine_crate", "pos": [ 0, 0, -7.5], "rotY": 0.35, "sx": 1.5, "sy": 1.2, "sz": 1.5 },
+    { "type": "wine_crate", "pos": [ 0, 1.2, -7.5], "rotY": -0.15, "sx": 1.3, "sy": 1.0, "sz": 1.3 },
+
+    { "type": "lantern", "pos": [-4.35, 3.2, 14], "rotY": 1.5708 },
+    { "type": "lantern", "pos": [ 4.35, 3.2, 14], "rotY": -1.5708 },
+    { "type": "lantern", "pos": [-4.35, 3.2, 2.5], "rotY": 1.5708 },
+    { "type": "lantern", "pos": [ 4.35, 3.2, 2.5], "rotY": -1.5708 },
+    { "type": "lantern", "pos": [ 0, 3.2, -12], "rotY": 0 }
+  ],
+  "doors": [
+    { "pos": [-4.4, 0, 8.5], "width": 1.2, "height": 2.4 },
+    { "pos": [ 4.4, 0, 8.5], "width": 1.2, "height": 2.4 }
+  ],
+  "playerSpawns": [
+    [0, 0.1, 26],
+    [0, 0.1, -12]
+  ],
+  "botSpawns": [
+    [-6, 0.1, -10],
+    [ 6, 0.1, -10],
+    [ 0, 0.1,  -2],
+    [-8, 0.1,  18],
+    [ 8, 0.1,  18]
+  ]
+}

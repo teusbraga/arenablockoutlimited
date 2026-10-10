@@ -280,8 +280,9 @@ export class CameraRig {
     this.shakeIntensity *= Math.max(0, 1 - dt * 9.0);
     if (this.shakeIntensity > 0.001) {
       const t = performance.now() * 0.001;
+      const userShakeScale = CONFIG.ACCESSIBILITY?.shakeScale ?? 1.0;
       // No ADS, a câmera principal externa fica 100% firme e estável (zero tremor externo)
-      const shakeDamp = isAds ? 0.0 : 0.50;
+      const shakeDamp = (isAds ? 0.0 : 0.50) * userShakeScale;
       this.shakePos.set(
         Math.sin(t * 47.3) * 0.012 * this.shakeIntensity * shakeDamp,
         Math.cos(t * 61.7) * 0.012 * this.shakeIntensity * shakeDamp,
@@ -311,9 +312,10 @@ export class CameraRig {
     const isMoving = player.alive && player.onGround && speedXZ > 0.6;
 
     if (isMoving) {
+      const userBobScale = CONFIG.ACCESSIBILITY?.headbobScale ?? 1.0;
       const rate = 9 + (player.sprinting ? 5 : 0) - player.crouchAmount * 3;
       this.bobPhase += dt * rate;
-      const target = (player.sprinting ? 0.040 : 0.029) * Math.min(speedXZ / CONFIG.PLAYER.walkSpeed, 1.8);
+      const target = (player.sprinting ? 0.040 : 0.029) * userBobScale * Math.min(speedXZ / CONFIG.PLAYER.walkSpeed, 1.8);
       this.bobAmt += (target - this.bobAmt) * Math.min(dt * 8, 1);
     } else {
       this.bobAmt += (0 - this.bobAmt) * Math.min(dt * 6, 1);

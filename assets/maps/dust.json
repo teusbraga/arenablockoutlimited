@@ -1,82 +1,115 @@
 {
-  "name": "Dust Block (Mirage Dunes)",
+  "name": "Dust Block (Mirage Dunes Remake)",
   "size": [80, 80],
-  "bounds": [-39, 39, -39, 39],
+  "bounds": [-38, 38, -38, 38],
   "floorMaterial": "sand",
   "environment": {
-    "fogColor": "#d9bc8c",
+    "fogColor": "#d4b07c",
     "fogNear": 50,
     "fogFar": 135
   },
   "staticGeometry": [
-    { "type": "wall", "pos": [  0, 0,  40], "size": [80, 5, 1], "material": "sandstone" },
-    { "type": "wall", "pos": [  0, 0, -40], "size": [80, 5, 1], "material": "sandstone" },
-    { "type": "wall", "pos": [-40, 0,   0], "size": [ 1, 5, 80], "material": "sandstone" },
-    { "type": "wall", "pos": [ 40, 0,   0], "size": [ 1, 5, 80], "material": "sandstone" },
+    { "type": "wall", "pos": [  0, 0,  39], "size": [78, 6.0, 1.6], "material": "sandstone" },
+    { "type": "wall", "pos": [  0, 0, -39], "size": [78, 6.0, 1.6], "material": "sandstone" },
+    { "type": "wall", "pos": [-39, 0,   0], "size": [1.6, 6.0, 78], "material": "sandstone" },
+    { "type": "wall", "pos": [ 39, 0,   0], "size": [1.6, 6.0, 78], "material": "sandstone" },
 
-    { "type": "path", "pos": [0, 0, 0], "size": [10, 0.05, 70], "material": "sand_dark" },
-    { "type": "path", "pos": [0, 0, 0], "size": [70, 0.05, 10], "material": "sand_dark" },
+    { "type": "path", "pos": [0, 0, 0], "size": [10, 0.04, 70], "material": "sand_dark" },
+    { "type": "path", "pos": [0, 0, 0], "size": [70, 0.04, 10], "material": "sand_dark" },
 
-    { "type": "wall", "pos": [0, 0, 4], "size": [6, 3.5, 1.2], "material": "plaster_light" },
-    { "type": "wall", "pos": [0, 0, -4], "size": [6, 3.5, 1.2], "material": "plaster_light" },
-    { "type": "crate", "pos": [0, 0, 0], "size": [2.6, 1.6, 2.6], "material": "crate" },
-    { "type": "crate", "pos": [3.5, 0, 0], "size": [1.4, 2.4, 1.4], "material": "crate" },
-    { "type": "crate", "pos": [-3.5, 0, 0], "size": [1.4, 1.2, 1.4], "material": "metal_barrel" },
+    { "type": "mid_bunker", "pos": [0, 0, 5], "size": [8, 3.8, 1.4], "material": "plaster_light" },
+    { "type": "mid_bunker", "pos": [0, 0, -5], "size": [8, 3.8, 1.4], "material": "plaster_light" },
 
-    { "type": "wall", "pos": [-22, 0, 18], "size": [18, 4.2, 1.2], "material": "sandstone" },
-    { "type": "wall", "pos": [-22, 0, 34], "size": [18, 4.2, 1.2], "material": "sandstone" },
-    { "type": "wall", "pos": [-31, 0, 26], "size": [1.2, 4.2, 16], "material": "sandstone" },
-    { "type": "wall", "pos": [-13, 0, 22], "size": [1.2, 4.2, 8], "material": "sandstone" },
-    { "type": "roof", "pos": [-22, 4.2, 26], "size": [19, 0.6, 17], "material": "plaster_light" },
-    { "type": "fabric", "pos": [-22, 3.8, 17], "size": [12, 0.2, 3.5], "material": "fabric_red" },
+    { "type": "building_palace", "pos": [-22, 0, 20], "size": [18, 5.8, 16], "material": "sandstone" },
+    { "type": "parapet",         "pos": [-22, 5.8, 20], "size": [19, 0.8, 17], "material": "plaster_light" },
 
-    { "type": "wall", "pos": [-20, 0, 26], "size": [3, 0.8, 3], "material": "stone" },
-    { "type": "crate", "pos": [-19, 0.8, 25.5], "size": [1.4, 1.4, 1.4], "material": "crate" },
-    { "type": "crate", "pos": [-21, 0.8, 26.5], "size": [1.3, 1.3, 1.3], "material": "crate" },
+    { "type": "building_a_site", "pos": [ 22, 0, 20], "size": [18, 5.8, 16], "material": "sandstone" },
+    { "type": "parapet",         "pos": [ 22, 5.8, 20], "size": [19, 0.8, 17], "material": "plaster_light" },
 
-    { "type": "wall", "pos": [22, 0, 18], "size": [18, 4.2, 1.2], "material": "sandstone" },
-    { "type": "wall", "pos": [22, 0, 34], "size": [18, 4.2, 1.2], "material": "sandstone" },
-    { "type": "wall", "pos": [31, 0, 26], "size": [1.2, 4.2, 16], "material": "sandstone" },
-    { "type": "wall", "pos": [13, 0, 30], "size": [1.2, 4.2, 8], "material": "sandstone" },
-    { "type": "roof", "pos": [22, 4.2, 26], "size": [19, 0.6, 17], "material": "plaster_light" },
-    { "type": "fabric", "pos": [22, 3.8, 17], "size": [12, 0.2, 3.5], "material": "fabric_green" },
+    { "type": "building_market", "pos": [-22, 0, -20], "size": [16, 5.4, 16], "material": "plaster_light" },
+    { "type": "parapet",         "pos": [-22, 5.4, -20], "size": [17, 0.8, 17], "material": "sandstone" },
 
-    { "type": "wall", "pos": [20, 0, 26], "size": [3, 0.8, 3], "material": "stone" },
-    { "type": "crate", "pos": [20.5, 0.8, 25.5], "size": [1.4, 1.4, 1.4], "material": "crate" },
-    { "type": "crate", "pos": [19, 0.8, 26.5], "size": [1.3, 1.3, 1.3], "material": "metal_barrel" },
+    { "type": "building_b_site", "pos": [ 22, 0, -20], "size": [16, 5.4, 16], "material": "sandstone" },
+    { "type": "parapet",         "pos": [ 22, 5.4, -20], "size": [17, 0.8, 17], "material": "plaster_light" },
 
-    { "type": "wall", "pos": [-25, 0, 0], "size": [1.2, 3.8, 24], "material": "sandstone" },
-    { "type": "crate", "pos": [-22, 0, 4], "size": [1.4, 1.4, 1.4], "material": "crate" },
-    { "type": "crate", "pos": [-22, 0, -4], "size": [1.4, 2.2, 1.4], "material": "crate" },
-    { "type": "fence", "pos": [-22, 0, 10], "size": [4, 1.1, 0.3], "material": "fence", "vaultable": true },
+    { "type": "a_ramp",    "pos": [ 22, 0, 8], "size": [6, 1.2, 8], "material": "sandstone", "vaultable": true },
+    { "type": "palace_ramp","pos": [-22, 0, 8], "size": [6, 1.2, 8], "material": "sandstone", "vaultable": true },
 
-    { "type": "wall", "pos": [25, 0, 0], "size": [1.2, 3.8, 24], "material": "sandstone" },
-    { "type": "crate", "pos": [22, 0, 4], "size": [1.4, 2.2, 1.4], "material": "crate" },
-    { "type": "crate", "pos": [22, 0, -4], "size": [1.4, 1.4, 1.4], "material": "crate" },
-    { "type": "fence", "pos": [22, 0, 10], "size": [4, 1.1, 0.3], "material": "fence", "vaultable": true },
+    { "type": "cover_box", "pos": [0, 0, 0], "size": [2.8, 1.4, 2.8], "material": "military_crate", "vaultable": true },
 
-    { "type": "wall", "pos": [-14, 0, -26], "size": [18, 4.0, 1.2], "material": "sandstone" },
-    { "type": "wall", "pos": [14, 0, -26], "size": [18, 4.0, 1.2], "material": "sandstone" },
-    { "type": "crate", "pos": [0, 0, -28], "size": [2.8, 1.4, 1.6], "material": "metal_barrel" },
-    { "type": "crate", "pos": [-6, 0, -22], "size": [1.5, 1.5, 1.5], "material": "crate" },
-    { "type": "crate", "pos": [6, 0, -22], "size": [1.5, 1.5, 1.5], "material": "crate" },
-    { "type": "fence", "pos": [0, 0, -18], "size": [8, 1.1, 0.3], "material": "fence", "vaultable": true }
+    { "type": "alley_wall", "pos": [-27, 0, 0], "size": [1.4, 4.2, 22], "material": "sandstone" },
+    { "type": "alley_wall", "pos": [ 27, 0, 0], "size": [1.4, 4.2, 22], "material": "sandstone" }
+  ],
+  "props": [
+    { "type": "arabic_arch", "pos": [0, 0, 16], "span": 8.0, "height": 4.8, "thickness": 1.4 },
+    { "type": "arabic_arch", "pos": [0, 0, -16], "span": 8.0, "height": 4.8, "thickness": 1.4 },
+
+    { "type": "palm_tree", "pos": [-7.5, 0, 26], "scale": 1.15 },
+    { "type": "palm_tree", "pos": [ 7.5, 0, 26], "scale": 1.1 },
+    { "type": "palm_tree", "pos": [-7.5, 0, -26], "scale": 1.1 },
+    { "type": "palm_tree", "pos": [ 7.5, 0, -26], "scale": 1.2 },
+    { "type": "palm_tree", "pos": [ 32, 0, 5], "scale": 1.25 },
+    { "type": "palm_tree", "pos": [-32, 0, -5], "scale": 1.2 },
+
+    { "type": "water_tank", "pos": [-22, 6.6, 22], "scale": 1.1 },
+    { "type": "water_tank", "pos": [ 22, 6.6, 22], "scale": 1.05 },
+    { "type": "water_tank", "pos": [-22, 6.2, -22], "scale": 1.1 },
+
+    { "type": "arabic_rug", "pos": [-12.8, 1.8, 14], "rotY": 1.5708, "width": 2.6, "height": 3.4, "isGreen": false },
+    { "type": "arabic_rug", "pos": [ 12.8, 1.8, 14], "rotY": -1.5708, "width": 2.6, "height": 3.4, "isGreen": true },
+    { "type": "arabic_rug", "pos": [-13.8, 1.8, -14], "rotY": 1.5708, "width": 2.4, "height": 3.2, "isGreen": false },
+    { "type": "arabic_rug", "pos": [ 13.8, 1.8, -14], "rotY": -1.5708, "width": 2.4, "height": 3.2, "isGreen": true },
+
+    { "type": "desert_tarp", "pos": [0, 3.8, 6], "rotY": 0, "width": 7.5, "depth": 4.0 },
+    { "type": "desert_tarp", "pos": [0, 3.8, -6], "rotY": 0, "width": 7.5, "depth": 4.0 },
+
+    { "type": "military_crate", "pos": [ 2.4, 0, 1.2], "rotY": 0.15, "sx": 1.4, "sy": 1.2, "sz": 1.4 },
+    { "type": "military_crate", "pos": [-2.4, 0, -1.2], "rotY": -0.2, "sx": 1.4, "sy": 1.2, "sz": 1.4 },
+    { "type": "military_crate", "pos": [ 16, 0, 18], "rotY": 0.25, "sx": 1.5, "sy": 1.3, "sz": 1.5 },
+    { "type": "military_crate", "pos": [ 16, 1.3, 18], "rotY": -0.1, "sx": 1.3, "sy": 1.0, "sz": 1.3 },
+    { "type": "military_crate", "pos": [-16, 0, 18], "rotY": -0.15, "sx": 1.5, "sy": 1.3, "sz": 1.5 },
+    { "type": "military_crate", "pos": [-16, 0, -18], "rotY": 0.3, "sx": 1.4, "sy": 1.2, "sz": 1.4 },
+    { "type": "military_crate", "pos": [ 16, 0, -18], "rotY": -0.25, "sx": 1.4, "sy": 1.2, "sz": 1.4 },
+
+    { "type": "oil_barrel", "pos": [ 3.5, 0, -2], "scale": 1.0 },
+    { "type": "oil_barrel", "pos": [ 4.2, 0, -1.2], "scale": 0.95 },
+    { "type": "oil_barrel", "pos": [-3.5, 0, 2], "scale": 1.0 },
+    { "type": "oil_barrel", "pos": [-4.2, 0, 1.2], "scale": 0.95 },
+    { "type": "oil_barrel", "pos": [ 19, 0, 6], "scale": 1.05 },
+    { "type": "oil_barrel", "pos": [-19, 0, 6], "scale": 1.05 },
+
+    { "type": "door_frame", "pos": [-12.8, 0, 22], "rotY": 1.5708, "width": 1.3, "height": 2.4 },
+    { "type": "door_frame", "pos": [ 12.8, 0, 22], "rotY": -1.5708, "width": 1.3, "height": 2.4 },
+    { "type": "door_frame", "pos": [-13.8, 0, -22], "rotY": 1.5708, "width": 1.3, "height": 2.4 },
+    { "type": "door_frame", "pos": [ 13.8, 0, -22], "rotY": -1.5708, "width": 1.3, "height": 2.4 },
+
+    { "type": "window", "pos": [-12.8, 3.2, 26], "rotY": 1.5708, "width": 1.3, "height": 1.8 },
+    { "type": "window", "pos": [ 12.8, 3.2, 26], "rotY": -1.5708, "width": 1.3, "height": 1.8 },
+    { "type": "window", "pos": [-13.8, 3.2, -26], "rotY": 1.5708, "width": 1.3, "height": 1.8 },
+    { "type": "window", "pos": [ 13.8, 3.2, -26], "rotY": -1.5708, "width": 1.3, "height": 1.8 },
+
+    { "type": "lantern", "pos": [-0.6, 3.4, 16], "rotY": 0 },
+    { "type": "lantern", "pos": [ 0.6, 3.4, 16], "rotY": 3.1416 },
+    { "type": "lantern", "pos": [-0.6, 3.4, -16], "rotY": 0 },
+    { "type": "lantern", "pos": [ 0.6, 3.4, -16], "rotY": 3.1416 }
   ],
   "doors": [
-    { "pos": [-13, 0, 28], "width": 1.3, "height": 2.6 },
-    { "pos": [ 13, 0, 24], "width": 1.3, "height": 2.6 }
+    { "pos": [-12.8, 0, 22], "width": 1.2, "height": 2.4 },
+    { "pos": [ 12.8, 0, 22], "width": 1.2, "height": 2.4 },
+    { "pos": [-13.8, 0, -22], "width": 1.2, "height": 2.4 },
+    { "pos": [ 13.8, 0, -22], "width": 1.2, "height": 2.4 }
   ],
   "playerSpawns": [
-    [0, 0.1, 35],
-    [-22, 0.1, 36],
-    [22, 0.1, 36]
+    [0, 0.1, 32],
+    [-20, 0.1, 30],
+    [ 20, 0.1, 30]
   ],
   "botSpawns": [
-    [0, 0.1, -34],
+    [0, 0.1, -32],
     [-20, 0.1, -30],
-    [20, 0.1, -30],
-    [-20, 0.1, 26],
-    [20, 0.1, 26],
-    [0, 0.1, 8]
+    [ 20, 0.1, -30],
+    [-18, 0.1, 0],
+    [ 18, 0.1, 0],
+    [ 0, 0.1, 0]
   ]
 }

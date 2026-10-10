@@ -16,6 +16,8 @@ import { AudioSystem } from './audio/AudioSystem.js';
 import { HUD } from './ui/HUD.js';
 import { MenuController } from './ui/MenuController.js';
 import { ScopeSystem } from './weapons/ScopeSystem.js';
+import { on } from './core/EventBus.js';
+import { loadingScreen } from './ui/LoadingScreen.js';
 
 /* =========================================================
    BOOTSTRAP & INICIALIZAÇÃO DO JOGO
@@ -23,6 +25,7 @@ import { ScopeSystem } from './weapons/ScopeSystem.js';
 
 (async function boot() {
   try {
+    loadingScreen.setProgress(5, 'Inicializando subsistemas e motor...');
     const sceneSetup = new SceneSetup(document.getElementById('app'));
     const { scene, camera, renderer } = sceneSetup;
 
@@ -142,6 +145,7 @@ import { ScopeSystem } from './weapons/ScopeSystem.js';
       viewmodel.models[id].mesh.visible = true; // Força compilação
     }
 
+    loadingScreen.setProgress(94, 'Pré-aquecendo shaders de render...');
     renderer.compile(scene, camera);
 
     for (const id in viewmodel.models) {
@@ -154,6 +158,21 @@ import { ScopeSystem } from './weapons/ScopeSystem.js';
 
     // 5. Interface e Menus
     new MenuController({ input, gameManager, weapons });
+
+    // Finaliza a tela de carregamento com transição suave
+    loadingScreen.hide();
+
+    // Feedback Tátil Háptico Mobile (Acessibilidade e Imersão)
+    const triggerHaptic = (pattern) => {
+      if (CONFIG.ACCESSIBILITY?.vibrationEnabled !== false && typeof navigator !== 'undefined' && navigator.vibrate) {
+        try {
+          navigator.vibrate(pattern);
+        } catch (_) {}
+      }
+    };
+    on('weapon:fired', () => triggerHaptic(18));
+    on('player:damaged', () => triggerHaptic([35, 25, 35]));
+    on('weapon:empty', () => triggerHaptic(10));
 
     /* =========================================================
        LOOP PRINCIPAL (GODOT-READY: fixedUpdate vs renderUpdate)
@@ -205,6 +224,7 @@ import { ScopeSystem } from './weapons/ScopeSystem.js';
             adsAmount: weapons.adsAmount,
             reloadProgress: weapons.reloadProgress,
             ammo: weapons.ammo,
+            wallCompression: weapons.wallCompression || 0,
           });
           viewmodel.decayFlash(dt);
 
@@ -250,6 +270,7 @@ import { ScopeSystem } from './weapons/ScopeSystem.js';
     });
 
   } catch (err) {
+    loadingScreen.hide();
     console.error(err);
     document.body.innerHTML = `<div style="padding:40px;color:#e0574a;font-family:monospace">
       Erro ao carregar: ${err.message}<br><br>

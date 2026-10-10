@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { CONFIG } from '../core/ConfigLoader.js';
 import { WEAPONS } from './WeaponDefs.js';
 import { buildHK416 } from './models/HK416.js';
 import { buildP9 } from './models/P9.js';
@@ -160,9 +161,10 @@ export class Viewmodel {
     // Walking Bob suave
     const speed = playerVel ? Math.hypot(playerVel.x, playerVel.z) : 0;
     const time = performance.now() * 0.001;
+    const bobScale = CONFIG.ACCESSIBILITY?.headbobScale ?? 1.0;
     
     const bobFreq = speed > 0.1 ? (isSprinting ? 11 : 7.5) : 0;
-    const bobAmt = (speed > 0.1 ? (isSprinting ? 0.018 : 0.009) : 0) * (isADS ? 0.15 : 1);
+    const bobAmt = (speed > 0.1 ? (isSprinting ? 0.018 : 0.009) : 0) * (isADS ? 0.15 : 1) * bobScale;
     
     const bobX = Math.sin(time * bobFreq) * bobAmt;
     const bobY = Math.abs(Math.cos(time * bobFreq)) * bobAmt;
@@ -226,7 +228,7 @@ export class Viewmodel {
   /**
    * Interpolação suave entre poses táticas (Hipfire, ADS, Sprint, Reload e Draw)
    */
-  updatePose(dt, weaponId, { isADS, isSprinting, adsAmount, reloadProgress, ammo }) {
+  updatePose(dt, weaponId, { isADS, isSprinting, adsAmount, reloadProgress, ammo, wallCompression = 0 }) {
     const def = WEAPONS[weaponId];
     if (!def) return;
     const mount = this.mount;
@@ -262,6 +264,17 @@ export class Viewmodel {
     mount.rotation.x = this.baseRot.x + this.kickRotX;
     mount.rotation.y = this.baseRot.y;
     mount.rotation.z = this.baseRot.z;
+
+    // Weapon Wall Press (Cano da arma pressionado contra obstáculo)
+    // Cano sobe ~75° (1.31 rad) e vira ~15° (-0.26 rad) em direção ao ombro/jogador
+    if (wallCompression > 0.001) {
+      mount.position.z += wallCompression * 0.20;
+      mount.position.y += wallCompression * 0.08;
+      mount.position.x -= wallCompression * 0.03;
+      mount.rotation.x += wallCompression * 1.31;  // +75 graus para cima
+      mount.rotation.y -= wallCompression * 0.26;  // -15 graus (aponta levemente para o peito/jogador)
+      mount.rotation.z += wallCompression * 0.12;  // banking natural
+    }
 
     // Animação de Recarregamento (Reload Dip suave)
     if (reloadProgress > 0) {

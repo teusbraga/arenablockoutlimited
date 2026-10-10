@@ -44,5 +44,10 @@
     "fireStreakDecayDelay": 0.22,
     "fireStreakMultiplier": 0.16,
     "maxFireStreak": 6
+  },
+  "accessibility": {
+    "headbobScale": 1.0,
+    "shakeScale": 1.0,
+    "vibrationEnabled": true
   }
 }

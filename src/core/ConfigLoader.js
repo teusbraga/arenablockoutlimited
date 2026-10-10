@@ -47,6 +47,11 @@ export const DEFAULT_CONFIG = {
     fireStreakDecayDelay: 0.22,
     fireStreakMultiplier: 0.16,
     maxFireStreak: 6
+  },
+  ACCESSIBILITY: {
+    headbobScale: 1.0,
+    shakeScale: 1.0,
+    vibrationEnabled: true
   }
 };
 
@@ -104,6 +109,9 @@ export class ConfigLoader {
         }
         if (gp.gunplay) {
           deepMerge(CONFIG.GUNPLAY, gp.gunplay);
+        }
+        if (gp.accessibility) {
+          deepMerge(CONFIG.ACCESSIBILITY, gp.accessibility);
         }
       }
 

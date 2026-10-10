@@ -133,7 +133,7 @@ export class CollisionWorld {
    */
   moveAndSlide(pos, size, delta, opts = {}) {
     const stepHeight = opts.stepHeight ?? 0.55;
-    const res = { onGround: false, hitCeiling: false, hitWall: false, hitX: false, hitZ: false };
+    const res = { onGround: false, hitCeiling: false, hitWall: false, hitX: false, hitZ: false, groundMaterial: null };
 
     // Delimita a AABB da trajetória para recuperar caixas locais via Spatial Grid
     const minX = Math.min(pos.x, pos.x + delta.x) - size.x/2 - 0.2;
@@ -148,7 +148,11 @@ export class CollisionWorld {
       const b = relevantBoxes[i];
       if (!b.solid) continue;
       if (!this.overlaps(pos, size, b)) continue;
-      if (delta.y <= 0) { pos.y = b.max.y; res.onGround = true; }
+      if (delta.y <= 0) { 
+        pos.y = b.max.y; 
+        res.onGround = true; 
+        res.groundMaterial = b.meta?.material || 'floor';
+      }
       else              { pos.y = b.min.y - size.y; res.hitCeiling = true; }
     }
 
@@ -158,7 +162,7 @@ export class CollisionWorld {
       pos.x += delta.x;
       if (this._anyOverlap(pos, size)) {
         pos.x = oldX;
-        if (res.onGround && stepHeight > 0 && this._tryStepUp(pos, size, delta.x, 0, stepHeight)) {
+        if (res.onGround && stepHeight > 0 && this._tryStepUp(pos, size, delta.x, 0, stepHeight, res)) {
           res.onGround = true;
         } else {
           res.hitWall = true; res.hitX = true;
@@ -172,7 +176,7 @@ export class CollisionWorld {
       pos.z += delta.z;
       if (this._anyOverlap(pos, size)) {
         pos.z = oldZ;
-        if (res.onGround && stepHeight > 0 && this._tryStepUp(pos, size, 0, delta.z, stepHeight)) {
+        if (res.onGround && stepHeight > 0 && this._tryStepUp(pos, size, 0, delta.z, stepHeight, res)) {
           res.onGround = true;
         } else {
           res.hitWall = true; res.hitZ = true;
@@ -183,7 +187,7 @@ export class CollisionWorld {
     return res;
   }
 
-  _tryStepUp(pos, size, dx, dz, stepHeight) {
+  _tryStepUp(pos, size, dx, dz, stepHeight, res = null) {
     const oldX = pos.x, oldY = pos.y, oldZ = pos.z;
     pos.y += stepHeight + 0.01;
     pos.x += dx; pos.z += dz;
@@ -206,7 +210,9 @@ export class CollisionWorld {
         const b = nearby[i];
         if (!b.solid) continue;
         if (this.overlaps(pos, size, b)) {
-          pos.y = b.max.y; landed = true; break;
+          pos.y = b.max.y; landed = true; 
+          if (res) res.groundMaterial = b.meta?.material || 'floor';
+          break;
         }
       }
       if (landed) return true;

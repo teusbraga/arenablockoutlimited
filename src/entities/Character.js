@@ -55,6 +55,9 @@ export class Character {
     const res = this.world.moveAndSlide(this.pos, this.size, _delta, { stepHeight });
 
     this.onGround = res.onGround;
+    if (res.onGround && res.groundMaterial) {
+      this.groundMaterial = res.groundMaterial;
+    }
     if (res.onGround && this.vel.y < 0) this.vel.y = 0;
     if (res.hitCeiling && this.vel.y > 0) this.vel.y = 0;
     if (res.hitX) this.vel.x = 0;

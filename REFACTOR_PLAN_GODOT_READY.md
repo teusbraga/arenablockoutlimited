@@ -310,3 +310,52 @@
   - Correção de opacidade/visibilidade no Frame 0 eliminando pop-in e atrasos de renderização.
   - Refatoração dos perfis de tracer para parametrização intuitiva (`streakLength`, `style: 'swipe' | 'streak'`) totalmente editáveis por arma no JSON.
   - Implementação do `originTracker` dinâmico para rastreamento em tempo real da ponta do cano (Viewmodel Mount) no espaço de mundo, eliminando a desconexão visual durante strafes e movimentação veloz.
+
+---
+
+## FASE 14: Polimento Físico, Contato com Paredes & Acessibilidade [x] (CONCLUÍDO)
+
+### Passo 14.1: Weapon Wall Press & Obstrução Balística [x] (CONCLUÍDO)
+- **Alvo:** `src/weapons/WeaponSystem.js`, `src/weapons/Viewmodel.js`, `src/physics/CollisionWorld.js`
+- **Ações:**
+  - Raycast contínuo na direção frontal da câmera iniciando a detecção e recolhimento **50cm antes do cano encostar na parede** (`barrelLength + 0.50m`).
+  - Cálculo de `wallCompression` proporcional (0.0 a 1.0) com amortecimento suave (`dt * 14`).
+  - No `Viewmodel.js`:
+    - Elevação do cano em **+75 graus** para cima (`rotation.x += wallCompression * 1.31 rad`).
+    - Rotação sutil de **15 graus** em direção ao jogador/peito (`rotation.y -= wallCompression * 0.26 rad`).
+    - Recuo em Z (`+0.20m`), elevação física em Y (`+0.08m`) e leve inclinação de apoio (banking em Z).
+  - Bloqueio automático de ADS quando `wallCompression >= 0.45`.
+  - Penalidade progressiva de dispersão hipfire proporcional à compressão.
+  - Bloqueio total de disparo se `wallCompression > 0.85` com emissão de alerta HUD `'CANO OBSTRUÍDO PELA PAREDE'` e som de clique mecânico sem gasto de munição.
+
+### Passo 14.2: Foley de Passos por Material [x] (CONCLUÍDO)
+- **Alvo:** `src/physics/CollisionWorld.js`, `src/world/MapLoader.js`, `src/entities/Character.js`, `src/entities/Player.js`, `src/audio/AudioSystem.js`, `assets/config/audio.json`
+- **Ações:**
+  - `CollisionWorld.moveAndSlide` registra o material do bloco de suporte no contato vertical (`res.groundMaterial = box.meta?.material || 'floor'`).
+  - `MapLoader.js` repassa os metadados de material (`cobblestones`, `wood`, `metal`, `sand`, `grass`, `concrete`) para o `CollisionWorld`.
+  - `Character.js` propaga `groundMaterial` durante a simulação de física em 120Hz.
+  - Evento `'player:footstep'` emite `{ pos, material }`.
+  - `AudioSystem.js` sintetiza proceduralmente o som de passos adaptando frequência base, ruído de impacto e ressonância de acordo com o material (`wood`: ressonância oca mais grave; `metal`: click metálico em alta frequência; `dirt`/`sand`: fricção granular abafada; `concrete`: estalo seco clássico).
+
+### Passo 14.3: Sliders de Acessibilidade & Persistência Local [x] (CONCLUÍDO)
+- **Alvo:** `assets/config/gameplay.json`, `src/core/ConfigLoader.js`, `index.html`, `src/ui/MenuController.js`
+- **Ações:**
+  - Adicionado bloco `"accessibility": { "headbobScale": 1.0, "shakeScale": 1.0, "vibrationEnabled": true }` nos dados globais.
+  - `ConfigLoader.js` inicializa e mescla configurações de acessibilidade.
+  - `index.html` e `MenuController.js` vinculam os controles na aba de Ajustes do Menu com persistência em `localStorage`:
+    - Balanço de Cabeça (Headbob): slider 0% a 200%.
+    - Tremor de Câmera (Shake): slider 0% a 200%.
+    - Vibração Tátil Mobile: seletor Ativada / Desativada.
+
+### Passo 14.4: Modulação Data-Driven de Headbob & Shake (±20%) [x] (CONCLUÍDO)
+- **Alvo:** `src/core/CameraRig.js`, `src/weapons/Viewmodel.js`, `test/phase14_accessibility_test.js`
+- **Ações:**
+  - `CameraRig.js` modula `bobAmt` e `shakePos`/`shakeRot` multiplicando `CONFIG.ACCESSIBILITY.headbobScale` e `CONFIG.ACCESSIBILITY.shakeScale`.
+  - `Viewmodel.js` modula a amplitude de balanço da arma de acordo com a escala de acessibilidade.
+  - Testes unitários validam matematicamente a variação de ±20% (0.80x e 1.20x) e anulação total (0.0x).
+
+### Passo 14.5: Feedback Tátil Háptico Mobile [x] (CONCLUÍDO)
+- **Alvo:** `src/main.js`
+- **Ações:**
+  - Integração com `navigator.vibrate` nos eventos do EventBus (`weapon:fired` com 18ms, `player:damaged` com padrão `[35, 25, 35]ms`, `weapon:empty` com 10ms).
+  - Respeita rigorosamente a configuração de acessibilidade do usuário.

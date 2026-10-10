@@ -258,6 +258,32 @@ export class AudioSystem {
     }
   }
 
+  playFootstep(material = 'floor') {
+    const mat = (material || 'floor').toLowerCase();
+    
+    // 1. Madeira / Caixotes / Troncos
+    if (mat.includes('wood') || mat.includes('crate') || mat.includes('plywood') || mat.includes('trunk')) {
+      const s = this.sounds['footstep_wood'] || { freqA: 240, freqB: 110, dur: 0.050, type: 'triangle', gain: 0.07 };
+      this._tone(s.freqA, s.freqB, s.dur, s.type, s.gain);
+      return;
+    }
+    // 2. Metal / Andaimes / Grades / Vigas de Aço
+    if (mat.includes('metal') || mat.includes('steel') || mat.includes('scaffold') || mat.includes('fence')) {
+      const s = this.sounds['footstep_metal'] || { freqA: 420, freqB: 170, dur: 0.038, type: 'square', gain: 0.05 };
+      this._tone(s.freqA, s.freqB, s.dur, s.type, s.gain);
+      return;
+    }
+    // 3. Areia / Terra / Grama / Folhagem (Macio e abafado)
+    if (mat.includes('sand') || mat.includes('dirt') || mat.includes('grass') || mat.includes('foliage')) {
+      const s = this.sounds['footstep_dirt'] || { freqA: 130, freqB: 60, dur: 0.060, type: 'sine', gain: 0.055 };
+      this._tone(s.freqA, s.freqB, s.dur, s.type, s.gain);
+      return;
+    }
+    // 4. Concreto / Pedra / Piso padrão (Seco e firme)
+    const s = this.sounds['footstep_concrete'] || this.sounds['footstep'] || { freqA: 190, freqB: 85, dur: 0.045, type: 'triangle', gain: 0.06 };
+    this._tone(s.freqA, s.freqB, s.dur, s.type, s.gain);
+  }
+
   _bind() {
     this._unsubs = [
       on('weapon:fired', e => {
@@ -305,7 +331,7 @@ export class AudioSystem {
       on('bot:fired', () => this.play('bot_shot')),
       on('player:damaged',  () => this.play('player_damaged')),
       on('player:died',     () => this.play('player_died')),
-      on('player:footstep', () => this.play('footstep')),
+      on('player:footstep', e => this.playFootstep(e?.material)),
       on('cheat:activated', () => this.play('hit_headshot')),
     ];
   }

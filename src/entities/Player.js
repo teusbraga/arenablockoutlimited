@@ -182,7 +182,7 @@ export class Player extends Character {
       const interval = this.sprinting ? 0.30 : (this.crouched ? 0.55 : 0.42);
       if (this.stepTimer <= 0) {
         this.stepTimer = interval;
-        emit('player:footstep', { pos: this.pos.clone() });
+        emit('player:footstep', { pos: this.pos.clone(), material: this.groundMaterial || 'floor' });
       }
     } else {
       this.stepTimer = 0;

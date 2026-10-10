@@ -598,9 +598,113 @@
     #death-screen h2 { font-size: 26px; margin-bottom: 4px; }
     #roundover-screen h2 { font-size: 32px; }
   }
+
+  /* =========================================================
+     TELA DE CARREGAMENTO TÁTICA (Loading Screen)
+     ========================================================= */
+  #loading-screen {
+    position: fixed;
+    inset: 0;
+    background: #090b0e;
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s;
+    user-select: none;
+  }
+  #loading-screen.fade-out {
+    opacity: 0;
+    pointer-events: none;
+    visibility: hidden;
+  }
+  .loading-box {
+    width: 88%;
+    max-width: 440px;
+    background: rgba(16, 20, 26, 0.90);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    padding: 24px 28px;
+    backdrop-filter: blur(14px);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 1px rgba(255, 255, 255, 0.2) inset;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .loading-logo-wrap {
+    margin-bottom: 14px;
+  }
+  .loading-logo {
+    max-height: 42px;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.6));
+  }
+  .loading-map-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 19px;
+    letter-spacing: 0.08em;
+    color: #f1f5f9;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+  }
+  .loading-progress-track {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  .loading-progress-bar {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.6);
+    border-radius: 4px;
+    transition: width 0.15s cubic-bezier(0.1, 0.9, 0.2, 1);
+  }
+  .loading-status-row {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #94a3b8;
+  }
+  .loading-status-text {
+    letter-spacing: 0.04em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 80%;
+  }
+  .loading-percent {
+    font-weight: 700;
+    color: #f59e0b;
+  }
 </style>
 </head>
 <body>
+<!-- Tela de Carregamento Tática -->
+<div id="loading-screen">
+  <div class="loading-box">
+    <div class="loading-logo-wrap">
+      <img src="./assets/ui/logo.svg" alt="ARENA BLOCKOUT" class="loading-logo" />
+    </div>
+    <div class="loading-map-title" id="loading-map-name">CARREGANDO MAPA...</div>
+    <div class="loading-progress-track">
+      <div class="loading-progress-bar" id="loading-bar"></div>
+    </div>
+    <div class="loading-status-row">
+      <span class="loading-status-text" id="loading-status">INICIALIZANDO MOTOR...</span>
+      <span class="loading-percent" id="loading-percent">0%</span>
+    </div>
+  </div>
+</div>
+
 <div id="app"></div>
 <div id="screen-flash"></div>
 <canvas id="damage-indicator" width="280" height="280"></canvas>
@@ -726,7 +830,7 @@
     </div>
     <div class="menu-instructions">
       WASD mover · Shift correr · C agachar · Space pular<br>
-      LMB atirar · RMB mirar · R reload · B modo tiro · Q/E inclinar · F interagir<br>
+      LMB atirar · RMB mirar · R reload · B modo tiro · Q/E inclinar · F interagir · T modo de textura<br>
       ESC pausa
     </div>
 
@@ -736,6 +840,7 @@
       <div class="menu-tabs">
         <button type="button" class="menu-tab-btn active" data-tab="loadout">🔫 LOADOUT</button>
         <button type="button" class="menu-tab-btn" data-tab="match">🎮 PARTIDA</button>
+        <button type="button" class="menu-tab-btn" data-tab="textures">🎨 TEXTURAS</button>
         <button type="button" class="menu-tab-btn" data-tab="system">⚙️ AJUSTES</button>
       </div>
 
@@ -786,11 +891,12 @@
           <div class="menu-option">
             <label for="map-select">Mapa</label>
             <select id="map-select">
-              <option value="./assets/maps/vice.json" selected>Vice City 2000x2000 (Afronta GTA 6)</option>
-              <option value="./assets/maps/city.json">Cidade Abandonada 1000x1000</option>
-              <option value="./assets/maps/woods.json">Woods 300x300 (Bosque &amp; Colinas)</option>
+              <option value="./assets/maps/dust.json" selected>Dust Block (Mirage Dunes Remake)</option>
+              <option value="./assets/maps/italy.json">CS Italy (Mapa Teste de Texturas)</option>
               <option value="./assets/maps/village.json">Vila Ensolarada (Casas &amp; Árvores)</option>
-              <option value="./assets/maps/dust.json">Dust Block (Mirage Dunes)</option>
+              <option value="./assets/maps/woods.json">Woods 300x300 (Bosque &amp; Colinas)</option>
+              <option value="./assets/maps/vice.json">Vice City 2000x2000 (Afronta GTA 6)</option>
+              <option value="./assets/maps/city.json">Cidade Abandonada 1000x1000</option>
               <option value="./assets/maps/vertigo.json">Vertigo Skyscraper</option>
               <option value="./assets/maps/range.json">Campo de Tiro (Range)</option>
               <option value="./assets/maps/cargo.json">Cargo (Assault &amp; Train)</option>
@@ -812,7 +918,59 @@
           </div>
         </div>
 
-        <!-- Aba 3: Ajustes e Sistema -->
+        <!-- Aba 3: Texturas & PBR -->
+        <div class="menu-tab-panel" data-panel="textures">
+          <div class="menu-option">
+            <label for="texture-mode-select">Modo de Renderização</label>
+            <select id="texture-mode-select">
+              <option value="pbr" selected>PBR Procedural (Albedo + Relevo Bump + Roughness)</option>
+              <option value="flat_textures">Albedo Puro (Sem Relevo)</option>
+              <option value="color_only">Cores Sólidas (Estilo Blocky Antigo)</option>
+            </select>
+          </div>
+          <div class="menu-option">
+            <label for="bump-slider">Intensidade do Relevo (Bump)</label>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input id="bump-slider" type="range" min="0" max="0.12" step="0.01" value="0.05">
+              <span id="bump-val">0.05</span>
+            </div>
+          </div>
+          <div class="menu-option">
+            <label for="uv-scale-slider">Escala de Repetição UV (World-Space)</label>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input id="uv-scale-slider" type="range" min="0.1" max="1.0" step="0.05" value="0.4">
+              <span id="uv-scale-val">0.40x</span>
+            </div>
+          </div>
+          <div class="menu-option" style="flex-direction:column;align-items:stretch;gap:6px;border-top:1px solid rgba(255,255,255,0.08);padding-top:8px;">
+            <div style="font-size:11px;color:var(--dim);letter-spacing:0.04em;">TESTAR IMAGEM EXTERNA (PNG / JPG / BITMAP)</div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <select id="custom-tex-target" style="flex:1;">
+                <option value="jungle_floor">Chão de Selva / Húmus (Woods)</option>
+                <option value="mossy_rock">Rocha com Musgo (Woods)</option>
+                <option value="sandbags">Sacos de Areia / Bunker (Woods)</option>
+                <option value="camo_tarp">Lona Camuflada (Woods)</option>
+                <option value="sand">Areia das Dunas (Dust)</option>
+                <option value="sandstone">Arenito do Deserto (Dust)</option>
+                <option value="cobblestones">Chão / Cobblestones (Italy)</option>
+                <option value="wall_peeling_ochre">Parede Ocre Descascada</option>
+                <option value="wall_peeling_terra">Parede Terracota</option>
+                <option value="wall_white">Parede Branca Envelhecida</option>
+                <option value="roof">Telhas de Terracota</option>
+                <option value="door_wood">Porta de Madeira</option>
+                <option value="crate">Caixotes de Vinho / Madeira</option>
+                <option value="awning_red">Toldo Listrado</option>
+              </select>
+              <label for="custom-tex-file" class="cta" style="padding:6px 12px;font-size:11px;cursor:pointer;white-space:nowrap;margin:0;border-radius:3px;background:var(--accent);color:#0d0f11;font-weight:600;">
+                📂 CARREGAR IMAGEM
+              </label>
+              <input id="custom-tex-file" type="file" accept="image/png,image/jpeg,image/webp,image/bmp" style="display:none;">
+            </div>
+            <div id="custom-tex-status" style="font-size:10px;color:var(--ok);margin-top:2px;display:none;"></div>
+          </div>
+        </div>
+
+        <!-- Aba 4: Ajustes e Sistema -->
         <div class="menu-tab-panel" data-panel="system">
           <div class="menu-option">
             <label for="sens-slider">Sensibilidade Câmera</label>
@@ -820,6 +978,27 @@
               <input id="sens-slider" type="range" min="0.5" max="5.0" step="0.1" value="2.0">
               <span id="sens-val">2.0x</span>
             </div>
+          </div>
+          <div class="menu-option">
+            <label for="headbob-slider">Balanço da Cabeça (Headbob)</label>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input id="headbob-slider" type="range" min="0" max="2.0" step="0.1" value="1.0">
+              <span id="headbob-val">100%</span>
+            </div>
+          </div>
+          <div class="menu-option">
+            <label for="shake-slider">Tremor de Câmera (Shake)</label>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input id="shake-slider" type="range" min="0" max="2.0" step="0.1" value="1.0">
+              <span id="shake-val">100%</span>
+            </div>
+          </div>
+          <div class="menu-option">
+            <label for="vibration-toggle">Vibração Tátil (Mobile)</label>
+            <select id="vibration-toggle">
+              <option value="on" selected>Ativada</option>
+              <option value="off">Desativada</option>
+            </select>
           </div>
           <div class="menu-option" style="justify-content:flex-end;">
             <button id="btn-fullscreen" type="button" style="font-size:11px; padding:8px 16px;">⛶ TELA CHEIA</button>
