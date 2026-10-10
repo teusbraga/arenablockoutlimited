@@ -31,6 +31,8 @@ export class CharacterView {
     this.floatTime = Math.random() * 10;
     this.walkTime = Math.random() * 10;
     this.idleTime = Math.random() * 10;
+    this.currentBodyYaw = 0;
+    this.hasInitYaw = false;
 
     this._buildMesh();
     if (this.scene) {
@@ -104,7 +106,7 @@ export class CharacterView {
       this.body = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.58, 0.28), mUniform);
       this.body.position.y = 0.95;
       this.body.castShadow = true;
-      this.body.userData = { type: 'bot', bot: this.character, part: 'body' };
+      this.body.userData = { type: 'character', character: this.character, bot: this.character, part: 'body' };
       this.torso.add(this.body);
 
       const vest = new THREE.Mesh(new THREE.BoxGeometry(0.51, 0.44, 0.31), mVest);
@@ -118,21 +120,25 @@ export class CharacterView {
 
       this.torso.add(vest, pouchL, pouchR);
 
-      // ---- 2. Cabeça e Capacete ----
+      // ---- 2. Cabeça e Capacete (com pivô de pescoço para pitch / olhar para cima/baixo) ----
+      this.headGroup = new THREE.Group();
+      this.headGroup.position.set(0, 1.25, 0); // Altura da base do pescoço
+      this.torso.add(this.headGroup);
+
       this.head = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.32, 0.32), mSkin);
-      this.head.position.y = 1.40;
+      this.head.position.set(0, 0.15, 0);
       this.head.castShadow = true;
-      this.head.userData = { type: 'bot', bot: this.character, part: 'head' };
-      this.torso.add(this.head);
+      this.head.userData = { type: 'character', character: this.character, bot: this.character, part: 'head' };
+      this.headGroup.add(this.head);
 
       const helmet = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.16, 0.36), mHelmet);
-      helmet.position.set(0, 1.50, 0);
+      helmet.position.set(0, 0.25, 0);
       helmet.castShadow = true;
 
       const goggles = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.08, 0.04), mGoggles);
-      goggles.position.set(0, 1.41, 0.18);
+      goggles.position.set(0, 0.16, 0.18);
 
-      this.torso.add(helmet, goggles);
+      this.headGroup.add(helmet, goggles);
 
       // ---- 3. Pernas Articuladas ----
       this.leftLegPivot = new THREE.Group();
@@ -304,10 +310,70 @@ export class CharacterView {
         this.gunGroup.position.x = 0.08 + lean * 0.14;
       }
 
+      // Inclinação vertical (Pitch - olhar para cima/baixo)
+      const pitch = this.character.pitch || 0;
+      if (this.headGroup) {
+        this.headGroup.rotation.x = pitch * 0.75;
+      }
+      if (this.armsGroup) {
+        this.armsGroup.rotation.x = pitch * 0.70;
+      }
+
       this.root.position.set(charPos.x, charPos.y, charPos.z);
     }
 
-    this.root.rotation.y = this.character.yaw;
+    // Orientação Cinemática do Personagem
+    // No Three.js o modelo do Soldado tem frente em +Z.
+    // O sistema de mira do jogo usa yaw=0 apontando para -Z (frente da câmera).
+    // Portanto a rotação visual frontal alinhada com a mira é: aimYaw = character.yaw + Math.PI.
+    const aimYaw = (this.character.yaw || 0) + Math.PI;
+
+    if (!this.hasInitYaw) {
+      this.currentBodyYaw = aimYaw;
+      this.hasInitYaw = true;
+    }
+
+    const vx = this.character.vel?.x || 0;
+    const vz = this.character.vel?.z || 0;
+    const moveSpeed = Math.hypot(vx, vz);
+
+    let targetBodyYaw = aimYaw;
+
+    // Se estiver em movimento ativo (velocidade > 0.35m/s), o corpo alinha na direção do passo
+    if (moveSpeed > 0.35) {
+      // Vetor de velocidade (vx, vz) em Three.js: Math.atan2(vx, vz) dá o ângulo para onde está andando
+      const moveAngle = Math.atan2(vx, vz);
+      targetBodyYaw = moveAngle;
+    } else {
+      // Parado: se o desvio entre a mira e o corpo for maior que ~65 graus, o corpo reajusta suavemente
+      let diffAim = aimYaw - this.currentBodyYaw;
+      while (diffAim > Math.PI) diffAim -= Math.PI * 2;
+      while (diffAim < -Math.PI) diffAim += Math.PI * 2;
+      if (Math.abs(diffAim) > 1.15) {
+        targetBodyYaw = aimYaw;
+      } else {
+        targetBodyYaw = this.currentBodyYaw;
+      }
+    }
+
+    // Interpolação suave do ângulo do corpo (evita estalos bruscos ao mudar de direção)
+    let diffTarget = targetBodyYaw - this.currentBodyYaw;
+    while (diffTarget > Math.PI) diffTarget -= Math.PI * 2;
+    while (diffTarget < -Math.PI) diffTarget += Math.PI * 2;
+    const rotSpeed = moveSpeed > 0.35 ? 14 : 7;
+    this.currentBodyYaw += diffTarget * Math.min(dt * rotSpeed, 1);
+
+    this.root.rotation.y = this.currentBodyYaw;
+
+    // Torso twist: compensa a diferença entre o corpo (pés) e a mira para que a arma e a cabeça sempre apontem para o alvo
+    if (this.torso) {
+      let spineTwist = aimYaw - this.currentBodyYaw;
+      while (spineTwist > Math.PI) spineTwist -= Math.PI * 2;
+      while (spineTwist < -Math.PI) spineTwist += Math.PI * 2;
+      // Clampa o giro do tronco para não quebrar a coluna em 180 graus caso ande de costas
+      const maxSpineTwist = 1.25; // ~72 graus
+      this.torso.rotation.y = Math.max(-maxSpineTwist, Math.min(maxSpineTwist, spineTwist));
+    }
   }
 
   destroy() {

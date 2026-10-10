@@ -44,22 +44,35 @@ export class GameManager {
 
   _setupEvents() {
     this._unsubs = [
-      // Danos causados por tiro de Bot no Player ajustados pelo perfil da arma e precisão configurada
-      on('bot:fired', ({ bot, player: p, dist, hit }) => {
-        // Se a chamada já calculou hit ou calcula respeitando CONFIG
-        const isHit = typeof hit === 'boolean' ? hit : (() => {
-          const base = CONFIG.BOTS?.hitAccuracyBase ?? 0.08;
-          const range = CONFIG.BOTS?.hitAccuracyRange ?? 28.0;
-          const maxAcc = CONFIG.BOTS?.hitAccuracyMax ?? 0.55;
-          const chance = Math.min(maxAcc, Math.max(base, 1 - dist / range));
-          return Math.random() < chance;
-        })();
+      // Disparo de Bot: Spawna projétil físico contínuo com CCD, balística realista e supressão tática
+      on('bot:fired', e => {
+        const bot = e.bot;
+        const p = e.player || this.player;
+        const def = bot?.weaponId ? WEAPONS[bot.weaponId] : null;
 
-        if (isHit) {
-          const def = bot?.weaponId ? WEAPONS[bot.weaponId] : null;
-          const baseDamage = def?.damageBody || CONFIG.BOTS.damageBody || 14;
-          const dmg = baseDamage * (0.8 + Math.random() * 0.4);
-          p.takeDamage(dmg, bot);
+        if (this.weapons?.projectileManager && def && e.muzzleWorld && e.dir) {
+          this.weapons.projectileManager.spawn({
+            origin: e.muzzleWorld,
+            direction: e.dir,
+            weaponDef: def,
+            owner: 'bot',
+            ownerEntity: bot
+          });
+        } else if (p && p.alive) {
+          // Fallback caso não haja projectileManager instanciado
+          const isHit = typeof e.hit === 'boolean' ? e.hit : (() => {
+            const base = CONFIG.BOTS?.hitAccuracyBase ?? 0.08;
+            const range = CONFIG.BOTS?.hitAccuracyRange ?? 28.0;
+            const maxAcc = CONFIG.BOTS?.hitAccuracyMax ?? 0.55;
+            const chance = Math.min(maxAcc, Math.max(base, 1 - (e.dist || 10) / range));
+            return Math.random() < chance;
+          })();
+
+          if (isHit) {
+            const baseDamage = def?.damageBody || CONFIG.BOTS?.damageBody || 14;
+            const dmg = baseDamage * (0.8 + Math.random() * 0.4);
+            p.takeDamage(dmg, bot);
+          }
         }
       }),
 

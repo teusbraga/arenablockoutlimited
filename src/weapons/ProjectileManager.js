@@ -27,6 +27,12 @@ export class Projectile {
     this.maxLife = 3.0;
     this.isPellet = false;
     this.spawnOrigin = new THREE.Vector3(); // Ponto exato de nascimento (Muzzle Pin)
+    this.penetrationsRemaining = 0;
+    this.penetrationPower = 0.35;
+    this.ricochetChance = 0.25;
+    this.damageMultiplier = 1.0;
+    this.hasSuppressedPlayer = false;
+    this.suppressedBots = new Set();
   }
 
   reset() {
@@ -35,6 +41,12 @@ export class Projectile {
     this.life = 0;
     this.weaponDef = null;
     this.ownerEntity = null;
+    this.penetrationsRemaining = 0;
+    this.penetrationPower = 0.35;
+    this.ricochetChance = 0.25;
+    this.damageMultiplier = 1.0;
+    this.hasSuppressedPlayer = false;
+    if (this.suppressedBots) this.suppressedBots.clear();
   }
 }
 
@@ -42,10 +54,16 @@ export class Projectile {
 const _stepVec = new THREE.Vector3();
 const _stepDir = new THREE.Vector3();
 const _tempDir = new THREE.Vector3();
+const _reflVec = new THREE.Vector3();
 const _hittableMeshes = [];
 const _screenPos = new THREE.Vector3();
 const _botHitPoint = new THREE.Vector3();
 const _worldHitPoint = new THREE.Vector3();
+const _exitHitPoint = new THREE.Vector3();
+const _segAB = new THREE.Vector3();
+const _segAP = new THREE.Vector3();
+const _segClosest = new THREE.Vector3();
+const _targetHead = new THREE.Vector3();
 
 /**
  * ProjectileManager
@@ -123,6 +141,10 @@ export class ProjectileManager {
     p.life = 0;
     p.maxLife = 3.5;
     p.isPellet = !!isPellet;
+    p.penetrationsRemaining = terminal.maxPenetrations ?? weaponDef?.maxPenetrations ?? 1;
+    p.penetrationPower = terminal.penetrationPower ?? weaponDef?.penetrationPower ?? 0.35;
+    p.ricochetChance = terminal.ricochetChance ?? weaponDef?.ricochetChance ?? 0.25;
+    p.damageMultiplier = 1.0;
     p.active = true;
 
     emit('projectile:spawned', {
@@ -341,9 +363,8 @@ export class ProjectileManager {
         }
       } else if (p.owner === 'bot' && this.player && this.player.alive) {
         // Tiro de Bot contra Player
-        const pY = this.player.pos.y;
         const pDist = this.player.pos.distanceTo(p.prevPos);
-        if (pDist <= stepDist + 1.0) {
+        if (pDist <= stepDist + 3.0) {
           const mHit = this._raycastMathBot(p.prevPos, _stepDir, stepDist, this.player);
           if (mHit) {
             entityHit = {
@@ -368,6 +389,9 @@ export class ProjectileManager {
         const totalDistance = p.distanceTraveled + entityDist;
         const acousticDelay = totalDistance / SPEED_OF_SOUND;
 
+        // Avalia supressão nos arredores da trajetória percorrida até a colisão
+        this._checkSuppression(p, p.prevPos, entityHit.point, entityHit);
+
         p.pos.copy(entityHit.point);
         p.active = false;
 
@@ -381,7 +405,7 @@ export class ProjectileManager {
             part = 'body';
           }
 
-          const dmg = terminalImpact.finalDamage;
+          const dmg = Math.max(1, Math.round(terminalImpact.finalDamage * (p.damageMultiplier || 1.0)));
           const killed = bot.takeDamage(dmg, part);
 
           let px = undefined, py = undefined;
@@ -403,7 +427,7 @@ export class ProjectileManager {
             isShotgun: p.isPellet
           });
         } else if (p.owner === 'bot' && entityHit.player) {
-          const dmg = BallisticsCalculator.calculateTerminalImpact(p.weaponDef, totalDistance, entityHit.part).finalDamage;
+          const dmg = Math.max(1, Math.round(BallisticsCalculator.calculateTerminalImpact(p.weaponDef, totalDistance, entityHit.part).finalDamage * (p.damageMultiplier || 1.0)));
           this.player.takeDamage(dmg, p.ownerEntity);
           emit('player:damaged', {
             damage: dmg,
@@ -412,7 +436,6 @@ export class ProjectileManager {
           });
         }
 
-
         continue;
       }
 
@@ -420,18 +443,116 @@ export class ProjectileManager {
         // ── ACERTOU O MUNDO FÍSICO (PAREDE / CHÃO) ───────────────────
         const totalDistance = p.distanceTraveled + worldDist;
         const acousticDelay = totalDistance / SPEED_OF_SOUND;
+        const hitMat = (hitWorld.box?.meta?.material || 'wall').toLowerCase();
+        const norm = hitWorld.normal || { x: 0, y: 1, z: 0 };
+        const dot = -(_stepDir.x * norm.x + _stepDir.y * norm.y + _stepDir.z * norm.z); // cos do ângulo de incidência
 
         _worldHitPoint.copy(hitWorld.point);
+
+        // Avalia supressão nos arredores da trajetória percorrida até a parede
+        this._checkSuppression(p, p.prevPos, _worldHitPoint);
+
+        // 1. VERIFICAÇÃO DE RICOCHETE ANGULAR FÍSICO
+        // Superfícies duras com ângulo rasante (< 25°, cos > -0.42 ou dot < 0.42 em relação à normal)
+        const isHardSurface = hitMat.includes('metal') || hitMat.includes('concrete') || hitMat.includes('stone') || hitMat.includes('sandstone') || hitMat.includes('brick');
+        const isShallowAngle = dot >= 0 && dot < 0.42; // incidência rasante em relação à superfície
+
+        if (isHardSurface && isShallowAngle && (p.penetrationsRemaining > 0 || Math.random() < p.ricochetChance)) {
+          // Reflexão do vetor de velocidade: v' = v - 2(v · n)n + dispersão
+          const vDotN = p.vel.x * norm.x + p.vel.y * norm.y + p.vel.z * norm.z;
+          _reflVec.set(
+            p.vel.x - 2 * vDotN * norm.x,
+            p.vel.y - 2 * vDotN * norm.y,
+            p.vel.z - 2 * vDotN * norm.z
+          );
+
+          // Leve dispersão angular (jitter) no ricochete
+          _reflVec.x += (Math.random() - 0.5) * 0.15 * _reflVec.length();
+          _reflVec.y += (Math.random() - 0.5) * 0.15 * _reflVec.length();
+          _reflVec.z += (Math.random() - 0.5) * 0.15 * _reflVec.length();
+
+          // Perda de energia cinética (35% a 50%)
+          _reflVec.multiplyScalar(0.60);
+          p.vel.copy(_reflVec);
+          p.speed = p.vel.length();
+
+          // Reposiciona o projétil ligeiramente fora da parede na direção da normal
+          p.pos.copy(_worldHitPoint).addScaledVector(norm, 0.05);
+          p.prevPos.copy(p.pos);
+          p.distanceTraveled = totalDistance;
+          p.damageMultiplier *= 0.55; // Ricochete causa menos dano letal
+          p.penetrationsRemaining = Math.max(0, p.penetrationsRemaining - 1);
+
+          emit('shot:ricochet', {
+            point: _worldHitPoint.clone(),
+            normal: norm,
+            material: hitMat,
+            distance: totalDistance,
+            soundDelay: acousticDelay
+          });
+
+          // Projétil continua vivo voando após o ricochete!
+          continue;
+        }
+
+        // 2. VERIFICAÇÃO DE PENETRAÇÃO DE PAREDE (WALLBANG)
+        // Coeficientes de densidade/resistência do material por metro de espessura
+        let resistance = 1.0;
+        if (hitMat.includes('wood')) {
+          resistance = 0.35;
+        } else if (hitMat.includes('sandbag') || hitMat.includes('dirt') || hitMat.includes('plaster')) {
+          resistance = 0.50;
+        } else if (hitMat.includes('concrete') || hitMat.includes('stone') || hitMat.includes('sandstone') || hitMat.includes('brick')) {
+          resistance = 1.10;
+        } else if (hitMat.includes('metal') || hitMat.includes('iron') || hitMat.includes('steel')) {
+          resistance = 2.40;
+        }
+
+        const wallThickness = hitWorld.thickness || 0.2;
+        const requiredPenPower = wallThickness * resistance;
+
+        if (p.penetrationsRemaining > 0 && p.penetrationPower >= requiredPenPower) {
+          // PENETRAÇÃO BEM-SUCEDIDA!
+          p.penetrationsRemaining--;
+          p.penetrationPower -= requiredPenPower;
+
+          // Ponto de saída do projétil do outro lado da parede
+          _exitHitPoint.copy(_worldHitPoint).addScaledVector(_stepDir, wallThickness + 0.06);
+          p.pos.copy(_exitHitPoint);
+          p.prevPos.copy(_exitHitPoint);
+
+          // Perda de velocidade (25% a 40%) e redução do dano restante
+          const speedRetained = Math.max(0.4, 1.0 - (requiredPenPower * 0.45));
+          p.vel.multiplyScalar(speedRetained);
+          p.speed = p.vel.length();
+          p.damageMultiplier *= Math.max(0.25, 1.0 - (requiredPenPower * 0.65));
+          p.distanceTraveled = totalDistance + wallThickness;
+
+          emit('shot:penetration', {
+            entryPoint: _worldHitPoint.clone(),
+            exitPoint: _exitHitPoint.clone(),
+            material: hitMat,
+            thickness: wallThickness,
+            distance: totalDistance,
+            soundDelay: acousticDelay
+          });
+
+          // Projétil continua sua trajetória mortal além da parede
+          continue;
+        }
+
+        // 3. IMPACTO TERMINAL ABSORVIDO (Sem penetração e sem ricochete)
         p.pos.copy(_worldHitPoint);
         p.active = false;
 
         emit('shot:world', {
           point: _worldHitPoint,
           box: hitWorld.box,
+          material: hitMat,
+          normal: norm,
           distance: totalDistance,
           soundDelay: acousticDelay
         });
-
 
         continue;
       }
@@ -441,11 +562,82 @@ export class ProjectileManager {
       p.distanceTraveled += stepDist;
       p.life += dt;
 
-      // Traçante contínuo em voo (para renderizar a parábola em tempo real)
-
+      // Supressão tática para projéteis em vôo livre
+      this._checkSuppression(p, p.prevPos, p.pos);
 
       if (p.life >= p.maxLife || p.distanceTraveled >= p.maxDistance || p.pos.y < -40) {
         p.active = false;
+      }
+    }
+  }
+
+  /**
+   * Avalia a proximidade tática (Near-Miss) de um segmento de projétil contra o jogador e bots.
+   * Dispara flinch, tremor de câmera, estalo supersônico e vinheta de visão de túnel.
+   */
+  _checkSuppression(p, startPos, endPos, entityHit = null) {
+    const suppressionRadius = 2.40;
+
+    // 1. Supressão contra o Jogador (tiros disparados por bots ou ricochetes)
+    if (this.player && this.player.alive && p.owner !== 'player' && !p.hasSuppressedPlayer) {
+      if (!entityHit || !entityHit.player) {
+        _targetHead.set(this.player.pos.x, this.player.pos.y + 1.55, this.player.pos.z);
+        _segAB.subVectors(endPos, startPos);
+        _segAP.subVectors(_targetHead, startPos);
+        const abLenSq = _segAB.lengthSq();
+        if (abLenSq > 1e-6) {
+          const tClamped = Math.max(0, Math.min(1, _segAP.dot(_segAB) / abLenSq));
+          _segClosest.copy(startPos).addScaledVector(_segAB, tClamped);
+          const distToHead = _segClosest.distanceTo(_targetHead);
+          if (distToHead <= suppressionRadius) {
+            p.hasSuppressedPlayer = true;
+            const intensity = Math.max(0.35, 1.0 - (distToHead / suppressionRadius));
+            if (this.player.rig) {
+              const flinchAmount = 0.035 * intensity;
+              this.player.rig.addFlinch((Math.random() - 0.5) * flinchAmount, (Math.random() - 0.5) * flinchAmount);
+              this.player.rig.addShake(0.35 * intensity);
+            }
+            emit('player:suppression', {
+              pos: _segClosest.clone(),
+              intensity,
+              distance: distToHead
+            });
+          }
+        }
+      }
+    }
+
+    // 2. Supressão contra Bots (tiros disparados pelo jogador passando raspando)
+    if (p.owner === 'player' && this.botsProvider) {
+      const bots = this.botsProvider();
+      for (let bIdx = 0; bIdx < bots.length; bIdx++) {
+        const b = bots[bIdx];
+        if (!b || !b.alive) continue;
+        if (entityHit && entityHit.bot === b) continue;
+        if (p.suppressedBots && p.suppressedBots.has(b.id)) continue;
+
+        _targetHead.set(b.pos.x, b.pos.y + 1.55, b.pos.z);
+        _segAB.subVectors(endPos, startPos);
+        _segAP.subVectors(_targetHead, startPos);
+        const abLenSq = _segAB.lengthSq();
+        if (abLenSq > 1e-6) {
+          const tClamped = Math.max(0, Math.min(1, _segAP.dot(_segAB) / abLenSq));
+          _segClosest.copy(startPos).addScaledVector(_segAB, tClamped);
+          const distToBotHead = _segClosest.distanceTo(_targetHead);
+          if (distToBotHead <= suppressionRadius) {
+            if (!p.suppressedBots) p.suppressedBots = new Set();
+            p.suppressedBots.add(b.id);
+            const intensity = Math.max(0.25, 1.0 - (distToBotHead / suppressionRadius));
+            if (b.ai && b.ai.applySuppression) {
+              b.ai.applySuppression(intensity);
+            }
+            emit('bot:suppressed', {
+              bot: b,
+              intensity,
+              distance: distToBotHead
+            });
+          }
+        }
       }
     }
   }

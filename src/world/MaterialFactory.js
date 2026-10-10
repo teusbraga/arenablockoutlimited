@@ -254,9 +254,11 @@ export class MaterialFactory {
         color: 0xffffff,
         map: ivy.diffuse,
         alphaMap: ivy.alpha,
-        transparent: true,
-        alphaTest: 0.45,
+        transparent: false,
+        depthWrite: true,
+        alphaTest: 0.22,
         side: THREE.DoubleSide,
+        shadowSide: THREE.DoubleSide,
         roughness: 0.65,
       });
     });
@@ -332,29 +334,43 @@ export class MaterialFactory {
     // 15. Tronco de Árvore (Oak Bark)
     this.factories.set('trunk', () => {
       const barkTex = textures.createTreeBark(512);
-      return new THREE.MeshStandardMaterial({
+      const mat = new THREE.MeshStandardMaterial({
         color: 0xffffff,
         map: barkTex.diffuse,
         bumpMap: barkTex.bump,
         bumpScale: 0.06,
         roughness: 0.90,
       });
+      MaterialFactory.applyWorldSpaceUV(mat, 0.40);
+      return mat;
     });
 
-    // 16. Folhagem de Carvalho
+    // 16. Folhagem de Carvalho & Copa de Árvore
     this.factories.set('foliage', () => {
-      const oakFoliage = textures.createOakFoliage(512);
-      return new THREE.MeshStandardMaterial({
+      const oakFoliage = textures.createOakFoliage(512, false);
+      const mat = new THREE.MeshStandardMaterial({
         color: 0xffffff,
         map: oakFoliage.diffuse,
-        alphaMap: oakFoliage.alpha,
-        transparent: true,
-        alphaTest: 0.45,
-        side: THREE.DoubleSide,
-        roughness: 0.70,
+        bumpMap: oakFoliage.bump,
+        bumpScale: 0.05,
+        roughness: 0.75,
       });
+      MaterialFactory.applyWorldSpaceUV(mat, 0.45);
+      return mat;
     });
-    this.factories.set('foliage_light', () => this.get('foliage'));
+
+    this.factories.set('foliage_light', () => {
+      const oakLight = textures.createOakFoliage(512, true);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        map: oakLight.diffuse,
+        bumpMap: oakLight.bump,
+        bumpScale: 0.05,
+        roughness: 0.72,
+      });
+      MaterialFactory.applyWorldSpaceUV(mat, 0.45);
+      return mat;
+    });
 
     // =========================================================================
     // MATERIAIS DO DUST BLOCK (MIRAGE DUNES)
@@ -433,11 +449,15 @@ export class MaterialFactory {
       return new THREE.MeshStandardMaterial({
         color: 0xffffff,
         map: palmFrond.diffuse,
+        bumpMap: palmFrond.bump,
+        bumpScale: 0.045,
         alphaMap: palmFrond.alpha,
-        transparent: true,
-        alphaTest: 0.45,
+        transparent: false,
+        depthWrite: true,
+        alphaTest: 0.22,
         side: THREE.DoubleSide,
-        roughness: 0.65,
+        shadowSide: THREE.DoubleSide,
+        roughness: 0.55,
       });
     });
 
@@ -556,9 +576,11 @@ export class MaterialFactory {
         color: 0xffffff,
         map: jFern.diffuse,
         alphaMap: jFern.alpha,
-        transparent: true,
-        alphaTest: 0.45,
+        transparent: false,
+        depthWrite: true,
+        alphaTest: 0.22,
         side: THREE.DoubleSide,
+        shadowSide: THREE.DoubleSide,
         roughness: 0.65,
       });
     });
@@ -617,6 +639,20 @@ export class MaterialFactory {
       });
     });
     this.factories.set('rusty_metal', () => this.get('corrugated_iron'));
+
+    // 34. Concreto / Rocha Escura de Bunker
+    this.factories.set('concrete_dark', () => {
+      const mossyRock = textures.createMossyRock(512);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0x55585c,
+        map: mossyRock.diffuse,
+        bumpMap: mossyRock.bump,
+        bumpScale: 0.065,
+        roughness: 0.92,
+      });
+      MaterialFactory.applyWorldSpaceUV(mat, 0.35);
+      return mat;
+    });
 
     return this.materials;
   }

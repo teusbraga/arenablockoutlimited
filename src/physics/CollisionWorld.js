@@ -239,34 +239,51 @@ export class CollisionWorld {
 
     const candidates = this.getNearbyBoxes(minX, maxX, minZ, maxZ);
 
-    let bestT = maxDist, bestBox = null;
+    let bestT = maxDist, bestBox = null, bestTMax = 0, bestNormal = { x: 0, y: 0, z: 0 };
 
     for (let i = 0; i < candidates.length; i++) {
       const b = candidates[i];
       if (!b.solid) continue;
 
+      let normX = 0, normY = 0, normZ = 0;
+
       let tmin = (b.min.x - origin.x) * inv.x;
       let tmax = (b.max.x - origin.x) * inv.x;
-      if (tmin > tmax) { const tmp = tmin; tmin = tmax; tmax = tmp; }
+      let nx = -1;
+      if (tmin > tmax) { const tmp = tmin; tmin = tmax; tmax = tmp; nx = 1; }
 
       let tymin = (b.min.y - origin.y) * inv.y;
       let tymax = (b.max.y - origin.y) * inv.y;
-      if (tymin > tymax) { const tmp = tymin; tymin = tymax; tymax = tmp; }
+      let ny = -1;
+      if (tymin > tymax) { const tmp = tymin; tymin = tymax; tymax = tmp; ny = 1; }
       if (tmin > tymax || tymin > tmax) continue;
-      if (tymin > tmin) tmin = tymin;
+
+      if (tymin > tmin) {
+        tmin = tymin;
+        normX = 0; normY = ny; normZ = 0;
+      } else {
+        normX = nx; normY = 0; normZ = 0;
+      }
       if (tymax < tmax) tmax = tymax;
 
       let tzmin = (b.min.z - origin.z) * inv.z;
       let tzmax = (b.max.z - origin.z) * inv.z;
-      if (tzmin > tzmax) { const tmp = tzmin; tzmin = tzmax; tzmax = tmp; }
+      let nz = -1;
+      if (tzmin > tzmax) { const tmp = tzmin; tzmin = tzmax; tzmax = tmp; nz = 1; }
       if (tmin > tzmax || tzmin > tmax) continue;
-      if (tzmin > tmin) tmin = tzmin;
+
+      if (tzmin > tmin) {
+        tmin = tzmin;
+        normX = 0; normY = 0; normZ = nz;
+      }
       if (tzmax < tmax) tmax = tzmax;
 
       if (tmax < 0) continue;
       if (tmin > 0 && tmin < bestT) {
         bestT = tmin;
+        bestTMax = tmax;
         bestBox = b;
+        bestNormal = { x: normX, y: normY, z: normZ };
       }
     }
 
@@ -274,6 +291,9 @@ export class CollisionWorld {
     return {
       box: bestBox,
       distance: bestT,
+      exitDistance: bestTMax,
+      thickness: Math.max(0.01, bestTMax - bestT),
+      normal: bestNormal,
       point: {
         x: origin.x + dir.x * bestT,
         y: origin.y + dir.y * bestT,

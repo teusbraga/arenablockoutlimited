@@ -82,6 +82,14 @@ export class CameraRig {
     // ---- Flinch (Impacto de Tiro Recebido) ----
     this.flinchPitch = 0;
     this.flinchYaw = 0;
+
+    // ---- Perspectiva (1st Person vs 3rd Person) ----
+    this.perspective = 'first'; // 'first' | 'third'
+    this.thirdPersonAmount = 0; // 0.0 (1st) a 1.0 (3rd) interpolado
+    this.tpDistance = 2.4; // Distância do ombro/costas em metros
+    this.tpOffsetRight = 0.45; // Leve over-the-shoulder tático para a direita
+    this.tpOffsetY = 0.22; // Elevação acima dos olhos
+    this.tpSmoothDist = 2.4;
   }
 
   /**
@@ -175,6 +183,21 @@ export class CameraRig {
   addFlinch(pitch, yaw) {
     this.flinchPitch += pitch;
     this.flinchYaw += yaw;
+  }
+
+  togglePerspective() {
+    this.perspective = (this.perspective === 'third') ? 'first' : 'third';
+    return this.perspective;
+  }
+
+  setPerspective(mode) {
+    if (mode === 'first' || mode === 'third') {
+      this.perspective = mode;
+    }
+  }
+
+  isThirdPerson() {
+    return this.perspective === 'third';
   }
 
   reset() {
@@ -341,18 +364,65 @@ export class CameraRig {
     const leanOffsetDist = this.currentLean * 0.35; // 35cm de deslocamento lateral da cabeça
     const leanDrop = Math.abs(this.currentLean) * 0.05; // 5cm de flexão natural ao inclinar
 
-    // ---- 9. Posição no Espaço World (Incluindo coice linear transformado na orientação da câmera) ----
+    // ---- 9. Posição no Espaço World (1ª Pessoa vs 3ª Pessoa com Spring-Arm) ----
     const rightX = Math.cos(this.currentYaw);
     const rightZ = -Math.sin(this.currentYaw);
     // Vetor de recuo em profundidade (-forward = para trás da câmera)
     const backX = Math.sin(this.currentYaw);
     const backZ = Math.cos(this.currentYaw);
 
-    this.position.set(
-      player.renderPos.x + (bobX + leanOffsetDist) * rightX + rightX * this.recoilPos.x + backX * this.recoilPos.z + this.shakePos.x,
-      player.renderPos.y + this.eyeHeight - leanDrop + bobY + this.recoilPos.y + this.shakePos.y,
-      player.renderPos.z + (bobX + leanOffsetDist) * rightZ + rightZ * this.recoilPos.x + backZ * this.recoilPos.z + this.shakePos.z
-    );
+    const firstPersonPos = {
+      x: player.renderPos.x + (bobX + leanOffsetDist) * rightX + rightX * this.recoilPos.x + backX * this.recoilPos.z + this.shakePos.x,
+      y: player.renderPos.y + this.eyeHeight - leanDrop + bobY + this.recoilPos.y + this.shakePos.y,
+      z: player.renderPos.z + (bobX + leanOffsetDist) * rightZ + rightZ * this.recoilPos.x + backZ * this.recoilPos.z + this.shakePos.z
+    };
+
+    // Interpolação suave do modo de perspectiva (0 = 1st person, 1 = 3rd person)
+    const targetTPAmount = (this.perspective === 'third') ? 1.0 : 0.0;
+    this.thirdPersonAmount += (targetTPAmount - this.thirdPersonAmount) * Math.min(dt * 12, 1);
+
+    if (this.thirdPersonAmount > 0.001) {
+      // Vetores direcionais baseados em Pitch e Yaw combinados
+      const cosPitch = Math.cos(this.currentPitch);
+      const sinPitch = Math.sin(this.currentPitch);
+      const camBackDir = {
+        x: Math.sin(this.currentYaw) * cosPitch,
+        y: -sinPitch,
+        z: Math.cos(this.currentYaw) * cosPitch
+      };
+
+      // Ponto de pivô de cabeça/ombros do player
+      const pivot = {
+        x: player.renderPos.x + (leanOffsetDist + this.tpOffsetRight * this.thirdPersonAmount) * rightX,
+        y: player.renderPos.y + this.eyeHeight - leanDrop + (this.tpOffsetY * this.thirdPersonAmount),
+        z: player.renderPos.z + (leanOffsetDist + this.tpOffsetRight * this.thirdPersonAmount) * rightZ
+      };
+
+      // Verificação de oclusão / colisão contra paredes (Spring Arm)
+      let desiredDist = this.tpDistance;
+      if (player.world && player.world.raycast) {
+        const hit = player.world.raycast(pivot, camBackDir, this.tpDistance + 0.25);
+        if (hit && hit.distance !== undefined) {
+          desiredDist = Math.max(0.35, hit.distance - 0.20);
+        }
+      }
+
+      this.tpSmoothDist += (desiredDist - this.tpSmoothDist) * Math.min(dt * 20, 1);
+
+      const thirdPersonPos = {
+        x: pivot.x + camBackDir.x * this.tpSmoothDist + this.shakePos.x,
+        y: pivot.y + camBackDir.y * this.tpSmoothDist + this.shakePos.y,
+        z: pivot.z + camBackDir.z * this.tpSmoothDist + this.shakePos.z
+      };
+
+      this.position.set(
+        firstPersonPos.x + (thirdPersonPos.x - firstPersonPos.x) * this.thirdPersonAmount,
+        firstPersonPos.y + (thirdPersonPos.y - firstPersonPos.y) * this.thirdPersonAmount,
+        firstPersonPos.z + (thirdPersonPos.z - firstPersonPos.z) * this.thirdPersonAmount
+      );
+    } else {
+      this.position.set(firstPersonPos.x, firstPersonPos.y, firstPersonPos.z);
+    }
   }
 
   /**

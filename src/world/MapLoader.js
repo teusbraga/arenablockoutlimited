@@ -80,9 +80,8 @@ export async function loadMap(url, scene) {
   const world = new CollisionWorld();
   const doors = [];
 
-  // Define se o mapa utiliza o ecossistema de texturas PBR procedurais e props (ex: Dust Mirage Dune e CS Italy)
-  // ou se é um mapa Blocky clássico original (ex: Vila Ensolarada, Woods, Vice City)
-  const isPbrMap = Boolean(data.pbr || (Array.isArray(data.props) && data.props.length > 0) || data.id === 'dust' || data.id === 'italy');
+  // Define se o mapa utiliza o ecossistema de texturas PBR procedurais (ex: Dust Mirage, CS Italy, Woods)
+  const isPbrMap = Boolean(data.pbr || (Array.isArray(data.props) && data.props.length > 0) || data.id === 'dust' || data.id === 'italy' || data.id === 'woods');
 
   if (isPbrMap) {
     materialFactory.initMaterials();

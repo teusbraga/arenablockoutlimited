@@ -59,6 +59,9 @@ export function normalizeBallistics(wep) {
       },
       bulletDrop: terminal.bulletDrop ?? 9.8,
       bulletSpeed: terminal.bulletSpeed ?? 700,
+      penetrationPower: terminal.penetrationPower ?? wep.penetrationPower ?? 0.35,
+      maxPenetrations: terminal.maxPenetrations ?? wep.maxPenetrations ?? 1,
+      ricochetChance: terminal.ricochetChance ?? wep.ricochetChance ?? 0.25,
     },
   };
 }
@@ -74,11 +77,28 @@ export function compileWeapons(baseList = BASE_WEAPONS, modsList = MODS, ammoLis
     if (finalWep.ammo && ammoList[finalWep.ammo]) {
       const ammoDef = ammoList[finalWep.ammo];
       if (ammoDef.tracerColor) finalWep.tracerColor = ammoDef.tracerColor;
-      if (ammoDef.tracerProfile) finalWep.tracerProfile = { ...(finalWep.tracerProfile || {}), ...ammoDef.tracerProfile };
+      if (ammoDef.tracerProfile) {
+        finalWep.tracerProfile = { ...(finalWep.tracerProfile || {}), ...ammoDef.tracerProfile };
+        if (ammoDef.tracerProfile.flashProfile) {
+          finalWep.flashProfile = { ...(finalWep.flashProfile || {}), ...ammoDef.tracerProfile.flashProfile };
+        }
+      }
       if (!finalWep.ballistics) finalWep.ballistics = {};
       if (!finalWep.ballistics.terminal) finalWep.ballistics.terminal = {};
       if (ammoDef.bulletSpeed !== undefined) finalWep.ballistics.terminal.bulletSpeed = ammoDef.bulletSpeed;
       if (ammoDef.bulletDrop !== undefined) finalWep.ballistics.terminal.bulletDrop = ammoDef.bulletDrop;
+      if (ammoDef.penetrationPower !== undefined) {
+        finalWep.penetrationPower = ammoDef.penetrationPower;
+        finalWep.ballistics.terminal.penetrationPower = ammoDef.penetrationPower;
+      }
+      if (ammoDef.maxPenetrations !== undefined) {
+        finalWep.maxPenetrations = ammoDef.maxPenetrations;
+        finalWep.ballistics.terminal.maxPenetrations = ammoDef.maxPenetrations;
+      }
+      if (ammoDef.ricochetChance !== undefined) {
+        finalWep.ricochetChance = ammoDef.ricochetChance;
+        finalWep.ballistics.terminal.ricochetChance = ammoDef.ricochetChance;
+      }
     }
 
     finalWep.ballistics = normalizeBallistics(finalWep);
@@ -106,6 +126,9 @@ export function compileWeapons(baseList = BASE_WEAPONS, modsList = MODS, ammoLis
         if (mod.adsSightDistance)  finalWep.adsSightDistance  = mod.adsSightDistance;
         if (mod.tracerProfile) {
           finalWep.tracerProfile = { ...(finalWep.tracerProfile || {}), ...mod.tracerProfile };
+          if (mod.tracerProfile.flashProfile) {
+            finalWep.flashProfile = { ...(finalWep.flashProfile || {}), ...mod.tracerProfile.flashProfile };
+          }
         }
       }
     }

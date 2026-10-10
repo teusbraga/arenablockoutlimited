@@ -18,6 +18,7 @@ import { MenuController } from './ui/MenuController.js';
 import { ScopeSystem } from './weapons/ScopeSystem.js';
 import { on } from './core/EventBus.js';
 import { loadingScreen } from './ui/LoadingScreen.js';
+import { SmokeGrenadeManager } from './weapons/SmokeGrenadeManager.js';
 
 /* =========================================================
    BOOTSTRAP & INICIALIZAÇÃO DO JOGO
@@ -48,9 +49,12 @@ import { loadingScreen } from './ui/LoadingScreen.js';
     const map = await loadMap(mapUrl, scene);
     const world = map.world;
     effects.setWorld(world);
+    audio.setCamera(camera);
+    audio.setWorld(world);
+    const smokeManager = new SmokeGrenadeManager({ scene, world, audio });
     const spawn = map.playerSpawns[0];
 
-    const player = new Player(world, map.bounds, spawn);
+    const player = new Player(world, map.bounds, spawn, scene);
     player.setPosition(spawn[0], spawn[1], spawn[2]);
     player.updateCamera(camera, 0.016);
 
@@ -183,6 +187,10 @@ import { loadingScreen } from './ui/LoadingScreen.js';
         if (!gameManager.hasStarted || !input.locked) return;
 
         player.update(dt, input);
+        if (input.isActionJustPressed('throw_smoke')) {
+          smokeManager.throw({ camera, player });
+        }
+        smokeManager.update(dt);
         gameManager.update(dt);
       },
 
@@ -191,6 +199,7 @@ import { loadingScreen } from './ui/LoadingScreen.js';
         const isScoped = weapons.current === 'rifle_proto' || weapons.current === 'vss';
 
         player.interpolatePosition(alpha);
+        player.renderUpdate(alpha, dt);
         gameManager.renderUpdate(alpha, dt);
 
         if (!gameManager.hasStarted) {
@@ -203,9 +212,17 @@ import { loadingScreen } from './ui/LoadingScreen.js';
             ammo: weapons.ammo,
           });
         } else {
-          // Atualização cinemática da câmera
+          // Atualização cinemática da câmera (1ª vs 3ª pessoa)
           player.activeWeaponWeight = weapons.def?.weight || 3.5;
           player.updateCamera(camera, dt);
+
+          // Alternância de visibilidade do viewmodel em 3ª pessoa
+          const isThirdPerson = player.isThirdPerson();
+          const tpAmount = player.rig?.thirdPersonAmount ?? 0;
+          if (viewmodel.mount) {
+            // Em 3ª pessoa pura oculta o viewmodel de braços soltos da tela
+            viewmodel.mount.visible = (tpAmount < 0.6);
+          }
 
           // Shake da câmera
           const shake = viewmodel.getShake();
@@ -252,6 +269,10 @@ import { loadingScreen } from './ui/LoadingScreen.js';
           const hideCrosshair = isScoped && scopeSystem.scopeOn;
           hud.updateCrosshair(hideCrosshair ? 1.0 : weapons.adsAmount, weapons._currentSpread(), player.sprinting, weapons.current);
           hud.update(dt, player.yaw);
+
+          // Áudio 3D Espacial e Oclusão Sonora
+          audio.updateListener(camera);
+          audio.update(dt);
         }
 
         // Renderização Three.js

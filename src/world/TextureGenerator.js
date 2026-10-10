@@ -78,7 +78,19 @@ export class TextureGenerator {
    */
   static createCanvas(width = 512, height = 512) {
     if (typeof document === 'undefined') {
-      return { canvas: { width, height }, ctx: null };
+      const dummyCtx = new Proxy({}, {
+        get(target, prop) {
+          if (prop === 'getImageData') {
+            return (x, y, w, h) => ({ data: new Uint8ClampedArray((w || width) * (h || height) * 4) });
+          }
+          if (prop === 'createLinearGradient' || prop === 'createRadialGradient') {
+            return () => ({ addColorStop() {} });
+          }
+          return () => {};
+        },
+        set() { return true; }
+      });
+      return { canvas: { width, height }, ctx: dummyCtx };
     }
     const canvas = document.createElement('canvas');
     canvas.width = width;
@@ -1157,51 +1169,137 @@ export class TextureGenerator {
   }
 
   // =========================================================================
-  // 14. FOLHAGEM DE COPA DE ÁRVORE COM ALFA (Oak Leaf Canopy)
+  // 14. FOLHAGEM DE COPA DE ÁRVORE & BLOCOS DE FOLHA (Dense Tree Foliage)
   // =========================================================================
-  createOakFoliage(size = 512) {
-    const cacheKey = `oak_foliage_${size}`;
+  createOakFoliage(size = 512, isLight = false) {
+    const cacheKey = `oak_foliage_${isLight ? 'light_' : ''}${size}`;
     if (this._cache.has(cacheKey)) return this._cache.get(cacheKey);
 
     const { canvas: diffCanvas, ctx: diffCtx } = TextureGenerator.createCanvas(size, size);
-    diffCtx.clearRect(0, 0, size, size);
+    const { canvas: bumpCanvas, ctx: bumpCtx } = TextureGenerator.createCanvas(size, size);
 
-    // Múltiplos agrupamentos de folhas com recorte alpha
-    const leafClusters = 140;
-    const leafPal = [
-      { r: 42, g: 96, b: 32 },
-      { r: 62, g: 130, b: 45 },
-      { r: 35, g: 75, b: 25 },
-      { r: 80, g: 155, b: 58 },
+    if (!diffCtx) {
+      const bundle = { diffuse: null, bump: null };
+      this._cache.set(cacheKey, bundle);
+      return bundle;
+    }
+
+    // Fundo denso de oclusão e sombra interna da copa (evita vazios transparentes em blocos cúbicos)
+    const baseColor = isLight ? '#1f3814' : '#14280d';
+    diffCtx.fillStyle = baseColor;
+    diffCtx.fillRect(0, 0, size, size);
+
+    if (bumpCtx) {
+      bumpCtx.fillStyle = '#606060';
+      bumpCtx.fillRect(0, 0, size, size);
+    }
+
+    // Camada de ruído orgânico de folhas profundas
+    const diffImg = diffCtx.getImageData(0, 0, size, size);
+    const bumpImg = bumpCtx ? bumpCtx.getImageData(0, 0, size, size) : null;
+
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const idx = (y * size + x) * 4;
+        const leafNoise = TextureGenerator.fbm(x * 0.04, y * 0.04, 3);
+        const microNoise = (TextureGenerator.pseudoRandom(x, y) - 0.5) * 18;
+
+        const baseR = isLight ? 36 : 24;
+        const baseG = isLight ? 78 : 55;
+        const baseB = isLight ? 26 : 18;
+
+        const factor = 0.75 + leafNoise * 0.5;
+        diffImg.data[idx] = Math.max(0, Math.min(255, Math.floor(baseR * factor + microNoise)));
+        diffImg.data[idx + 1] = Math.max(0, Math.min(255, Math.floor(baseG * factor + microNoise * 1.2)));
+        diffImg.data[idx + 2] = Math.max(0, Math.min(255, Math.floor(baseB * factor + microNoise * 0.8)));
+
+        if (bumpImg) {
+          const bVal = Math.max(0, Math.min(255, Math.floor(90 + leafNoise * 75 + microNoise * 0.5)));
+          bumpImg.data[idx] = bVal;
+          bumpImg.data[idx + 1] = bVal;
+          bumpImg.data[idx + 2] = bVal;
+        }
+      }
+    }
+    diffCtx.putImageData(diffImg, 0, 0);
+    if (bumpCtx && bumpImg) bumpCtx.putImageData(bumpImg, 0, 0);
+
+    // Centenas de agrupamentos de folhas em camadas sobrepostas
+    const numClusters = 220;
+    const darkPal = [
+      { r: 38, g: 82, b: 26 },
+      { r: 52, g: 110, b: 35 },
+      { r: 28, g: 65, b: 20 },
+      { r: 68, g: 135, b: 46 },
+      { r: 84, g: 160, b: 58 },
     ];
+    const lightPal = [
+      { r: 55, g: 115, b: 34 },
+      { r: 76, g: 148, b: 48 },
+      { r: 42, g: 92, b: 26 },
+      { r: 95, g: 178, b: 62 },
+      { r: 118, g: 205, b: 76 },
+    ];
+    const leafPal = isLight ? lightPal : darkPal;
 
-    for (let i = 0; i < leafClusters; i++) {
-      const seed = i * 83 + 7;
+    for (let i = 0; i < numClusters; i++) {
+      const seed = i * 89 + 17;
       const cx = TextureGenerator.pseudoRandom(seed, 1) * size;
       const cy = TextureGenerator.pseudoRandom(seed, 2) * size;
-      const radius = 16 + TextureGenerator.pseudoRandom(seed, 3) * 26;
-      const pal = leafPal[Math.floor(TextureGenerator.pseudoRandom(seed, 4) * leafPal.length)];
+      const radius = 10 + TextureGenerator.pseudoRandom(seed, 3) * 22;
+      const col = leafPal[Math.floor(TextureGenerator.pseudoRandom(seed, 4) * leafPal.length)];
 
-      diffCtx.fillStyle = `rgb(${pal.r}, ${pal.g}, ${pal.b})`;
+      diffCtx.save();
+      diffCtx.translate(cx, cy);
+      const clusterRot = TextureGenerator.pseudoRandom(seed, 5) * Math.PI * 2;
+      diffCtx.rotate(clusterRot);
+
+      // Aglomerado central de folíolos
+      diffCtx.fillStyle = `rgb(${col.r}, ${col.g}, ${col.b})`;
       diffCtx.beginPath();
-      diffCtx.arc(cx, cy, radius, 0, Math.PI * 2);
+      diffCtx.arc(0, 0, radius * 0.65, 0, Math.PI * 2);
       diffCtx.fill();
 
-      // Folhas detalhadas no perímetro do aglomerado
-      for (let l = 0; l < 6; l++) {
-        const ang = (l / 6) * Math.PI * 2 + TextureGenerator.pseudoRandom(seed, 5);
-        const lx = cx + Math.cos(ang) * (radius * 0.85);
-        const ly = cy + Math.sin(ang) * (radius * 0.85);
+      // Folhas ovais ao redor do aglomerado
+      const leavesInCluster = 5 + Math.floor(TextureGenerator.pseudoRandom(seed, 6) * 4);
+      for (let l = 0; l < leavesInCluster; l++) {
+        const ang = (l / leavesInCluster) * Math.PI * 2;
+        const dist = radius * 0.55;
+        const lx = Math.cos(ang) * dist;
+        const ly = Math.sin(ang) * dist;
+        const leafW = radius * 0.50;
+        const leafH = radius * 0.28;
+
         diffCtx.beginPath();
-        diffCtx.ellipse(lx, ly, radius * 0.45, radius * 0.28, ang, 0, Math.PI * 2);
+        diffCtx.ellipse(lx, ly, leafW, leafH, ang + 0.3, 0, Math.PI * 2);
         diffCtx.fill();
+
+        // Nervura sutil de luz solar na folha
+        diffCtx.strokeStyle = `rgba(${Math.min(255, col.r + 40)}, ${Math.min(255, col.g + 45)}, ${Math.min(255, col.b + 35)}, 0.55)`;
+        diffCtx.lineWidth = 1.0;
+        diffCtx.beginPath();
+        diffCtx.moveTo(lx - Math.cos(ang) * leafW * 0.7, ly - Math.sin(ang) * leafH * 0.7);
+        diffCtx.lineTo(lx + Math.cos(ang) * leafW * 0.7, ly + Math.sin(ang) * leafH * 0.7);
+        diffCtx.stroke();
+      }
+
+      diffCtx.restore();
+
+      if (bumpCtx) {
+        bumpCtx.save();
+        bumpCtx.translate(cx, cy);
+        bumpCtx.rotate(clusterRot);
+        bumpCtx.fillStyle = '#d5d5d5';
+        bumpCtx.beginPath();
+        bumpCtx.arc(0, 0, radius * 0.6, 0, Math.PI * 2);
+        bumpCtx.fill();
+        bumpCtx.restore();
       }
     }
 
-    const tex = TextureGenerator.toTexture(diffCanvas, true);
     const bundle = {
-      diffuse: tex,
-      alpha: tex,
+      diffuse: TextureGenerator.toTexture(diffCanvas, true),
+      bump: bumpCanvas ? TextureGenerator.toTexture(bumpCanvas, false) : null,
     };
     this._cache.set(cacheKey, bundle);
     return bundle;
@@ -1473,45 +1571,199 @@ export class TextureGenerator {
     if (this._cache.has(cacheKey)) return this._cache.get(cacheKey);
 
     const { canvas: diffCanvas, ctx: diffCtx } = TextureGenerator.createCanvas(size, size);
+    const { canvas: bumpCanvas, ctx: bumpCtx } = TextureGenerator.createCanvas(size, size);
+
+    if (!diffCtx) {
+      const bundle = { diffuse: null, alpha: null, bump: null };
+      this._cache.set(cacheKey, bundle);
+      return bundle;
+    }
+
     diffCtx.clearRect(0, 0, size, size);
+    if (bumpCtx) {
+      bumpCtx.fillStyle = '#808080';
+      bumpCtx.fillRect(0, 0, size, size);
+    }
 
-    // Haste central da folha de palmeira
-    diffCtx.strokeStyle = '#5a7830';
-    diffCtx.lineWidth = 6;
-    diffCtx.beginPath();
-    diffCtx.moveTo(size * 0.5, size);
-    diffCtx.quadraticCurveTo(size * 0.5, size * 0.4, size * 0.2, 0);
-    diffCtx.stroke();
+    const centerX = size * 0.5;
 
-    // Folíolos / leques alongados saindo dos dois lados
-    const numLeaflets = 70;
-    const greenTones = ['#3f7d24', '#559c31', '#2f6119', '#74b846'];
+    // Função de traçado do eixo da raque central (curvatura suave natural de deserto)
+    const getSpinePoint = (t) => {
+      // t varia de 0 (base inferior) a 1 (ponta superior da folha)
+      const sy = size - 12 - t * (size - 30);
+      const sx = centerX + Math.sin(t * Math.PI * 0.82) * 14;
+      return { x: sx, y: sy };
+    };
 
+    const numLeaflets = 60;
+
+    // 1. CAMADA INFERIOR DE PÍNULAS (Sombra profunda / volume denso de oclusão)
+    // Garante corpo foliar sólido, 100% visível e imune à perda por mipmapping
     for (let i = 0; i < numLeaflets; i++) {
-      const t = i / numLeaflets;
-      const sx = size * 0.5 + (size * 0.2 - size * 0.5) * (t * t);
-      const sy = size * (1 - t * 0.95);
-      const len = 35 + Math.sin(t * Math.PI) * 110;
+      const t = i / (numLeaflets - 1);
+      const { x: sx, y: sy } = getSpinePoint(t);
 
-      // Lado esquerdo e direito
+      // Perfil de leque: envergadura ampla no terço médio (até 210px) e afunilada nas pontas
+      const spanCurve = Math.sin(Math.pow(t, 0.70) * Math.PI);
+      const len = 38 + spanCurve * 175;
+      const bladeW = 9.0 + (1 - t * 0.45) * 6.5;
+
       for (const side of [-1, 1]) {
-        const ang = Math.PI * 0.5 + side * (0.8 + t * 0.4);
-        const ex = sx + Math.cos(ang) * len;
-        const ey = sy + Math.sin(ang) * len * 0.65;
+        const spreadAng = -Math.PI * 0.5 + side * (1.14 - t * 0.46);
+        const tipX = sx + Math.cos(spreadAng) * len + side * (Math.sin(t * Math.PI) * 12);
+        const tipY = sy + Math.sin(spreadAng) * len;
 
-        diffCtx.strokeStyle = greenTones[i % greenTones.length];
-        diffCtx.lineWidth = 3.5;
+        const midX = sx + Math.cos(spreadAng) * (len * 0.50);
+        const midY = sy + Math.sin(spreadAng) * (len * 0.50);
+        const perpX = -Math.sin(spreadAng) * side;
+        const perpY = Math.cos(spreadAng) * side;
+
+        // Lâmina foliar fechada como polígono sólido
         diffCtx.beginPath();
-        diffCtx.moveTo(sx, sy);
-        diffCtx.quadraticCurveTo(sx + side * 20, sy - 15, ex, ey);
-        diffCtx.stroke();
+        diffCtx.moveTo(sx, sy + bladeW * 0.5);
+        diffCtx.quadraticCurveTo(midX + perpX * (bladeW * 0.58), midY + perpY * (bladeW * 0.58), tipX, tipY);
+        diffCtx.quadraticCurveTo(midX - perpX * (bladeW * 0.38), midY - perpY * (bladeW * 0.38), sx, sy - bladeW * 0.5);
+        diffCtx.closePath();
+
+        diffCtx.fillStyle = '#1c3e12';
+        diffCtx.fill();
+
+        if (bumpCtx) {
+          bumpCtx.fillStyle = '#656565';
+          bumpCtx.fill();
+        }
       }
     }
 
-    const tex = TextureGenerator.toTexture(diffCanvas, true);
+    // 2. CAMADA FRONTAL DE PÍNULAS (Verde tropical vibrante e degradês solares)
+    for (let i = 0; i < numLeaflets; i++) {
+      const t = i / (numLeaflets - 1);
+      const { x: sx, y: sy } = getSpinePoint(t);
+
+      const spanCurve = Math.sin(Math.pow(t, 0.72) * Math.PI);
+      const len = 36 + spanCurve * 170;
+      const bladeW = 8.0 + (1 - t * 0.42) * 5.8;
+
+      for (const side of [-1, 1]) {
+        const spreadAng = -Math.PI * 0.5 + side * (1.12 - t * 0.45);
+        const tipX = sx + Math.cos(spreadAng) * len + side * (Math.sin(t * Math.PI) * 10);
+        const tipY = sy + Math.sin(spreadAng) * len;
+
+        const midX = sx + Math.cos(spreadAng) * (len * 0.48);
+        const midY = sy + Math.sin(spreadAng) * (len * 0.48);
+        const perpX = -Math.sin(spreadAng) * side;
+        const perpY = Math.cos(spreadAng) * side;
+
+        // Degradê luminoso de folha viva
+        const leafGrad = diffCtx.createLinearGradient(sx, sy, tipX, tipY);
+        const alt = (i % 2 === 0);
+        if (alt) {
+          leafGrad.addColorStop(0, '#2d5e1b');
+          leafGrad.addColorStop(0.45, '#4a942a');
+          leafGrad.addColorStop(1, '#78c63e');
+        } else {
+          leafGrad.addColorStop(0, '#255217');
+          leafGrad.addColorStop(0.45, '#3f8224');
+          leafGrad.addColorStop(1, '#68b434');
+        }
+
+        diffCtx.beginPath();
+        diffCtx.moveTo(sx, sy + bladeW * 0.45);
+        diffCtx.quadraticCurveTo(midX + perpX * (bladeW * 0.54), midY + perpY * (bladeW * 0.54), tipX, tipY);
+        diffCtx.quadraticCurveTo(midX - perpX * (bladeW * 0.34), midY - perpY * (bladeW * 0.34), sx, sy - bladeW * 0.45);
+        diffCtx.closePath();
+
+        diffCtx.fillStyle = leafGrad;
+        diffCtx.fill();
+
+        // Nervura central da pínula (specular highlight que reflete o sol)
+        diffCtx.strokeStyle = 'rgba(168, 232, 88, 0.65)';
+        diffCtx.lineWidth = 1.6;
+        diffCtx.beginPath();
+        diffCtx.moveTo(sx, sy);
+        diffCtx.quadraticCurveTo(midX, midY, tipX, tipY);
+        diffCtx.stroke();
+
+        if (bumpCtx) {
+          bumpCtx.fillStyle = '#b2b2b2';
+          bumpCtx.fill();
+          bumpCtx.strokeStyle = '#eaeaea';
+          bumpCtx.lineWidth = 2.0;
+          bumpCtx.stroke();
+        }
+      }
+    }
+
+    // 3. RAQUE CENTRAL / HASTE LENHOSA (Sturdy Central Rachis)
+    const spineGrad = diffCtx.createLinearGradient(centerX, size, centerX, 20);
+    spineGrad.addColorStop(0, '#889a3c');
+    spineGrad.addColorStop(0.35, '#758d32');
+    spineGrad.addColorStop(0.7, '#5c7626');
+    spineGrad.addColorStop(1, '#49631d');
+
+    // Sombra de contorno da haste
+    diffCtx.beginPath();
+    let fShadow = true;
+    for (let i = 0; i < numLeaflets; i++) {
+      const t = i / (numLeaflets - 1);
+      const { x, y } = getSpinePoint(t);
+      if (fShadow) { diffCtx.moveTo(x, y); fShadow = false; }
+      else { diffCtx.lineTo(x, y); }
+    }
+    diffCtx.strokeStyle = 'rgba(18, 38, 10, 0.85)';
+    diffCtx.lineWidth = 11;
+    diffCtx.lineCap = 'round';
+    diffCtx.stroke();
+
+    // Haste principal
+    diffCtx.beginPath();
+    let fSpine = true;
+    for (let i = 0; i < numLeaflets; i++) {
+      const t = i / (numLeaflets - 1);
+      const { x, y } = getSpinePoint(t);
+      if (fSpine) { diffCtx.moveTo(x, y); fSpine = false; }
+      else { diffCtx.lineTo(x, y); }
+    }
+    diffCtx.strokeStyle = spineGrad;
+    diffCtx.lineWidth = 8;
+    diffCtx.lineCap = 'round';
+    diffCtx.stroke();
+
+    // Filete de luz especular central
+    diffCtx.beginPath();
+    let fHighlight = true;
+    for (let i = 0; i < numLeaflets; i++) {
+      const t = i / (numLeaflets - 1);
+      const { x, y } = getSpinePoint(t);
+      if (fHighlight) { diffCtx.moveTo(x - 0.7, y); fHighlight = false; }
+      else { diffCtx.lineTo(x - 0.7, y); }
+    }
+    diffCtx.strokeStyle = 'rgba(215, 245, 132, 0.85)';
+    diffCtx.lineWidth = 2.2;
+    diffCtx.stroke();
+
+    if (bumpCtx) {
+      bumpCtx.beginPath();
+      let fBump = true;
+      for (let i = 0; i < numLeaflets; i++) {
+        const t = i / (numLeaflets - 1);
+        const { x, y } = getSpinePoint(t);
+        if (fBump) { bumpCtx.moveTo(x, y); fBump = false; }
+        else { bumpCtx.lineTo(x, y); }
+      }
+      bumpCtx.strokeStyle = '#ffffff';
+      bumpCtx.lineWidth = 10;
+      bumpCtx.lineCap = 'round';
+      bumpCtx.stroke();
+    }
+
+    const diffTex = TextureGenerator.toTexture(diffCanvas, true);
+    const bumpTex = bumpCanvas ? TextureGenerator.toTexture(bumpCanvas, false) : null;
+
     const bundle = {
-      diffuse: tex,
-      alpha: tex,
+      diffuse: diffTex,
+      alpha: diffTex,
+      bump: bumpTex,
     };
     this._cache.set(cacheKey, bundle);
     return bundle;

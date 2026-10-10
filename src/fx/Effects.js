@@ -440,6 +440,21 @@ export class Effects {
         });
       }),
         on('shot:world', e => this._spawnImpact(e.point, 0xd9c79b, 5)),
+      on('shot:ricochet', e => {
+        if (e?.point) {
+          this._spawnImpact(e.point, 0xffe680, 8); // Faíscas brilhantes de ricochete
+        }
+      }),
+      on('shot:penetration', e => {
+        if (e?.entryPoint) {
+          const col = e.material?.includes('wood') ? 0x8b5a2b : 0xcccccc;
+          this._spawnImpact(e.entryPoint, col, 4); // Lascas/poeira na entrada
+        }
+        if (e?.exitPoint) {
+          const col = e.material?.includes('wood') ? 0xb58950 : 0xe0e0e0;
+          this._spawnImpact(e.exitPoint, col, 6);  // Estilhaços na saída
+        }
+      }),
       on('shot:bot', e => this._spawnImpact(e.point, e.headshot ? 0xffd166 : 0xc4504a, 6)),
       on('bot:died', e => {
         if (!e?.bot) return;
@@ -876,6 +891,11 @@ export class Effects {
           _tempTail.copy(t.origin);
           _tracerDir.subVectors(_tempHead, _tempTail).normalize();
 
+          const maskOffset = p.flashProfile?.maskElasticOffset ?? 0;
+          if (maskOffset > 0) {
+            _tempTail.addScaledVector(_tracerDir, maskOffset);
+          }
+
           const exposureDur = p.exposureTime || 0.04;
           const persistDur  = p.persistenceTime || 0.02;
           const fadeInTime  = p.fadeInTime !== undefined ? p.fadeInTime : Math.min(0.006, exposureDur * 0.15);
@@ -936,6 +956,10 @@ export class Effects {
           // Tail: borda posterior da janela de obturador
           if (t.life <= tailDepartureTime) {
             _tempTail.copy(t.origin); // ancorada no bocal durante emergência
+            const maskOffset = p.flashProfile?.maskElasticOffset ?? 0;
+            if (maskOffset > 0) {
+              _tempTail.addScaledVector(t.dir, maskOffset);
+            }
           } else {
             const tailTime = t.life - tailDepartureTime;
             if (tailTime >= impactTime) {

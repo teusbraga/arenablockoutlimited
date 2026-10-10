@@ -35,6 +35,43 @@ export class Viewmodel {
     this.flashLight.position.set(0, 0.02, -0.5);
     this.mount.add(this.flashLight);
 
+    // Muzzle Flash Mesh volumétrico cruzado
+    this.flashGroup = new THREE.Group();
+    
+    this.flashTex = this._createMuzzleFlashTexture();
+    this.flashMat = new THREE.MeshBasicMaterial({
+      color: 0xffd88a,
+      map: this.flashTex,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide
+    });
+    
+    const flashGeo = new THREE.PlaneGeometry(1, 1);
+    flashGeo.translate(0, 0.5, 0); // Origem na base da chama
+    flashGeo.rotateX(-Math.PI / 2); // Deita o plano para apontar pra frente (-Z)
+    
+    this.flashMesh1 = new THREE.Mesh(flashGeo, this.flashMat);
+    this.flashMesh2 = new THREE.Mesh(flashGeo, this.flashMat);
+    this.flashMesh2.rotation.z = Math.PI / 2;
+    this.flashMesh3 = new THREE.Mesh(flashGeo, this.flashMat);
+    this.flashMesh3.rotation.z = Math.PI / 4;
+    this.flashMesh4 = new THREE.Mesh(flashGeo, this.flashMat);
+    this.flashMesh4.rotation.z = -Math.PI / 4;
+    
+    this.flashGroup.add(this.flashMesh1);
+    this.flashGroup.add(this.flashMesh2);
+    this.flashGroup.add(this.flashMesh3);
+    this.flashGroup.add(this.flashMesh4);
+    this.flashGroup.visible = false;
+    this.mount.add(this.flashGroup);
+
+    this.flashTimer = 0;
+    this.flashDuration = 0.05;
+    this.flashMaxOpacity = 0.9;
+
     // Transição suave de saque (Draw animation)
     this.drawAmount = 0;
 
@@ -55,6 +92,47 @@ export class Viewmodel {
     this.models = {};
     this.activeModel = null;
     this.activePhysics = null;
+  }
+
+  _createMuzzleFlashTexture() {
+    if (typeof document === 'undefined') return new THREE.Texture();
+    const w = 64, h = 128;
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const ctx = c.getContext('2d');
+
+    ctx.clearRect(0, 0, w, h);
+    const cx = w / 2;
+    const cy = h;
+
+    const grad = ctx.createRadialGradient(cx, cy - 10, 0, cx, cy - 20, h);
+    grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    grad.addColorStop(0.1, 'rgba(255, 240, 150, 0.9)');
+    grad.addColorStop(0.3, 'rgba(255, 120, 30, 0.6)');
+    grad.addColorStop(1, 'rgba(255, 40, 0, 0)');
+
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(cx, 0); 
+    ctx.quadraticCurveTo(w, h - 30, cx, h);
+    ctx.quadraticCurveTo(0, h - 30, cx, 0);
+    ctx.fill();
+
+    const coreGrad = ctx.createRadialGradient(cx, cy - 5, 0, cx, cy - 10, h/2.5);
+    coreGrad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    coreGrad.addColorStop(0.3, 'rgba(200, 240, 255, 0.8)');
+    coreGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = coreGrad;
+    ctx.beginPath();
+    ctx.moveTo(cx, h / 3);
+    ctx.quadraticCurveTo(cx + 12, h - 15, cx, h);
+    ctx.quadraticCurveTo(cx - 12, h - 15, cx, h / 3);
+    ctx.fill();
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
   }
 
   registerModel(weaponId, buildFn) {
@@ -305,14 +383,50 @@ export class Viewmodel {
 
   }
 
-  flash() {
+  flash(def) {
     if (this.activePhysics) return;
-    this.flashLight.intensity = 7 + Math.random() * 4;
+    const fp = def?.flashProfile || def?.tracerProfile?.flashProfile || {};
+    const mz = def?.muzzleLocal || [0, 0.02, -0.5];
+
+    // Posiciona e orienta no bocal da arma ativa com offset para mascarar saída
+    const maskOffset = fp.maskElasticOffset ?? 0.05;
+    this.flashLight.position.set(mz[0], mz[1], mz[2] - 0.02);
+    this.flashGroup.position.set(mz[0], mz[1], mz[2] - maskOffset);
+
+    const baseSize = fp.size ?? 0.32;
+    const sizeJitter = baseSize * (0.85 + Math.random() * 0.3);
+    this.flashGroup.scale.set(sizeJitter, sizeJitter, sizeJitter);
+    this.flashGroup.rotation.z = Math.random() * Math.PI * 2;
+
+    const col = fp.color ? new THREE.Color(fp.color) : new THREE.Color(0xffd88a);
+    this.flashMat.color.copy(col);
+    this.flashLight.color.copy(col);
+
+    this.flashMaxOpacity = fp.opacity ?? 0.92;
+    this.flashMat.opacity = this.flashMaxOpacity;
+    this.flashDuration = fp.duration ?? 0.05;
+    this.flashTimer = this.flashDuration;
+    this.flashGroup.visible = true;
+
+    const baseIntensity = fp.lightIntensity ?? 12.0;
+    this.flashLight.intensity = baseIntensity + Math.random() * (baseIntensity * 0.35);
+    this.flashLight.distance = fp.lightDistance ?? 6.0;
   }
 
   decayFlash(dt) {
+    if (this.flashTimer > 0) {
+      this.flashTimer = Math.max(0, this.flashTimer - dt);
+      const ratio = this.flashTimer / Math.max(0.001, this.flashDuration);
+      this.flashMat.opacity = this.flashMaxOpacity * ratio;
+      if (this.flashTimer <= 0) {
+        this.flashGroup.visible = false;
+      }
+    } else if (this.flashGroup.visible) {
+      this.flashGroup.visible = false;
+    }
+
     if (this.flashLight.intensity > 0) {
-      this.flashLight.intensity = Math.max(0, this.flashLight.intensity - dt * 32);
+      this.flashLight.intensity = Math.max(0, this.flashLight.intensity - dt * 36);
     }
   }
 }

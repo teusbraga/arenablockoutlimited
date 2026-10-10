@@ -38,6 +38,9 @@ export class AIController {
     this.burstShotsRemaining = 0;
     this.burstShotDelay = 0.1;
 
+    // Suppression State
+    this.suppressionLevel = 0;
+
     // FSM States registry
     this.states = {
       patrol: new PatrolState(),
@@ -50,6 +53,16 @@ export class AIController {
 
     this._bindAudioSensory();
     this._bindPlayerDied();
+  }
+
+  applySuppression(intensity = 0.5) {
+    this.suppressionLevel = Math.min(1.0, this.suppressionLevel + intensity * 0.7);
+    // Se o bot estiver em patrulha desavisado e um tiro passa raspando, alerta e busca cobertura
+    if (this.state === 'patrol') {
+      this.changeState('search');
+    } else if (this.suppressionLevel > 0.65 && this.state === 'engage' && Math.random() < 0.4) {
+      this.changeState('flee');
+    }
   }
 
   _bindPlayerDied() {
@@ -127,6 +140,11 @@ export class AIController {
       this.changeState(this.state);
     }
 
+    // Decaimento natural do nível de supressão ao longo do tempo
+    if (this.suppressionLevel > 0) {
+      this.suppressionLevel = Math.max(0, this.suppressionLevel - dt * 0.45);
+    }
+
     // Atualiza o estado atual na FSM
     this.currentState.update(this, dt, player, dist, canSee);
 
@@ -166,34 +184,42 @@ export class AIController {
     const baseAcc = CONFIG.BOTS?.hitAccuracyBase ?? 0.08;
     const rangeAcc = CONFIG.BOTS?.hitAccuracyRange ?? 28.0;
     const maxAcc = CONFIG.BOTS?.hitAccuracyMax ?? 0.55;
-    const hitChance = Math.min(maxAcc, Math.max(baseAcc, 1 - dist / rangeAcc));
+    let hitChance = Math.min(maxAcc, Math.max(baseAcc, 1 - dist / rangeAcc));
+    // Penalidade por supressão (tiros passando perto tiram a precisão do bot em até 55%)
+    if (this.suppressionLevel > 0) {
+      hitChance *= Math.max(0.35, 1.0 - this.suppressionLevel * 0.55);
+    }
     const hit = Math.random() < hitChance;
-
-    // Evento de tiro para flash/dano
-    emit('bot:fired', { bot: this.bot, player, dist, hit });
-    
-    // Evento de muzzle flash
-    emit('weapon:fired', { muzzleWorld: _muzzleWorld, forward: _forward });
 
     if (hit) {
       _endPos.copy(_targetPos); // Acertou o player
     } else {
-      // Errou, desvia o tiro e tracer visivelmente
+      // Errou, desvia o tiro próximo da cabeça (0.6m a 2.3m) gerando supressão tática
+      const missAngle = Math.random() * Math.PI * 2;
+      const missDist = 0.6 + Math.random() * 1.7; // entre 0.6m e 2.3m
       _endPos.set(
-        _targetPos.x + (Math.random() - 0.5) * 5.5,
-        _targetPos.y + (Math.random() - 0.5) * 3.0,
-        _targetPos.z + (Math.random() - 0.5) * 5.5
+        _targetPos.x + Math.cos(missAngle) * missDist,
+        _targetPos.y + (Math.random() - 0.5) * 1.4,
+        _targetPos.z + Math.sin(missAngle) * missDist
       );
     }
     
-    const wep = WEAPONS[this.bot.weaponId];
-    emit('shot:tracer', {
-      from: _muzzleWorld,
-      to: _endPos,
-      color: wep?.tracerColor,
-      profile: wep?.tracerProfile,
-      speed: wep?.ballistics?.terminal?.bulletSpeed,
-      weaponId: this.bot.weaponId
+    // Vetor de direção real do disparo
+    _forward.subVectors(_endPos, _muzzleWorld).normalize();
+
+    // Evento de tiro para flash/dano/projétil físico/áudio espacial
+    emit('bot:fired', {
+      bot: this.bot,
+      player,
+      dist,
+      hit,
+      pos: _muzzleWorld.clone(),
+      muzzleWorld: _muzzleWorld.clone(),
+      endPos: _endPos.clone(),
+      dir: _forward.clone()
     });
+    
+    // Evento de muzzle flash
+    emit('weapon:fired', { muzzleWorld: _muzzleWorld, forward: _forward });
   }
 }

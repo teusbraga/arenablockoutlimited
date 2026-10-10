@@ -359,3 +359,205 @@
 - **Ações:**
   - Integração com `navigator.vibrate` nos eventos do EventBus (`weapon:fired` com 18ms, `player:damaged` com padrão `[35, 25, 35]ms`, `weapon:empty` com 10ms).
   - Respeita rigorosamente a configuração de acessibilidade do usuário.
+
+---
+
+## FASE 15: Remasterização Visual PBR Procedural, Props Arquitetônicos & Loading Screen [x] (CONCLUÍDO)
+
+### Passo 15.1: Gerador de Texturas Procedurais & PBR Maps (`TextureGenerator.js`) [x] (CONCLUÍDO)
+- **Alvo:** `src/world/TextureGenerator.js`
+- **Ações:**
+  - Síntese algorítmica em Canvas 2D de alta performance sem requerer downloads pesados de imagens externas:
+    - Mapas de Albedo/Diffuse, Bump (relevo normalizado) e Roughness/Alpha.
+    - Superfícies cobertas: paralelepípedos de rua (`cobblestones`), reboco toscano descascado (`peeling wall` ocre e terracota), madeira de porta/caixote, telhas curvas de terracota, arenito do deserto, folhagens com transparência (`alphaTest`), tábuas de caixote e ferro fundido.
+  - Resiliente em Node.js/headless com fallbacks seguros.
+
+### Passo 15.2: Fábrica de Materiais Triplanar com Lazy Loading (`MaterialFactory.js`) [x] (CONCLUÍDO)
+- **Alvo:** `src/world/MaterialFactory.js`, `test/loading_system_test.js`
+- **Ações:**
+  - Mapeamento World-Space UV (Triplanar Shader Injection): injeção de shader GLSL que calcula as coordenadas UV a partir da posição no mundo (`vWorldPos`), impedindo estiramento em caixas/paredes de qualquer proporção ou escala.
+  - Lazy Loading sob demanda: registro instantâneo de 50 receitas de materiais com compilação diferida, garantindo zero-lag na inicialização.
+  - Pré-carregamento assíncrono durante a tela de loading (`preloadMaterials`) cedendo tempo de execução para a thread principal atualizar o DOM.
+  - Suporte a 3 modos de renderização em tempo real: `pbr` (completo), `flat_textures` (sem relevo) e `color_only` (estilo blocky retrô).
+  - Suporte ao carregamento e teste de texturas externas em tempo real (PNG/JPG/WebP) via File API.
+
+### Passo 15.3: Props Arquitetônicos Modulares & Mapa CS Italy (`ItalyProps.js`, `italy.json`) [x] (CONCLUÍDO)
+- **Alvo:** `src/world/ItalyProps.js`, `assets/maps/italy.json`, `test/italy_map_test.js`
+- **Ações:**
+  - Biblioteca completa de props modulares para arquitetura urbana italiana:
+    - Arcos de pedra, varandas com corrimão de ferro trabalhado, janelas com venezianas, portas rústicas de madeira, toldos listrados de feira, barris de vinho, caixas de carga, luminárias suspensas e videiras/heras em paredes.
+  - Criação do mapa `italy.json` (CS Italy) com iluminação toscana, névoa atmosférica, rua de paralelepípedos, prédios com reboco descascado e pontos de spawn balanceados.
+  - Remasterização de `dust.json`, `village.json` e `woods.json` com props ambientais.
+
+### Passo 15.4: Tela de Carregamento Tática (`LoadingScreen.js`) [x] (CONCLUÍDO)
+- **Alvo:** `src/ui/LoadingScreen.js`, `index.html`, `src/world/MapLoader.js`, `src/main.js`
+- **Ações:**
+  - Tela de carregamento imersiva com barra de progresso em tempo real, percentual (0% a 100%), nome do mapa ativo e mensagens descritivas do pipeline.
+  - Transição suave com animação CSS `fade-out` ao completar o setup de cena e materiais.
+  - Resiliência total para testes headless e ambientes sem nó de documento.
+
+### Passo 15.5: Controles de Textura e PBR no Menu (`MenuController.js`) [x] (CONCLUÍDO)
+- **Alvo:** `src/ui/MenuController.js`, `index.html`
+- **Ações:**
+  - Criação da aba **🎨 TEXTURAS** no menu de pausa/inicial:
+    - Seletor de Modo de Renderização (PBR Procedural, Albedo Puro, Cores Sólidas).
+    - Slider de Intensidade de Relevo Bump (0.00 a 0.12).
+    - Slider de Escala de Repetição UV World-Space (0.10 a 1.00).
+    - Interface para carregar e inspecionar qualquer imagem externa local em materiais selecionados.
+
+---
+
+## 🔴 FASE 16: Áudio Espacial 3D, Oclusão Acústica por Raycast & Granada de Fumaça (Tier S/A) [x] (CONCLUÍDO)
+
+### Passo 16.1: Listener e Panning 3D HRTF (`AudioSystem.js`) [x] (CONCLUÍDO)
+- **Alvo:** `src/audio/AudioSystem.js`, `src/main.js`
+- **Ações:**
+  - Vinculação de `audio.setCamera(camera)` e `audio.setWorld(world)`.
+  - Atualização contínua do ouvinte no Web Audio API (`ctx.listener`) com posição 3D e orientação vetorial `forward` / `up` no `renderUpdate` do loop principal.
+  - PannerNode com algoritmo `'HRTF'`, atenuação `'inverse'`, distância de referência e rolloff físico realista para sons no ambiente.
+
+### Passo 16.2: Oclusão Acústica Geométrica Dinâmica (`AudioSystem.checkOcclusion`) [x] (CONCLUÍDO)
+- **Alvo:** `src/audio/AudioSystem.js`
+- **Ações:**
+  - Raycast contínuo pelo `CollisionWorld` entre a posição do ouvinte (câmera) e o emissor sonoro.
+  - Filtro biquad passa-baixa dinâmico (`lowpass`):
+    - Em linha de visão desobstruída: frequência de corte aberta em 13.000 Hz a 14.000 Hz (áudio nítido e estalado).
+    - Obstruído por parede sólida/porta: frequência de corte atenuada exponencialmente para 550 Hz com corte suave de volume (som abafado/"muffled").
+  - Rampa temporal via `setTargetAtTime` para eliminar qualquer ruído ou estalo na transição ao contornar esquinas e portas.
+
+### Passo 16.3: Granada de Fumaça M18 com Cortina Volumétrica (`SmokeGrenade.js`) [x] (CONCLUÍDO)
+- **Alvo:** `src/weapons/SmokeGrenade.js`, `assets/config/audio.json`
+- **Ações:**
+  - Balística parabólica de lançamento (velocidade inicial 15 m/s + arco) e detecção contínua de colisão com quiques dinâmicos (`smoke:bounce`) em pisos e paredes.
+  - Canister verde-oliva detalhado com anel amarelo e detonador metálico.
+  - Cortina de fumaça volumétrica e rotacional com 14 esferas translúcidas, expansão suave e fade-out gradual nos últimos 2.5s.
+  - **Duração rigorosa de 10 segundos** de fumaça ativa.
+  - Emissão contínua de ruído aerado sob pressão (`smoke:hiss`) modulado no espaço 3D para testar a oclusão por paredes.
+
+### Passo 16.4: Smoke Grenade Manager e Cooldown de 30s (`SmokeGrenadeManager.js`) [x] (CONCLUÍDO)
+- **Alvo:** `src/weapons/SmokeGrenadeManager.js`, `src/core/Input.js`, `src/core/TouchInput.js`, `index.html`
+- **Ações:**
+  - Acionamento via **tecla `U`** no teclado ou botão touch **`SMOKE`** no mobile.
+  - **Cooldown de exatamente 30 segundos** com bloqueio de spam acidental, aviso sonoro de gatilho vazio (`weapon:empty`) e prompt no HUD (`"FUMAÇA EM COOLDOWN (Xs)"`).
+  - Suporte completo no HUD do PC (`index.html`) e mapeamento móvel via `TouchInput`.
+
+### Passo 16.5: Suíte de Testes Automatizada (`test/audio_spatial_occlusion_test.js`) [x] (CONCLUÍDO)
+- **Alvo:** `test/audio_spatial_occlusion_test.js`, `package.json`
+- **Ações:**
+  - Validação headless do raycast de oclusão acústica (atrás de parede = `true`, visão limpa = `false`).
+  - Validação do cooldown rigoroso de 30 segundos e descarte automático da fumaça aos 10 segundos.
+  - Integrado ao `npm test` oficial com 100% de aprovação.
+
+---
+
+## 🟠 FASE 17: Muzzle Flash Data-Driven e Mascaramento de Efeito Elástico de Tracer (Tier S/A) [x] (CONCLUÍDO)
+
+### Passo 17.1: Especificação de `flashProfile` em `ammo.json` [x] (CONCLUÍDO)
+- **Alvo:** `assets/weapons/ammo.json`, `src/weapons/WeaponDefs.js`
+- **Ações:**
+  - Inserção do bloco `flashProfile` em todas as munições dentro de cada `tracerProfile`:
+    - `size`, `opacity`, `lightIntensity`, `lightDistance`, `color`, `duration` e `maskElasticOffset`.
+  - Regra de calibração rigorosa conforme a posição do bocal (`muzzleLocal`): armas com cano mais curto/colado ao corpo (ex: P9 a -0.11m e UZI a -0.22m) recebem flash substancialmente maior (`size: 0.42 / 0.38`, `lightIntensity: 15 / 13`, `maskElasticOffset: 0.09 / 0.075`) para mascarar a emergência e o efeito de estiramento elástico em viradas bruscas de mouse.
+  - Armas com canos longos ou silenciadas (ex: VSS com silenciador integrado a -0.69m) recebem flash mínimo (`size: 0.12`, `opacity: 0.28`, `lightIntensity: 2.0`).
+  - Compilação automática e propagação transparente via `compileWeapons()` e `initWeaponsFromData()`.
+
+### Passo 17.2: Muzzle Flash Visual Volumétrico no Viewmodel (`Viewmodel.js`) [x] (CONCLUÍDO)
+- **Alvo:** `src/weapons/Viewmodel.js`, `src/weapons/WeaponSystem.js`
+- **Ações:**
+  - Instanciação de quads cruzados com material aditivo (`flashGroup`, `flashMesh1`, `flashMesh2`, `flashMesh3`) no mount do viewmodel.
+  - Posicionamento dinâmico automático e alinhamento no vetor `muzzleLocal` da arma ativa com offset de máscara para frente.
+  - `flash(def)` atualizado para consumir parâmetros do `flashProfile` compilado (escala, opacidade, intensidade da luz e cor espectral).
+  - Fade-out suave em `decayFlash(dt)`.
+
+### Passo 17.3: Mascaramento Dinâmico de Origem nos Estilos de Tracer (`Effects.js`) [x] (CONCLUÍDO)
+- **Alvo:** `src/fx/Effects.js`
+- **Ações:**
+  - Integração de `maskElasticOffset` na cauda/origem dos traçantes nos estilos `photographic` e `laser`.
+  - Elimina a linha hiper-fechada "elástica" no bocal durante rajadas automáticas com rotação rápida de mouse.
+
+### Passo 17.4: Teste Automatizado de Integridade e Proporção (`test/tracer_flash_profile_test.js`) [x] (CONCLUÍDO)
+- **Alvo:** `test/tracer_flash_profile_test.js`, `package.json`
+- **Ações:**
+  - Validação da presença e tipos do `flashProfile` em 100% das munições.
+  - Verificação de herança e compilação em todas as armas do `weapons.json`.
+  - Comprovação matemática da proporção (P9/UZI > AR15/Proto > VSS).
+  - Integrado ao `npm test` oficial com 100% de aprovação.
+
+---
+
+## 🟢 FASE 18: Modelo do Soldado Blocky no Player & Câmera em 3ª Pessoa (Tecla V) [x] (CONCLUÍDO)
+
+### Passo 18.1: Integração do Soldado Blocky no Player (`CharacterView.js` & `Player.js`) [x] (CONCLUÍDO)
+- **Alvo:** `src/entities/Player.js`, `src/view/CharacterView.js`, `src/main.js`
+- **Ações:**
+  - Instanciação de `CharacterView` completa do Soldado Blocky no `Player` com malha militar tática (uniforme, colete com bolsas de munição, capacete com óculos de combate, pernas articuladas e fuzil blocky nas mãos).
+  - Articulação completa de pescoço (`headGroup`) e braços (`armsGroup`) sincronizada em tempo real com o `pitch` da mira (olhar para cima/baixo), permitindo ver o soldado apontando a arma verticalmente na mesma direção da retícula.
+  - Animação procedural completa herdada de locomoção (passadas alternadas das pernas, bobbing do tronco, respiração em repouso e inclinação tática de lean `Q/E`).
+  - Muzzle flash sincronizado em 3ª pessoa disparado através do evento `weapon:fired`.
+
+### Passo 18.2: Mecânica de Alternância de Perspectiva (Tecla `V` e Mobile `3ªP`) [x] (CONCLUÍDO)
+- **Alvo:** `src/core/Input.js`, `src/core/TouchInput.js`, `index.html`, `src/entities/Player.js`
+- **Ações:**
+  - Mapeamento dedicado da tecla **`V`** (`toggle_perspective`) no `Input.js`.
+  - Botão tátil **`3ªP`** adicionado no HUD mobile (`TouchInput.js`).
+  - Mensagem de popup no HUD indicando `"3ª PESSOA ATIVADA"` e `"1ª PESSOA ATIVADA"`.
+
+### Passo 18.3: Câmera Over-the-Shoulder com Spring-Arm Anti-Clipping (`CameraRig.js`) [x] (CONCLUÍDO)
+- **Alvo:** `src/core/CameraRig.js`, `src/main.js`
+- **Ações:**
+  - Transição contínua e suave (`thirdPersonAmount`) entre a visão em primeira pessoa e terceira pessoa.
+  - Câmera posicionada a 2.4 metros atrás do jogador com leve deslocamento tático sobre o ombro direito (`tpOffsetRight = 0.45m`, `tpOffsetY = 0.22m`).
+  - **Spring Arm com Raycast Físico no `CollisionWorld`:** caso uma parede ou obstáculo sólido fique entre a câmera e o soldado, a câmera é projetada instantaneamente para a frente, impedindo clipping e visão vazada através de superfícies sólidas.
+  - Em 3ª pessoa o viewmodel de braços soltos da 1ª pessoa é ocultado automaticamente, evitando sobreposição de malhas.
+
+### Passo 18.4: Suíte de Testes Automatizada (`test/third_person_test.js`) [x] (CONCLUÍDO)
+- **Alvo:** `test/third_person_test.js`, `package.json`
+- **Ações:**
+  - Validação headless do estado inicial em 1ª pessoa.
+  - Validação do acionamento via `togglePerspective()`.
+  - Validação da interpolação suave e do offset over-the-shoulder.
+  - Validação do Spring Arm encurtando a distância contra paredes sólidas.
+  - Integrado ao `npm test` oficial com 100% de aprovação.
+
+---
+
+## 🟢 FASE 19: Supressão Tática (Near-Miss) & Balística Física de Bots [x] (CONCLUÍDO)
+
+### Passo 19.1: Projéteis Físicos de Bots no CCD (`AIController.js` & `GameManager.js`) [x] (CONCLUÍDO)
+- **Alvo:** `src/ai/AIController.js`, `src/core/GameManager.js`
+- **Ações:**
+  - `AIController._fire` exporta `muzzleWorld`, `dir` e `pos` com dispersão calibrada para raspar rente à cabeça ($0.6\,\text{m}$ a $2.3\,\text{m}$).
+  - `GameManager` conecta `bot:fired` diretamente a `this.weapons.projectileManager.spawn({ owner: 'bot', ... })`.
+  - Disparos de bots agora viajam como entidades físicas contínuas com CCD, gravidade e velocidade balística real.
+
+### Passo 19.2: Detecção Universal de Near-Miss (`ProjectileManager._checkSuppression`) [x] (CONCLUÍDO)
+- **Alvo:** `src/weapons/ProjectileManager.js`
+- **Ações:**
+  - Implementação do método central `_checkSuppression(p, startPos, endPos, entityHit)`.
+  - Verificação executada em todos os passos da trajetória balística (vôo livre, ricochete, penetração e antes de impactos em obstáculos sólidos).
+  - Flags por projétil (`hasSuppressedPlayer`, `suppressedBots`) para garantir gatilho único por projétil sem duplicidade.
+
+### Passo 19.3: Feedback Tático Audiovisual & Visão de Túnel (`HUD.js`, `index.html`, `AudioSystem.js`) [x] (CONCLUÍDO)
+- **Alvo:** `src/ui/HUD.js`, `index.html`, `src/audio/AudioSystem.js`, `src/core/CameraRig.js`
+- **Ações:**
+  - Vinheta periférica escura com `backdrop-filter: blur(2.5px)` simulando visão de túnel sob fogo cerrado.
+  - Câmera sacode e aplica flinch direcional com kick aleatório no `CameraRig`.
+  - Áudio espacial 3D dispara estalo supersônico (`bullet_whizby`) na coordenada exata de aproximação da bala.
+  - Transição imediata (`0.04s`) e fade-out tático suave (`0.45s`).
+
+### Passo 19.4: Suíte de Validação de Supressão (`test/penetration_ricochet_test.js`) [x] (CONCLUÍDO)
+- **Alvo:** `test/penetration_ricochet_test.js`
+- **Ações:**
+  - Teste 4: Projétil do jogador passando a $<1.5\,\text{m}$ da cabeça do bot aciona `bot:suppressed` e reduz precisão da IA.
+  - Teste 5: Projétil de bot passando a $0.8\,\text{m}$ do jogador e colidindo com parede logo atrás aciona `player:suppression`, flinch e camera shake.
+  - Integrado ao `npm test` oficial com 100% de aprovação.
+
+---
+
+# 🏁 MARCO FINAL: TODAS AS MECÂNICAS EXPERIMENTAIS CONCLUÍDAS E INTEGRADAS
+> **🔒 STATUS DA BASE JAVASCRIPT: CONGELADA PARA TRANSIÇÃO GODOT 4.X**
+> Todas as mecânicas planejadas para a prova de conceito estão 100% integradas, testadas e estáveis.
+> A partir deste ponto, o desenvolvimento passa para:
+> 1. Upgrades e afinamento de parâmetros (data-driven).
+> 2. Transcrição arquitetural direta para Godot 4.x (GDScript/C#).
+> Consulte o arquivo `GODOT_MIGRATION_GUIDE.md` para as instruções completas de transferência.

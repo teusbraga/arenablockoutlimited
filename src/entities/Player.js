@@ -3,14 +3,16 @@ import { Character } from './Character.js';
 import { CONFIG } from '../core/ConfigLoader.js';
 import { emit, on } from '../core/EventBus.js';
 import { CameraRig } from '../core/CameraRig.js';
+import { CharacterView } from '../view/CharacterView.js';
 
 const _fwd = new THREE.Vector3();
 const _right = new THREE.Vector3();
 const _wish = new THREE.Vector3();
 
 export class Player extends Character {
-  constructor(world, bounds, spawnPos = [0, 0.1, 10]) {
+  constructor(world, bounds, spawnPos = [0, 0.1, 10], scene = null) {
     super(world);
+    this.scene = scene;
     this.bounds = bounds;
     this.spawnPos = spawnPos;
     this.setPosition(spawnPos[0], spawnPos[1], spawnPos[2]);
@@ -19,6 +21,14 @@ export class Player extends Character {
     // Instancia o CameraRig (Layer 1 da câmera)
     this.rig = new CameraRig();
     this.rig.setOrientation(this._yaw || 0, 0);
+
+    // Representação visual 3D em 3ª pessoa usando o Soldado Blocky tático
+    this.skinType = 'soldier';
+    this.view = scene ? new CharacterView(this, scene, { id: 1, skinType: 'soldier' }) : null;
+    if (this.view?.root) {
+      // Começa oculto em 1ª pessoa
+      this.view.root.visible = false;
+    }
 
     this.sprinting = false;
     this.crouched = false;
@@ -34,13 +44,12 @@ export class Player extends Character {
     this._unsubAds = on('player:ads', e => {
       this.ads = !!e.ads;
     });
-  }
 
-  destroy() {
-    if (this._unsubAds) {
-      this._unsubAds();
-      this._unsubAds = null;
-    }
+    this._unsubFired = on('weapon:fired', () => {
+      if (this.view && this.isThirdPerson()) {
+        this.view.triggerFlash();
+      }
+    });
   }
 
   get yaw() {
@@ -197,6 +206,37 @@ export class Player extends Character {
 
     // ---- Atualização do subsistema de armas acoplado ----
     this.updateWeapons(dt);
+
+    // ---- Alternância de Perspectiva (Tecla V ou ação toggle_perspective) ----
+    if (this.alive && input?.consumeAction && input.consumeAction('toggle_perspective')) {
+      this.togglePerspective();
+    }
+  }
+
+  isThirdPerson() {
+    return this.rig?.isThirdPerson() ?? false;
+  }
+
+  togglePerspective() {
+    if (!this.rig) return;
+    const mode = this.rig.togglePerspective();
+    emit('player:perspective_changed', { mode, isThirdPerson: mode === 'third' });
+    emit('hud:popup', {
+      text: mode === 'third' ? '3ª PESSOA ATIVADA' : '1ª PESSOA ATIVADA',
+      color: mode === 'third' ? '#e8933a' : '#88c0d0',
+      duration: 1000
+    });
+    return mode;
+  }
+
+  renderUpdate(alpha, dt) {
+    if (this.view) {
+      const show3rd = this.alive && (this.rig?.thirdPersonAmount > 0.05);
+      this.view.root.visible = show3rd;
+      if (show3rd) {
+        this.view.update(dt);
+      }
+    }
   }
 
   updateCamera(camera, dt) {
@@ -218,6 +258,9 @@ export class Player extends Character {
 
   die() {
     super.die();
+    if (this.view?.root) {
+      this.view.root.visible = false;
+    }
     emit('player:died');
     
     // Morte dura 3 segundos antes do respawn, controlada no loop update(dt)
@@ -236,7 +279,25 @@ export class Player extends Character {
     this.rig.reset();
     this.lean = 0;
     this.targetLean = 0;
+    if (this.view?.root) {
+      this.view.root.visible = this.isThirdPerson();
+    }
     emit('player:hp', { hp: this.hp, max: this.maxHp });
     emit('player:respawn');
+  }
+
+  destroy() {
+    if (this._unsubAds) {
+      this._unsubAds();
+      this._unsubAds = null;
+    }
+    if (this._unsubFired) {
+      this._unsubFired();
+      this._unsubFired = null;
+    }
+    if (this.view) {
+      this.view.destroy();
+      this.view = null;
+    }
   }
 }

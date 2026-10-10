@@ -20,6 +20,14 @@
     "footstep_wood": { "freqA": 240, "freqB": 110, "dur": 0.050, "type": "triangle", "gain": 0.07 },
     "footstep_metal": { "freqA": 420, "freqB": 170, "dur": 0.038, "type": "square", "gain": 0.05 },
     "footstep_dirt": { "freqA": 130, "freqB": 60, "dur": 0.060, "type": "sine", "gain": 0.055 },
-    "footstep_concrete": { "freqA": 190, "freqB": 85, "dur": 0.045, "type": "triangle", "gain": 0.06 }
+    "footstep_concrete": { "freqA": 190, "freqB": 85, "dur": 0.045, "type": "triangle", "gain": 0.06 },
+    "smoke_pop": { "freqA": 220, "freqB": 55, "dur": 0.120, "type": "sine", "gain": 0.25 },
+    "smoke_hiss": { "freqA": 2200, "freqB": 1800, "dur": 10.0, "type": "sine", "gain": 0.35 },
+    "grenade_bounce": { "freqA": 340, "freqB": 130, "dur": 0.040, "type": "triangle", "gain": 0.08 },
+    "ricochet": { "freqA": 1600, "freqB": 850, "dur": 0.180, "type": "sine", "gain": 0.18 },
+    "penetration_wood": { "freqA": 280, "freqB": 90, "dur": 0.075, "type": "triangle", "gain": 0.14 },
+    "penetration_metal": { "freqA": 550, "freqB": 220, "dur": 0.065, "type": "square", "gain": 0.16 },
+    "penetration_concrete": { "freqA": 220, "freqB": 70, "dur": 0.085, "type": "sawtooth", "gain": 0.15 },
+    "bullet_whizby": { "freqA": 2800, "freqB": 850, "dur": 0.090, "type": "sawtooth", "gain": 0.22 }
   }
 }

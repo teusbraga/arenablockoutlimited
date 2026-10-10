@@ -34,7 +34,11 @@ export class Input {
       'lean_left': 'leanLeft',
       'leanLeft': 'leanLeft',
       'lean_right': 'leanRight',
-      'leanRight': 'leanRight'
+      'leanRight': 'leanRight',
+      'throw_smoke': 'throwSmoke',
+      'throwSmoke': 'throwSmoke',
+      'toggle_perspective': 'togglePerspective',
+      'togglePerspective': 'togglePerspective'
     };
 
     // Mapeamento de botões físicos para ações canônicas
@@ -56,7 +60,8 @@ export class Input {
       'Digit2': 'slot_2',
       'KeyF': 'interact',
       'KeyB': 'toggle_fire_mode',
-      'KeyV': 'toggle_fire_mode'
+      'KeyV': 'toggle_perspective',
+      'KeyU': 'throw_smoke'
     };
 
     // Estado atual das intenções (ações contínuas) - Proxy transparente para retrocompatibilidade
@@ -65,7 +70,7 @@ export class Input {
       jump: false, sprint: false, crouch: false,
       fire: false, ads: false, reload: false, nextWeapon: false,
       slot1: false, slot2: false, interact: false, toggleFireMode: false,
-      leanLeft: false, leanRight: false
+      leanLeft: false, leanRight: false, throwSmoke: false, togglePerspective: false
     };
 
     // Cria Proxy em this.actions para aceitar tanto snake_case quanto camelCase

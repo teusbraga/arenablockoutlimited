@@ -655,7 +655,8 @@ export class ItalyProps {
   // =========================================================================
 
   /**
-   * Palmeira do deserto com tronco anelado e copa de leques de palha com alfa
+   * Palmeira do deserto estilo CS:GO Mirage com tronco anelado, colar fibroso,
+   * cachos de tâmaras e coroa volumosa de 22 folhas arqueadas em 3 camadas (Tiers)
    */
   addPalmTree(x, y, z, scale = 1.0) {
     const group = new THREE.Group();
@@ -664,30 +665,127 @@ export class ItalyProps {
     const matTrunk = materialFactory.get('palm_trunk');
     const matFrond = materialFactory.get('palm_frond');
 
-    const trunkH = 6.2 * scale;
-    const trunkR = 0.35 * scale;
+    const trunkH = 6.6 * scale;
+    const trunkR = 0.36 * scale;
+    const trunkTilt = -0.055;
 
-    // Tronco ligeiramente inclinado para dar organicidade de deserto
-    const trunkGeo = new THREE.CylinderGeometry(trunkR * 0.7, trunkR, trunkH, 10);
+    // 1. Tronco principal orgânico com leve inclinação de deserto
+    const trunkGeo = new THREE.CylinderGeometry(trunkR * 0.68, trunkR, trunkH, 12);
     const trunk = new THREE.Mesh(trunkGeo, matTrunk);
-    trunk.position.set(0.25 * scale, trunkH / 2, 0);
-    trunk.rotation.z = -0.06;
+    const topX = 0.42 * scale;
+    const topY = trunkH;
+    const topZ = 0;
+    trunk.position.set(topX * 0.5, trunkH / 2, topZ);
+    trunk.rotation.z = trunkTilt;
     trunk.castShadow = true;
     trunk.receiveShadow = true;
     group.add(trunk);
 
-    // Coroa de 8 folhas de palmeira curvadas para fora
-    const numFronds = 8;
-    for (let i = 0; i < numFronds; i++) {
-      const ang = (i / numFronds) * Math.PI * 2;
-      const frondGeo = new THREE.PlaneGeometry(2.4 * scale, 3.8 * scale);
-      const frond = new THREE.Mesh(frondGeo, matFrond);
-      frond.position.set(0.3 * scale, trunkH, 0);
-      frond.rotation.y = ang;
-      frond.rotation.x = Math.PI * 0.32; // Inclinada para baixo
-      frond.castShadow = true;
-      frond.receiveShadow = true;
-      group.add(frond);
+    // 2. Colar fibroso / coroa na ponta do tronco (nódulo de junção das folhas)
+    const crownGeo = new THREE.CylinderGeometry(trunkR * 1.08, trunkR * 0.72, 0.42 * scale, 12);
+    const crownMesh = new THREE.Mesh(crownGeo, matTrunk);
+    crownMesh.position.set(topX, topY - 0.12 * scale, topZ);
+    crownMesh.rotation.z = trunkTilt;
+    crownMesh.castShadow = true;
+    group.add(crownMesh);
+
+    // 3. Cachos de tâmaras do deserto (Date fruit clusters em dourado/laranja sob a copa)
+    const dateMat = new THREE.MeshStandardMaterial({ color: 0xba6e2a, roughness: 0.75 });
+    const numDateClusters = 3;
+    for (let c = 0; c < numDateClusters; c++) {
+      const cAng = (c / numDateClusters) * Math.PI * 2 + 0.35;
+      const cDist = 0.34 * scale;
+      const cx = topX + Math.sin(cAng) * cDist;
+      const cz = topZ + Math.cos(cAng) * cDist;
+      const cy = topY - 0.32 * scale;
+
+      const cluster = new THREE.Group();
+      cluster.position.set(cx, cy, cz);
+      const sphereGeo = new THREE.SphereGeometry(0.11 * scale, 6, 6);
+      for (let s = 0; s < 5; s++) {
+        const berry = new THREE.Mesh(sphereGeo, dateMat);
+        berry.position.set(
+          Math.sin(s * 1.9) * (0.10 * scale),
+          -s * (0.07 * scale),
+          Math.cos(s * 1.9) * (0.10 * scale)
+        );
+        berry.castShadow = true;
+        cluster.add(berry);
+      }
+      group.add(cluster);
+    }
+
+    // Função interna para criar geometria de folha com pivô na base e curvatura gravitacional em V
+    const createCurvedFrondGeometry = (w, len, droop, vFold = 0.16) => {
+      const geo = new THREE.PlaneGeometry(w, len, 2, 7);
+      // Pivô na base para que a folha inteira se projete a partir do tronco
+      geo.translate(0, len / 2, 0);
+
+      const pos = geo.attributes.position;
+      for (let i = 0; i < pos.count; i++) {
+        const lx = pos.getX(i);
+        const ly = pos.getY(i);
+        const t = Math.max(0, Math.min(1, ly / len));
+
+        // Arqueamento progressivo sob gravidade
+        const curve = Math.pow(t, 2.1) * droop;
+        // Dobra em V das pínulas
+        const sideDist = Math.abs(lx) / (w * 0.5);
+        const fold = sideDist * (vFold * w);
+
+        pos.setZ(i, -curve + fold);
+      }
+      geo.computeVertexNormals();
+      return geo;
+    };
+
+    // 4. Coroa de 22 folhas exuberantes em 3 Tiers (camadas sobrepostas)
+    const tiers = [
+      // Camada Alta: 6 folhas jovens apontando para cima e arqueando levemente
+      {
+        count: 6,
+        width: 2.3 * scale,
+        length: 4.6 * scale,
+        droop: 1.1 * scale,
+        tilt: 0.18,
+        offsetAng: 0,
+        heightOffset: 0.12 * scale
+      },
+      // Camada Média: 8 folhas adultas grandes da copa principal abrindo em arco
+      {
+        count: 8,
+        width: 2.7 * scale,
+        length: 5.4 * scale,
+        droop: 1.7 * scale,
+        tilt: 0.52,
+        offsetAng: Math.PI / 8,
+        heightOffset: 0.0
+      },
+      // Camada Baixa: 8 folhas maduras caídas pendendo graciosamente ao redor do tronco
+      {
+        count: 8,
+        width: 2.4 * scale,
+        length: 4.9 * scale,
+        droop: 2.3 * scale,
+        tilt: 0.94,
+        offsetAng: Math.PI / 16,
+        heightOffset: -0.15 * scale
+      }
+    ];
+
+    for (const tier of tiers) {
+      const geo = createCurvedFrondGeometry(tier.width, tier.length, tier.droop);
+      for (let i = 0; i < tier.count; i++) {
+        const ang = (i / tier.count) * Math.PI * 2 + tier.offsetAng;
+        const frond = new THREE.Mesh(geo, matFrond);
+        frond.position.set(topX, topY + tier.heightOffset, topZ);
+        frond.rotation.y = ang;
+        frond.rotation.x = tier.tilt;
+        frond.rotation.z = Math.sin(i * 1.7) * 0.08; // Quebra de simetria natural
+        frond.castShadow = true;
+        frond.receiveShadow = true;
+        group.add(frond);
+      }
     }
 
     this.scene.add(group);

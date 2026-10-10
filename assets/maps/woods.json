@@ -1,6 +1,7 @@
 {
   "id": "woods",
   "name": "Woods 300x300 (Bosque & Colinas)",
+  "pbr": true,
   "size": [
     300,
     300

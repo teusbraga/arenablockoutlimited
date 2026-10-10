@@ -3,6 +3,9 @@
     "name": "5.56x45mm NATO",
     "bulletSpeed": 900,
     "bulletDrop": 9.8,
+    "penetrationPower": 0.42,
+    "maxPenetrations": 2,
+    "ricochetChance": 0.35,
     "tracerColor": "#ffc061",
     "tracerProfile": {
       "style": "photographic",
@@ -15,13 +18,25 @@
       "coreBrightness": 1.0,
       "glowBrightness": 0.75,
       "maxOpacity": 0.85,
-      "width": 1.0
+      "width": 1.0,
+      "flashProfile": {
+        "size": 0.30,
+        "opacity": 0.88,
+        "lightIntensity": 10.0,
+        "lightDistance": 5.5,
+        "color": "#ffd88a",
+        "duration": 0.05,
+        "maskElasticOffset": 0.04
+      }
     }
   },
   "5.56_linked": {
     "name": "5.56x45mm NATO (Tracer)",
     "bulletSpeed": 850,
     "bulletDrop": 9.8,
+    "penetrationPower": 0.40,
+    "maxPenetrations": 2,
+    "ricochetChance": 0.35,
     "tracerColor": "#ffee00",
     "tracerProfile": {
       "style": "laser",
@@ -35,13 +50,25 @@
       "coreBrightness": 2.0,
       "glowBrightness": 1.0,
       "maxOpacity": 1.0,
-      "width": 2.0
+      "width": 2.0,
+      "flashProfile": {
+        "size": 0.34,
+        "opacity": 0.90,
+        "lightIntensity": 12.0,
+        "lightDistance": 6.0,
+        "color": "#ffe066",
+        "duration": 0.055,
+        "maskElasticOffset": 0.05
+      }
     }
   },
   "7.62_soviet": {
     "name": "7.62x39mm Soviet",
     "bulletSpeed": 715,
     "bulletDrop": 9.8,
+    "penetrationPower": 0.65,
+    "maxPenetrations": 3,
+    "ricochetChance": 0.40,
     "tracerColor": "#ffaa44",
     "tracerProfile": {
       "style": "streak",
@@ -54,13 +81,25 @@
       "coreBrightness": 1.0,
       "glowBrightness": 0.7,
       "maxOpacity": 1.0,
-      "width": 1.15
+      "width": 1.15,
+      "flashProfile": {
+        "size": 0.32,
+        "opacity": 0.90,
+        "lightIntensity": 12.0,
+        "lightDistance": 6.0,
+        "color": "#ffb347",
+        "duration": 0.055,
+        "maskElasticOffset": 0.045
+      }
     }
   },
   "energy_cell": {
     "name": "Plasma Energy Cell",
     "bulletSpeed": 2500,
     "bulletDrop": 0,
+    "penetrationPower": 0.85,
+    "maxPenetrations": 4,
+    "ricochetChance": 0.10,
     "tracerColor": "#00ffff",
     "tracerProfile": {
       "style": "laser",
@@ -73,13 +112,25 @@
       "coreBrightness": 1.0,
       "glowBrightness": 0.8,
       "maxOpacity": 0.95,
-      "width": 1.0
+      "width": 1.0,
+      "flashProfile": {
+        "size": 0.28,
+        "opacity": 0.85,
+        "lightIntensity": 11.0,
+        "lightDistance": 5.0,
+        "color": "#00ffff",
+        "duration": 0.045,
+        "maskElasticOffset": 0.03
+      }
     }
   },
   "9mm_para": {
     "name": "9x19mm Parabellum",
     "bulletSpeed": 380,
     "bulletDrop": 9.8,
+    "penetrationPower": 0.22,
+    "maxPenetrations": 1,
+    "ricochetChance": 0.25,
     "tracerColor": "#b8ff33",
     "tracerProfile": {
       "style": "laser",
@@ -91,13 +142,25 @@
       "coreColor": "#f0ffe0",
       "glowBrightness": 0.6,
       "maxOpacity": 1.0,
-      "width": 1.0
+      "width": 1.0,
+      "flashProfile": {
+        "size": 0.38,
+        "opacity": 0.95,
+        "lightIntensity": 13.0,
+        "lightDistance": 6.5,
+        "color": "#ffdd55",
+        "duration": 0.06,
+        "maskElasticOffset": 0.075
+      }
     }
   },
   "5.7_fn": {
     "name": "5.7x28mm FN",
     "bulletSpeed": 716,
     "bulletDrop": 9.8,
+    "penetrationPower": 0.38,
+    "maxPenetrations": 2,
+    "ricochetChance": 0.30,
     "tracerColor": "#ffea70",
     "tracerProfile": {
       "style": "swipe",
@@ -113,13 +176,25 @@
       "coreBrightness": 0.8,
       "glowBrightness": 0.35,
       "maxOpacity": 0.75,
-      "width": 0.8
+      "width": 0.8,
+      "flashProfile": {
+        "size": 0.42,
+        "opacity": 0.98,
+        "lightIntensity": 15.0,
+        "lightDistance": 7.0,
+        "color": "#fff088",
+        "duration": 0.065,
+        "maskElasticOffset": 0.09
+      }
     }
   },
   "500_magnum": {
     "name": ".500 S&W Magnum",
     "bulletSpeed": 600,
     "bulletDrop": 9.8,
+    "penetrationPower": 0.70,
+    "maxPenetrations": 3,
+    "ricochetChance": 0.20,
     "tracerColor": "#ffbb33",
     "tracerProfile": {
       "style": "photographic",
@@ -132,13 +207,25 @@
       "coreBrightness": 1.5,
       "glowBrightness": 0.9,
       "maxOpacity": 1.0,
-      "width": 1.6
+      "width": 1.6,
+      "flashProfile": {
+        "size": 0.44,
+        "opacity": 0.96,
+        "lightIntensity": 18.0,
+        "lightDistance": 8.5,
+        "color": "#ffaa22",
+        "duration": 0.07,
+        "maskElasticOffset": 0.08
+      }
     }
   },
   "12_gauge": {
     "name": "12 Gauge Buckshot",
     "bulletSpeed": 400,
     "bulletDrop": 12.0,
+    "penetrationPower": 0.20,
+    "maxPenetrations": 1,
+    "ricochetChance": 0.15,
     "tracerColor": "#ff9933",
     "tracerProfile": {
       "style": "streak",
@@ -151,13 +238,25 @@
       "coreBrightness": 1.0,
       "glowBrightness": 0.5,
       "maxOpacity": 0.8,
-      "width": 0.6
+      "width": 0.6,
+      "flashProfile": {
+        "size": 0.36,
+        "opacity": 0.92,
+        "lightIntensity": 14.0,
+        "lightDistance": 6.5,
+        "color": "#ff9933",
+        "duration": 0.06,
+        "maskElasticOffset": 0.06
+      }
     }
   },
   "9x39_sp5": {
     "name": "9x39mm SP5 Subsonic",
     "bulletSpeed": 290,
     "bulletDrop": 15.0,
+    "penetrationPower": 0.55,
+    "maxPenetrations": 2,
+    "ricochetChance": 0.25,
     "tracerColor": "#ffffff",
     "tracerProfile": {
       "style": "parabola",
@@ -176,7 +275,16 @@
       "coreBrightness": 2.0,
       "glowBrightness": 1.0,
       "maxOpacity": 1.0,
-      "width": 1.6
+      "width": 1.6,
+      "flashProfile": {
+        "size": 0.12,
+        "opacity": 0.28,
+        "lightIntensity": 2.0,
+        "lightDistance": 2.0,
+        "color": "#888888",
+        "duration": 0.03,
+        "maskElasticOffset": 0.01
+      }
     }
   }
 }

@@ -18,6 +18,7 @@ export class HUD {
       killfeed: document.getElementById('killfeed'),
       killPopup: document.getElementById('kill-popup'),
       screenFlash: document.getElementById('screen-flash'),
+      suppressionOverlay: document.getElementById('suppression-overlay'),
       deathScreen: document.getElementById('death-screen'),
       respawnTxt: document.getElementById('respawn-txt'),
       diCanvas: document.getElementById('damage-indicator'),
@@ -82,6 +83,18 @@ export class HUD {
             t: 1.0
           });
         }
+      }),
+      on('player:suppression', e => {
+        if (!this.el.suppressionOverlay) return;
+        const intensity = Math.min(1.0, (e?.intensity || 0.5));
+        const overlay = this.el.suppressionOverlay;
+        overlay.classList.add('active');
+        overlay.style.opacity = String(Math.max(0.40, intensity * 0.95));
+        if (this._suppressT) clearTimeout(this._suppressT);
+        this._suppressT = setTimeout(() => {
+          overlay.classList.remove('active');
+          overlay.style.opacity = '0';
+        }, 450);
       }),
       on('weapon:ammo', e => {
         if (this.el.ammoNum) {

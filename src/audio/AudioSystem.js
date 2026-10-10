@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { on } from '../core/EventBus.js';
 
 export class AudioSystem {
@@ -5,6 +6,9 @@ export class AudioSystem {
     this.ctx = null;
     // sounds populado exclusivamente via setSoundBank(audio.json) durante o boot
     this.sounds = {};
+    this.camera = null;
+    this.world = null;
+    this.activeSpatialLoops = new Map();
     this._bind();
   }
 
@@ -284,6 +288,295 @@ export class AudioSystem {
     this._tone(s.freqA, s.freqB, s.dur, s.type, s.gain);
   }
 
+  // =========================================================================
+  // ÁUDIO ESPACIAL 3D & OCLUSÃO GEOMÉTRICA (TIER S #1)
+  // =========================================================================
+
+  setCamera(camera) {
+    this.camera = camera;
+  }
+
+  setWorld(world) {
+    this.world = world;
+  }
+
+  /**
+   * Atualiza a posição e orientação tridimensional do ouvinte (Listener) no Web Audio API
+   */
+  updateListener(camera) {
+    if (camera) this.camera = camera;
+    const ctx = this._ensure();
+    if (!ctx || !this.camera) return;
+    const l = ctx.listener;
+    if (!l) return;
+
+    const pos = this.camera.position;
+    const fwd = { x: 0, y: 0, z: -1 };
+    const up = this.camera.up || { x: 0, y: 1, z: 0 };
+
+    if (this.camera.getWorldDirection) {
+      if (!this._threeFwd) {
+        this._threeFwd = new THREE.Vector3();
+      }
+      this.camera.getWorldDirection(this._threeFwd);
+      fwd.x = this._threeFwd.x;
+      fwd.y = this._threeFwd.y;
+      fwd.z = this._threeFwd.z;
+    }
+
+    const t = ctx.currentTime;
+    if (l.positionX) {
+      l.positionX.setValueAtTime(pos.x, t);
+      l.positionY.setValueAtTime(pos.y, t);
+      l.positionZ.setValueAtTime(pos.z, t);
+      l.forwardX.setValueAtTime(fwd.x, t);
+      l.forwardY.setValueAtTime(fwd.y, t);
+      l.forwardZ.setValueAtTime(fwd.z, t);
+      l.upX.setValueAtTime(up.x, t);
+      l.upY.setValueAtTime(up.y, t);
+      l.upZ.setValueAtTime(up.z, t);
+    } else if (l.setPosition) {
+      l.setPosition(pos.x, pos.y, pos.z);
+      l.setOrientation(fwd.x, fwd.y, fwd.z, up.x, up.y, up.z);
+    }
+  }
+
+  /**
+   * Executa raycast no CollisionWorld para verificar se há obstáculos sólidos entre o ouvinte e a fonte sonora.
+   * Retorna true se estiver ocluído por paredes.
+   */
+  checkOcclusion(srcPos) {
+    if (!this.world || !this.camera || !srcPos) return false;
+    const camPos = this.camera.position;
+    const dx = srcPos.x - camPos.x;
+    const dy = srcPos.y - camPos.y;
+    const dz = srcPos.z - camPos.z;
+    const dist = Math.hypot(dx, dy, dz);
+    if (dist < 0.25) return false;
+
+    const dir = { x: dx / dist, y: dy / dist, z: dz / dist };
+    // Subtrai tolerância na ponta para não colidir no próprio piso do emissor
+    const maxTestDist = Math.max(0.1, dist - 0.25);
+    const hit = this.world.raycast(camPos, dir, maxTestDist);
+    return !!hit;
+  }
+
+  /**
+   * Inicia loop sonoro espacial 3D contínuo de chiado de fumaça sob pressão (smoke hiss).
+   * Modula dinamicamente filtro de oclusão por parede (muffled) e posicionamento HRTF.
+   */
+  startSmokeHiss({ id = 'smoke_default', pos, duration = 10.0, gain = 0.35 } = {}) {
+    const ctx = this._ensure();
+    if (!ctx || !pos) return;
+
+    this.stopSpatialLoop(id);
+
+    // Buffer de ruído aerado com looping
+    const bufLen = Math.floor(ctx.sampleRate * 2.0);
+    const buffer = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let b0 = 0, b1 = 0;
+    for (let i = 0; i < bufLen; i++) {
+      const white = Math.random() * 2 - 1;
+      b0 = 0.95 * b0 + white * 0.08;
+      b1 = 0.88 * b1 + white * 0.16;
+      data[i] = (b0 + b1) * 0.85;
+    }
+
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    src.loop = true;
+
+    // Filtro passa-banda para timbre aerado de fumaça/gás sob pressão
+    const bandpass = ctx.createBiquadFilter();
+    bandpass.type = 'bandpass';
+    bandpass.frequency.value = 2100;
+    bandpass.Q.value = 0.85;
+
+    // Filtro de oclusão passa-baixa dinâmico
+    const isOccluded = this.checkOcclusion(pos);
+    const occlusionFilter = ctx.createBiquadFilter();
+    occlusionFilter.type = 'lowpass';
+    occlusionFilter.frequency.value = isOccluded ? 550 : 13000;
+    occlusionFilter.Q.value = isOccluded ? 1.4 : 0.7;
+
+    // Ganho
+    const gainNode = ctx.createGain();
+    const targetGain = isOccluded ? gain * 0.35 : gain;
+    gainNode.gain.setValueAtTime(0.001, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(targetGain, ctx.currentTime + 0.20);
+
+    // Panner 3D com HRTF
+    let panner = null;
+    if (ctx.createPanner) {
+      panner = ctx.createPanner();
+      panner.panningModel = 'HRTF';
+      panner.distanceModel = 'inverse';
+      panner.refDistance = 1.8;
+      panner.maxDistance = 45.0;
+      panner.rolloffFactor = 1.0;
+      if (panner.positionX) {
+        const t = ctx.currentTime;
+        panner.positionX.setValueAtTime(pos.x, t);
+        panner.positionY.setValueAtTime(pos.y, t);
+        panner.positionZ.setValueAtTime(pos.z, t);
+      } else if (panner.setPosition) {
+        panner.setPosition(pos.x, pos.y, pos.z);
+      }
+    }
+
+    // Conexões: Source -> Bandpass -> Occlusion -> Gain -> Panner -> Destination
+    src.connect(bandpass);
+    bandpass.connect(occlusionFilter);
+    occlusionFilter.connect(gainNode);
+
+    if (panner) {
+      gainNode.connect(panner);
+      panner.connect(ctx.destination);
+    } else {
+      gainNode.connect(ctx.destination);
+    }
+
+    src.start();
+
+    const loopData = {
+      id,
+      pos: { x: pos.x, y: pos.y, z: pos.z },
+      baseGain: gain,
+      duration,
+      elapsed: 0,
+      src,
+      gainNode,
+      occlusionFilter,
+      panner,
+      isOccluded
+    };
+
+    if (!this.activeSpatialLoops) this.activeSpatialLoops = new Map();
+    this.activeSpatialLoops.set(id, loopData);
+  }
+
+  stopSpatialLoop(id) {
+    if (!this.activeSpatialLoops || !this.activeSpatialLoops.has(id)) return;
+    const item = this.activeSpatialLoops.get(id);
+    this.activeSpatialLoops.delete(id);
+    if (this.ctx && item.gainNode) {
+      try {
+        const t = this.ctx.currentTime;
+        item.gainNode.gain.setValueAtTime(item.gainNode.gain.value, t);
+        item.gainNode.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
+        setTimeout(() => {
+          try { item.src.stop(); item.src.disconnect(); } catch (_) {}
+        }, 160);
+      } catch (_) {}
+    }
+  }
+
+  /**
+   * Dispara som pontual no espaço 3D com HRTF e atenuação/oclusão de parede
+   */
+  playSpatial(soundKey, pos) {
+    const s = this.sounds[soundKey];
+    const ctx = this._ensure();
+    if (!ctx || !s) {
+      if (s) this.play(soundKey);
+      return;
+    }
+
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    const occ = ctx.createBiquadFilter();
+    occ.type = 'lowpass';
+
+    const isOccluded = pos ? this.checkOcclusion(pos) : false;
+    occ.frequency.value = isOccluded ? 550 : 14000;
+    occ.Q.value = isOccluded ? 1.3 : 0.7;
+    const finalGain = isOccluded ? s.gain * 0.40 : s.gain;
+
+    osc.type = s.type || 'sine';
+    osc.frequency.setValueAtTime(s.freqA, t);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(s.freqB, 1), t + s.dur);
+
+    g.gain.setValueAtTime(finalGain, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + s.dur);
+
+    let panner = null;
+    if (pos && ctx.createPanner) {
+      panner = ctx.createPanner();
+      panner.panningModel = 'HRTF';
+      panner.distanceModel = 'inverse';
+      panner.refDistance = 2.0;
+      panner.maxDistance = 60.0;
+      panner.rolloffFactor = 1.0;
+      if (panner.positionX) {
+        panner.positionX.setValueAtTime(pos.x, t);
+        panner.positionY.setValueAtTime(pos.y, t);
+        panner.positionZ.setValueAtTime(pos.z, t);
+      } else if (panner.setPosition) {
+        panner.setPosition(pos.x, pos.y, pos.z);
+      }
+    }
+
+    osc.connect(occ);
+    occ.connect(g);
+
+    if (panner) {
+      g.connect(panner);
+      panner.connect(ctx.destination);
+    } else {
+      g.connect(ctx.destination);
+    }
+
+    osc.start(t);
+    osc.stop(t + s.dur + 0.05);
+  }
+
+  /**
+   * Atualização contínua de física acústica (atualiza oclusão em tempo real e fades de loops)
+   */
+  update(dt) {
+    if (!this.activeSpatialLoops || this.activeSpatialLoops.size === 0 || !this.ctx) return;
+    const t = this.ctx.currentTime;
+
+    for (const [id, item] of this.activeSpatialLoops.entries()) {
+      item.elapsed += dt;
+
+      // Posição no Panner
+      if (item.panner) {
+        if (item.panner.positionX) {
+          item.panner.positionX.setValueAtTime(item.pos.x, t);
+          item.panner.positionY.setValueAtTime(item.pos.y, t);
+          item.panner.positionZ.setValueAtTime(item.pos.z, t);
+        } else if (item.panner.setPosition) {
+          item.panner.setPosition(item.pos.x, item.pos.y, item.pos.z);
+        }
+      }
+
+      // Teste dinâmico de oclusão por paredes
+      const isOccluded = this.checkOcclusion(item.pos);
+      item.isOccluded = isOccluded;
+
+      const targetCutoff = isOccluded ? 550 : 13000;
+      const targetGain = isOccluded ? item.baseGain * 0.35 : item.baseGain;
+
+      // Se estiver nos últimos 2 segundos da vida útil, faz fade-out suave
+      const timeLeft = item.duration - item.elapsed;
+      let finalGain = targetGain;
+      if (timeLeft < 2.0 && timeLeft > 0) {
+        finalGain = targetGain * Math.max(0, timeLeft / 2.0);
+      }
+
+      item.occlusionFilter.frequency.setTargetAtTime(targetCutoff, t, 0.08);
+      item.occlusionFilter.Q.setTargetAtTime(isOccluded ? 1.4 : 0.7, t, 0.08);
+      item.gainNode.gain.setTargetAtTime(finalGain, t, 0.08);
+
+      if (item.elapsed >= item.duration) {
+        this.stopSpatialLoop(id);
+      }
+    }
+  }
+
   _bind() {
     this._unsubs = [
       on('weapon:fired', e => {
@@ -321,18 +614,69 @@ export class AudioSystem {
         }
       }),
       on('shot:world', e => {
-        if (e?.soundDelay && e.soundDelay > 0.04) {
-          setTimeout(() => this.play('hit_world'), Math.round(e.soundDelay * 1000));
+        const soundKey = 'hit_world';
+        if (e?.pos) {
+          this.playSpatial(soundKey, e.pos);
+        } else if (e?.soundDelay && e.soundDelay > 0.04) {
+          setTimeout(() => this.play(soundKey), Math.round(e.soundDelay * 1000));
         } else {
-          this.play('hit_world');
+          this.play(soundKey);
         }
       }),
-      on('bot:died', () => this.play('bot_died')),
-      on('bot:fired', () => this.play('bot_shot')),
+      on('bot:died', e => e?.pos ? this.playSpatial('bot_died', e.pos) : this.play('bot_died')),
+      on('bot:fired', e => e?.pos ? this.playSpatial('bot_shot', e.pos) : this.play('bot_shot')),
       on('player:damaged',  () => this.play('player_damaged')),
       on('player:died',     () => this.play('player_died')),
       on('player:footstep', e => this.playFootstep(e?.material)),
       on('cheat:activated', () => this.play('hit_headshot')),
+
+      // Eventos de Granada de Fumaça & Áudio Espacial
+      on('smoke:detonate', e => {
+        if (e?.pos) {
+          this.playSpatial('smoke_pop', e.pos);
+          this.startSmokeHiss({ id: e.id || 'smoke_nade', pos: e.pos, duration: e.duration || 10.0 });
+        }
+      }),
+      on('smoke:bounce', e => {
+        if (e?.pos) this.playSpatial('grenade_bounce', e.pos);
+      }),
+      on('smoke:stop', e => {
+        if (e?.id) this.stopSpatialLoop(e.id);
+      }),
+
+      // Balística Terminal: Ricochete e Penetração de Paredes
+      on('shot:ricochet', e => {
+        const p = e?.point || e?.pos;
+        if (p) {
+          this.playSpatial('ricochet', p);
+        } else {
+          this.play('ricochet');
+        }
+      }),
+      on('shot:penetration', e => {
+        const mat = (e?.material || 'wall').toLowerCase();
+        let soundKey = 'penetration_wood';
+        if (mat.includes('metal') || mat.includes('steel')) {
+          soundKey = 'penetration_metal';
+        } else if (mat.includes('concrete') || mat.includes('stone') || mat.includes('brick')) {
+          soundKey = 'penetration_concrete';
+        }
+        const p = e?.entryPoint || e?.point;
+        if (p) {
+          this.playSpatial(soundKey, p);
+        } else {
+          this.play(soundKey);
+        }
+      }),
+
+      // Supressão Tática: Estalo Supersônico próximo
+      on('player:suppression', e => {
+        if (e?.pos) {
+          this.playSpatial('bullet_whizby', e.pos);
+        } else {
+          this.play('bullet_whizby');
+        }
+      })
     ];
   }
 
@@ -340,6 +684,12 @@ export class AudioSystem {
     if (this._unsubs) {
       for (const unsub of this._unsubs) unsub();
       this._unsubs = [];
+    }
+    if (this.activeSpatialLoops) {
+      for (const id of this.activeSpatialLoops.keys()) {
+        this.stopSpatialLoop(id);
+      }
+      this.activeSpatialLoops.clear();
     }
     if (this.ctx && this.ctx.state !== 'closed') {
       try { this.ctx.close(); } catch (_) {}
