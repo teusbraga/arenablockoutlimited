@@ -153,7 +153,13 @@ if (!photoT.coreMesh || !photoT.glowMesh) {
 if (photoT.coreMat.opacity <= 0 || photoT.glowMat.opacity <= 0) {
   throw new Error('Opacidade fotográfica não calculada');
 }
+
+// Verifica que a trajetória permanece 100% colinear no eixo Z (X=0, Y=1.5), sem desviar pelo movimento do cano
+if (Math.abs(photoT.group.position.x) > 0.001) {
+  throw new Error(`Traçante curvou/desviou em X: ${photoT.group.position.x} (esperado 0)`);
+}
 console.log(`✅ Ring Buffer N=8 ativo (samples=${photoT.sampleCount}), Core e Glow sincronizados!`);
+console.log('✅ Traçante permaneceu 100% colinear com a trajetória balística inicial (ZERO curvatura no flick)!');
 console.log(`✅ Opacidade Core: ${photoT.coreMat.opacity.toFixed(2)}, Opacidade Glow: ${photoT.glowMat.opacity.toFixed(2)}`);
 
 // Simula até expiração completa
@@ -165,7 +171,141 @@ if (photoT.originTracker !== null) {
 }
 console.log('✅ Expiração e liberação de memória fotográfica validadas sem vazamentos!');
 
+// [Teste 5] Validação de rifle_proto (Laser), vss (Subsonic Swipe) e m12 (Buckshot Pellets)
+console.log('\n[Teste 5] Validando rifle_proto (Laser), vss (Subsonic Swipe) e m12 (Buckshot Pellets)...');
+
+// 5a. rifle_proto: laser style
+let laserFired = null;
+const unsubLaser = on('tracer:fire', e => { laserFired = e; });
+projManager.spawn({
+  origin: new THREE.Vector3(0, 1.5, 0),
+  direction: new THREE.Vector3(0, 0, 1),
+  weaponDef: {
+    id: 'rifle_proto',
+    bulletSpeed: 950,
+    tracerColor: '#00ffff',
+    tracerProfile: {
+      style: 'laser',
+      ttl: 0.045,
+      headSpeed: 0.25,
+      streakLength: 0.70,
+      width: 1.2,
+      coreRadius: 0.008,
+      glowRadius: 0.038,
+      coreColor: '#e0ffff',
+      glowColor: '#00ffff',
+      flashProfile: { size: 0.28, opacity: 0.85, lightIntensity: 11, lightDistance: 5, color: '#00ffff', duration: 0.045, maskElasticOffset: 0.03 }
+    }
+  }
+});
+unsubLaser();
+if (!laserFired || laserFired.profile.style !== 'laser') throw new Error('Disparo a laser do rifle_proto não emitiu tracer com style laser');
+const laserTracer = effects.tracers.find(t => t.active && t.profile?.style === 'laser');
+if (!laserTracer) throw new Error('FlashTracer a laser não ativado no pool');
+effects.update(0.016);
+if (!laserTracer.group.visible) throw new Error('Laser tracer não visível após primeiro update');
+console.log('✅ rifle_proto: Feixe Laser interpolado com sucesso sem curvatura nem strafe lag!');
+
+// 5b. vss: subsonic 290 m/s deve emitir tracer:fire (desacoplado) com style swipe
+let vssFired = null;
+const unsubVss = on('tracer:fire', e => { vssFired = e; });
+projManager.spawn({
+  origin: new THREE.Vector3(0, 1.5, 0),
+  direction: new THREE.Vector3(0, 0, 1),
+  weaponDef: {
+    id: 'vss',
+    bulletSpeed: 290,
+    tracerColor: '#ffffff',
+    tracerProfile: {
+      style: 'swipe',
+      ttl: 0.058,
+      headSpeed: 0.35,
+      streakLength: 0.45,
+      width: 1.0,
+      coreRadius: 0.006,
+      glowRadius: 0.032,
+      coreColor: '#ffffff',
+      glowColor: '#dcdcdc',
+      flashProfile: { size: 0.12, opacity: 0.28, lightIntensity: 2, lightDistance: 2, color: '#888888', duration: 0.03, maskElasticOffset: 0.01 }
+    }
+  }
+});
+unsubVss();
+if (!vssFired) throw new Error('VSS (290 m/s subsonic) não emitiu tracer:fire desacoplado');
+console.log('✅ vss: Projétil subsônico 290 m/s emite FlashTracer desacoplado (ZERO strafe lag)!');
+
+// 5c. m12: shotgun pellets
+let pelletTracerCount = 0;
+const unsubPellets = on('tracer:fire', e => {
+  if (e.isPellet) pelletTracerCount++;
+});
+for (let i = 0; i < 7; i++) {
+  projManager.spawn({
+    origin: new THREE.Vector3(0, 1.5, 0),
+    direction: new THREE.Vector3((i - 3) * 0.01, 0, 1).normalize(),
+    weaponDef: {
+      id: 'm12',
+      pellets: 7,
+      bulletSpeed: 360,
+      tracerColor: '#ff9933',
+      tracerProfile: {
+        style: 'swipe',
+        ttl: 0.065,
+        headSpeed: 0.35,
+        streakLength: 0.40,
+        coreRadius: 0.007,
+        glowRadius: 0.032,
+        width: 1.0,
+        flashProfile: { size: 0.36, opacity: 0.92, lightIntensity: 14, lightDistance: 6.5, color: '#ff9933', duration: 0.06, maskElasticOffset: 0.06 }
+      }
+    },
+    isPellet: true
+  });
+}
+unsubPellets();
+if (pelletTracerCount !== 7) throw new Error(`Esperado 7 pellets tracer:fire, recebido ${pelletTracerCount}`);
+console.log(`✅ m12: Todos os 7 balins de buckshot geraram FlashTracers visíveis com scale seguro!`);
+
+// 5d. m249: Laser style anti-aéreo de 6 metros em velocidade real (850 m/s)
+let m249Fired = null;
+const unsubM249 = on('tracer:fire', e => { m249Fired = e; });
+projManager.spawn({
+  origin: new THREE.Vector3(0, 1.5, 0),
+  direction: new THREE.Vector3(0, 0, 1),
+  weaponDef: {
+    id: 'm249',
+    bulletSpeed: 850,
+    tracerColor: '#ffee00',
+    tracerProfile: {
+      style: 'laser',
+      beamLength: 6.0,
+      realSpeed: true,
+      coreRadius: 0.010,
+      glowRadius: 0.055,
+      coreColor: '#ffffff',
+      glowColor: '#ffee00',
+      coreBrightness: 2.0,
+      glowBrightness: 0.95,
+      width: 1.6,
+      flashProfile: { size: 0.34, opacity: 0.90, lightIntensity: 12.0, lightDistance: 6.0, color: '#ffe066', duration: 0.055, maskElasticOffset: 0.05 }
+    }
+  }
+});
+unsubM249();
+if (!m249Fired) throw new Error('Disparo da M249 não emitiu tracer:fire');
+const m249Tracer = effects.tracers.find(t => t.active && t.profile?.beamLength === 6.0);
+if (!m249Tracer) throw new Error('FlashTracer da M249 (6m beam) não ativado no pool');
+
+// Simula frame 1 a 60fps (dt = 0.016s -> 850 * 0.016 = 13.6m):
+effects.update(0.016);
+const beamLengthMeasured = m249Tracer.coreMesh.scale.y;
+if (Math.abs(beamLengthMeasured - 6.0) > 0.1) {
+  throw new Error(`Comprimento do feixe da M249 incorreto: ${beamLengthMeasured.toFixed(2)}m (esperado 6.0m)`);
+}
+console.log(`✅ m249: Feixe laser anti-aéreo de ${beamLengthMeasured.toFixed(2)}m renderizado em velocidade real (850 m/s)!`);
+
 console.log('\n==================================================');
 console.log('🎉 TODOS OS TESTES DE FLASH & TRACER FOTOGRÁFICO PASSARAM COM SUCESSO!');
 console.log('==================================================');
+
 

@@ -154,8 +154,8 @@ export class ProjectileManager {
       color: p.color
     });
 
-    // Se projétil usar tracer físico parabólico, desacoplamos do flash tracer retilíneo
-    const isPhysicalTracer = p.speed < 200 || weaponDef?.tracerProfile?.style === 'parabola' || weaponDef?.tracerProfile?.physical;
+    // Se projétil usar tracer físico (ex: projéteis hiper-lentos < 200m/s ou flag physical explícita)
+    const isPhysicalTracer = p.speed < 200 || weaponDef?.tracerProfile?.physical === true;
     if (!isPhysicalTracer) {
       const normDir = _tempDir.copy(direction).normalize();
       const estHit = this._estimateImpact(origin, normDir, p.maxDistance, owner);

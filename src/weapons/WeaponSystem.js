@@ -457,6 +457,17 @@ export class WeaponSystem {
     this.camera.getWorldPosition(_camPos);
     this.camera.getWorldQuaternion(_quat);
 
+    // Se o player se moveu no fixedUpdate atual, compensa a defasagem cinemática
+    // entre a física do player e a última renderização da câmera/viewmodel
+    if (this.player && this.player.pos && this.player.prevPos) {
+      const dx = this.player.pos.x - this.player.prevPos.x;
+      const dy = this.player.pos.y - this.player.prevPos.y;
+      const dz = this.player.pos.z - this.player.prevPos.z;
+      _camPos.x += dx;
+      _camPos.y += dy;
+      _camPos.z += dz;
+    }
+
     _dir.set(0, 0, -1).applyQuaternion(_quat).normalize();
     _right.set(1, 0, 0).applyQuaternion(_quat).normalize();
     _up.set(0, 1, 0).applyQuaternion(_quat).normalize();
@@ -467,9 +478,21 @@ export class WeaponSystem {
     _muzzleWorld.copy(_tempMuzzle);
     this.viewmodel.mount.localToWorld(_muzzleWorld);
 
-    // Se barrelAlignment estiver ativo (Mecânica Wardogs), atualiza e extrai o vetor exato do cano 3D
-    // (Mesmo que a mira no HUD esteja parada no centro da tela, a bala e o tracer respeitam o cano!)
-    if (this.barrelAlignment && !this.ads) {
+    if (this.player && this.player.pos && this.player.prevPos) {
+      const dx = this.player.pos.x - this.player.prevPos.x;
+      const dy = this.player.pos.y - this.player.prevPos.y;
+      const dz = this.player.pos.z - this.player.prevPos.z;
+      _muzzleWorld.x += dx;
+      _muzzleWorld.y += dy;
+      _muzzleWorld.z += dz;
+    }
+
+    // Se dynamicAlignment estiver ativo no HUD (Mecânica Wardogs), atualiza e extrai o vetor exato do cano 3D
+    const isDynamicAlignment = this.hud?.crosshairManager
+      ? !!this.hud.crosshairManager.config.dynamicAlignment
+      : false;
+
+    if (isDynamicAlignment && this.barrelAlignment && !this.ads) {
       this.barrelAlignment.update(def, this.ads, 0.016, this.sprayRecoil);
       if (this.barrelAlignment.aimPointWorld) {
         _dir.copy(this.barrelAlignment.aimPointWorld).sub(_muzzleWorld).normalize();

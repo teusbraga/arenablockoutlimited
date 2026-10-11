@@ -33,27 +33,41 @@ const _tracerDir = new THREE.Vector3();
 const _tempHead = new THREE.Vector3();
 const _tempTail = new THREE.Vector3();
 
+export const DEFAULT_SWIPE_PROFILE = {
+  style: 'swipe',     // Padrão CS2 FlashTracer instantâneo
+  ttl: 0.055,         // Tempo de vida total em segundos (~3-4 frames a 60fps)
+  headSpeed: 0.35,    // % do ttl para a cabeça atingir o alvo (ex: ~19ms)
+  streakLength: 0.45, // 'swipe': atraso relativo da cauda | 'streak': comprimento fixo (15-45%)
+  fadeInEnd: 0.10,    // % do ttl para fade-in suave sem pop-in seco
+  fadeOutStart: 0.65, // % do ttl onde começa o fade out
+  width: 1.0,         // Multiplicador de espessura (1.0 = padrão do cylinderGeo)
+  color: 0xffd27f,    // Cor padrão
+  maxOpacity: 0.95,   // Opacidade máxima
+
+  // Propriedades Core + Glow
+  coreRadius: 0.007,
+  glowRadius: 0.038,
+  coreBrightness: 1.0,
+  glowBrightness: 0.85,
+  coreColor: 0xffffff,
+  glowColor: 0xffd27f,
+  exposureTime: 0.026,
+  persistenceTime: 0.045,
+  trackOrigin: false
+};
+
 export const DEFAULT_PHOTOGRAPHIC_PROFILE = {
-  // Parâmetros de Exposição e Persistência Ótica
+  style: 'photographic',
   exposureTime: 0.026,    // Janela temporal do obturador/retina (s) -> Comprimento L = speed * exposureTime
   persistenceTime: 0.045, // Persistência retinal / tempo de dissipação pós-impacto (s)
-  
-  // Parâmetros da PSF (Point Spread Function / Difração Ótica)
   coreRadius: 0.007,      // Raio do filamento incandescente central (m)
   coreBrightness: 1.0,    // Intensidade do filamento (branco incandescente)
   coreColor: 0xffffff,    // Cor do filamento (plasma / alta temperatura)
-  
   glowRadius: 0.038,      // Raio do halo difuso / dispersão atmosférica e retinal (m)
   glowBrightness: 0.45,   // Intensidade do halo colorido
   glowColor: 0xffd27f,    // Cor espectral da queima do traçante
-  
-  // Curva de Falloff na cauda
   falloffGamma: 1.6,      // Curvatura do degradê de resfriamento ao longo da cauda
-  
-  // Sincronismo de Bocal
-  trackOrigin: true,      // Sincroniza frame-a-frame com o bocal da arma enquanto o rastro emerge
-  
-  // Compatibilidade legada e escala global
+  trackOrigin: true,      // Sincroniza frame-a-frame com o bocal da arma
   width: 1.0,
   ttl: 0.055,
   headSpeed: 0.35,
@@ -63,7 +77,7 @@ export const DEFAULT_PHOTOGRAPHIC_PROFILE = {
   maxOpacity: 0.95
 };
 
-export const DEFAULT_TRACER_PROFILE = DEFAULT_PHOTOGRAPHIC_PROFILE;
+export const DEFAULT_TRACER_PROFILE = DEFAULT_SWIPE_PROFILE;
 
 export class Effects {
   constructor(scene, world = null) {
@@ -109,7 +123,8 @@ export class Effects {
 
   _sanitizeProfile(rawProfile, fallbackColor) {
     if (!rawProfile) rawProfile = {};
-    const p = Object.assign({}, DEFAULT_PHOTOGRAPHIC_PROFILE, rawProfile);
+    const base = rawProfile.style === 'photographic' ? DEFAULT_PHOTOGRAPHIC_PROFILE : DEFAULT_SWIPE_PROFILE;
+    const p = Object.assign({}, base, rawProfile);
 
     if (fallbackColor && !rawProfile?.color && !rawProfile?.glowColor) {
       p.glowColor = fallbackColor;
@@ -119,23 +134,31 @@ export class Effects {
       p.color = rawProfile.color;
     }
 
-    // Invariantes matemáticas e limites seguros
-    p.exposureTime = Math.max(0.005, Math.min(p.exposureTime ?? 0.026, 0.2));
-    p.persistenceTime = Math.max(0.005, Math.min(p.persistenceTime ?? 0.045, 0.2));
-    p.coreRadius = Math.max(0.001, p.coreRadius ?? 0.007);
-    p.coreBrightness = Math.max(0.01, Math.min(p.coreBrightness ?? 1.0, 1.0));
-    p.glowRadius = Math.max(0.005, p.glowRadius ?? 0.038);
-    p.glowBrightness = Math.max(0.01, Math.min(p.glowBrightness ?? 0.45, 1.0));
-    p.width = Math.max(0.05, p.width ?? 1.0);
-    p.trackOrigin = p.trackOrigin !== false;
-
-    // Compatibilidade com profiles legados (swipe / streak / ttl)
-    p.ttl = Math.max(0.01, p.ttl || (p.exposureTime + p.persistenceTime));
+    // Invariantes de estilo e TTL
+    p.style = p.style || 'swipe';
+    p.ttl = Math.max(0.01, p.ttl ?? 0.055);
     p.headSpeed = Math.max(0.01, Math.min(p.headSpeed ?? 0.35, 1.0));
     p.streakLength = Math.max(0, Math.min(p.streakLength ?? 0.45, 0.99));
     p.fadeInEnd = Math.max(0, Math.min(p.fadeInEnd ?? 0.10, 0.95));
     p.fadeOutStart = Math.max(p.fadeInEnd + 0.01, Math.min(p.fadeOutStart ?? 0.65, 1.0));
     p.maxOpacity = Math.max(0.01, Math.min(p.maxOpacity ?? 0.95, 1.0));
+
+    // Invariantes matemáticas e limites seguros
+    p.exposureTime = Math.max(0.005, Math.min(p.exposureTime ?? 0.026, 0.2));
+    p.persistenceTime = Math.max(0.005, Math.min(p.persistenceTime ?? 0.045, 0.2));
+    p.coreRadius = Math.max(0.001, p.coreRadius ?? 0.007);
+    p.coreBrightness = Math.max(0.01, Math.min(p.coreBrightness ?? 1.0, 2.5));
+    p.glowRadius = Math.max(0.005, p.glowRadius ?? 0.038);
+    p.glowBrightness = Math.max(0.01, Math.min(p.glowBrightness ?? 0.85, 2.0));
+    p.width = Math.max(0.05, p.width ?? 1.0);
+    p.trackOrigin = p.trackOrigin === true;
+    if (rawProfile?.beamLength !== undefined) {
+      p.beamLength = Math.max(0.5, Math.min(rawProfile.beamLength, 50.0));
+      p.realSpeed = true;
+    }
+    if (rawProfile?.realSpeed !== undefined) {
+      p.realSpeed = rawProfile.realSpeed === true;
+    }
 
     return p;
   }
@@ -159,16 +182,29 @@ export class Effects {
 
     t.profile = this._sanitizeProfile(e.profile, e.color);
     if (e.isPellet) {
-      t.profile.coreRadius *= 0.7;
-      t.profile.glowRadius *= 0.65;
-      t.profile.exposureTime *= 0.85;
+      t.profile.coreRadius = Math.max(0.005, t.profile.coreRadius * 0.9);
+      t.profile.glowRadius = Math.max(0.022, t.profile.glowRadius * 0.9);
+      t.profile.width = Math.max(0.85, t.profile.width * 0.9);
     }
 
-    t.originTracker = (e.originTracker && t.profile.trackOrigin !== false) ? e.originTracker : null;
+    t.originTracker = (e.originTracker && t.profile.trackOrigin) ? e.originTracker : null;
 
-    const impactTime = t.distanceToTarget / t.speed;
-    const photographicDuration = impactTime + t.profile.exposureTime + t.profile.persistenceTime;
-    t.ttl = e.profile?.ttl ? Math.min(e.profile.ttl, photographicDuration * 1.5) : photographicDuration;
+    if (t.profile.style === 'laser') {
+      if (t.profile.beamLength || t.profile.realSpeed) {
+        const beamLen = t.profile.beamLength || 6.0;
+        const spd = t.speed || 850;
+        const flightTime = (t.distanceToTarget + beamLen) / spd;
+        t.ttl = flightTime + (t.profile.persistenceTime || 0.02);
+      } else {
+        t.ttl = t.profile.ttl || (t.profile.exposureTime || 0.04) + (t.profile.persistenceTime || 0.02);
+      }
+    } else if (t.profile.style === 'swipe' || t.profile.style === 'streak') {
+      t.ttl = t.profile.ttl || 0.055;
+    } else {
+      const impactTime = t.distanceToTarget / t.speed;
+      const photographicDuration = impactTime + t.profile.exposureTime + t.profile.persistenceTime;
+      t.ttl = e.profile?.ttl ? Math.min(e.profile.ttl, photographicDuration * 1.5) : photographicDuration;
+    }
 
     // Inicializa Ring Buffer N=8
     t.sampleCount = 1;
@@ -211,7 +247,7 @@ export class Effects {
     for (let j = 0; j < vertCount; j++) {
       const y = posArr[j * 3 + 1]; // -0.5 na cauda, +0.5 na cabeça
       const t = Math.max(0.0, Math.min(1.0, y + 0.5));
-      const intensity = Math.pow(Math.max(0.02, t), 1.6);
+      const intensity = Math.pow(Math.max(0.04, t), 1.4);
       colors[j * 3] = intensity;
       colors[j * 3 + 1] = intensity;
       colors[j * 3 + 2] = intensity;
@@ -860,10 +896,10 @@ export class Effects {
         t.life += dt;
 
         const p = t.profile;
-        const style = p.style || 'photographic';
+        const style = p.style || 'swipe';
 
         // TTL / expiração
-        const ttl = p.ttl || (p.exposureTime + p.persistenceTime + (t.distanceToTarget / (t.speed || 700)));
+        const ttl = t.ttl || p.ttl || 0.055;
         if (t.life >= ttl || t.life > 4.0) {
           t.active = false;
           if (t.group) t.group.visible = false;
@@ -871,46 +907,120 @@ export class Effects {
           continue;
         }
 
-        // Sincronismo de bocal frame-a-frame
-        if (t.originTracker && p.trackOrigin !== false && t.life > 0) {
-          t.originTracker(t.origin);
-        }
-
         // ═══════════════════════════════════════════════════════════
         // STYLE: "laser"
         // Linha instantânea da boca do cano ao ponto de impacto.
         // Parece um raio laser. Sem animação de viagem da bala.
-        // Parâmetros: exposureTime (duração), persistenceTime (fade),
-        //   glowColor, coreColor, glowRadius, coreRadius, width, maxOpacity
+        // ═══════════════════════════════════════════════════════════
+        // STYLE: "laser"
+        // Feixe instantâneo de energia/plasma no algoritmo FlashTracer:
+        // A cabeça emerge do cano e atinge o alvo em velocidade de choque (~11ms),
+        // formando um feixe luminoso puro entre a boca da arma e o ponto de impacto,
+        // que dissolve com elegância e ZERO descompasso no strafe ou giro do mouse.
         // ═══════════════════════════════════════════════════════════
         if (style === 'laser') {
-          const laserLen = t.origin.distanceTo(t.end);
-          if (laserLen < 0.05) { if (t.group) t.group.visible = false; continue; }
+          // Sub-modo A: Feixe de extensão fixa em metros viajando em velocidade balística real (ex: M249 anti-aérea de 6m)
+          if (p.beamLength || p.realSpeed) {
+            const beamLen = p.beamLength || 6.0;
+            const spd = t.speed || 850;
 
-          _tempHead.copy(t.end);
-          _tempTail.copy(t.origin);
-          _tracerDir.subVectors(_tempHead, _tempTail).normalize();
+            const headDist = Math.min(t.distanceToTarget, spd * t.life);
+            const tailDist = Math.max(0, Math.min(t.distanceToTarget, spd * t.life - beamLen));
+            const realLen = headDist - tailDist;
+
+            if (realLen < 0.05) {
+              if (headDist >= t.distanceToTarget) {
+                t.active = false;
+                if (t.group) t.group.visible = false;
+              }
+              continue;
+            }
+
+            _tempHead.copy(t.originInitial).addScaledVector(t.dir, headDist);
+            _tempTail.copy(t.originInitial).addScaledVector(t.dir, tailDist);
+
+            const maskOffset = p.flashProfile?.maskElasticOffset ?? 0;
+            if (maskOffset > 0 && tailDist < 0.05) {
+              _tempTail.addScaledVector(t.dir, maskOffset);
+            }
+
+            const dx = _tempHead.x - _tempTail.x;
+            const dy = _tempHead.y - _tempTail.y;
+            const dz = _tempHead.z - _tempTail.z;
+            const actualLen = Math.sqrt(dx * dx + dy * dy + dz * dz);
+            if (actualLen < 0.05) {
+              if (t.group) t.group.visible = false;
+              continue;
+            }
+
+            _tracerDir.set(dx, dy, dz).divideScalar(actualLen);
+
+            let opacity = p.maxOpacity || 1.0;
+            const impactTime = t.distanceToTarget / spd;
+            if (t.life > impactTime) {
+              const fadeDur = Math.max(0.001, beamLen / spd);
+              const fadeProgress = (t.life - impactTime) / fadeDur;
+              opacity *= Math.max(0, 1.0 - fadeProgress * fadeProgress);
+            }
+
+            const midX = (_tempHead.x + _tempTail.x) * 0.5;
+            const midY = (_tempHead.y + _tempTail.y) * 0.5;
+            const midZ = (_tempHead.z + _tempTail.z) * 0.5;
+
+            if (t.group) {
+              t.group.position.set(midX, midY, midZ);
+              t.group.quaternion.setFromUnitVectors(_tracerUp, _tracerDir);
+              const glowR     = p.glowRadius || 0.050;
+              const coreRatio = Math.min(0.85, (p.coreRadius || 0.010) / glowR);
+              const w         = p.width || 1.5;
+              t.coreMesh.scale.set(w * coreRatio, actualLen, w * coreRatio);
+              t.glowMesh.scale.set(w, actualLen, w);
+              t.coreMat.color.set(p.coreColor || 0xffffff);
+              t.glowMat.color.set(p.glowColor || p.color || 0xffee00);
+              t.coreMat.opacity = Math.max(0, opacity * (p.coreBrightness ?? 1.8));
+              t.glowMat.opacity = Math.max(0, opacity * (p.glowBrightness ?? 0.95));
+              t.group.visible   = t.glowMat.opacity > 0.005;
+            }
+            continue;
+          }
+
+          // Sub-modo B: Feixe instantâneo de energia/plasma no algoritmo FlashTracer (ex: Proto Rifle)
+          const laserTtl = t.ttl || p.ttl || 0.045;
+          const k = Math.min(t.life / laserTtl, 1.0);
+          const headSpeed = p.headSpeed || 0.25;
+          const streakLength = p.streakLength || 0.70;
+          const headT = Math.min(k / headSpeed, 1.0);
+          const tailStart = headSpeed * (1.0 - streakLength);
+          const tailDuration = Math.max(0.001, 1.0 - tailStart);
+          const tailT = k <= tailStart ? 0 : Math.min((k - tailStart) / tailDuration, 1.0);
+
+          let hx = t.originInitial.x + (t.end.x - t.originInitial.x) * headT;
+          let hy = t.originInitial.y + (t.end.y - t.originInitial.y) * headT;
+          let hz = t.originInitial.z + (t.end.z - t.originInitial.z) * headT;
+          let tx = t.originInitial.x + (t.end.x - t.originInitial.x) * tailT;
+          let ty = t.originInitial.y + (t.end.y - t.originInitial.y) * tailT;
+          let tz = t.originInitial.z + (t.end.z - t.originInitial.z) * tailT;
 
           const maskOffset = p.flashProfile?.maskElasticOffset ?? 0;
-          if (maskOffset > 0) {
-            _tempTail.addScaledVector(_tracerDir, maskOffset);
+          if (maskOffset > 0 && tailT < 0.05) {
+            _tracerDir.subVectors(t.end, t.originInitial).normalize();
+            tx += _tracerDir.x * maskOffset;
+            ty += _tracerDir.y * maskOffset;
+            tz += _tracerDir.z * maskOffset;
           }
 
-          const exposureDur = p.exposureTime || 0.04;
-          const persistDur  = p.persistenceTime || 0.02;
-          const fadeInTime  = p.fadeInTime !== undefined ? p.fadeInTime : Math.min(0.006, exposureDur * 0.15);
-          let laserOpacity = 1.0;
-          if (t.life < fadeInTime && fadeInTime > 0) {
-            laserOpacity = t.life / fadeInTime;
-          } else if (t.life > exposureDur) {
-            const fadeT = (t.life - exposureDur) / Math.max(0.001, persistDur);
-            laserOpacity = Math.max(0, 1.0 - fadeT * fadeT);
-          }
-          laserOpacity *= (p.maxOpacity ?? 0.95);
+          const dx = hx - tx, dy = hy - ty, dz = hz - tz;
+          const realLen = Math.sqrt(dx * dx + dy * dy + dz * dz);
+          if (realLen < 0.05) { if (t.group) t.group.visible = false; continue; }
+          _tracerDir.set(dx, dy, dz).normalize();
 
-          const midX = (_tempHead.x + _tempTail.x) * 0.5;
-          const midY = (_tempHead.y + _tempTail.y) * 0.5;
-          const midZ = (_tempHead.z + _tempTail.z) * 0.5;
+          let laserOpacity = p.maxOpacity || 1.0;
+          if (k < 0.10) laserOpacity *= (k / 0.10);
+          else if (k > 0.55) laserOpacity *= (1.0 - (k - 0.55) / 0.45);
+
+          const midX = (hx + tx) * 0.5;
+          const midY = (hy + ty) * 0.5;
+          const midZ = (hz + tz) * 0.5;
 
           if (t.group) {
             t.group.position.set(midX, midY, midZ);
@@ -918,12 +1028,12 @@ export class Effects {
             const glowR     = p.glowRadius || 0.038;
             const coreRatio = Math.min(0.85, (p.coreRadius || 0.007) / glowR);
             const w = p.width || 1.0;
-            t.coreMesh.scale.set(w * coreRatio, laserLen, w * coreRatio);
-            t.glowMesh.scale.set(w, laserLen, w);
-            t.coreMat.color.set(p.coreColor || 0xffffff);
-            t.glowMat.color.set(p.glowColor || p.color || 0xffd27f);
-            t.coreMat.opacity = laserOpacity * (p.coreBrightness ?? 1.0);
-            t.glowMat.opacity = laserOpacity * (p.glowBrightness ?? 0.45);
+            t.coreMesh.scale.set(w * coreRatio, realLen, w * coreRatio);
+            t.glowMesh.scale.set(w, realLen, w);
+            t.coreMat.color.set(p.coreColor || 0xe0ffff);
+            t.glowMat.color.set(p.glowColor || p.color || 0x00ffff);
+            t.coreMat.opacity = Math.max(0, laserOpacity * (p.coreBrightness ?? 1.5));
+            t.glowMat.opacity = Math.max(0, laserOpacity * (p.glowBrightness ?? 0.90));
             t.group.visible   = t.glowMat.opacity > 0.005;
           }
           continue;
@@ -953,9 +1063,9 @@ export class Effects {
           t.sampleHead = nextHead;
           if (t.sampleCount < 8) t.sampleCount++;
 
-          // Tail: borda posterior da janela de obturador
+          // Tail: borda posterior da janela de obturador (100% colinear no ray)
           if (t.life <= tailDepartureTime) {
-            _tempTail.copy(t.origin); // ancorada no bocal durante emergência
+            _tempTail.copy(t.originInitial);
             const maskOffset = p.flashProfile?.maskElasticOffset ?? 0;
             if (maskOffset > 0) {
               _tempTail.addScaledVector(t.dir, maskOffset);
@@ -1034,7 +1144,7 @@ export class Effects {
         //   maxOpacity, width, glowColor, coreColor, glowBrightness
         // ═══════════════════════════════════════════════════════════
         {
-          const k = Math.min(t.life / (p.ttl || 0.055), 1.0);
+          const k = Math.min(t.life / (t.ttl || p.ttl || 0.055), 1.0);
           let headT = 0, tailT = 0;
 
           if (style === 'streak' || style === 'parabola') {
@@ -1042,19 +1152,19 @@ export class Effects {
             headT = travelK;
             tailT = Math.max(0, travelK - (p.streakLength || 0.45));
           } else {
-            // swipe (default)
+            // swipe (default CS2 style)
             headT = Math.min(k / (p.headSpeed || 0.35), 1.0);
             const tailStart    = (p.headSpeed || 0.35) * (1.0 - (p.streakLength || 0.45));
             const tailDuration = Math.max(0.001, 1.0 - tailStart);
             tailT = k <= tailStart ? 0 : Math.min((k - tailStart) / tailDuration, 1.0);
           }
 
-          let hx  = t.origin.x + (t.end.x - t.origin.x) * headT;
-          let hy  = t.origin.y + (t.end.y - t.origin.y) * headT;
-          let hz  = t.origin.z + (t.end.z - t.origin.z) * headT;
-          let tx2 = t.origin.x + (t.end.x - t.origin.x) * tailT;
-          let ty2 = t.origin.y + (t.end.y - t.origin.y) * tailT;
-          let tz2 = t.origin.z + (t.end.z - t.origin.z) * tailT;
+          let hx  = t.originInitial.x + (t.end.x - t.originInitial.x) * headT;
+          let hy  = t.originInitial.y + (t.end.y - t.originInitial.y) * headT;
+          let hz  = t.originInitial.z + (t.end.z - t.originInitial.z) * headT;
+          let tx2 = t.originInitial.x + (t.end.x - t.originInitial.x) * tailT;
+          let ty2 = t.originInitial.y + (t.end.y - t.originInitial.y) * tailT;
+          let tz2 = t.originInitial.z + (t.end.z - t.originInitial.z) * tailT;
 
           if (style === 'parabola') {
             const arcHeight = p.arcHeight || 0.6;
@@ -1089,7 +1199,7 @@ export class Effects {
             t.coreMat.color.set(p.coreColor || 0xffffff);
             t.glowMat.color.set(p.glowColor || p.color || 0xffd27f);
             t.coreMat.opacity = Math.max(0, opacity * (p.coreBrightness ?? 1.0));
-            t.glowMat.opacity = Math.max(0, opacity * (p.glowBrightness ?? 0.45));
+            t.glowMat.opacity = Math.max(0, opacity * (p.glowBrightness ?? 0.85));
             t.group.visible   = t.glowMat.opacity > 0.005;
           }
           continue;
