@@ -50,6 +50,13 @@ export class Player extends Character {
         this.view.triggerFlash();
       }
     });
+
+    this._unsubCheat = on('cheat:activated', e => {
+      if (e.cheat === 'baguvix' && e.active) {
+        this.hp = this.maxHp;
+        emit('player:hp', { hp: this.hp, max: this.maxHp });
+      }
+    });
   }
 
   get yaw() {
@@ -107,7 +114,15 @@ export class Player extends Character {
 
       const { dx, dy } = input.consumeMouseDelta();
       const scopeMul = (this.customSensMul !== undefined) ? this.customSensMul : 1.0;
-      const sens = CONFIG.CAMERA.sens * (CONFIG.CAMERA.sensMultiplier || 1.0) * (this.ads ? CONFIG.CAMERA.adsSensMul : 1) * scopeMul;
+      let sens = CONFIG.CAMERA.sens * (CONFIG.CAMERA.sensMultiplier || 1.0) * (this.ads ? CONFIG.CAMERA.adsSensMul : 1) * scopeMul;
+
+      if (this.aimAssist) {
+        const assist = this.aimAssist.computeAssist(dt, { player: this, input, dx, dy });
+        sens *= assist.sensMultiplier;
+        if (assist.deltaYaw !== 0) this.rig.addYaw(assist.deltaYaw);
+        if (assist.deltaPitch !== 0) this.rig.addPitch(assist.deltaPitch);
+      }
+
       this.rig.addMouseInput(dx, dy, sens);
 
       _fwd.set(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
@@ -213,6 +228,10 @@ export class Player extends Character {
     }
   }
 
+  setAimAssist(aimAssist) {
+    this.aimAssist = aimAssist;
+  }
+
   isThirdPerson() {
     return this.rig?.isThirdPerson() ?? false;
   }
@@ -248,12 +267,14 @@ export class Player extends Character {
     if (!this.alive) return;
     this.lastDamageTime = performance.now() / 1000;
     
-    // Flinch impact no rig
+    // Flinch impact no rig e indicador direcional mesmo se godMode estiver ativo
     this.rig.addFlinch(Math.random() * 0.06 + 0.04, (Math.random() - 0.5) * 0.1);
+    emit('player:damaged', { dmg, source, playerPos: this.pos.clone() });
+
+    if (CONFIG.CHEATS?.godMode) return;
 
     super.takeDamage(dmg);
     emit('player:hp', { hp: this.hp, max: this.maxHp });
-    emit('player:damaged', { dmg, source, playerPos: this.pos.clone() });
   }
 
   die() {

@@ -52,6 +52,10 @@ export const DEFAULT_CONFIG = {
     headbobScale: 1.0,
     shakeScale: 1.0,
     vibrationEnabled: true
+  },
+  CHEATS: {
+    godMode: false,
+    infiniteAmmo: false
   }
 };
 

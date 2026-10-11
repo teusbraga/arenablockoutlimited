@@ -428,12 +428,8 @@ export class ProjectileManager {
           });
         } else if (p.owner === 'bot' && entityHit.player) {
           const dmg = Math.max(1, Math.round(BallisticsCalculator.calculateTerminalImpact(p.weaponDef, totalDistance, entityHit.part).finalDamage * (p.damageMultiplier || 1.0)));
-          this.player.takeDamage(dmg, p.ownerEntity);
-          emit('player:damaged', {
-            damage: dmg,
-            distance: totalDistance,
-            soundDelay: acousticDelay
-          });
+          const hitSource = p.ownerEntity || (p.spawnOrigin ? { pos: p.spawnOrigin.clone() } : null);
+          this.player.takeDamage(dmg, hitSource);
         }
 
         continue;
@@ -599,6 +595,9 @@ export class ProjectileManager {
             }
             emit('player:suppression', {
               pos: _segClosest.clone(),
+              source: p.ownerEntity,
+              sourcePos: p.spawnOrigin ? p.spawnOrigin.clone() : _segClosest.clone(),
+              playerPos: this.player.pos.clone(),
               intensity,
               distance: distToHead
             });

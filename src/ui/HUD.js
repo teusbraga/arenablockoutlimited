@@ -1,5 +1,6 @@
 import { emit, on } from '../core/EventBus.js';
 import { WEAPONS } from '../weapons/WeaponDefs.js';
+import { CrosshairManager } from './CrosshairManager.js';
 
 export class HUD {
   constructor() {
@@ -30,6 +31,12 @@ export class HUD {
       weaponHud: document.getElementById('weapon-hud'),
       slot1Pill: document.getElementById('slot-1-pill'),
       slot2Pill: document.getElementById('slot-2-pill'),
+      invModal: document.getElementById('inventory-modal'),
+      invWeight: document.getElementById('inv-weight-lbl'),
+      invSlotPri: document.getElementById('inv-slot-pri'),
+      invSlotSec: document.getElementById('inv-slot-sec'),
+      invGrid: document.getElementById('inv-grid-container'),
+      invCloseBtn: document.getElementById('inv-btn-close'),
     };
     
     this.diCtx = this.el.diCanvas.getContext('2d');
@@ -39,7 +46,34 @@ export class HUD {
     this.kills = 0;
     this.deaths = 0;
     this.playerYaw = 0;
+    this.isLocked = false;
+    this.isInventoryOpen = false;
+    this.isRoundOver = false;
+    this.isDead = false;
+    this.crosshairManager = new CrosshairManager({
+      crosshairEl: this.el.crosshair,
+      noFireEl: typeof document !== 'undefined' ? document.getElementById('crosshair-no-fire') : null
+    });
     this._bind();
+    this._bindInventoryUI();
+    this.syncGameplayUIVisibility();
+  }
+
+  /**
+   * Sincroniza a visibilidade de todos os elementos de combate (HUD, Crosshair, Touch Controls).
+   * Exibe o HUD de combate estritamente quando o jogador está em partida ativa.
+   */
+  syncGameplayUIVisibility() {
+    if (typeof document === 'undefined') return;
+    const inGameplay = Boolean(
+      this.isLocked && !this.isInventoryOpen && !this.isRoundOver && !this.isDead
+    );
+    document.body.classList.toggle('in-gameplay', inGameplay);
+    if (!inGameplay) {
+      if (this.el.prompt) this.el.prompt.style.opacity = '0';
+      const noFire = document.getElementById('crosshair-no-fire');
+      if (noFire) noFire.style.display = 'none';
+    }
   }
 
   /**
@@ -76,17 +110,18 @@ export class HUD {
           this.el.screenFlash.style.transition = 'background 0.35s ease';
           this.el.screenFlash.style.background = 'rgba(224,87,74,0)';
         });
-        if (e.source) {
-          this.damageMarks.push({
-            dx: e.source.pos.x - e.playerPos.x,
-            dz: e.source.pos.z - e.playerPos.z,
-            t: 1.0
-          });
+        const srcPos = e?.source?.pos || e?.sourcePos;
+        if (srcPos && e?.playerPos) {
+          this._addDirectionalMark(srcPos, e.playerPos, 1.0, false);
         }
       }),
       on('player:suppression', e => {
-        if (!this.el.suppressionOverlay) return;
         const intensity = Math.min(1.0, (e?.intensity || 0.5));
+        const srcPos = e?.source?.pos || e?.sourcePos || e?.pos;
+        if (srcPos && e?.playerPos) {
+          this._addDirectionalMark(srcPos, e.playerPos, Math.max(0.65, intensity * 0.9), true);
+        }
+        if (!this.el.suppressionOverlay) return;
         const overlay = this.el.suppressionOverlay;
         overlay.classList.add('active');
         overlay.style.opacity = String(Math.max(0.40, intensity * 0.95));
@@ -145,10 +180,14 @@ export class HUD {
         this.deaths++; 
         this.el.deaths.textContent = this.deaths; 
         this.triggerFlash(this.el.deaths);
+        this.isDead = true;
         this.el.deathScreen.classList.add('show');
+        this.syncGameplayUIVisibility();
       }),
       on('player:respawn', () => {
+        this.isDead = false;
         this.el.deathScreen.classList.remove('show');
+        this.syncGameplayUIVisibility();
       }),
       on('player:respawn_tick', t => {
         this.setRespawnText(t);
@@ -156,11 +195,14 @@ export class HUD {
       on('game:reset', () => {
         this.kills = 0;
         this.deaths = 0;
+        this.isDead = false;
+        this.isRoundOver = false;
         this.el.kills.textContent = '0';
         this.el.deaths.textContent = '0';
         this.el.deathScreen.classList.remove('show');
         this.el.killfeed.innerHTML = '';
         this.damageMarks = [];
+        this.syncGameplayUIVisibility();
       }),
       on('kill:combo', e => {
         let text = '';
@@ -178,18 +220,27 @@ export class HUD {
         this._showKillPopup(text, color || '#06d6a0', duration || 1600);
       }),
       on('round:over', () => {
+        this.isRoundOver = true;
+        this.el.overlay?.classList.add('hidden');
         const screen = document.getElementById('roundover-screen');
         const stats = document.getElementById('final-stats');
         stats.textContent = `${this.kills} abates · ${this.deaths} mortes`;
         screen.style.opacity = '1';
         screen.style.pointerEvents = 'auto';
+        this.syncGameplayUIVisibility();
       }),
       on('input:lock', locked => {
-        this.el.overlay.classList.toggle('hidden', locked);
-        const controls = document.getElementById('controls');
-        if (controls) controls.style.display = locked ? 'none' : 'block';
+        this.isLocked = !!locked;
+        if (!this.isInventoryOpen && !this.isRoundOver) {
+          this.el.overlay?.classList.toggle('hidden', !!locked);
+        }
+        this.syncGameplayUIVisibility();
       }),
       on('interact:target', target => {
+        if (!this.isLocked || this.isInventoryOpen) {
+          this.el.prompt.style.opacity = '0';
+          return;
+        }
         this.el.prompt.style.opacity = target ? '1' : '0';
       }),
     ];
@@ -209,6 +260,71 @@ export class HUD {
     bindPill(this.el.slot2Pill, 1);
 
     document.getElementById('restart-btn')?.addEventListener('click', () => location.reload());
+  }
+
+  _bindInventoryUI() {
+    if (!this.el.invModal) return;
+
+    this._unsubs.push(
+      on('inventory:opened', ({ gear, storage }) => {
+        this.isInventoryOpen = true;
+        this.el.invModal.classList.add('show');
+        this.el.overlay?.classList.add('hidden');
+        this._renderInventory(gear, storage);
+        this.syncGameplayUIVisibility();
+      }),
+      on('inventory:closed', () => {
+        this.isInventoryOpen = false;
+        this.el.invModal.classList.remove('show');
+        this.syncGameplayUIVisibility();
+      }),
+      on('inventory:changed', ({ gear, storage }) => {
+        this._renderInventory(gear, storage);
+      })
+    );
+
+    this.el.invCloseBtn?.addEventListener('click', () => {
+      emit('inventory:toggle');
+    });
+  }
+
+  _renderInventory(gear, storage) {
+    if (this.el.invSlotPri) {
+      const p = gear?.primary;
+      this.el.invSlotPri.textContent = p ? (WEAPONS[p]?.name || p.toUpperCase()) : 'VAZIO';
+    }
+    if (this.el.invSlotSec) {
+      const s = gear?.secondary;
+      this.el.invSlotSec.textContent = s ? (WEAPONS[s]?.name || s.toUpperCase()) : 'VAZIO';
+    }
+    if (this.el.invGrid && Array.isArray(storage)) {
+      this.el.invGrid.innerHTML = '';
+      storage.forEach((item, idx) => {
+        const cell = document.createElement('div');
+        cell.className = 'inv-grid-cell' + (item ? '' : ' empty');
+        if (item) {
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'inv-item-name';
+          nameSpan.textContent = item.name;
+          cell.appendChild(nameSpan);
+
+          if (item.count && item.count > 1) {
+            const countSpan = document.createElement('span');
+            countSpan.className = 'inv-item-count';
+            countSpan.textContent = `x${item.count}`;
+            cell.appendChild(countSpan);
+          }
+
+          cell.title = `Clique para usar ${item.name}`;
+          cell.addEventListener('click', () => {
+            emit('inventory:use_item', idx);
+          });
+        } else {
+          cell.innerHTML = '<span style="opacity:0.25;font-size:8px;">[VAZIO]</span>';
+        }
+        this.el.invGrid.appendChild(cell);
+      });
+    }
   }
 
   destroy() {
@@ -294,33 +410,22 @@ export class HUD {
     }, duration);
   }
 
-  updateCrosshair(isAds, spread = 0.02, isSprinting = false, weaponId = 'ar15') {
-    if (!this.el.crosshair) return;
-    const adsFactor = typeof isAds === 'number' ? isAds : (isAds ? 1 : 0);
-    if (adsFactor >= 0.95) {
-      this.el.crosshair.style.opacity = '0';
-      return;
-    }
-    const baseOpacity = isSprinting ? 0.25 : 0.85;
-    this.el.crosshair.style.opacity = String(Math.max(0, (1 - adsFactor * 1.2) * baseOpacity));
-
-    // Espaçamento dinâmico tático (gap) proporcional à precisão de cada arma
-    // Armas mais precisas (HK416, Rifle Proto) têm crosshairs bem fechadas;
-    // Armas de alta dispersão (UZI, M249) têm crosshairs mais abertas.
-    const baseGapByWeapon = {
-      'rifle_proto': 3.5,
-      'sw500': 4.0,
-      'ar15': 4.5,
-      'ak47': 5.5,
-      'p9': 6.0,
-      'm12': 5.0,
-      'uzi': 10.0,
-      'm249': 12.0
-    };
-    const baseGap = baseGapByWeapon[weaponId] || 5.0;
-    // Spread atual abre o gap durante movimento, tiro ou spray
-    const dynamicGap = baseGap + Math.max(0, (spread - 0.015) * 450);
-    this.el.crosshair.style.setProperty('--gap', `${dynamicGap.toFixed(1)}px`);
+  updateCrosshair(isAds, spread = 0.02, isSprinting = false, weaponId = 'ar15', extra = {}) {
+    if (!this.crosshairManager) return;
+    const adsAmount = typeof isAds === 'number' ? isAds : (isAds ? 1.0 : 0.0);
+    this.crosshairManager.update({
+      dt: extra.dt || 0.016,
+      isAds: adsAmount > 0.5,
+      adsAmount,
+      spread,
+      isSprinting,
+      weaponId,
+      cameraRig: extra.cameraRig || null,
+      cameraFov: extra.cameraFov || 78,
+      wallCompression: extra.wallCompression || 0,
+      sprayRecoil: extra.sprayRecoil || null,
+      barrelScreenPos: extra.barrelScreenPos || null
+    });
   }
 
   updateAds(amount) {
@@ -337,6 +442,38 @@ export class HUD {
     this.el.roundTimer.textContent = `${m}:${String(s).padStart(2, '0')}`;
   }
 
+  _addDirectionalMark(sourcePos, playerPos, intensity = 1.0, isSuppression = false) {
+    if (!sourcePos || !playerPos) return;
+    const dx = sourcePos.x - playerPos.x;
+    const dz = sourcePos.z - playerPos.z;
+    const len = Math.hypot(dx, dz);
+    if (len < 0.05) return;
+
+    const nx = dx / len;
+    const nz = dz / len;
+
+    // Deduplica marcas vindas da mesma direção (produto escalar > 0.92 ≈ ~23°) para evitar poluição visual em rajadas
+    for (let i = 0; i < this.damageMarks.length; i++) {
+      const m = this.damageMarks[i];
+      const mLen = Math.hypot(m.dx, m.dz) || 1;
+      const dot = (m.dx / mLen) * nx + (m.dz / mLen) * nz;
+      if (dot > 0.92) {
+        m.dx = dx;
+        m.dz = dz;
+        m.t = Math.max(m.t, Math.min(1.2, intensity));
+        if (!isSuppression) m.isSuppression = false;
+        return;
+      }
+    }
+
+    this.damageMarks.push({
+      dx,
+      dz,
+      t: Math.min(1.2, Math.max(0.65, intensity)),
+      isSuppression
+    });
+  }
+
   // Chamado a cada frame pelo main.js para atualizar o canvas do indicador direcional
   update(dt, playerYaw) {
     this.playerYaw = playerYaw;
@@ -344,13 +481,13 @@ export class HUD {
     const h = this.el.diCanvas.height;
     const cx = w / 2;
     const cy = h / 2;
-    const R = 78;
+    const R = 84;
 
     this.diCtx.clearRect(0, 0, w, h);
 
     for (let i = this.damageMarks.length - 1; i >= 0; i--) {
       const m = this.damageMarks[i];
-      m.t -= dt * 1.1;
+      m.t -= dt * 0.95;
       if (m.t <= 0) {
         this.damageMarks.splice(i, 1);
         continue;
@@ -359,17 +496,22 @@ export class HUD {
       // Converte o vetor local do tiro para o referencial de rotação da câmera do player
       const relX = m.dx * Math.cos(this.playerYaw) + m.dz * (-Math.sin(this.playerYaw));
       const relFwd = m.dx * (-Math.sin(this.playerYaw)) + m.dz * (-Math.cos(this.playerYaw));
-      const canvasAngle = Math.atan2(relX, relFwd) - Math.PI/2;
+      const canvasAngle = Math.atan2(relX, relFwd) - Math.PI / 2;
       
-      const arcHalf = 0.30;
-      const alpha = Math.min(m.t, 1) * 0.9;
-      
-      this.diCtx.strokeStyle = `rgba(224,87,74,${alpha})`;
-      this.diCtx.lineWidth = 7;
+      const arcHalf = m.isSuppression ? 0.24 : 0.32;
+      const alpha = Math.min(m.t, 1) * (m.isSuppression ? 0.78 : 0.95);
+      const rgb = m.isSuppression ? '232,147,58' : '224,87,74';
+
+      this.diCtx.save();
+      this.diCtx.shadowColor = `rgba(${rgb},${alpha * 0.8})`;
+      this.diCtx.shadowBlur = 8;
+      this.diCtx.strokeStyle = `rgba(${rgb},${alpha})`;
+      this.diCtx.lineWidth = m.isSuppression ? 5.5 : 7.5;
       this.diCtx.lineCap = 'round';
       this.diCtx.beginPath();
       this.diCtx.arc(cx, cy, R, canvasAngle - arcHalf, canvasAngle + arcHalf);
       this.diCtx.stroke();
+      this.diCtx.restore();
     }
   }
 }

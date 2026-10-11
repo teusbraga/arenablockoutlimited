@@ -4,7 +4,9 @@ import { CONFIG } from './ConfigLoader.js';
 export class TouchInput {
   constructor(inputManager) {
     this.input = inputManager;
-    this.isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const isCoarseOrMobileUA = (window.matchMedia?.('(pointer: coarse)')?.matches) || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+    this.isMobile = Boolean(hasTouch && isCoarseOrMobileUA);
     
     // Identificadores de toque ativos
     this.moveTouchId = null;

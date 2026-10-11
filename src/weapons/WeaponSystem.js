@@ -27,13 +27,14 @@ const _smokeMuzzleWorld = new THREE.Vector3();
 const _hittableMeshes = [];
 
 export class WeaponSystem {
-  constructor({ camera, viewmodel, input, player, world, botsProvider, inventory }) {
+  constructor({ camera, viewmodel, input, player, world, botsProvider, inventory, hud = null }) {
     this.camera = camera;
     this.viewmodel = viewmodel;
     this.input = input;
     this.player = player;
     this.world = world;
     this.botsProvider = botsProvider;
+    this.hud = hud;
 
     this._boundMuzzleTracker = (outVec) => this.getMuzzlePosition(outVec);
 
@@ -67,12 +68,22 @@ export class WeaponSystem {
     this.precisionPenalty = 0;
     this.currentSway = { x: 0, y: 0, amplitude: 0 };
     this.wallCompression = 0;
+    this.sprayRecoil = { pitch: 0, yaw: 0 };
 
     this._equip(this.slots[0], true);
 
     this._unsubEvents = [
       on('weapon:select_slot', idx => this.selectSlot(idx)),
       on('weapon:cycle_action', () => this.cycle()),
+      on('cheat:activated', e => {
+        if (e.cheat === 'professionalkiller' && e.active) {
+          if (this.def) {
+            this.ammo = this.def.magSize;
+            this.ammoByWeapon[this.current] = this.ammo;
+            emit('weapon:ammo', { ammo: this.ammo, max: this.def.magSize });
+          }
+        }
+      }),
     ];
   }
 
@@ -185,9 +196,9 @@ export class WeaponSystem {
     this.projectileManager.update(dt);
 
     // 0.1. Weapon Wall Press (Cano da arma colide/aproxima-se de paredes)
-    // Ativação inicia 50cm antes do cano encostar na parede
-    const barrelLength = def?.barrelLength || (def?.type === 'pistol' || this.current === 'p9' ? 0.35 : (this.current === 'uzi' || this.current === 'sw500' ? 0.45 : 0.78));
-    const safetyBuffer = 0.50; // Inicia a subida 50cm antes de encostar
+    // O cano só deve recolher se a ponta do cano estiver prestes a penetrar ou colidir na parede (< 0.15m de folga)
+    const barrelLength = def?.barrelLength || (def?.type === 'pistol' || this.current === 'p9' ? 0.32 : (this.current === 'uzi' || this.current === 'sw500' ? 0.38 : 0.55));
+    const safetyBuffer = 0.18; // Inicia compressão apenas a 18cm de encostar no obstáculo físico
     const maxDetectionDist = barrelLength + safetyBuffer;
     let targetCompression = 0.0;
     if (this.world && this.camera && this.player?.alive) {
@@ -196,8 +207,8 @@ export class WeaponSystem {
       const wallHit = this.world.raycast(_camPos, _dir, maxDetectionDist);
       const hitDist = wallHit ? (wallHit.distance ?? wallHit.dist) : Infinity;
       if (wallHit && hitDist < maxDetectionDist) {
-        // 0.0 a 50cm antes de encostar -> 1.0 quando colado no corpo
-        targetCompression = Math.max(0, Math.min(1.0, 1.0 - ((hitDist - (barrelLength * 0.25)) / (maxDetectionDist - (barrelLength * 0.25)))));
+        // Interpolação suave e linear da compressão conforme o cano se aproxima da superfície
+        targetCompression = Math.max(0, Math.min(1.0, (maxDetectionDist - hitDist) / Math.max(0.15, safetyBuffer)));
       }
     }
     this.wallCompression += (targetCompression - this.wallCompression) * Math.min(dt * 14, 1.0);
@@ -277,7 +288,11 @@ export class WeaponSystem {
     const isAutomatic = this.isAuto;
     const queuedFire = this.input.consumeAction('fire');
     const wantsFire = isAutomatic ? this.input.actions.fire : queuedFire;
-    if (wantsFire && this.fireCooldown <= 0 && this.ammo > 0 && !this.player.sprinting) {
+    const isInfiniteAmmo = !!CONFIG.CHEATS?.infiniteAmmo;
+    if (wantsFire && this.fireCooldown <= 0 && (this.ammo > 0 || isInfiniteAmmo) && !this.player.sprinting) {
+      if (isInfiniteAmmo && this.ammo <= 0) {
+        this.ammo = def.magSize;
+      }
       this._fire();
       this.ammoByWeapon[this.current] = this.ammo;
     } else if (wantsFire && this.ammo <= 0 && this.fireCooldown <= 0 && !this.reloading) {
@@ -285,7 +300,7 @@ export class WeaponSystem {
       emit('weapon:empty');
     }
 
-    if (this.ammo === 0 && !this.reloading) this.reload();
+    if (this.ammo === 0 && !this.reloading && !isInfiniteAmmo) this.reload();
 
     // ── Detecção de Término de Spray (Fumaça Residual de Calor) ─────────────
     if (this.sprayBullets > 0) {
@@ -310,6 +325,20 @@ export class WeaponSystem {
       }
     }
 
+    // Decaimento suave do recuo acumulado de spray (Follow Recoil & Spray Tracking)
+    if (this.sprayRecoil) {
+      const recTime = def?.ballistics?.external?.recoil?.recoveryTime || 0.28;
+      const sprayRecoverySpeed = (1.0 / recTime) * 3.2;
+      const sprayDecay = Math.exp(-dt * sprayRecoverySpeed);
+      this.sprayRecoil.pitch *= sprayDecay;
+      this.sprayRecoil.yaw *= sprayDecay;
+      if (Math.abs(this.sprayRecoil.pitch) < 0.0001) this.sprayRecoil.pitch = 0;
+      if (Math.abs(this.sprayRecoil.yaw) < 0.0001) this.sprayRecoil.yaw = 0;
+    }
+  }
+
+  getSprayRecoil() {
+    return this.sprayRecoil;
   }
 
   get reloadProgress() {
@@ -336,7 +365,11 @@ export class WeaponSystem {
   }
 
   _fire() {
-    if (this.wallCompression > 0.85) {
+    const noFireWarningEnabled = this.hud?.crosshairManager
+      ? !!this.hud.crosshairManager.config.noFireWarning
+      : true;
+    const isBlockedByWall = noFireWarningEnabled && (this.wallCompression > 0.45 || this.hud?.crosshairManager?.isBlocked);
+    if (isBlockedByWall) {
       emit('weapon:empty');
       emit('hud:popup', { text: 'CANO OBSTRUÍDO PELA PAREDE', color: '#e0574a', duration: 700 });
       this.fireCooldown = 0.20;
@@ -344,7 +377,9 @@ export class WeaponSystem {
     }
 
     const def = this.def;
-    this.ammo--;
+    if (!CONFIG.CHEATS?.infiniteAmmo) {
+      this.ammo--;
+    }
     this.fireCooldown = def.fireInterval;
     emit('weapon:ammo', { ammo: this.ammo, max: def.magSize });
 
@@ -372,6 +407,15 @@ export class WeaponSystem {
     const pitchAdd = isProto ? recoil.pitch * 1.4 : recoil.pitch;
     const yawAdd = recoil.yaw;
     const kickbackZ = recoil.kickbackZ;
+
+    // Acumula recuo contínuo da rajada para rastreio de spray (Follow Recoil estilo CS2)
+    if (this.sprayRecoil) {
+      const sprayGain = this.ads ? 0.85 : 1.45;
+      this.sprayRecoil.pitch += pitchAdd * sprayGain;
+      this.sprayRecoil.yaw += yawAdd * sprayGain;
+      this.sprayRecoil.pitch = Math.min(this.sprayRecoil.pitch, 0.16);
+      this.sprayRecoil.yaw = Math.max(-0.09, Math.min(0.09, this.sprayRecoil.yaw));
+    }
 
     if (this.player.rig) {
       const climbRatio = 0.30;
@@ -423,6 +467,26 @@ export class WeaponSystem {
     _muzzleWorld.copy(_tempMuzzle);
     this.viewmodel.mount.localToWorld(_muzzleWorld);
 
+    // Se barrelAlignment estiver ativo (Mecânica Wardogs), atualiza e extrai o vetor exato do cano 3D
+    // (Mesmo que a mira no HUD esteja parada no centro da tela, a bala e o tracer respeitam o cano!)
+    if (this.barrelAlignment && !this.ads) {
+      this.barrelAlignment.update(def, this.ads, 0.016, this.sprayRecoil);
+      if (this.barrelAlignment.aimPointWorld) {
+        _dir.copy(this.barrelAlignment.aimPointWorld).sub(_muzzleWorld).normalize();
+      }
+    }
+
+    // Se o cano estiver obstruído/comprimido contra a parede (Wall Press) e o mount ainda não tiver
+    // refletido a inclinação (ex: antes do renderUpdate ou sem barrelAlignment), aplica a elevação física do cano (~75° para cima)
+    const mountRotX = this.viewmodel?.mount?.rotation?.x || 0;
+    if (this.wallCompression > 0.001 && (!this.barrelAlignment || Math.abs(mountRotX) < this.wallCompression * 0.5)) {
+      const wallPitch = this.wallCompression * 1.31; // +75° para cima
+      const wallYaw = -this.wallCompression * 0.26;  // -15° lateral
+      _dir.applyAxisAngle(_right, wallPitch)
+          .applyAxisAngle(_up, wallYaw)
+          .normalize();
+    }
+
     // Ponto de ejeção do estojo vazio em coordenadas de mundo (apenas para armas com ejeção de cartucho)
     let ejectWorld = null;
     if (def.ejectCasings !== false) {
@@ -455,7 +519,7 @@ export class WeaponSystem {
     const a = Math.random() * Math.PI * 2;
     const m = Math.random() * spread;
     
-    // Onde a mira aponta o tiro vai: sem distorções de sway somadas no vetor do tiro!
+    // Dispersão natural de tiro
     _dir.addScaledVector(_right, Math.cos(a) * m)
         .addScaledVector(_up, Math.sin(a) * m)
         .normalize();

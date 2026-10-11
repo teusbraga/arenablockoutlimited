@@ -10,11 +10,15 @@ export function startEngine({
   const onRender = renderUpdate || render;
 
   let acc = 0;
-  let last = performance.now() / 1000;
+  let last = 0;
 
   function frame(nowMs) {
     requestAnimationFrame(frame);
     const now = nowMs / 1000;
+    if (last === 0) {
+      last = now;
+      return;
+    }
     let dt = now - last;
     last = now;
     if (dt > maxFrame) dt = maxFrame;

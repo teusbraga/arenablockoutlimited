@@ -1,16 +1,18 @@
 import { CONFIG } from '../core/ConfigLoader.js';
 import { on, emit } from '../core/EventBus.js';
 import { materialFactory } from '../world/MaterialFactory.js';
+import { DEFAULT_CROSSHAIR_CONFIG } from './CrosshairManager.js';
 
 /**
  * MenuController
  * Gerencia a interface HTML do menu, sliders, seletores de mapa/arma/skin, texturas e pointer-lock / touch.
  */
 export class MenuController {
-  constructor({ input, gameManager, weapons }) {
+  constructor({ input, gameManager, weapons, crosshairManager }) {
     this.input = input;
     this.gameManager = gameManager;
     this.weapons = weapons;
+    this.crosshairManager = crosshairManager;
 
     this.mapSelect = document.getElementById('map-select');
     this.weaponSelect = document.getElementById('weapon-select');
@@ -47,6 +49,7 @@ export class MenuController {
 
     this._bindDOM();
     this._bindTabs();
+    this._bindCrosshairUI(this.crosshairManager);
     this._bindLockEvents();
     this._bindTextureKeys();
   }
@@ -191,8 +194,9 @@ export class MenuController {
       await this.input.requestLock();
     });
 
-    this.btnReset?.addEventListener('click', () => {
+    this.btnReset?.addEventListener('click', async () => {
       this.gameManager.resetGame();
+      await this.input.requestLock();
     });
 
     const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -274,6 +278,7 @@ export class MenuController {
     }
 
     this.overlayElRef?.addEventListener('click', async (e) => {
+      if (this.gameManager.roundOver) return;
       if (e.target.closest('input, button, select, .menu-tab-btn')) return;
       await this.input.requestLock();
     });
@@ -323,6 +328,19 @@ export class MenuController {
   }
 
   _bindLockEvents() {
+    this.inventoryOpen = false;
+    this._unsubInvOpen = on('inventory:opened', () => {
+      this.inventoryOpen = true;
+      this.overlayElRef?.classList.add('hidden');
+      if (typeof document !== 'undefined' && document.pointerLockElement) {
+        document.exitPointerLock?.();
+      }
+    });
+    this._unsubInvClose = on('inventory:closed', () => {
+      this.inventoryOpen = false;
+      this.input.requestLock();
+    });
+
     this._unsubLock = on('input:lock', locked => {
       if (locked) {
         if (!this.gameManager.hasStarted) {
@@ -337,7 +355,7 @@ export class MenuController {
         if (menuPause) menuPause.style.display = 'flex';
         const titleEl = document.getElementById('overlay-title');
         if (titleEl) titleEl.textContent = 'PAUSADO';
-      } else if (this.gameManager.hasStarted && !this.gameManager.roundOver) {
+      } else if (this.gameManager.hasStarted && !this.gameManager.roundOver && !this.inventoryOpen) {
         this.overlayElRef?.classList.remove('hidden');
         const menuStart = document.getElementById('menu-start');
         if (menuStart) menuStart.style.display = 'none';
@@ -349,10 +367,181 @@ export class MenuController {
     });
   }
 
+  _bindCrosshairUI(crosshairManager) {
+    if (!crosshairManager || typeof document === 'undefined') return;
+
+    const previewEl = document.getElementById('crosshair-preview');
+    const warningEl = document.getElementById('crosshair-preview-warning');
+
+    const styleSelect = document.getElementById('ch-style-select');
+    const modeSelect = document.getElementById('ch-mode-select');
+    const dynamicAlignSelect = document.getElementById('ch-dynamic-align');
+    const followRecoilSelect = document.getElementById('ch-follow-recoil');
+    const centerDotSelect = document.getElementById('ch-center-dot');
+
+    const lengthSlider = document.getElementById('ch-length-slider');
+    const lengthVal = document.getElementById('ch-length-val');
+    const thickSlider = document.getElementById('ch-thick-slider');
+    const thickVal = document.getElementById('ch-thick-val');
+    const gapSlider = document.getElementById('ch-gap-slider');
+    const gapVal = document.getElementById('ch-gap-val');
+    const outlineSlider = document.getElementById('ch-outline-slider');
+    const outlineVal = document.getElementById('ch-outline-val');
+
+    const colorPicker = document.getElementById('ch-color-picker');
+    const colorPills = document.querySelectorAll('.ch-color-pill');
+    const noFireToggle = document.getElementById('ch-nofire-toggle');
+    const aimAssistToggle = document.getElementById('ch-aim-assist');
+    const btnReset = document.getElementById('ch-btn-reset');
+
+    const syncFormFromConfig = (cfg) => {
+      if (styleSelect) styleSelect.value = cfg.style || 'cross';
+      if (modeSelect) modeSelect.value = cfg.mode || 'dynamic';
+      if (dynamicAlignSelect) dynamicAlignSelect.value = cfg.dynamicAlignment !== false ? 'on' : 'off';
+      if (followRecoilSelect) followRecoilSelect.value = cfg.followRecoil ? 'on' : 'off';
+      if (centerDotSelect) centerDotSelect.value = cfg.centerDot ? 'on' : 'off';
+
+      if (lengthSlider) {
+        lengthSlider.value = cfg.length;
+        if (lengthVal) lengthVal.textContent = `${cfg.length}px`;
+      }
+      if (thickSlider) {
+        thickSlider.value = cfg.thickness;
+        if (thickVal) thickVal.textContent = `${cfg.thickness}px`;
+      }
+      if (gapSlider) {
+        gapSlider.value = cfg.gap;
+        if (gapVal) gapVal.textContent = `${cfg.gap}px`;
+      }
+      if (outlineSlider) {
+        outlineSlider.value = cfg.outline;
+        if (outlineVal) outlineVal.textContent = `${cfg.outline}px`;
+      }
+      if (colorPicker) colorPicker.value = cfg.color || '#00ff66';
+      if (noFireToggle) noFireToggle.value = cfg.noFireWarning ? 'on' : 'off';
+      if (aimAssistToggle) {
+        const isAAOn = cfg.aimAssist !== 'none' && cfg.aimAssist !== false;
+        aimAssistToggle.value = isAAOn ? 'true' : 'none';
+      }
+
+      if (previewEl) {
+        crosshairManager.applyConfig(previewEl, cfg);
+        previewEl.style.setProperty('--gap', `${cfg.gap}px`);
+      }
+    };
+
+    // Inicializa valores a partir do config carregado
+    syncFormFromConfig(crosshairManager.config);
+
+    const updateAndSave = (partial) => {
+      crosshairManager.saveConfig(partial);
+      if (previewEl) {
+        crosshairManager.applyConfig(previewEl, crosshairManager.config);
+        previewEl.style.setProperty('--gap', `${crosshairManager.config.gap}px`);
+      }
+    };
+
+    styleSelect?.addEventListener('change', () => {
+      updateAndSave({ style: styleSelect.value });
+    });
+
+    modeSelect?.addEventListener('change', () => {
+      updateAndSave({ mode: modeSelect.value });
+    });
+
+    dynamicAlignSelect?.addEventListener('change', () => {
+      updateAndSave({ dynamicAlignment: dynamicAlignSelect.value === 'on' });
+    });
+
+    followRecoilSelect?.addEventListener('change', () => {
+      updateAndSave({ followRecoil: followRecoilSelect.value === 'on' });
+    });
+
+    centerDotSelect?.addEventListener('change', () => {
+      updateAndSave({ centerDot: centerDotSelect.value === 'on' });
+    });
+
+    lengthSlider?.addEventListener('input', () => {
+      const val = parseFloat(lengthSlider.value);
+      if (lengthVal) lengthVal.textContent = `${val}px`;
+      updateAndSave({ length: val });
+    });
+
+    thickSlider?.addEventListener('input', () => {
+      const val = parseFloat(thickSlider.value);
+      if (thickVal) thickVal.textContent = `${val}px`;
+      updateAndSave({ thickness: val });
+    });
+
+    gapSlider?.addEventListener('input', () => {
+      const val = parseFloat(gapSlider.value);
+      if (gapVal) gapVal.textContent = `${val}px`;
+      updateAndSave({ gap: val });
+    });
+
+    outlineSlider?.addEventListener('input', () => {
+      const val = parseInt(outlineSlider.value, 10);
+      if (outlineVal) outlineVal.textContent = `${val}px`;
+      updateAndSave({ outline: val });
+    });
+
+    colorPicker?.addEventListener('input', () => {
+      updateAndSave({ color: colorPicker.value });
+    });
+
+    colorPills.forEach(pill => {
+      pill.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const color = pill.getAttribute('data-color');
+        if (color) {
+          if (colorPicker) colorPicker.value = color;
+          updateAndSave({ color });
+        }
+      });
+    });
+
+    noFireToggle?.addEventListener('change', () => {
+      const enabled = noFireToggle.value === 'on';
+      updateAndSave({ noFireWarning: enabled });
+      if (warningEl) {
+        warningEl.style.display = enabled ? 'block' : 'none';
+        setTimeout(() => {
+          if (warningEl) warningEl.style.display = 'none';
+        }, 1200);
+      }
+    });
+
+    aimAssistToggle?.addEventListener('change', () => {
+      const val = aimAssistToggle.value === 'true' ? true : 'none';
+      updateAndSave({ aimAssist: val });
+    });
+
+    btnReset?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      crosshairManager.saveConfig(DEFAULT_CROSSHAIR_CONFIG);
+      syncFormFromConfig(crosshairManager.config);
+      emit('hud:popup', {
+        text: 'MIRA CS2 RESTAURADA PARA O PADRÃO',
+        color: '#00ff66',
+        duration: 1500
+      });
+    });
+  }
+
   destroy() {
     if (this._unsubLock) {
       this._unsubLock();
       this._unsubLock = null;
+    }
+    if (this._unsubInvOpen) {
+      this._unsubInvOpen();
+      this._unsubInvOpen = null;
+    }
+    if (this._unsubInvClose) {
+      this._unsubInvClose();
+      this._unsubInvClose = null;
     }
   }
 }

@@ -174,9 +174,30 @@ flowchart LR
 
 ---
 
-### 📅 Fase 18: Multiplayer Autoritativo & Servidor Dedicado
+### 📅 Fase 19: Alinhamento Dinâmico de Crosshair pelo Cano (Estilo Wardogs)
+- [ ] **Muzzle-Driven Crosshair & Convergência 3D (`src/new_mechanics/BarrelCrosshairAlignment.js`):**
+  - O elemento da crosshair na tela não fica mais engessado estático no centro cego (50%, 50%), mas sim projetado dinamicamente para onde a boca do cano (Muzzle) está orientada no espaço 3D (levando em conta sway, recoil, inércia da arma e wall press).
+  - Raycast contínuo de colisão a partir do cano (`CollisionWorld.js`): quando o cano aponta para um obstáculo próximo, a crosshair indica o ponto exato onde a bala atingirá.
+  - Projeção 3D para tela (`camera.project()`) convertida em pixels para posicionar o elemento `#crosshair`.
+  - **Mitigação do Tracer Elástico e Desvio em 90°:** O projétil SEMPRE segue a direção angular da crosshair projetada, eliminando discrepâncias quando o jogador gira bruscamente.
+  - **Portabilidade Godot:** Estrutura isolada em `src/new_mechanics/` para mapeamento 1:1 com `Marker3D` (Muzzle), `PhysicsRayQueryParameters3D` e `Camera3D.unproject_position()`.
+
+---
+
+### 📅 Fase 20: Sistema Tático de Inventário & Mochila (Gear & Grid)
+- [ ] **Mochila e Slots de Equipamento (`src/new_mechanics/TacticalInventorySystem.js`):**
+  - Slots dedicados de carga: Armamento Primário, Secundário, Colete Balístico (Armor), Capacete (Helmet) e Mochila (Backpack).
+  - Grade de armazenamento (Grid Storage) para gestão de pentes, caixas de munição, kits médicos e granadas.
+  - Interface modal ativada por tecla (`Tab` ou `I`) com desbloqueio suave do cursor do mouse (`input:lock`).
+  - Cálculo contínuo de peso em kg afetando a mobilidade do operador.
+  - Descarte de itens no solo gerando entidades 3D (`ItemDrop.js`) e coleta fluida.
+
+---
+
+### 📅 Fase 21: Networking & Servidor Dedicado
 - [ ] **Aproveitamento do Núcleo Headless Atual:**
   - Utilizar o arquivo `test/headless_sim.js` como base para um servidor dedicado executando Node.js / Bun.
 - [ ] **Netcode com Client-Side Prediction e Interpolação:**
   - O cliente prediz sua própria movimentação localmente com resposta imediata.
   - O servidor valida as posições via `CollisionWorld` a 120Hz e transmite snapshots compactados via WebSockets ou WebRTC DataChannels.
+

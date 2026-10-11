@@ -16,9 +16,10 @@ import { AudioSystem } from './audio/AudioSystem.js';
 import { HUD } from './ui/HUD.js';
 import { MenuController } from './ui/MenuController.js';
 import { ScopeSystem } from './weapons/ScopeSystem.js';
-import { on } from './core/EventBus.js';
+import { on, emit } from './core/EventBus.js';
 import { loadingScreen } from './ui/LoadingScreen.js';
 import { SmokeGrenadeManager } from './weapons/SmokeGrenadeManager.js';
+import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } from './new_mechanics/index.js';
 
 /* =========================================================
    BOOTSTRAP & INICIALIZAÇÃO DO JOGO
@@ -96,9 +97,28 @@ import { SmokeGrenadeManager } from './weapons/SmokeGrenadeManager.js';
       world,
       botsProvider: () => (gameManager ? gameManager.bots : []),
       inventory: [initialWeapon, secondaryWeapon === 'none' ? null : secondaryWeapon],
+      hud,
     });
     weapons._equip(initialWeapon);
     player.setWeaponManager(weapons);
+
+    // Novas Mecânicas Táticas Integradas:
+    const barrelCrosshair = new BarrelCrosshairAlignment({
+      camera,
+      viewmodel,
+      collisionWorld: world,
+      defaultZeroDistance: 50.0
+    });
+    weapons.barrelAlignment = barrelCrosshair;
+
+    const aimAssist = new AimAssistSystem({
+      collisionWorld: world,
+      botsProvider: () => (gameManager ? gameManager.bots : []),
+      crosshairManager: hud.crosshairManager
+    });
+    player.setAimAssist(aimAssist);
+
+    const inventorySystem = new TacticalInventorySystem();
 
     gameManager = new GameManager({
       scene,
@@ -161,7 +181,7 @@ import { SmokeGrenadeManager } from './weapons/SmokeGrenadeManager.js';
     scene.remove(dummyDropGroup);
 
     // 5. Interface e Menus
-    new MenuController({ input, gameManager, weapons });
+    new MenuController({ input, gameManager, weapons, crosshairManager: hud.crosshairManager });
 
     // Finaliza a tela de carregamento com transição suave
     loadingScreen.hide();
@@ -184,7 +204,7 @@ import { SmokeGrenadeManager } from './weapons/SmokeGrenadeManager.js';
     startEngine({
       // _physics_process: Física, lógica, bot IA, raycast e regras (120Hz)
       fixedUpdate(dt) {
-        if (!gameManager.hasStarted || !input.locked) return;
+        if (!gameManager.hasStarted || gameManager.roundOver || !input.locked || inventorySystem.isOpen) return;
 
         player.update(dt, input);
         if (input.isActionJustPressed('throw_smoke')) {
@@ -197,27 +217,46 @@ import { SmokeGrenadeManager } from './weapons/SmokeGrenadeManager.js';
       // _process: Animação visual, sway, partículas, interpolações e render (rAF)
       renderUpdate(alpha, dt) {
         const isScoped = weapons.current === 'rifle_proto' || weapons.current === 'vss';
+        const isGameplayActive = gameManager.hasStarted && !gameManager.roundOver && input.locked && !inventorySystem.isOpen;
 
         player.interpolatePosition(alpha);
         player.renderUpdate(alpha, dt);
         gameManager.renderUpdate(alpha, dt);
 
-        if (!gameManager.hasStarted) {
-          player.updateCamera(camera, dt);
-          viewmodel.updatePose(dt, weapons.current, {
-            isADS: false,
-            isSprinting: false,
-            adsAmount: 0,
-            reloadProgress: 0,
-            ammo: weapons.ammo,
-          });
+        // Alternância de Inventário com tecla I (permitida durante a partida antes do fim de rodada)
+        if (gameManager.hasStarted && !gameManager.roundOver) {
+          if (input.consumeAction('toggle_inventory') || input.isActionJustPressed('toggle_inventory')) {
+            const opened = inventorySystem.toggle();
+            if (opened) {
+              if (document.pointerLockElement) document.exitPointerLock?.();
+            } else {
+              input.requestLock();
+            }
+          }
+        }
+
+        if (!isGameplayActive) {
+          // Fora de combate ativo (Menu Inicial, Pausa, Inventário ou Fim de Rodada):
+          // congela completamente o modelo da arma e a câmera para não reagir ao mouse por trás do menu
+          if (!gameManager.hasStarted) {
+            player.updateCamera(camera, 0);
+            viewmodel.updatePose(0, weapons.current, {
+              isADS: false,
+              isSprinting: false,
+              adsAmount: 0,
+              reloadProgress: 0,
+              ammo: weapons.ammo,
+            });
+          } else {
+            player.rig.applyToCamera(camera);
+          }
+          effects.update(dt, camera);
         } else {
           // Atualização cinemática da câmera (1ª vs 3ª pessoa)
           player.activeWeaponWeight = weapons.def?.weight || 3.5;
           player.updateCamera(camera, dt);
 
           // Alternância de visibilidade do viewmodel em 3ª pessoa
-          const isThirdPerson = player.isThirdPerson();
           const tpAmount = player.rig?.thirdPersonAmount ?? 0;
           if (viewmodel.mount) {
             // Em 3ª pessoa pura oculta o viewmodel de braços soltos da tela
@@ -265,9 +304,28 @@ import { SmokeGrenadeManager } from './weapons/SmokeGrenadeManager.js';
             player.customSensMul = 1.0;
           }
 
-          // HUD
+          // Mecânica Wardogs: Atualiza a balística 3D do cano e projeção 2D
+          const currentSprayRecoil = weapons.getSprayRecoil();
+          if (barrelCrosshair && weapons.def) {
+            barrelCrosshair.update(weapons.def, weapons.ads, dt, currentSprayRecoil);
+          }
+
+          // HUD (CrosshairManager decide se o HUD acompanha o cano/recoil ou fica 100% fixo no centro)
           const hideCrosshair = isScoped && scopeSystem.scopeOn;
-          hud.updateCrosshair(hideCrosshair ? 1.0 : weapons.adsAmount, weapons._currentSpread(), player.sprinting, weapons.current);
+          hud.updateCrosshair(
+            hideCrosshair ? 1.0 : weapons.adsAmount,
+            weapons._currentSpread(),
+            player.sprinting,
+            weapons.current,
+            {
+              dt,
+              cameraRig: player.rig,
+              cameraFov: camera.fov,
+              wallCompression: weapons.wallCompression || 0,
+              sprayRecoil: currentSprayRecoil,
+              barrelScreenPos: barrelCrosshair ? barrelCrosshair.screenPos : null
+            }
+          );
           hud.update(dt, player.yaw);
 
           // Áudio 3D Espacial e Oclusão Sonora

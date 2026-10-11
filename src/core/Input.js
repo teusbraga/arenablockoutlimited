@@ -1,4 +1,4 @@
-import { emit } from './EventBus.js';
+import { emit, on } from './EventBus.js';
 import { TouchInput } from './TouchInput.js';
 import { CONFIG } from './ConfigLoader.js';
 
@@ -6,6 +6,8 @@ export class Input {
   constructor(canvas) {
     this.canvas = canvas;
     this.locked = false;
+    this.roundOver = false;
+    this.inventoryOpen = false;
     
     // Estado raw do mouse para cálculos de câmera
     this.mouse = { dx: 0, dy: 0 };
@@ -38,7 +40,9 @@ export class Input {
       'throw_smoke': 'throwSmoke',
       'throwSmoke': 'throwSmoke',
       'toggle_perspective': 'togglePerspective',
-      'togglePerspective': 'togglePerspective'
+      'togglePerspective': 'togglePerspective',
+      'toggle_inventory': 'toggleInventory',
+      'toggleInventory': 'toggleInventory'
     };
 
     // Mapeamento de botões físicos para ações canônicas
@@ -61,7 +65,8 @@ export class Input {
       'KeyF': 'interact',
       'KeyB': 'toggle_fire_mode',
       'KeyV': 'toggle_perspective',
-      'KeyU': 'throw_smoke'
+      'KeyU': 'throw_smoke',
+      'KeyI': 'toggle_inventory'
     };
 
     // Estado atual das intenções (ações contínuas) - Proxy transparente para retrocompatibilidade
@@ -70,7 +75,8 @@ export class Input {
       jump: false, sprint: false, crouch: false,
       fire: false, ads: false, reload: false, nextWeapon: false,
       slot1: false, slot2: false, interact: false, toggleFireMode: false,
-      leanLeft: false, leanRight: false, throwSmoke: false, togglePerspective: false
+      leanLeft: false, leanRight: false, throwSmoke: false, togglePerspective: false,
+      toggleInventory: false
     };
 
     // Cria Proxy em this.actions para aceitar tanto snake_case quanto camelCase
@@ -147,7 +153,43 @@ export class Input {
     this._actionQueue.delete(key);
   }
 
+  /**
+   * Limpa imediatamente o estado residual de mouse e teclado (evita disparos/movimentos fantasmas ao abrir menus)
+   */
+  clearState() {
+    this.mouse.dx = 0;
+    this.mouse.dy = 0;
+    for (const key in this._actionsRaw) this._actionsRaw[key] = false;
+    this._actionQueue.clear();
+  }
+
   _bind() {
+    on('round:over', () => {
+      this.roundOver = true;
+      this.locked = false;
+      this.clearState();
+      if (document.pointerLockElement) document.exitPointerLock?.();
+      emit('input:lock', false);
+    });
+
+    on('game:reset', () => {
+      this.roundOver = false;
+      this.clearState();
+    });
+
+    on('inventory:opened', () => {
+      this.inventoryOpen = true;
+      this.locked = false;
+      this.clearState();
+      if (document.pointerLockElement) document.exitPointerLock?.();
+      emit('input:lock', false);
+    });
+
+    on('inventory:closed', () => {
+      this.inventoryOpen = false;
+      this.clearState();
+    });
+
     addEventListener('keydown', e => {
       // Cheat code detection (ex: GETTHEREFAST)
       if (e.key && e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
@@ -176,6 +218,28 @@ export class Input {
             });
             emit('cheat:activated', { cheat: 'gettherefast', active: false });
           }
+        } else if (this._cheatBuffer.endsWith('professionalkiller')) {
+          this._cheatBuffer = '';
+          CONFIG.CHEATS = CONFIG.CHEATS || {};
+          CONFIG.CHEATS.infiniteAmmo = !CONFIG.CHEATS.infiniteAmmo;
+          const active = CONFIG.CHEATS.infiniteAmmo;
+          emit('hud:popup', {
+            text: active ? '⚡ CHEAT ACTIVATED: PROFESSIONALKILLER (Munição Infinita)' : 'CHEAT DEACTIVATED (Munição Normal)',
+            color: active ? '#06d6a0' : '#f77f00',
+            duration: active ? 2200 : 1800
+          });
+          emit('cheat:activated', { cheat: 'professionalkiller', active });
+        } else if (this._cheatBuffer.endsWith('baguvix')) {
+          this._cheatBuffer = '';
+          CONFIG.CHEATS = CONFIG.CHEATS || {};
+          CONFIG.CHEATS.godMode = !CONFIG.CHEATS.godMode;
+          const active = CONFIG.CHEATS.godMode;
+          emit('hud:popup', {
+            text: active ? '⚡ CHEAT ACTIVATED: BAGUVIX (Modo Deus / Imortal)' : 'CHEAT DEACTIVATED (Modo Normal)',
+            color: active ? '#06d6a0' : '#f77f00',
+            duration: active ? 2200 : 1800
+          });
+          emit('cheat:activated', { cheat: 'baguvix', active });
         }
       }
 
@@ -190,8 +254,11 @@ export class Input {
 
       const rawAction = this.bindings[e.code];
       if (rawAction) {
-        this.pressAction(rawAction);
-        e.preventDefault();
+        const isInventoryKey = e.code === 'KeyI';
+        if ((this.locked && !this.roundOver && !this.inventoryOpen) || (isInventoryKey && !this.roundOver)) {
+          this.pressAction(rawAction);
+          e.preventDefault();
+        }
       }
     });
 
@@ -202,27 +269,36 @@ export class Input {
       const rawAction = this.bindings[e.code];
       if (rawAction) {
         this.releaseAction(rawAction);
-        e.preventDefault();
+        if (this.locked) e.preventDefault();
       }
     });
 
     addEventListener('blur', () => {
-      for (const key in this._actionsRaw) this._actionsRaw[key] = false;
-      this._actionQueue.clear();
+      this.clearState();
     });
 
     addEventListener('mousemove', e => {
-      if (!this.locked) return;
+      if (!this.locked || this.roundOver || this.inventoryOpen) return;
       this.mouse.dx += e.movementX;
       this.mouse.dy += e.movementY;
     });
 
     addEventListener('mousedown', e => {
-      if (!this.locked) return;
+      if (!this.locked || this.roundOver || this.inventoryOpen) return;
       const code = `Mouse${e.button}`;
       const rawAction = this.bindings[code];
       if (rawAction) {
         this.pressAction(rawAction);
+      }
+    });
+
+    // Re-captura automática do mouse caso o jogador clique diretamente no canvas e nenhum menu esteja bloqueando
+    this.canvas.addEventListener('mousedown', () => {
+      if (!this.locked && !this.roundOver && !this.inventoryOpen) {
+        const overlay = document.getElementById('overlay');
+        if (!overlay || overlay.classList.contains('hidden')) {
+          this.requestLock();
+        }
       }
     });
 
@@ -237,13 +313,22 @@ export class Input {
     this.canvas.addEventListener('contextmenu', e => e.preventDefault());
 
     document.addEventListener('pointerlockchange', () => {
-      this.locked = document.pointerLockElement === this.canvas;
+      this.locked = (document.pointerLockElement === this.canvas) && !this.roundOver && !this.inventoryOpen;
+      if (!this.locked) {
+        this.clearState();
+      }
       emit('input:lock', this.locked);
     });
   }
 
   async requestLock() { 
+    if (this.roundOver || this.inventoryOpen) return;
     if (this.isMobile) {
+      this.locked = true;
+      emit('input:lock', true);
+      return;
+    }
+    if (document.pointerLockElement === this.canvas) {
       this.locked = true;
       emit('input:lock', true);
       return;
@@ -255,7 +340,10 @@ export class Input {
         navigator.keyboard.lock(['ControlLeft', 'ControlRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyR']).catch(() => {});
       }
     } catch (err) {
-      console.warn('Pointer lock falhou:', err);
+      console.warn('Pointer lock falhou (possível cooldown de ESC):', err);
+      this.locked = false;
+      this.clearState();
+      emit('input:lock', false);
     }
   }
 

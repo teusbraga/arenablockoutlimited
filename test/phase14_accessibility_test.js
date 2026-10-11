@@ -130,6 +130,9 @@ mockCamera.lookAt(0, 1.5, -5);
 const mockViewmodel = {
   mount: new THREE.Group(),
   applySwayFromRig: () => {},
+  applyKick: () => {},
+  flash: () => {},
+  triggerFire: () => {},
   getShake: () => 0,
   triggerMuzzleLight: () => {},
   updatePose: () => {},
@@ -173,7 +176,7 @@ ws.wallCompression = 0.50;
 ws.update(0.016);
 assert.strictEqual(ws.ads, false, 'ADS deve ser cancelado automaticamente se wallCompression >= 0.45');
 
-// Disparo bloqueado com cano obstruído
+// Disparo bloqueado com cano obstruído (No Fire Warning = ON por padrão)
 ws.wallCompression = 0.90;
 const initialAmmo = ws.ammo;
 let blockedPopup = null;
@@ -186,10 +189,29 @@ ws._fire();
 unsub1();
 unsub2();
 
-assert.strictEqual(ws.ammo, initialAmmo, 'Munição não deve ser gasta se o cano estiver obstruído');
+assert.strictEqual(ws.ammo, initialAmmo, 'Munição não deve ser gasta se o cano estiver obstruído com No Fire Warning ON');
 assert.strictEqual(emptySoundFired, true, 'Som de câmara vazia/clique deve ser emitido');
 assert.strictEqual(blockedPopup, 'CANO OBSTRUÍDO PELA PAREDE', 'Alerta HUD de obstrução deve ser exibido');
-console.log('✅ Bloqueio de ADS e Disparo por obstrução de parede validado com sucesso!');
+console.log('✅ Bloqueio de ADS e Disparo por obstrução (No Fire Warning ON) validado com sucesso!');
+
+// Disparo liberado quando No Fire Warning = OFF: o tiro sai apontando para cima na direção do cano erguido!
+ws.hud = {
+  crosshairManager: {
+    config: { noFireWarning: false, dynamicAlignment: false, followRecoil: false },
+    isBlocked: false
+  }
+};
+ws.wallCompression = 0.90;
+let firedEvent = null;
+const unsub3 = on('weapon:fired', e => { firedEvent = e; });
+
+ws._fire();
+unsub3();
+
+assert.strictEqual(ws.ammo, initialAmmo - 1, 'Com No Fire Warning OFF, a arma deve disparar e gastar munição mesmo colada na parede');
+assert.ok(firedEvent, 'Evento weapon:fired deve ser emitido quando No Fire Warning está OFF');
+assert.ok(firedEvent.forward.y > 0.75, `O tiro deve ir para cima acompanhando o cano erguido pela parede (forward.y = ${firedEvent.forward.y.toFixed(3)})`);
+console.log(`✅ Disparo com No Fire Warning OFF validado: projétil disparado para cima (forward.y = ${firedEvent.forward.y.toFixed(3)}) respeitando o cano 3D!`);
 
 console.log('\n==================================================');
 console.log('🎉 TODOS OS TESTES DA FASE 14 E DATA-DRIVEN PASSARAM!');
