@@ -18,6 +18,11 @@ O projeto prioriza **jogabilidade responsiva (60 FPS cravados)**, fidelidade mec
 
 ---
 
+> 🔒 **SISTEMA DE TRACERS, ARMAS E EFEITOS BLINDADO (LOCKED):**  
+> O subsistema visual de traçantes, balística desacoplada, coordenadas de canos (`muzzleLocal`) e perfis de munição em `ammo.json` está em estado definitivo de produção. Consulte [`GEMINI.md`](./GEMINI.md) e [`TRACERS_SYSTEM_REPORT.md`](./TRACERS_SYSTEM_REPORT.md) para a diretiva normativa de isolamento deste módulo.
+
+---
+
 ## 🏆 Desafios Ultrapassados & Marcos de Engenharia
 
 ### 1. Desacoplamento Monolítico ➔ Arquitetura Data-Driven

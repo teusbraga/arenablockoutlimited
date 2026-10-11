@@ -266,7 +266,7 @@ unsubPellets();
 if (pelletTracerCount !== 7) throw new Error(`Esperado 7 pellets tracer:fire, recebido ${pelletTracerCount}`);
 console.log(`✅ m12: Todos os 7 balins de buckshot geraram FlashTracers visíveis com scale seguro!`);
 
-// 5d. m249: Laser style anti-aéreo de 6 metros em velocidade real (850 m/s)
+// 5d. m249: Estilo swipe derivado da SW500 (lengthMultiplier calibrado em 1.4)
 let m249Fired = null;
 const unsubM249 = on('tracer:fire', e => { m249Fired = e; });
 projManager.spawn({
@@ -275,34 +275,42 @@ projManager.spawn({
   weaponDef: {
     id: 'm249',
     bulletSpeed: 850,
-    tracerColor: '#ffee00',
+    tracerColor: '#ffbb33',
     tracerProfile: {
-      style: 'laser',
-      beamLength: 6.0,
-      realSpeed: true,
+      style: 'swipe',
+      ttl: 0.080,
+      headSpeed: 0.28,
+      streakLength: 0.65,
+      lengthMultiplier: 1.4,
+      fadeInEnd: 0.08,
+      fadeOutStart: 0.70,
       coreRadius: 0.010,
-      glowRadius: 0.055,
+      glowRadius: 0.050,
       coreColor: '#ffffff',
-      glowColor: '#ffee00',
-      coreBrightness: 2.0,
-      glowBrightness: 0.95,
-      width: 1.6,
-      flashProfile: { size: 0.34, opacity: 0.90, lightIntensity: 12.0, lightDistance: 6.0, color: '#ffe066', duration: 0.055, maskElasticOffset: 0.05 }
+      glowColor: '#ffbb33',
+      coreBrightness: 1.5,
+      glowBrightness: 0.90,
+      maxOpacity: 1.0,
+      width: 1.4,
+      flashProfile: { size: 0.38, opacity: 0.95, lightIntensity: 15.0, lightDistance: 7.0, color: '#ffaa22', duration: 0.055, maskElasticOffset: 0.04 }
     }
   }
 });
 unsubM249();
 if (!m249Fired) throw new Error('Disparo da M249 não emitiu tracer:fire');
-const m249Tracer = effects.tracers.find(t => t.active && t.profile?.beamLength === 6.0);
-if (!m249Tracer) throw new Error('FlashTracer da M249 (6m beam) não ativado no pool');
+const m249Tracer = effects.tracers.find(t => t.active && t.profile?.lengthMultiplier === 1.4);
+if (!m249Tracer) throw new Error('FlashTracer da M249 (1.4x lengthMultiplier) não ativado no pool');
 
-// Simula frame 1 a 60fps (dt = 0.016s -> 850 * 0.016 = 13.6m):
+// Simula frame 1 a 60fps (dt = 0.016s):
 effects.update(0.016);
-const beamLengthMeasured = m249Tracer.coreMesh.scale.y;
-if (Math.abs(beamLengthMeasured - 6.0) > 0.1) {
-  throw new Error(`Comprimento do feixe da M249 incorreto: ${beamLengthMeasured.toFixed(2)}m (esperado 6.0m)`);
+if (!m249Tracer.group.visible) {
+  throw new Error('M249 tracer não visível após update');
 }
-console.log(`✅ m249: Feixe laser anti-aéreo de ${beamLengthMeasured.toFixed(2)}m renderizado em velocidade real (850 m/s)!`);
+const m249Len = m249Tracer.coreMesh.scale.y;
+if (m249Len <= 0.05) {
+  throw new Error(`Comprimento espacial da M249 insuficiente: ${m249Len.toFixed(2)}m`);
+}
+console.log(`✅ m249: FlashTracer swipe calibrado (${m249Len.toFixed(2)}m) renderizado com sucesso!`);
 
 console.log('\n==================================================');
 console.log('🎉 TODOS OS TESTES DE FLASH & TRACER FOTOGRÁFICO PASSARAM COM SUCESSO!');

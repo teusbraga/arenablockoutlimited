@@ -32,6 +32,7 @@ const _tracerUp = new THREE.Vector3(0, 1, 0);
 const _tracerDir = new THREE.Vector3();
 const _tempHead = new THREE.Vector3();
 const _tempTail = new THREE.Vector3();
+const _tempV = new THREE.Vector3();
 
 export const DEFAULT_SWIPE_PROFILE = {
   style: 'swipe',     // Padrão CS2 FlashTracer instantâneo
@@ -547,6 +548,7 @@ export class Effects {
 
     // Libera tracers
     if (this.tracerGeo) this.tracerGeo.dispose();
+    if (this.beamGeo) this.beamGeo.dispose();
     for (const t of this.tracers) {
       if (t.group) {
         if (t.group.parent) t.group.parent.remove(t.group);
@@ -918,71 +920,9 @@ export class Effects {
         // formando um feixe luminoso puro entre a boca da arma e o ponto de impacto,
         // que dissolve com elegância e ZERO descompasso no strafe ou giro do mouse.
         // ═══════════════════════════════════════════════════════════
+
+
         if (style === 'laser') {
-          // Sub-modo A: Feixe de extensão fixa em metros viajando em velocidade balística real (ex: M249 anti-aérea de 6m)
-          if (p.beamLength || p.realSpeed) {
-            const beamLen = p.beamLength || 6.0;
-            const spd = t.speed || 850;
-
-            const headDist = Math.min(t.distanceToTarget, spd * t.life);
-            const tailDist = Math.max(0, Math.min(t.distanceToTarget, spd * t.life - beamLen));
-            const realLen = headDist - tailDist;
-
-            if (realLen < 0.05) {
-              if (headDist >= t.distanceToTarget) {
-                t.active = false;
-                if (t.group) t.group.visible = false;
-              }
-              continue;
-            }
-
-            _tempHead.copy(t.originInitial).addScaledVector(t.dir, headDist);
-            _tempTail.copy(t.originInitial).addScaledVector(t.dir, tailDist);
-
-            const maskOffset = p.flashProfile?.maskElasticOffset ?? 0;
-            if (maskOffset > 0 && tailDist < 0.05) {
-              _tempTail.addScaledVector(t.dir, maskOffset);
-            }
-
-            const dx = _tempHead.x - _tempTail.x;
-            const dy = _tempHead.y - _tempTail.y;
-            const dz = _tempHead.z - _tempTail.z;
-            const actualLen = Math.sqrt(dx * dx + dy * dy + dz * dz);
-            if (actualLen < 0.05) {
-              if (t.group) t.group.visible = false;
-              continue;
-            }
-
-            _tracerDir.set(dx, dy, dz).divideScalar(actualLen);
-
-            let opacity = p.maxOpacity || 1.0;
-            const impactTime = t.distanceToTarget / spd;
-            if (t.life > impactTime) {
-              const fadeDur = Math.max(0.001, beamLen / spd);
-              const fadeProgress = (t.life - impactTime) / fadeDur;
-              opacity *= Math.max(0, 1.0 - fadeProgress * fadeProgress);
-            }
-
-            const midX = (_tempHead.x + _tempTail.x) * 0.5;
-            const midY = (_tempHead.y + _tempTail.y) * 0.5;
-            const midZ = (_tempHead.z + _tempTail.z) * 0.5;
-
-            if (t.group) {
-              t.group.position.set(midX, midY, midZ);
-              t.group.quaternion.setFromUnitVectors(_tracerUp, _tracerDir);
-              const glowR     = p.glowRadius || 0.050;
-              const coreRatio = Math.min(0.85, (p.coreRadius || 0.010) / glowR);
-              const w         = p.width || 1.5;
-              t.coreMesh.scale.set(w * coreRatio, actualLen, w * coreRatio);
-              t.glowMesh.scale.set(w, actualLen, w);
-              t.coreMat.color.set(p.coreColor || 0xffffff);
-              t.glowMat.color.set(p.glowColor || p.color || 0xffee00);
-              t.coreMat.opacity = Math.max(0, opacity * (p.coreBrightness ?? 1.8));
-              t.glowMat.opacity = Math.max(0, opacity * (p.glowBrightness ?? 0.95));
-              t.group.visible   = t.glowMat.opacity > 0.005;
-            }
-            continue;
-          }
 
           // Sub-modo B: Feixe instantâneo de energia/plasma no algoritmo FlashTracer (ex: Proto Rifle)
           const laserTtl = t.ttl || p.ttl || 0.045;
@@ -1023,6 +963,10 @@ export class Effects {
           const midZ = (hz + tz) * 0.5;
 
           if (t.group) {
+            if (t.coreMesh.geometry !== this.tracerGeo) {
+              t.coreMesh.geometry = this.tracerGeo;
+              t.glowMesh.geometry = this.tracerGeo;
+            }
             t.group.position.set(midX, midY, midZ);
             t.group.quaternion.setFromUnitVectors(_tracerUp, _tracerDir);
             const glowR     = p.glowRadius || 0.038;
@@ -1121,6 +1065,10 @@ export class Effects {
           exposureOpacity *= (p.maxOpacity ?? 0.95);
 
           if (t.group) {
+            if (t.coreMesh.geometry !== this.tracerGeo) {
+              t.coreMesh.geometry = this.tracerGeo;
+              t.glowMesh.geometry = this.tracerGeo;
+            }
             t.group.position.set(midX, midY, midZ);
             t.group.quaternion.setFromUnitVectors(_tracerUp, _tracerDir);
             const glowR     = p.glowRadius || 0.038;
@@ -1173,10 +1121,28 @@ export class Effects {
             ty2 += Math.sin(tailT * Math.PI) * arcHeight - (tailT * tailT) * gravityDrop;
           }
 
+          const maskOffset = p.flashProfile?.maskElasticOffset ?? 0;
+          if (maskOffset > 0 && tailT < 0.05) {
+            _tracerDir.subVectors(t.end, t.originInitial).normalize();
+            tx2 += _tracerDir.x * maskOffset;
+            ty2 += _tracerDir.y * maskOffset;
+            tz2 += _tracerDir.z * maskOffset;
+          }
+
           const dx = hx - tx2, dy = hy - ty2, dz = hz - tz2;
-          const realLen = Math.sqrt(dx * dx + dy * dy + dz * dz);
+          let realLen = Math.sqrt(dx * dx + dy * dy + dz * dz);
           if (realLen < 0.05) { if (t.group) t.group.visible = false; continue; }
           _tracerDir.set(dx, dy, dz).normalize();
+
+          const lengthMul = p.lengthMultiplier || 1.0;
+          if (lengthMul > 1.0) {
+            const headDistFromMuzzle = _tempV.set(hx - t.originInitial.x, hy - t.originInitial.y, hz - t.originInitial.z).dot(_tracerDir);
+            const targetLen = realLen * lengthMul;
+            realLen = Math.min(targetLen, Math.max(realLen, headDistFromMuzzle));
+            tx2 = hx - _tracerDir.x * realLen;
+            ty2 = hy - _tracerDir.y * realLen;
+            tz2 = hz - _tracerDir.z * realLen;
+          }
 
           let opacity = p.maxOpacity || 0.95;
           const fadeInEnd    = p.fadeInEnd || 0.10;
@@ -1189,6 +1155,10 @@ export class Effects {
           const midZ = (hz + tz2) * 0.5;
 
           if (t.group) {
+            if (t.coreMesh.geometry !== this.tracerGeo) {
+              t.coreMesh.geometry = this.tracerGeo;
+              t.glowMesh.geometry = this.tracerGeo;
+            }
             t.group.position.set(midX, midY, midZ);
             t.group.quaternion.setFromUnitVectors(_tracerUp, _tracerDir);
             const glowR     = p.glowRadius || 0.038;
