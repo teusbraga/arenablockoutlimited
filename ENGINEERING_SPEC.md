@@ -658,114 +658,105 @@ async boot() {
 
 ---
 
-## 9. Requisitos Funcionais
+## 9. Levantamento Detalhado de Requisitos Funcionais (RFs)
 
-### RF-01 — Motor de Renderização
-- [ ] Renderização 3D via WebGL com Three.js
-- [ ] Dual-rate game loop: física 120Hz / render variável
-- [ ] Fog atmosférico linear configurável por mapa
-- [ ] Iluminação três-pontos com sombras suaves (PCFSoftShadow)
-- [ ] ToneMapping cinematográfico (ACES)
+### 9.1 Motor, Loop & Renderização
+- **RF-01 (Dual-Rate Desacoplado):** O motor deve executar um loop desacoplado com simulação física fixa a 120Hz (`fixedDt = 1/120s`) e renderização variável atrelada ao `requestAnimationFrame` da GPU.
+- **RF-02 (Spiral-of-Death Guard):** O acumulador de tempo do motor deve limitar a no máximo 5 sub-passos de física por frame para evitar travamento da aba do navegador em quedas severas de framerate.
+- **RF-03 (Interpolação de Estado Visual):** Todas as entidades dinâmicas (jogador, bots e projéteis) devem armazenar `prevPos` e interpolar `renderPos` usando o fator $\alpha = \text{acc} / \text{fixedDt}$.
+- **RF-04 (Pipeline Gráfico Otimizado):** O renderizador WebGL deve configurar `ACESFilmicToneMapping`, `PCFSoftShadowMap` e limitar `pixelRatio` a no máximo 2.0 para preservar taxa de quadros em telas de alta densidade/mobile.
+- **RF-05 (Iluminação Dinâmica de Disparo):** O sistema deve escutar o evento `weapon:fired` e pulsar a intensidade da luz ambiente global em até 45ms para sincronizar o flash de disparo com o cenário.
 
-### RF-02 — Física e Colisão
-- [ ] Motor AABB com Spatial Hash Grid 2D
-- [ ] `moveAndSlide` com resolução de eixos desacoplados (Y→X→Z)
-- [ ] Step-Up automático (degraus até 0.55m)
-- [ ] Detecção de material do chão para footstep audio
-- [ ] Raycast Slab Method com thickness e normal de retorno
-- [ ] Interpolação de posição para renderização desacoplada do tick físico
+### 9.2 Cinemática de Câmera (CameraRig)
+- **RF-06 (Amortecimento Crítico Analítico):** A inércia de cabeça e rotação deve ser resolvida via mola criticamente amortecida (`smoothDamp`) sem overshoot numérico.
+- **RF-07 (Decomposição do Recuo de Câmera):** O impulso de recuo deve ser decomposto matematicamente em:
+  1. *Pitch Climb Permanente:* Subida angular angular cumulativa no eixo Y.
+  2. *Punch Elástico Angular:* Oscilação elástica em sub-passos de 500Hz que retorna à posição original.
+  3. *Kickback Linear:* Deslocamento de ombro nos eixos Y e Z proporcional à potência da munição.
+- **RF-08 (Transmissão de Velocidade Angular):** O CameraRig deve expor continuamente sua velocidade angular real (`angularVelocity`) para consumo da inércia do Viewmodel e retículos.
+- **RF-09 (Sistema de Lean Tático):** Ao acionar Q/E, a câmera deve transicionar suavemente a inclinação angular Z em $\pm 11.5^\circ$ e transladar o eixo X lateral em 15cm com rebaixamento do tronco.
+- **RF-10 (Headbob Físico por Superfície):** A oscilação da câmera ao andar/correr deve modular frequência e amplitude com base na velocidade e no material do piso, suportando escala de acessibilidade de 0% a 120%.
+- **RF-11 (Spring-Arm Anti-Clip em 3ª Pessoa):** Ao alternar para terceira pessoa (tecla V), o braço de câmera deve executar raycast contra o `CollisionWorld` e encurtar a distância instantaneamente se houver parede atrás do jogador.
 
-### RF-03 — Mundo e Mapa
-- [ ] Carregamento de mapas via JSON
-- [ ] Geometria estática agrupada em InstancedMesh por material
-- [ ] Shader Triplanar World-Space UV (sem esticamento em caixas)
-- [ ] Geração procedural de texturas PBR via Canvas 2D
-- [ ] Props compostos com hitboxes sincronizadas
-- [ ] Portas interativas com AABB dinâmico (abre/fecha)
-- [ ] Items no chão com trigger pickup e animação de flutuação
+### 9.3 Dinâmica de Viewmodel & Poses
+- **RF-12 (Mola Acoplada à Massa da Arma):** A inércia do Viewmodel em primeira pessoa deve derivar suas constantes de mola $K$ e amortecimento $D$ diretamente do peso da arma em quilogramas ($K = 22.0 / \text{mass}^{0.45}$, $D = 9.5 / \text{mass}^{0.35}$).
+- **RF-13 (Alinhamento Procedural de ADS):** A posição de mira da arma deve ser calculada matematicamente alinhando a coordenada local da alça/massa (`sightLocal`) exatamente ao centro do viewport da câmera a uma distância configurável (`adsSightDistance`).
+- **RF-14 (Wall-Press & Obstrução do Cano):** Ao aproximar o cano da arma a menos de 45cm de uma parede (`wallCompression > 0.45`):
+  1. A arma deve erguer-se visualmente $+75^\circ$ no eixo X e inclinar $-15^\circ$ em direção ao peito.
+  2. A mira em ADS deve ser bloqueada.
+  3. Disparos devem ser impedidos, disparando clique seco e emitindo alerta HUD `"CANO OBSTRUÍDO PELA PAREDE"`.
+- **RF-15 (Animação Procedural de Ejeção de Estojos):** Ao disparar, cápsulas físicas de latão ou cartuchos vermelhos de espingarda 12ga devem ser ejetados a partir de `ejectLocal` com velocidade angular de tumble (28 rad/s) e quicar elasticamente no chão.
 
-### RF-04 — Sistema de Armas
-- [ ] 9 armas com estatísticas únicas configuradas em JSON
-- [ ] 2 slots táticos simultâneos
-- [ ] Dois modos de fogo: Auto e Semi por arma
-- [ ] Munição rastreada por arma
-- [ ] Sistema de recuo multi-eixo com spray patterns únicos
-- [ ] Spread dinâmico (ADS, hip, movimento, sprint, sway, heat)
-- [ ] CCD de projéteis (sem tunelamento em paredes finas)
-- [ ] Penetração de parede por material e potência do calibre
-- [ ] Ricochete angular em superfícies duras
-- [ ] Supressão tática por near-miss (flinch, tunnel vision)
-- [ ] Traçantes visuais desacoplados (zero rubber-band)
-- [ ] Viewmodel 3D com springs de massa-dependente
-- [ ] Mira telescópica PIP com shaders GLSL (scope camera, barrel distortion, aberração cromática)
-- [ ] Muzzle flash volumétrico (4 planos cruzados + PointLight)
-- [ ] Granada de fumaça com física de bounce + nuvem volumétrica 10s
+### 9.4 Sistema de Traçantes (Tracers / FlashTracers)
+- **RF-16 (Desacoplamento Espacial Total):** O traçante balístico deve ser instanciado no frame 0 no espaço de mundo (World Space) entre o bocal da arma naquele instante e o ponto de impacto estimado, sem amarrar sua cauda ao cano em movimento.
+- **RF-17 (Geometria Concêntrica Dual-Layer):** O traçante deve consistir em dois cilindros concêntricos:
+  1. *Núcleo (Core):* Filamento central incandescente branco de alta intensidade.
+  2. *Envoltório (Glow Envelope):* Halo cromático saturado simulando a dispersão atmosférica e retinal com gradiente exponencial $\text{pow}(t, 1.4)$.
+- **RF-18 (Calibração de Sweetspot de Strafe):** O traçante deve suportar o fator `lengthMultiplier` calibrado (1.3 a 1.5, nominal 1.4 na M249) para produzir o visual de feixe estendido sem revelar atraso cinemático em movimentos laterais rápidos.
+- **RF-19 (Muzzle Flash Volumétrico Orto-Cruzado):** O quebra-chamas deve ser composto por 4 planos cruzados aditivos com rotação e escala jittered, acompanhado de luz pontual e máscara de deslocamento elástico (`maskElasticOffset`).
+- **RF-20 (Múltiplos Estilos de Feixe):** O renderizador de traçantes deve suportar perfis data-driven intercambiáveis:
+  - `swipe`: Cabeça avança a $0.35$ da velocidade e cauda estica/retrai estilo CS2.
+  - `photographic`: Simulação de tempo de exposição de obturador e persistência retinal pós-impacto.
+  - `laser`: Feixe instantâneo contínuo com atenuação por opacidade.
+  - `parabola`: Feixe acoplado com queda gravitacional em arco.
 
-### RF-05 — Modelos de Arma 3D Procedurais
-- [ ] AK-47: magazine banana 5 segmentos, guidão frontal, alça de mira
-- [ ] HK416: quad-rail Picatinny, HK diopter, P-MAG 30rd
-- [ ] M249 SAW: ammo box, belt articulada de 6 balas, bipod
-- [ ] P-9: slide blowback animado, slide lock, 3-dot tritium sights
-- [ ] Rifle Prototype: red dot optic PIP-ready, bolt BCG animado
-- [ ] S&W 500: cilindro de 6 câmaras indexável, hammer animado, compensator
-- [ ] UZI: folding stock, grip safety, selector switch
-- [ ] VSS Vintorez: supressor integral 0.54m, PSO-1 scope com PIP
-- [ ] Winchester M12: pump-action FSM 5 estados, corncob forend, 12 torus ribs
+### 9.5 Balística Externa & Terminal
+- **RF-21 (Swept-Ray Continuous Collision Detection):** Projéteis devem avançar no espaço fatiando cada frame de 120Hz em um segmento de raio entre `prevPos` e `nextPos`, eliminando tunelamento através de paredes finas.
+- **RF-22 (Queda Gravitacional & Arrasto Aerodinâmico):** Cada projétil deve integrar gravidade específica do calibre ($v_y -= g \cdot dt$), coeficiente de arrasto (`drag`) e vetor de vento global.
+- **RF-23 (Degradação de Headshot por Distância):** Se a queda balística por gravidade ($\Delta y = 0.5 \cdot g \cdot t^2$) for superior a 0.25m no momento do impacto contra um bot, o acerto deve ser rebaixado de `head` para `body`.
+- **RF-24 (Penetração Balística por Densidade / Wallbang):** Ao atingir uma parede:
+  - O sistema deve verificar a resistência do material (madeira: 0.35, reboco: 0.50, pedra/concreto: 1.10, metal: 2.40).
+  - Se $\text{penetrationPower} \ge \text{espessura} \times \text{resistência}$, o projétil deve emergir da face oposta, perdendo de 25% a 40% da velocidade e 35% de dano.
+- **RF-25 (Ricochete Físico Angular):** Tiros rasantes contra superfícies duras (ângulo $< 25^\circ$) devem refletir o vetor de velocidade pela normal geométrica $\vec{v}' = \vec{v} - 2(\vec{v} \cdot \vec{n})\vec{n}$, dissipando 40% da energia cinética e mantendo o projétil vivo.
+- **RF-26 (Supressão Balística Near-Miss):** Tiros passando a menos de 2.4m da cabeça de um bot ou jogador devem calcular a distância mínima do segmento e aplicar flinch, câmera shake e acúmulo de supressão tática.
 
-### RF-06 — IA de Bots
-- [ ] FSM de 4 estados: Patrol, Engage, Search, Flee
-- [ ] Visão throttled (10Hz, LOS raycast)
-- [ ] Audição de disparos por rádio (EventBus)
-- [ ] Supressão balística afetando comportamento e precisão
-- [ ] Strafe tático em Engage (alternado 0.6–1.8s)
-- [ ] Peek procedural (lean esquerda/direita)
-- [ ] Burst fire para armas automáticas
-- [ ] Sistema de spawn com zona de exclusão (props, player, outros bots)
-- [ ] Lock-in de respawn com cooldown de 4s
-- [ ] Skin Soldier (4 camuflagens táticas) e Ghost
+### 9.6 Óptica Telescópica (Scope PIP)
+- **RF-27 (Dual-Camera Picture-In-Picture):** Miras telescópicas devem utilizar uma segunda câmera (`scopeCamera`) com FOV estreito ($2^\circ$ a $30^\circ$) renderizando em um `WebGLRenderTarget` de 512x512.
+- **RF-28 (Shader de Lente Personalizado):** A superfície da lente deve aplicar um shader GLSL contendo:
+  - Distorção em barril: $\text{uv} = 0.5 + p \cdot (1.0 - 0.10 \cdot r^2)$.
+  - Aberração cromática radial com dispersão RGB: $\text{ca} = p \cdot 0.006 \cdot r^2$.
+  - Shading de profundidade das paredes internas do tubo com paralaxe do olho.
+- **RF-29 (Retículas Funcionais Vetoriais):** O sistema óptico deve suportar retícula duplex militar e retícula soviética PSO-1 com escala estadiamétrica funcional de 100m a 400m e chevrons de alcance.
+- **RF-30 (Ajuste Trigonométrico de Sensibilidade):** A rotação do mouse durante a mira em scope deve ser reescalonada proporcionalmente pelo fator $\tan(\text{FOV}_{\text{scope}} / 2) / \tan(\text{FOV}_{\text{ads}} / 2)$.
 
-### RF-07 — HUD e Interface
-- [ ] Health, ammo, arma ativa, fire mode, slot pills
-- [ ] Round timer, K/D scoreboard, killfeed (max 5 itens)
-- [ ] Damage indicator 2D radial (canvas, deduplicação angular)
-- [ ] Hitmarker + headshot indicator
-- [ ] Hitmarkers descentralizados para shotgun (posição real dos pellets)
-- [ ] Screen flash vermelho (dano) + blur de supressão com direcionalidade
-- [ ] Mira customizável CS2-style (3 eixos independentes)
-- [ ] Inventory modal tático (gear slots + grid 4×4)
-- [ ] Tela de morte com countdown de respawn
-- [ ] Tela de fim de round com stats finais
-- [ ] Menu principal com tabs de configuração
+### 9.7 Sistema de Miras (Crosshair Manager)
+- **RF-31 (Projeção 3D do Cano na Tela):** O retículo do HUD deve ser capaz de seguir as coordenadas 2D resultantes da projeção de mundo da ponta do cano (`muzzleLocal`), permitindo que a mira acompanhe o sway e recoil real no espaço (estilo *Tarkov*).
+- **RF-32 (Mira CS2 em 3 Eixos Independentes):** O gerenciador de mira deve operar 3 eixos de configuração desacoplados:
+  - *Eixo 1 (Dispersão):* Gap estático ou dinâmico proporcional ao spread da arma.
+  - *Eixo 2 (Alinhamento):* Centralizado ou projetado pelo cano.
+  - *Eixo 3 (Follow Recoil):* Deslocamento angular na tela compensando o spray acumulado em tempo real.
+- **RF-33 (Ponto Central e T-Shape):** Suporte a ponto central independente (`ch-dot`), formato tradicional em cruz e formato em T (remoção da barra superior).
 
-### RF-08 — Áudio
-- [ ] Síntese procedural via Web Audio API (zero assets de áudio)
-- [ ] Sons únicos por arma: rifle_proto, sw500, m12, pump-action
-- [ ] Footstep dinâmico por material de superfície (4+ materiais)
-- [ ] Spatial audio HRTF 3D com rolloff
-- [ ] Oclusão por raycast (lowpass filter quando atrás de parede)
-- [ ] Loop espacial de smoke grenade com fade-out exponencial
+### 9.8 Interface, HUD & Feedback Tático
+- **RF-34 (Indicador 2D Radial de Dano):** O canvas do HUD deve desenhar arcos radiais indicando a direção de origem do dano e supressão em relação ao yaw da câmera, com deduplicação angular para impactos recebidos a menos de $23^\circ$.
+- **RF-35 (Hitmarkers Descentralizados para Shotgun):** Ao disparar espingardas, hitmarkers individuais devem ser spawnados nas coordenadas de tela exatas onde cada pellet colidiu com o inimigo.
+- **RF-36 (Modal de Inventário Tático):** Sistema com slots de equipamento primário/secundário, capacete classe 2, colete classe 3 e grade de mochila 4x4 com controle cumulativo de peso (máximo 40kg).
+- **RF-37 (Tela de Carregamento Tática):** Overlay com monitoramento granular de progresso percentual na pré-compilação de texturas PBR, shaders e inicialização de geometria.
 
-### RF-09 — Input e Controles
-- [ ] Desktop: WASD + mouse + pointer lock
-- [ ] Mobile: joystick flutuante + look touchpad + botões táticos
-- [ ] Lean tático Q/E
-- [ ] Alternância 1ª/3ª pessoa (V)
-- [ ] Cheat codes bufferizados
-- [ ] Sensibilidade configurável
+### 9.9 Inteligência Artificial & Comportamento
+- **RF-38 (FSM de 4 Estados):** Bots devem operar sob uma máquina de estados finitos estruturada:
+  - `PatrolState`: Navegação reativa a 70% de velocidade de marcha.
+  - `EngageState`: Strafe lateral alternado (0.6s a 1.8s), controle de distância (5m a 14m), peek tático e rajadas (burst fire).
+  - `SearchState`: Deslocamento até a última posição conhecida do jogador com temporizador de 3.5s.
+  - `FleeState`: Fuga acelerada em direção oposta sob baixa vida ou alta supressão.
+- **RF-39 (Visão Throttled a 10Hz):** Sensores de linha de visão (LOS) dos bots devem executar raycast a cada ~100ms com jitter, e não a cada tick de física, preservando ciclos de CPU.
+- **RF-40 (Sensibilidade Acústica dos Bots):** Disparos efetuados pelo jogador a menos de 35 metros de distância devem quebrar imediatamente o estado de patrulha do bot e transicioná-lo para busca.
+- **RF-41 (Procedural Bot Torso Twist):** O modelo visual dos bots deve desacoplar as pernas do tronco, permitindo rotação da arma e cabeça de até $\pm 72^\circ$ antes de girar a base das pernas.
 
-### RF-10 — PWA e Offline
-- [ ] Web App Manifest (nome, ícones, orientação landscape)
-- [ ] Service Worker com cache Network-First
-- [ ] Instalável em Android, iOS e desktop
-- [ ] 503 controlado quando offline e sem cache
+### 9.10 Áudio Procedural & Síntese Web Audio
+- **RF-42 (Síntese Sonora Sem Assets):** Todos os efeitos sonoros de disparos, recuo, cliques mecânicos e impactos devem ser sintetizados em tempo real via Web Audio API (`AudioContext`) sem uso de arquivos de áudio externos.
+- **RF-43 (Oclusão Acústica Tridimensional):** Sons espaciais emitidos atrás de paredes sólidas devem ser detectados via raycast e filtrados por um filtro biquad passa-baixas (frequência de corte reduzida de 13kHz para 550Hz e atenuação de ganho em 60%).
+- **RF-44 (Passos por Material de Superfície):** O som dos passos do jogador deve sintetizar curvas de onda específicas dependendo do material detectado no piso sob os pés (madeira, metal, areia/grama, concreto/pedra).
 
-### RF-11 — Match e GameManager
-- [ ] Rounds cronometrados com timer configurável
-- [ ] Kill combo counter (Double Kill, Triple Kill, Headshot)
-- [ ] Drops de loot ao matar bot (máx 2 drops simultâneos)
-- [ ] Coleta de arma do chão por proximidade
-- [ ] Anti-clipping repulsivo entre bots e jogador
-- [ ] Interação contextual com portas e drops
+### 9.11 Equipamento Especial & Granadas
+- **RF-45 (Simulação Balística da Granada de Fumaça M18):** Lançamento de cilindro com velocidade inicial de 15 m/s, gravidade de -9.8 m/s² e ricochetes elásticos, detonando após 3 quiques ou 1.3s de voo.
+- **RF-46 (Nuvem Volumétrica de Fumaça):** Ao detonar, criar nuvem de 14 puffs icosaédricos procedurais expandindo até 4.2 metros de raio por exatamente 10.0 segundos, bloqueando linha de visão dos bots e dissipando nos últimos 2.5s.
+
+### 9.12 Mobile, Acessibilidade & PWA
+- **RF-47 (Controles Virtuais Mobile Multi-Touch):** Interface touch com joystick flutuante analógico na esquerda (com auto-sprint a 75% de curso) e touchpad de mira na direita com botões simultâneos de disparo e ADS.
+- **RF-48 (Modulação de Acessibilidade Data-Driven):** Sliders independentes no menu de configurações permitindo modular intensidade de headbob (0% a 120%), screen shake (0% a 100%) e vibração tátil no celular via `navigator.vibrate`.
+- **RF-49 (Arquitetura PWA Offline-First):** O jogo deve registrar Service Worker com estratégia Network-First e cache local de assets (`arena-blockout-v1`), permitindo carregamento e execução completa sem conexão à internet.
+- **RF-50 (Orientação Forçada Landscape):** Bloqueio estrito de orientação em modo paisagem via manifesto PWA e CSS para garantir layout tático em dispositivos móveis.
 
 ---
 
