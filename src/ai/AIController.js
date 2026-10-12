@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { CONFIG } from '../core/ConfigLoader.js';
 import { emit, on } from '../core/EventBus.js';
 import { WEAPONS } from '../weapons/WeaponDefs.js';
+import { NavGrid } from './NavGrid.js';
 import { PatrolState } from './states/PatrolState.js';
 import { EngageState } from './states/EngageState.js';
 import { SearchState } from './states/SearchState.js';
@@ -22,6 +23,8 @@ export class AIController {
   constructor(bot, world) {
     this.bot = bot;
     this.world = world;
+    this.navGrid = world ? (world.navGrid || (world.navGrid = new NavGrid(world))) : null;
+
     this.desiredMove = new THREE.Vector3();
     this.lastKnownPlayerPos = new THREE.Vector3();
     this.hasKnownPlayerPos = false;
@@ -33,6 +36,18 @@ export class AIController {
     this.hasPatrolTarget = false;
     this.strafeDir = Math.random() < 0.5 ? -1 : 1;
     this.strafeTimer = 1;
+
+    // Estado do GPS / Pathfinding A*
+    this.path = [];
+    this.pathIndex = 0;
+    this.repathTimer = 0;
+    this.pathGoal = { x: NaN, z: NaN };
+
+    // Detector Anti-Stuck (desengate de cantos/pilares)
+    this.stuckCheckTimer = 0.35 + Math.random() * 0.15;
+    this.lastProgressPos = new THREE.Vector3();
+    this.unstickTimer = 0;
+    this.unstickYaw = 0;
 
     // Burst Fire state
     this.burstShotsRemaining = 0;
@@ -53,6 +68,116 @@ export class AIController {
 
     this._bindAudioSensory();
     this._bindPlayerDied();
+  }
+
+  clearPath() {
+    this.path.length = 0;
+    this.pathIndex = 0;
+    this.repathTimer = 0;
+    this.pathGoal.x = NaN;
+    this.pathGoal.z = NaN;
+  }
+
+  /**
+   * Navega em direção a (targetX, targetZ) seguindo waypoints da malha A* (NavGrid).
+   */
+  navigateTo(targetX, targetZ, speed, dt, turnSpeed = 5) {
+    const bot = this.bot;
+
+    // Se estiver executando manobra curta de desengate lateral (anti-stuck)
+    if (this.unstickTimer > 0) {
+      this.unstickTimer -= dt;
+      this._faceTowards(this.unstickYaw, dt, turnSpeed + 2);
+      this.desiredMove.x = Math.sin(this.unstickYaw) * speed;
+      this.desiredMove.z = Math.cos(this.unstickYaw) * speed;
+      return;
+    }
+
+    this.repathTimer -= dt;
+    const goalShift = Math.hypot(targetX - this.pathGoal.x, targetZ - this.pathGoal.z);
+    const needRepath =
+      this.path.length === 0 ||
+      this.pathIndex >= this.path.length ||
+      Number.isNaN(this.pathGoal.x) ||
+      (goalShift > 1.8 && this.repathTimer <= 0.25) ||
+      this.repathTimer <= 0;
+
+    if (needRepath && this.navGrid) {
+      this.path = this.navGrid.findPath(bot.pos, { x: targetX, z: targetZ });
+      this.pathIndex = 0;
+      this.pathGoal.x = targetX;
+      this.pathGoal.z = targetZ;
+      // Intervalo escalonado (550ms a 900ms) para nunca recalcular todos os bots no mesmo frame
+      this.repathTimer = 0.55 + Math.random() * 0.35;
+    }
+
+    // Avança pelos waypoints já alcançados
+    while (this.pathIndex < this.path.length - 1) {
+      const wp = this.path[this.pathIndex];
+      if (Math.hypot(wp.x - bot.pos.x, wp.z - bot.pos.z) < 0.72) {
+        this.pathIndex++;
+      } else {
+        break;
+      }
+    }
+
+    const activeWp = this.path[this.pathIndex] || { x: targetX, z: targetZ };
+    const dx = activeWp.x - bot.pos.x;
+    const dz = activeWp.z - bot.pos.z;
+    const distToWp = Math.hypot(dx, dz);
+
+    if (distToWp < 0.15) {
+      this.desiredMove.x = 0;
+      this.desiredMove.z = 0;
+      return;
+    }
+
+    const yaw = Math.atan2(dx, dz);
+    this._faceTowards(yaw, dt, turnSpeed);
+    this.desiredMove.x = Math.sin(yaw) * speed;
+    this.desiredMove.z = Math.cos(yaw) * speed;
+  }
+
+  _updateStuckDetector(dt) {
+    this.stuckCheckTimer -= dt;
+    if (this.stuckCheckTimer > 0) return;
+    this.stuckCheckTimer = 0.35 + Math.random() * 0.10;
+
+    const bot = this.bot;
+    const wantSpeed = Math.hypot(this.desiredMove.x, this.desiredMove.z);
+    const movedDist = Math.hypot(bot.pos.x - this.lastProgressPos.x, bot.pos.z - this.lastProgressPos.z);
+    this.lastProgressPos.copy(bot.pos);
+
+    // Se o bot queria andar mas ficou preso em quina/batente/outro bot
+    if (wantSpeed > 0.6 && movedDist < 0.12) {
+      this.clearPath();
+      if (this.state === 'patrol') {
+        this.hasPatrolTarget = false;
+      }
+
+      // Escolhe um ângulo lateral ou diagonal livre para desgrudar da quina
+      const candidates = [
+        bot.yaw + Math.PI * 0.5,
+        bot.yaw - Math.PI * 0.5,
+        bot.yaw + Math.PI * 0.75,
+        bot.yaw - Math.PI * 0.75,
+        bot.yaw + Math.PI,
+      ];
+      let chosenYaw = candidates[Math.floor(Math.random() * 2)];
+      if (this.navGrid) {
+        for (let i = 0; i < candidates.length; i++) {
+          const a = candidates[i];
+          const tx = bot.pos.x + Math.sin(a) * 1.1;
+          const tz = bot.pos.z + Math.cos(a) * 1.1;
+          if (this.navGrid.isWorldWalkable(tx, tz)) {
+            chosenYaw = a;
+            break;
+          }
+        }
+      }
+      this.unstickYaw = chosenYaw;
+      this.unstickTimer = 0.26;
+    }
   }
 
   applySuppression(intensity = 0.5) {
@@ -80,6 +205,7 @@ export class AIController {
     if (this.currentState) {
       this.currentState.exit(this);
     }
+    this.clearPath();
     this.state = stateName;
     this.currentState = this.states[stateName];
     this.currentState.enter(this);
@@ -147,6 +273,9 @@ export class AIController {
 
     // Atualiza o estado atual na FSM
     this.currentState.update(this, dt, player, dist, canSee);
+
+    // Monitora se o bot ficou preso em alguma quina e aplica manobra de desengate
+    this._updateStuckDetector(dt);
 
     // Aplica velocidade desejada
     bot.vel.x = this.desiredMove.x;

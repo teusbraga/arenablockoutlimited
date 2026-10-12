@@ -33,9 +33,12 @@ export class SearchState extends AIState {
       return;
     }
 
-    const yaw = Math.atan2(dx, dz);
-    controller._faceTowards(yaw, dt, 5);
-    controller.desiredMove.x = Math.sin(yaw) * CONFIG.BOTS.walkSpeed;
-    controller.desiredMove.z = Math.cos(yaw) * CONFIG.BOTS.walkSpeed;
+    controller.navigateTo(
+      controller.lastKnownPlayerPos.x,
+      controller.lastKnownPlayerPos.z,
+      CONFIG.BOTS.walkSpeed,
+      dt,
+      5
+    );
   }
 }

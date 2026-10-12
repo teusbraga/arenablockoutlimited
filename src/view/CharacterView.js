@@ -342,11 +342,15 @@ export class CharacterView {
       this.root.position.set(charPos.x, charPos.y, charPos.z);
     }
 
-    // Orientação Cinemática do Personagem
-    // No Three.js o modelo do Soldado tem frente em +Z.
-    // O sistema de mira do jogo usa yaw=0 apontando para -Z (frente da câmera).
-    // Portanto a rotação visual frontal alinhada com a mira é: aimYaw = character.yaw + Math.PI.
-    const aimYaw = (this.character.yaw || 0) + Math.PI;
+    // Orientação Cinemática do Personagem:
+    // - No Three.js o modelo 3D do Soldado tem frente (óculos e cano da arma) em +Z.
+    // - O Player (que possui CameraRig) usa convenção de câmera Three.js onde yaw=0 aponta para -Z,
+    //   portanto precisa de +Math.PI para alinhar o modelo 3D com a mira.
+    // - Os Bots calculam yaw via Math.atan2(dx, dz), onde yaw=0 JÁ aponta para +Z!
+    const isCameraConvention = Boolean(this.character.rig);
+    const aimYaw = isCameraConvention
+      ? (this.character.yaw || 0) + Math.PI
+      : (this.character.yaw || 0);
 
     if (!this.hasInitYaw) {
       this.currentBodyYaw = aimYaw;
@@ -358,39 +362,56 @@ export class CharacterView {
     const moveSpeed = Math.hypot(vx, vz);
 
     let targetBodyYaw = aimYaw;
+    let walkDir = 1;
 
-    // Se estiver em movimento ativo (velocidade > 0.35m/s), o corpo alinha na direção do passo
+    // Se estiver em movimento ativo (velocidade > 0.35m/s), os pés alinham com o deslocamento
     if (moveSpeed > 0.35) {
-      // Vetor de velocidade (vx, vz) em Three.js: Math.atan2(vx, vz) dá o ângulo para onde está andando
-      const moveAngle = Math.atan2(vx, vz);
+      let moveAngle = Math.atan2(vx, vz);
+      let diffMoveAim = moveAngle - aimYaw;
+      while (diffMoveAim > Math.PI) diffMoveAim -= Math.PI * 2;
+      while (diffMoveAim < -Math.PI) diffMoveAim += Math.PI * 2;
+
+      // Se estiver andando de costas/recuando (> 95° da mira), mantém o quadril virado para a frente
+      // e inverte o ciclo da passada (backpedal), evitando girar o boneco de costas ao atirar!
+      if (Math.abs(diffMoveAim) > Math.PI * 0.53) {
+        moveAngle += Math.PI;
+        walkDir = -1;
+        diffMoveAim = moveAngle - aimYaw;
+        while (diffMoveAim > Math.PI) diffMoveAim -= Math.PI * 2;
+        while (diffMoveAim < -Math.PI) diffMoveAim += Math.PI * 2;
+      }
+
+      // Limita a abertura do quadril em relação à mira (~60°) para que o torso sempre alcance o alvo
+      const maxHipOffset = 1.05;
+      if (Math.abs(diffMoveAim) > maxHipOffset) {
+        moveAngle = aimYaw + Math.sign(diffMoveAim) * maxHipOffset;
+      }
       targetBodyYaw = moveAngle;
     } else {
-      // Parado: se o desvio entre a mira e o corpo for maior que ~65 graus, o corpo reajusta suavemente
-      let diffAim = aimYaw - this.currentBodyYaw;
-      while (diffAim > Math.PI) diffAim -= Math.PI * 2;
-      while (diffAim < -Math.PI) diffAim += Math.PI * 2;
-      if (Math.abs(diffAim) > 1.15) {
-        targetBodyYaw = aimYaw;
-      } else {
-        targetBodyYaw = this.currentBodyYaw;
-      }
+      // Parado: alinha suavemente com a mira
+      targetBodyYaw = aimYaw;
+    }
+
+    if (this.skinType !== 'ghost' && moveSpeed > 0.15 && walkDir === -1) {
+      const swing = -Math.sin(this.walkTime);
+      this.leftLegPivot.rotation.x = swing * 0.65;
+      this.rightLegPivot.rotation.x = -swing * 0.65;
     }
 
     // Interpolação suave do ângulo do corpo (evita estalos bruscos ao mudar de direção)
     let diffTarget = targetBodyYaw - this.currentBodyYaw;
     while (diffTarget > Math.PI) diffTarget -= Math.PI * 2;
     while (diffTarget < -Math.PI) diffTarget += Math.PI * 2;
-    const rotSpeed = moveSpeed > 0.35 ? 14 : 7;
+    const rotSpeed = moveSpeed > 0.35 ? 14 : 10;
     this.currentBodyYaw += diffTarget * Math.min(dt * rotSpeed, 1);
 
     this.root.rotation.y = this.currentBodyYaw;
 
-    // Torso twist: compensa a diferença entre o corpo (pés) e a mira para que a arma e a cabeça sempre apontem para o alvo
+    // Torso twist: compensa a diferença entre o quadril (pés) e a mira para que a arma e a cabeça apontem sempre para o alvo
     if (this.torso) {
       let spineTwist = aimYaw - this.currentBodyYaw;
       while (spineTwist > Math.PI) spineTwist -= Math.PI * 2;
       while (spineTwist < -Math.PI) spineTwist += Math.PI * 2;
-      // Clampa o giro do tronco para não quebrar a coluna em 180 graus caso ande de costas
       const maxSpineTwist = 1.25; // ~72 graus
       this.torso.rotation.y = Math.max(-maxSpineTwist, Math.min(maxSpineTwist, spineTwist));
     }

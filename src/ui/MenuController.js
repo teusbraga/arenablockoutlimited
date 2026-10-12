@@ -2,6 +2,7 @@ import { CONFIG } from '../core/ConfigLoader.js';
 import { on, emit } from '../core/EventBus.js';
 import { materialFactory } from '../world/MaterialFactory.js';
 import { DEFAULT_CROSSHAIR_CONFIG } from './CrosshairManager.js';
+import { WeaponPreview3D } from './WeaponPreview3D.js';
 
 /**
  * MenuController
@@ -13,6 +14,7 @@ export class MenuController {
     this.gameManager = gameManager;
     this.weapons = weapons;
     this.crosshairManager = crosshairManager;
+    this.currentTab = 'loadout';
 
     this.mapSelect = document.getElementById('map-select');
     this.weaponSelect = document.getElementById('weapon-select');
@@ -47,6 +49,11 @@ export class MenuController {
     this.customTexTarget = document.getElementById('custom-tex-target');
     this.customTexFile = document.getElementById('custom-tex-file');
     this.customTexStatus = document.getElementById('custom-tex-status');
+
+    // Vitrine 3D Interativa na Aba Loadout
+    this.weaponPreview = new WeaponPreview3D({
+      initialWeaponId: this.weaponSelect?.value || 'ar15',
+    });
 
     this._bindDOM();
     this._bindTabs();
@@ -92,11 +99,19 @@ export class MenuController {
     this.weaponSelect?.addEventListener('change', () => {
       localStorage.setItem('blocky_weapon', this.weaponSelect.value);
       this.weapons.setSlot(0, this.weaponSelect.value);
+      this.weaponPreview?.setWeapon(this.weaponSelect.value, 0);
+    });
+    this.weaponSelect?.addEventListener('focus', () => {
+      this.weaponPreview?.setWeapon(this.weaponSelect.value, 0);
     });
 
     this.weaponSecondarySelect?.addEventListener('change', () => {
       localStorage.setItem('blocky_weapon_secondary', this.weaponSecondarySelect.value);
       this.weapons.setSlot(1, this.weaponSecondarySelect.value);
+      this.weaponPreview?.setWeapon(this.weaponSecondarySelect.value, 1);
+    });
+    this.weaponSecondarySelect?.addEventListener('focus', () => {
+      this.weaponPreview?.setWeapon(this.weaponSecondarySelect.value, 1);
     });
 
     this.botSkinSelect?.addEventListener('change', () => {
@@ -298,9 +313,15 @@ export class MenuController {
 
     this.overlayElRef?.addEventListener('click', async (e) => {
       if (this.gameManager.roundOver) return;
-      if (e.target.closest('input, button, select, .menu-tab-btn')) return;
+      if (e.target.closest('input, button, select, .menu-tab-btn, .weapon-preview-box')) return;
       await this.input.requestLock();
     });
+  }
+
+  _syncPreviewActiveState() {
+    if (!this.weaponPreview) return;
+    const menuVisible = !this.overlayElRef || !this.overlayElRef.classList.contains('hidden');
+    this.weaponPreview.setActive(Boolean(menuVisible && this.currentTab === 'loadout'));
   }
 
   _bindTextureKeys() {
@@ -335,11 +356,13 @@ export class MenuController {
         e.preventDefault();
         e.stopPropagation();
         const targetTab = btn.getAttribute('data-tab');
+        this.currentTab = targetTab || 'loadout';
         tabBtns.forEach(b => b.classList.toggle('active', b === btn));
         tabPanels.forEach(p => {
           const isTarget = p.getAttribute('data-panel') === targetTab;
           p.classList.toggle('active', isTarget);
         });
+        this._syncPreviewActiveState();
       };
       btn.addEventListener('click', handleTab);
       btn.addEventListener('touchstart', handleTab, { passive: false });
@@ -351,6 +374,7 @@ export class MenuController {
     this._unsubInvOpen = on('inventory:opened', () => {
       this.inventoryOpen = true;
       this.overlayElRef?.classList.add('hidden');
+      this._syncPreviewActiveState();
       if (typeof document !== 'undefined' && document.pointerLockElement) {
         document.exitPointerLock?.();
       }
@@ -358,6 +382,7 @@ export class MenuController {
     this._unsubInvClose = on('inventory:closed', () => {
       this.inventoryOpen = false;
       this.input.requestLock();
+      this._syncPreviewActiveState();
     });
 
     this._unsubLock = on('input:lock', locked => {
@@ -383,6 +408,7 @@ export class MenuController {
         const titleEl = document.getElementById('overlay-title');
         if (titleEl) titleEl.textContent = 'PAUSADO';
       }
+      this._syncPreviewActiveState();
     });
   }
 
@@ -550,6 +576,10 @@ export class MenuController {
   }
 
   destroy() {
+    if (this.weaponPreview) {
+      this.weaponPreview.destroy();
+      this.weaponPreview = null;
+    }
     if (this._unsubLock) {
       this._unsubLock();
       this._unsubLock = null;

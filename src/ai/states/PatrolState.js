@@ -27,17 +27,25 @@ export class PatrolState extends AIState {
     }
 
     if (!controller.hasPatrolTarget || Math.hypot(controller.patrolTarget.x - bot.pos.x, controller.patrolTarget.z - bot.pos.z) < 1.5) {
-      controller.patrolTarget.x = (Math.random() * 2 - 1) * 16;
-      controller.patrolTarget.z = (Math.random() * 2 - 1) * 16;
+      if (controller.navGrid) {
+        const pt = controller.navGrid.findRandomWalkablePoint(bot.pos, null, 7.0, 20.0);
+        controller.patrolTarget.x = pt.x;
+        controller.patrolTarget.z = pt.z;
+      } else {
+        controller.patrolTarget.x = (Math.random() * 2 - 1) * 16;
+        controller.patrolTarget.z = (Math.random() * 2 - 1) * 16;
+      }
       controller.hasPatrolTarget = true;
+      controller.clearPath();
     }
 
-    const dx = controller.patrolTarget.x - bot.pos.x;
-    const dz = controller.patrolTarget.z - bot.pos.z;
-    const yaw = Math.atan2(dx, dz);
-    controller._faceTowards(yaw, dt, 4);
-
-    controller.desiredMove.x = Math.sin(yaw) * CONFIG.BOTS.walkSpeed * 0.7;
-    controller.desiredMove.z = Math.cos(yaw) * CONFIG.BOTS.walkSpeed * 0.7;
+    controller.navigateTo(
+      controller.patrolTarget.x,
+      controller.patrolTarget.z,
+      CONFIG.BOTS.walkSpeed * 0.75,
+      dt,
+      4
+    );
   }
 }
+

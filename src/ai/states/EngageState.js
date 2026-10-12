@@ -26,6 +26,11 @@ export class EngageState extends AIState {
         controller.changeState('search');
         return;
       }
+      // Enquanto ainda lembra do jogador atrás da quina, contorna via A* mantendo mira pronta
+      controller.navigateTo(player.pos.x, player.pos.z, CONFIG.BOTS.walkSpeed * 0.85, dt, 7);
+      const targetYaw = Math.atan2(player.pos.x - bot.pos.x, player.pos.z - bot.pos.z);
+      controller._faceTowards(targetYaw, dt, 8);
+      return;
     } else {
       controller.losTimer = CONFIG.BOTS.losMemory;
     }
@@ -33,15 +38,26 @@ export class EngageState extends AIState {
     const targetYaw = Math.atan2(player.pos.x - bot.pos.x, player.pos.z - bot.pos.z);
     controller._faceTowards(targetYaw, dt, 8);
 
+    const rightX = Math.cos(bot.yaw);
+    const rightZ = -Math.sin(bot.yaw);
+
     controller.strafeTimer -= dt;
-    if (controller.strafeTimer <= 0) {
+    // Se bateu em parede lateral ou o próximo passo do strafe for bloqueado, inverte o strafe na hora
+    const strafeProbeX = bot.pos.x + rightX * controller.strafeDir * 0.85;
+    const strafeProbeZ = bot.pos.z + rightZ * controller.strafeDir * 0.85;
+    const strafeBlocked =
+      bot.lastMoveRes?.hitWall ||
+      (controller.navGrid && !controller.navGrid.isWorldWalkable(strafeProbeX, strafeProbeZ));
+
+    if (strafeBlocked) {
+      controller.strafeDir *= -1;
+      controller.strafeTimer = 0.6 + Math.random() * 0.9;
+    } else if (controller.strafeTimer <= 0) {
       controller.strafeDir = Math.random() < 0.5 ? -1 : 1;
       controller.strafeTimer = 0.6 + Math.random() * 1.2;
     }
 
     // Strafe lateral
-    const rightX = Math.cos(bot.yaw);
-    const rightZ = -Math.sin(bot.yaw);
     controller.desiredMove.x = rightX * controller.strafeDir * CONFIG.BOTS.walkSpeed * 0.6;
     controller.desiredMove.z = rightZ * controller.strafeDir * CONFIG.BOTS.walkSpeed * 0.6;
 

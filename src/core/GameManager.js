@@ -281,6 +281,7 @@ export class GameManager {
     }
 
     if (b.ai) {
+      b.ai.clearPath?.();
       b.ai.state = 'patrol';
       b.ai.reactionTimer = 0;
       b.ai.losTimer = 0;

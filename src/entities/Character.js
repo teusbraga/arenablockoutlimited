@@ -53,6 +53,7 @@ export class Character {
     // Integração e colisão com o mundo
     _delta.set(this.vel.x * dt, this.vel.y * dt, this.vel.z * dt);
     const res = this.world.moveAndSlide(this.pos, this.size, _delta, { stepHeight });
+    this.lastMoveRes = res;
 
     this.onGround = res.onGround;
     if (res.onGround && res.groundMaterial) {
