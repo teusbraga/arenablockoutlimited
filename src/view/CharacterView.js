@@ -15,6 +15,32 @@ const SOLDIER_PALETTES = [
   { uniform: 0x252a2f, vest: 0x181c20, helmet: 0x202428, pants: 0x22262a, skin: 0xb57f66 }, // Spec-Ops Dark
 ];
 
+function _getSharedSoldierMaterials(palIdx) {
+  if (!CharacterView._sharedMaterials) {
+    CharacterView._sharedMaterials = [];
+  }
+  if (CharacterView._sharedMaterials[palIdx]) {
+    return CharacterView._sharedMaterials[palIdx];
+  }
+  const pal = SOLDIER_PALETTES[palIdx];
+  const mats = {
+    mUniform: new THREE.MeshStandardMaterial({ color: pal.uniform, roughness: 0.65, metalness: 0.1 }),
+    mVest:    new THREE.MeshStandardMaterial({ color: pal.vest,    roughness: 0.70, metalness: 0.15 }),
+    mHelmet:  new THREE.MeshStandardMaterial({ color: pal.helmet,  roughness: 0.50, metalness: 0.25 }),
+    mPants:   new THREE.MeshStandardMaterial({ color: pal.pants,   roughness: 0.75, metalness: 0.05 }),
+    mSkin:    new THREE.MeshStandardMaterial({ color: pal.skin,    roughness: 0.60, metalness: 0.05 }),
+    mBoots:   new THREE.MeshStandardMaterial({ color: 0x181a1c,    roughness: 0.80, metalness: 0.20 }),
+    mGoggles: new THREE.MeshStandardMaterial({ color: 0x11161d,    roughness: 0.20, metalness: 0.85 }),
+    mGun:     new THREE.MeshStandardMaterial({ color: 0x2e3338,    roughness: 0.35, metalness: 0.80 }),
+    mGunDark: new THREE.MeshStandardMaterial({ color: 0x181a1c,    roughness: 0.45, metalness: 0.60 }),
+  };
+  for (const k of Object.keys(mats)) {
+    mats[k].userData = { isShared: true };
+  }
+  CharacterView._sharedMaterials[palIdx] = mats;
+  return mats;
+}
+
 export class CharacterView {
   constructor(character, scene, options = {}) {
     this.character = character;
@@ -87,17 +113,11 @@ export class CharacterView {
 
     } else {
       /* SOLDADO BLOCKY TÁTICO */
-      const pal = SOLDIER_PALETTES[(this.id - 1) % SOLDIER_PALETTES.length];
-
-      const mUniform = new THREE.MeshStandardMaterial({ color: pal.uniform, roughness: 0.65, metalness: 0.1 });
-      const mVest    = new THREE.MeshStandardMaterial({ color: pal.vest,    roughness: 0.70, metalness: 0.15 });
-      const mHelmet  = new THREE.MeshStandardMaterial({ color: pal.helmet,  roughness: 0.50, metalness: 0.25 });
-      const mPants   = new THREE.MeshStandardMaterial({ color: pal.pants,   roughness: 0.75, metalness: 0.05 });
-      const mSkin    = new THREE.MeshStandardMaterial({ color: pal.skin,    roughness: 0.60, metalness: 0.05 });
-      const mBoots   = new THREE.MeshStandardMaterial({ color: 0x181a1c,    roughness: 0.80, metalness: 0.20 });
-      const mGoggles = new THREE.MeshStandardMaterial({ color: 0x11161d,    roughness: 0.20, metalness: 0.85 });
-      const mGun     = new THREE.MeshStandardMaterial({ color: 0x2e3338,    roughness: 0.35, metalness: 0.80 });
-      const mGunDark = new THREE.MeshStandardMaterial({ color: 0x181a1c,    roughness: 0.45, metalness: 0.60 });
+      const palIdx = (this.id - 1) % SOLDIER_PALETTES.length;
+      const {
+        mUniform, mVest, mHelmet, mPants, mSkin,
+        mBoots, mGoggles, mGun, mGunDark
+      } = _getSharedSoldierMaterials(palIdx);
 
       // ---- 1. Tronco / Torso ----
       this.torso = new THREE.Group();
@@ -379,16 +399,17 @@ export class CharacterView {
   destroy() {
     if (this.root) {
       this.root.traverse(o => {
-        if (o.geometry) {
+        if (o.geometry && !o.geometry.userData?.isShared) {
           o.geometry.dispose();
         }
         if (o.material) {
           if (Array.isArray(o.material)) {
             o.material.forEach(m => {
+              if (m.userData?.isShared) return;
               if (m.map) m.map.dispose();
               m.dispose();
             });
-          } else {
+          } else if (!o.material.userData?.isShared) {
             if (o.material.map) o.material.map.dispose();
             o.material.dispose();
           }

@@ -7,7 +7,7 @@ const MAX_TRACERS = 120;
 const MAX_SPARKS = 80;
 const MAX_SMOKE = 40;
 const MAX_CASINGS = 24;
-const MAX_BLOOD_VOXELS = 180;
+const MAX_BLOOD_VOXELS = 80;
 const MAX_GHOST_SMOKE = 60;
 
 const _dummy = new THREE.Object3D();
@@ -391,36 +391,42 @@ export class Effects {
       });
     }
 
-    // 7. Pixels de Sangue Arcade para Soldados Blocky (InstancedMesh: 1 único draw call na GPU)
-    this.bloodGeo = new THREE.BoxGeometry(1, 1, 1);
-    this.bloodMat = new THREE.MeshLambertMaterial({});
-    this.bloodMesh = new THREE.InstancedMesh(this.bloodGeo, this.bloodMat, MAX_BLOOD_VOXELS);
-    this.bloodMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    this.bloodMesh.frustumCulled = false;
-    this.scene.add(this.bloodMesh);
+    // 7. Explosão de Sangue 2D Flipbook "Zoada" + Adesivo de Poça 2D (Zero Física / Zero Lag)
+    this.blood2DGeo = new THREE.PlaneGeometry(1, 1);
+    this.bloodPuddleGeo = new THREE.PlaneGeometry(1.25, 1.25);
+    this.bloodPuddleGeo.rotateX(-Math.PI / 2);
+
+    this.bloodFlipMats = [0, 1, 2, 3].map(frame => this._createBloodFlipbookMat(frame));
+    this.bloodPuddleMat = this._createBloodPuddleMat();
 
     this.bloodVoxels = [];
     this.bloodIdx = 0;
-    for (let i = 0; i < MAX_BLOOD_VOXELS; i++) {
-      _dummy.position.set(0, -999, 0);
-      _dummy.scale.set(0, 0, 0);
-      _dummy.updateMatrix();
-      this.bloodMesh.setMatrixAt(i, _dummy.matrix);
-      this.bloodMesh.setColorAt(i, _tempColor.setHex(0xd90429));
+    const MAX_BLOOD_2D = 8;
+    for (let i = 0; i < MAX_BLOOD_2D; i++) {
+      const burstMesh = new THREE.Mesh(this.blood2DGeo, this.bloodFlipMats[i % 4]);
+      burstMesh.position.set(0, -999, 0);
+      burstMesh.scale.setScalar(0.001);
+      burstMesh.frustumCulled = false;
+      this.scene.add(burstMesh);
+
+      const puddleMesh = new THREE.Mesh(this.bloodPuddleGeo, this.bloodPuddleMat);
+      puddleMesh.position.set(0, -999, 0);
+      puddleMesh.scale.setScalar(0.001);
+      puddleMesh.frustumCulled = false;
+      this.scene.add(puddleMesh);
+
       this.bloodVoxels.push({
         active: false,
-        x: 0, y: -999, z: 0,
-        vx: 0, vy: 0, vz: 0,
-        rx: 0, ry: 0, rz: 0,
-        vrx: 0, vry: 0, vrz: 0,
-        size: 0.1,
+        burstMesh,
+        puddleMesh,
         life: 0,
-        maxLife: 3.0,
-        settled: false
+        maxLife: 2.2,
+        burstDuration: 0.28,
+        baseScale: 1.8,
+        puddleScale: 1.0,
+        rotZ: 0
       });
     }
-    this.bloodMesh.instanceMatrix.needsUpdate = true;
-    if (this.bloodMesh.instanceColor) this.bloodMesh.instanceColor.needsUpdate = true;
 
     // 8. Fumaça de Fantasma (Explosão poof cartoon cinza/branca)
     this.ghostSmokeGeo = new THREE.SphereGeometry(0.18, 7, 7);
@@ -600,11 +606,22 @@ export class Effects {
     }
     this.protoSmokePool = [];
 
-    // Libera blood voxels
-    if (this.bloodMesh) {
-      if (this.bloodMesh.parent) this.bloodMesh.parent.remove(this.bloodMesh);
-      if (this.bloodGeo) this.bloodGeo.dispose();
-      if (this.bloodMat) this.bloodMat.dispose();
+    // Libera blood 2D flipbook
+    for (const b of this.bloodVoxels) {
+      if (b.burstMesh?.parent) b.burstMesh.parent.remove(b.burstMesh);
+      if (b.puddleMesh?.parent) b.puddleMesh.parent.remove(b.puddleMesh);
+    }
+    if (this.blood2DGeo) this.blood2DGeo.dispose();
+    if (this.bloodPuddleGeo) this.bloodPuddleGeo.dispose();
+    if (this.bloodFlipMats) {
+      for (const m of this.bloodFlipMats) {
+        if (m.map) m.map.dispose();
+        m.dispose();
+      }
+    }
+    if (this.bloodPuddleMat) {
+      if (this.bloodPuddleMat.map) this.bloodPuddleMat.map.dispose();
+      this.bloodPuddleMat.dispose();
     }
     this.bloodVoxels = [];
 
@@ -782,9 +799,11 @@ export class Effects {
   }
 
   _getFloorY(x, y, z) {
-    if (!this.world || !this.world.boxes) return 0.01;
+    if (!this.world) return 0.01;
     let floorY = 0.01;
-    const boxes = this.world.boxes;
+    const boxes = this.world.getNearbyBoxes
+      ? this.world.getNearbyBoxes(x - 0.5, x + 0.5, z - 0.5, z + 0.5)
+      : (this.world.boxes || []);
     for (let i = 0; i < boxes.length; i++) {
       const b = boxes[i];
       if (!b.solid) continue;
@@ -797,44 +816,175 @@ export class Effects {
     return floorY;
   }
 
-  _spawnSoldierBloodVoxels(pos, isHeadshot = false) {
-    const count = isHeadshot ? 36 : 26;
-    const baseY = pos.y + 0.85;
-
-    for (let i = 0; i < count; i++) {
-      const idx = this.bloodIdx;
-      this.bloodIdx = (this.bloodIdx + 1) % MAX_BLOOD_VOXELS;
-      const v = this.bloodVoxels[idx];
-
-      v.active = true;
-      v.x = pos.x + (Math.random() - 0.5) * 0.45;
-      v.y = baseY + (Math.random() - 0.5) * 0.70;
-      v.z = pos.z + (Math.random() - 0.5) * 0.45;
-
-      const ang = Math.random() * Math.PI * 2;
-      const hSpeed = 1.2 + Math.random() * (isHeadshot ? 4.2 : 3.2);
-      v.vx = Math.cos(ang) * hSpeed;
-      v.vz = Math.sin(ang) * hSpeed;
-      v.vy = (isHeadshot ? 3.5 : 2.0) + Math.random() * (isHeadshot ? 5.5 : 3.8);
-
-      v.rx = Math.random() * Math.PI * 2;
-      v.ry = Math.random() * Math.PI * 2;
-      v.rz = Math.random() * Math.PI * 2;
-
-      v.vrx = (Math.random() - 0.5) * 22;
-      v.vry = (Math.random() - 0.5) * 22;
-      v.vrz = (Math.random() - 0.5) * 22;
-
-      v.size = 0.075 + Math.random() * 0.055;
-      v.maxLife = 2.8 + Math.random() * 0.8;
-      v.life = v.maxLife;
-      v.settled = false;
-
-      const hex = _bloodPalette[Math.floor(Math.random() * _bloodPalette.length)];
-      _tempColor.setHex(hex);
-      this.bloodMesh.setColorAt(idx, _tempColor);
+  _createBloodFlipbookMat(frame = 0) {
+    if (typeof document === 'undefined') {
+      return new THREE.MeshBasicMaterial({ color: 0xd90429, transparent: true, depthWrite: false, side: THREE.DoubleSide });
     }
-    if (this.bloodMesh.instanceColor) this.bloodMesh.instanceColor.needsUpdate = true;
+    const c = document.createElement('canvas');
+    c.width = 128;
+    c.height = 128;
+    const ctx = c.getContext && c.getContext('2d');
+    if (!ctx || typeof ctx.clearRect !== 'function') {
+      return new THREE.MeshBasicMaterial({ color: 0xd90429, transparent: true, depthWrite: false, side: THREE.DoubleSide });
+    }
+    ctx.clearRect(0, 0, 128, 128);
+
+    const cx = 64, cy = 64;
+    // Semente determinística por frame para respingos "zoados" estilo MS-Paint / Doom 2D
+    const blobs = [
+      { a: 0.2, d: 18, r: 16, col: '#d90429' },
+      { a: 1.1, d: 24, r: 14, col: '#9b0014' },
+      { a: 2.0, d: 20, r: 18, col: '#ef233c' },
+      { a: 2.9, d: 26, r: 13, col: '#800f2f' },
+      { a: 3.7, d: 22, r: 17, col: '#d90429' },
+      { a: 4.5, d: 25, r: 14, col: '#a4161a' },
+      { a: 5.4, d: 21, r: 16, col: '#ef233c' },
+      { a: 0.7, d: 34, r: 9,  col: '#ba181b' },
+      { a: 2.4, d: 36, r: 10, col: '#d90429' },
+      { a: 4.1, d: 35, r: 9,  col: '#800f2f' },
+      { a: 5.8, d: 33, r: 11, col: '#ef233c' },
+    ];
+
+    if (frame === 0) {
+      // Frame 0: Impacto estrelado violento + miolo vermelho vivo
+      ctx.fillStyle = '#800f2f';
+      ctx.strokeStyle = '#1a0004';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      const spikes = 10;
+      for (let i = 0; i < spikes * 2; i++) {
+        const rad = i % 2 === 0 ? 48 : 20;
+        const ang = (i / (spikes * 2)) * Math.PI * 2;
+        const x = cx + Math.cos(ang) * rad;
+        const y = cy + Math.sin(ang) * rad;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#ff1e38';
+      ctx.beginPath();
+      ctx.arc(cx, cy, 22, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (frame === 1) {
+      // Frame 1: Explosão de respingos grossos + texto zoeiro "SPLAT!"
+      for (const b of blobs) {
+        const bx = cx + Math.cos(b.a) * (b.d * 1.15);
+        const by = cy + Math.sin(b.a) * (b.d * 1.15);
+        ctx.fillStyle = b.col;
+        ctx.strokeStyle = '#1f0004';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(bx, by, b.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#fff0f3';
+      ctx.strokeStyle = '#110002';
+      ctx.lineWidth = 4;
+      ctx.font = 'bold 24px Impact, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.strokeText('SPLAT!', cx, cy);
+      ctx.fillText('SPLAT!', cx, cy);
+    } else if (frame === 2) {
+      // Frame 2: Anel de gotas e blocos 2D se espalhando rápido
+      for (const b of blobs) {
+        const bx = cx + Math.cos(b.a + 0.2) * (b.d * 1.55);
+        const by = cy + Math.sin(b.a + 0.2) * (b.d * 1.55);
+        ctx.fillStyle = b.col;
+        ctx.strokeStyle = '#1f0004';
+        ctx.lineWidth = 2;
+        ctx.fillRect(bx - b.r * 0.65, by - b.r * 0.65, b.r * 1.3, b.r * 1.3);
+        ctx.strokeRect(bx - b.r * 0.65, by - b.r * 0.65, b.r * 1.3, b.r * 1.3);
+      }
+    } else {
+      // Frame 3: Gotículas finais dissipando no ar
+      ctx.globalAlpha = 0.65;
+      for (const b of blobs) {
+        const bx = cx + Math.cos(b.a + 0.35) * (b.d * 1.72);
+        const by = cy + Math.sin(b.a + 0.35) * (b.d * 1.72);
+        ctx.fillStyle = b.col;
+        ctx.fillRect(bx - 5, by - 5, 10, 10);
+      }
+    }
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return new THREE.MeshBasicMaterial({
+      map: tex,
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide
+    });
+  }
+
+  _createBloodPuddleMat() {
+    if (typeof document === 'undefined') {
+      return new THREE.MeshBasicMaterial({ color: 0x800f2f, transparent: true, depthWrite: false });
+    }
+    const c = document.createElement('canvas');
+    c.width = 128;
+    c.height = 128;
+    const ctx = c.getContext && c.getContext('2d');
+    if (!ctx || typeof ctx.clearRect !== 'function') {
+      return new THREE.MeshBasicMaterial({ color: 0x800f2f, transparent: true, depthWrite: false });
+    }
+    ctx.clearRect(0, 0, 128, 128);
+
+    ctx.fillStyle = '#800f2f';
+    ctx.strokeStyle = '#2b020c';
+    ctx.lineWidth = 3;
+    const drops = [
+      [64, 64, 34], [42, 54, 20], [86, 58, 22], [58, 86, 21],
+      [78, 82, 16], [30, 76, 11], [96, 40, 10], [46, 32, 12]
+    ];
+    for (const [x, y, r] of drops) {
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#a4161a';
+    ctx.beginPath();
+    ctx.arc(62, 62, 22, 0, Math.PI * 2);
+    ctx.fill();
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return new THREE.MeshBasicMaterial({
+      map: tex,
+      transparent: true,
+      depthWrite: false,
+      polygonOffset: true,
+      polygonOffsetFactor: -1
+    });
+  }
+
+  _spawnSoldierBloodVoxels(pos, isHeadshot = false) {
+    if (!this.bloodVoxels || this.bloodVoxels.length === 0) return;
+    const idx = this.bloodIdx;
+    this.bloodIdx = (this.bloodIdx + 1) % this.bloodVoxels.length;
+    const v = this.bloodVoxels[idx];
+
+    v.active = true;
+    v.maxLife = 2.0;
+    v.life = v.maxLife;
+    v.burstDuration = isHeadshot ? 0.30 : 0.24;
+    v.baseScale = isHeadshot ? 2.25 : 1.70;
+    v.puddleScale = isHeadshot ? 1.25 : 0.95;
+    v.rotZ = (Math.random() - 0.5) * 0.5;
+
+    const floorY = this._getFloorY(pos.x, pos.y + 0.5, pos.z);
+    v.burstMesh.material = this.bloodFlipMats[0];
+    v.burstMesh.position.set(pos.x, pos.y + (isHeadshot ? 1.25 : 0.95), pos.z);
+    v.burstMesh.scale.setScalar(v.baseScale * 0.7);
+
+    v.puddleMesh.position.set(pos.x, floorY + 0.015, pos.z);
+    v.puddleMesh.rotation.z = Math.random() * Math.PI * 2;
+    v.puddleMesh.scale.setScalar(v.puddleScale);
   }
 
   _spawnGhostDeathSmoke(pos, isHeadshot = false) {
@@ -1393,76 +1543,41 @@ export class Effects {
       }
     }
 
-    // 7. Pixels de Sangue Arcade para Soldados Blocky (Física, quique no chão e encolhimento)
-    let bloodNeedsUpdate = false;
-    for (let i = 0; i < MAX_BLOOD_VOXELS; i++) {
+    // 7. Explosão de Sangue 2D Flipbook + Poça 2D no Chão (Zero Física)
+    for (let i = 0; i < this.bloodVoxels.length; i++) {
       const v = this.bloodVoxels[i];
       if (!v.active) continue;
 
-      bloodNeedsUpdate = true;
       v.life -= dt;
       if (v.life <= 0) {
         v.active = false;
-        _dummy.position.set(0, -999, 0);
-        _dummy.scale.set(0, 0, 0);
-        _dummy.updateMatrix();
-        this.bloodMesh.setMatrixAt(i, _dummy.matrix);
+        v.burstMesh.position.set(0, -999, 0);
+        v.burstMesh.scale.setScalar(0.001);
+        v.puddleMesh.position.set(0, -999, 0);
+        v.puddleMesh.scale.setScalar(0.001);
         continue;
       }
 
-      if (!v.settled) {
-        // Gravidade arcade e arrasto aerodinâmico
-        v.vy -= 18.0 * dt;
-        v.vx *= Math.max(0, 1 - 0.40 * dt);
-        v.vz *= Math.max(0, 1 - 0.40 * dt);
-
-        v.x += v.vx * dt;
-        v.y += v.vy * dt;
-        v.z += v.vz * dt;
-
-        v.rx += v.vrx * dt;
-        v.ry += v.vry * dt;
-        v.rz += v.vrz * dt;
-
-        // Colisão com chão ou topo de obstáculos e quique (bounce/kick)
-        const floorY = this._getFloorY(v.x, v.y, v.z);
-        if (v.y - v.size * 0.5 <= floorY) {
-          v.y = floorY + v.size * 0.5;
-          if (Math.abs(v.vy) > 0.85) {
-            // Kick / Bounce no chão
-            v.vy = -v.vy * (0.35 + Math.random() * 0.15);
-            v.vx *= 0.65;
-            v.vz *= 0.65;
-            v.vrx *= 0.6;
-            v.vry *= 0.6;
-            v.vrz *= 0.6;
-          } else {
-            // Assenta no chão
-            v.vy = 0;
-            v.vx = 0;
-            v.vz = 0;
-            v.vrx = 0;
-            v.vry = 0;
-            v.vrz = 0;
-            v.settled = true;
-          }
+      const elapsed = v.maxLife - v.life;
+      if (elapsed < v.burstDuration) {
+        const k = elapsed / v.burstDuration; // 0 -> 1
+        const frameIdx = Math.min(3, Math.floor(k * 4));
+        if (v.burstMesh.material !== this.bloodFlipMats[frameIdx]) {
+          v.burstMesh.material = this.bloodFlipMats[frameIdx];
         }
+        v.burstMesh.scale.setScalar(v.baseScale * (0.75 + k * 0.55));
+        if (camera) {
+          v.burstMesh.quaternion.copy(camera.quaternion);
+          v.burstMesh.rotateZ(v.rotZ);
+        }
+      } else if (v.burstMesh.position.y > -500) {
+        v.burstMesh.position.set(0, -999, 0);
+        v.burstMesh.scale.setScalar(0.001);
       }
 
-      // Encolhimento gradual nos últimos 0.6s de vida
-      let curSize = v.size;
-      if (v.life < 0.6) {
-        curSize = v.size * Math.max(0, v.life / 0.6);
+      if (v.life < 0.4) {
+        v.puddleMesh.scale.setScalar(Math.max(0.001, v.puddleScale * (v.life / 0.4)));
       }
-
-      _dummy.position.set(v.x, v.y, v.z);
-      _dummy.rotation.set(v.rx, v.ry, v.rz);
-      _dummy.scale.setScalar(curSize);
-      _dummy.updateMatrix();
-      this.bloodMesh.setMatrixAt(i, _dummy.matrix);
-    }
-    if (bloodNeedsUpdate) {
-      this.bloodMesh.instanceMatrix.needsUpdate = true;
     }
 
     // 8. Fumaça de Fantasma (Explosão poof cinza/branca que expande e dissipa)

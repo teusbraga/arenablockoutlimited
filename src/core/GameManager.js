@@ -22,6 +22,7 @@ export class GameManager {
     this.roundOver = false;
     this.roundDuration = 210; // Padrão 3m 30s
     this.roundTimeLeft = 210;
+    this._lastEmittedTimerSec = -1;
     this.killCombo = 0;
     this.lastKillTime = -999;
 
@@ -38,6 +39,7 @@ export class GameManager {
     this.roundDuration = seconds;
     if (!this.hasStarted) {
       this.roundTimeLeft = seconds;
+      this._lastEmittedTimerSec = Math.floor(this.roundTimeLeft);
       emit('round:timer', this.roundTimeLeft);
     }
   }
@@ -84,7 +86,10 @@ export class GameManager {
           const def = WEAPONS[dropWeapon];
           const ammo = def?.magSize || 30;
           this.spawnItemDrop(e.bot.pos, dropWeapon, ammo);
-          this.scheduleBotRespawn(e.bot);
+          e.bot.respawnTimer = CONFIG.BOTS.respawnTime || 4.0;
+          setTimeout(() => {
+            if (e.bot && !e.bot.alive) this.scheduleBotRespawn(e.bot);
+          }, 0);
         }
       }),
     ];
@@ -157,7 +162,17 @@ export class GameManager {
       if (distP < minPlayerDist) return false;
     }
 
-    if (this.world?.boxes) {
+    if (this.world?.getNearbyBoxes) {
+      const r = minPropDist;
+      const candidates = this.world.getNearbyBoxes(px - r, px + r, pz - r, pz + r);
+      for (let i = 0; i < candidates.length; i++) {
+        const b = candidates[i];
+        if (!b.solid || b.max.y <= 0.2) continue;
+        if (this._distToBox(px, pz, b) < minPropDist) {
+          return false;
+        }
+      }
+    } else if (this.world?.boxes) {
       for (const b of this.world.boxes) {
         if (!b.solid || b.max.y <= 0.2) continue;
         if (this._distToBox(px, pz, b) < minPropDist) {
@@ -240,7 +255,9 @@ export class GameManager {
     if (!bot) return;
     const safePos = this._findClearSpawnPos(3.0, 11.0, bot);
     bot.nextSpawnPos = safePos;
-    bot.respawnTimer = CONFIG.BOTS.respawnTime || 4.0;
+    if (bot.respawnTimer <= 0) {
+      bot.respawnTimer = CONFIG.BOTS.respawnTime || 4.0;
+    }
   }
 
   /**
@@ -312,6 +329,7 @@ export class GameManager {
   resetGame() {
     this.roundOver = false;
     this.roundTimeLeft = this.roundDuration;
+    this._lastEmittedTimerSec = -1;
     this.killCombo = 0;
     this.lastKillTime = -999;
     
@@ -358,7 +376,11 @@ export class GameManager {
       this.roundTimeLeft = 0;
       this.endRound();
     }
-    emit('round:timer', this.roundTimeLeft);
+    const newSec = Math.floor(this.roundTimeLeft);
+    if (newSec !== this._lastEmittedTimerSec) {
+      this._lastEmittedTimerSec = newSec;
+      emit('round:timer', this.roundTimeLeft);
+    }
     
     // Atualiza portas e interação
     let nearDoor = null;

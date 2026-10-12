@@ -48,6 +48,7 @@
   "accessibility": {
     "headbobScale": 1.0,
     "shakeScale": 1.0,
-    "vibrationEnabled": true
+    "vibrationEnabled": true,
+    "suppressionEnabled": true
   }
 }

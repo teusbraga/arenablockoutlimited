@@ -51,7 +51,8 @@ export const DEFAULT_CONFIG = {
   ACCESSIBILITY: {
     headbobScale: 1.0,
     shakeScale: 1.0,
-    vibrationEnabled: true
+    vibrationEnabled: true,
+    suppressionEnabled: true
   },
   CHEATS: {
     godMode: false,

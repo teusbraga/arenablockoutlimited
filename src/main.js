@@ -149,17 +149,15 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
     // ---------------------------------------------------------
     const dummyDropGroup = new THREE.Group();
     if (ItemDrop && ItemDrop.builders) {
-      if (!ItemDrop._templates) ItemDrop._templates = {};
+      if (!ItemDrop._stickerGeo) {
+        ItemDrop._stickerGeo = new THREE.PlaneGeometry(1.15, 0.80);
+        ItemDrop._stickerGeo.rotateX(-Math.PI / 2);
+      }
       for (const id in ItemDrop.builders) {
-        if (!ItemDrop._templates[id]) {
-          try {
-            const res = ItemDrop.builders[id]();
-            ItemDrop._templates[id] = res.group ?? res;
-          } catch(e) {}
-        }
-        if (ItemDrop._templates[id]) {
-          dummyDropGroup.add(ItemDrop._templates[id]);
-        }
+        const stickerMat = ItemDrop.getStickerMaterial(id);
+        const dummySticker = new THREE.Mesh(ItemDrop._stickerGeo, stickerMat);
+        dummySticker.frustumCulled = false;
+        dummyDropGroup.add(dummySticker);
       }
       dummyDropGroup.position.set(0, -999, 0);
       scene.add(dummyDropGroup);

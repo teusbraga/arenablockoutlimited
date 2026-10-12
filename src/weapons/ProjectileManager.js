@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { emit } from '../core/EventBus.js';
+import { CONFIG } from '../core/ConfigLoader.js';
 import { BallisticsCalculator } from './BallisticsCalculator.js';
 
 export const SPEED_OF_SOUND = 343.0; // Velocidade do som no ar (m/s) a 20°C
@@ -13,6 +14,8 @@ export class Projectile {
     this.active = false;
     this.pos = new THREE.Vector3();
     this.prevPos = new THREE.Vector3();
+    this._suppressLastPos = new THREE.Vector3();
+    this._suppressTick = 0;
     this.vel = new THREE.Vector3();
     this.gravity = 9.8;
     this.drag = 0.005;
@@ -39,6 +42,7 @@ export class Projectile {
     this.active = false;
     this.distanceTraveled = 0;
     this.life = 0;
+    this._suppressTick = 0;
     this.weaponDef = null;
     this.ownerEntity = null;
     this.penetrationsRemaining = 0;
@@ -80,6 +84,7 @@ export class ProjectileManager {
 
     // Object Pool pré-alocado
     this.pool = Array.from({ length: maxProjectiles }, () => new Projectile());
+    this._activeList = [];
     this.raycaster = new THREE.Raycaster();
     this.wind = new THREE.Vector3(0, 0, 0); // Vento global (m/s)
   }
@@ -126,6 +131,7 @@ export class ProjectileManager {
 
     p.pos.copy(origin);
     p.prevPos.copy(origin);
+    p._suppressLastPos.copy(origin);
     p.spawnOrigin.copy(origin); // Ancora para o tracer "Muzzle Pin"
     p.vel.copy(direction).normalize().multiplyScalar(speed);
     p.gravity = drop;
@@ -390,7 +396,7 @@ export class ProjectileManager {
         const acousticDelay = totalDistance / SPEED_OF_SOUND;
 
         // Avalia supressão nos arredores da trajetória percorrida até a colisão
-        this._checkSuppression(p, p.prevPos, entityHit.point, entityHit);
+        this._checkSuppression(p, p._suppressLastPos, entityHit.point, entityHit);
 
         p.pos.copy(entityHit.point);
         p.active = false;
@@ -446,7 +452,7 @@ export class ProjectileManager {
         _worldHitPoint.copy(hitWorld.point);
 
         // Avalia supressão nos arredores da trajetória percorrida até a parede
-        this._checkSuppression(p, p.prevPos, _worldHitPoint);
+        this._checkSuppression(p, p._suppressLastPos, _worldHitPoint);
 
         // 1. VERIFICAÇÃO DE RICOCHETE ANGULAR FÍSICO
         // Superfícies duras com ângulo rasante (< 25°, cos > -0.42 ou dot < 0.42 em relação à normal)
@@ -475,6 +481,8 @@ export class ProjectileManager {
           // Reposiciona o projétil ligeiramente fora da parede na direção da normal
           p.pos.copy(_worldHitPoint).addScaledVector(norm, 0.05);
           p.prevPos.copy(p.pos);
+          p._suppressLastPos.copy(p.pos);
+          p._suppressTick = 0;
           p.distanceTraveled = totalDistance;
           p.damageMultiplier *= 0.55; // Ricochete causa menos dano letal
           p.penetrationsRemaining = Math.max(0, p.penetrationsRemaining - 1);
@@ -516,6 +524,8 @@ export class ProjectileManager {
           _exitHitPoint.copy(_worldHitPoint).addScaledVector(_stepDir, wallThickness + 0.06);
           p.pos.copy(_exitHitPoint);
           p.prevPos.copy(_exitHitPoint);
+          p._suppressLastPos.copy(_exitHitPoint);
+          p._suppressTick = 0;
 
           // Perda de velocidade (25% a 40%) e redução do dano restante
           const speedRetained = Math.max(0.4, 1.0 - (requiredPenPower * 0.45));
@@ -558,8 +568,12 @@ export class ProjectileManager {
       p.distanceTraveled += stepDist;
       p.life += dt;
 
-      // Supressão tática para projéteis em vôo livre
-      this._checkSuppression(p, p.prevPos, p.pos);
+      // Supressão tática para projéteis em vôo livre (throttled a cada 4 ticks cobrindo o segmento completo)
+      p._suppressTick = (p._suppressTick + 1) & 3;
+      if (p._suppressTick === 0) {
+        this._checkSuppression(p, p._suppressLastPos, p.pos);
+        p._suppressLastPos.copy(p.pos);
+      }
 
       if (p.life >= p.maxLife || p.distanceTraveled >= p.maxDistance || p.pos.y < -40) {
         p.active = false;
@@ -572,6 +586,7 @@ export class ProjectileManager {
    * Dispara flinch, tremor de câmera, estalo supersônico e vinheta de visão de túnel.
    */
   _checkSuppression(p, startPos, endPos, entityHit = null) {
+    if (CONFIG.ACCESSIBILITY?.suppressionEnabled === false) return;
     const suppressionRadius = 2.40;
 
     // 1. Supressão contra o Jogador (tiros disparados por bots ou ricochetes)
@@ -645,7 +660,8 @@ export class ProjectileManager {
    * Retorna os projéteis ativos para uso por sistemas visuais.
    */
   getActiveProjectiles() {
-    const list = [];
+    const list = this._activeList;
+    list.length = 0;
     for (let i = 0; i < this.pool.length; i++) {
       if (this.pool[i].active) list.push(this.pool[i]);
     }

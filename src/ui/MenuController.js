@@ -36,6 +36,7 @@ export class MenuController {
     this.shakeSlider = document.getElementById('shake-slider');
     this.shakeSliderVal = document.getElementById('shake-val');
     this.vibrationToggle = document.getElementById('vibration-toggle');
+    this.suppressionToggle = document.getElementById('suppression-toggle');
 
     // Controles de Textura (Aba Texturas)
     this.texModeSelect = document.getElementById('texture-mode-select');
@@ -187,6 +188,24 @@ export class MenuController {
         const enabled = this.vibrationToggle.value === 'on';
         CONFIG.ACCESSIBILITY.vibrationEnabled = enabled;
         localStorage.setItem('blocky_vibration', enabled ? 'true' : 'false');
+      });
+    }
+
+    // Acessibilidade: Efeito de Supressão (Near-Miss)
+    const savedSup = localStorage.getItem('blocky_suppression');
+    if (this.suppressionToggle) {
+      if (savedSup !== null) {
+        this.suppressionToggle.value = savedSup === 'false' ? 'off' : 'on';
+      } else if (CONFIG.ACCESSIBILITY?.suppressionEnabled === false) {
+        this.suppressionToggle.value = 'off';
+      }
+      if (!CONFIG.ACCESSIBILITY) CONFIG.ACCESSIBILITY = {};
+      CONFIG.ACCESSIBILITY.suppressionEnabled = this.suppressionToggle.value === 'on';
+
+      this.suppressionToggle.addEventListener('change', () => {
+        const enabled = this.suppressionToggle.value === 'on';
+        CONFIG.ACCESSIBILITY.suppressionEnabled = enabled;
+        localStorage.setItem('blocky_suppression', enabled ? 'true' : 'false');
       });
     }
 

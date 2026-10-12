@@ -25,7 +25,8 @@ assert.ok(CONFIG.ACCESSIBILITY, 'CONFIG.ACCESSIBILITY deve existir');
 assert.strictEqual(typeof CONFIG.ACCESSIBILITY.headbobScale, 'number');
 assert.strictEqual(typeof CONFIG.ACCESSIBILITY.shakeScale, 'number');
 assert.strictEqual(typeof CONFIG.ACCESSIBILITY.vibrationEnabled, 'boolean');
-console.log(`✅ Defaults OK: Headbob=${CONFIG.ACCESSIBILITY.headbobScale}, Shake=${CONFIG.ACCESSIBILITY.shakeScale}, Vibrate=${CONFIG.ACCESSIBILITY.vibrationEnabled}`);
+assert.strictEqual(typeof CONFIG.ACCESSIBILITY.suppressionEnabled, 'boolean');
+console.log(`✅ Defaults OK: Headbob=${CONFIG.ACCESSIBILITY.headbobScale}, Shake=${CONFIG.ACCESSIBILITY.shakeScale}, Vibrate=${CONFIG.ACCESSIBILITY.vibrationEnabled}, Suppression=${CONFIG.ACCESSIBILITY.suppressionEnabled}`);
 
 // ---------------------------------------------------------------------
 // TESTE 2: Modulação Data-Driven do Headbob (±20%) no CameraRig
