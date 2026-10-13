@@ -17,6 +17,21 @@ import { LocomotionSmoothingSystem } from '../new_mechanics/LocomotionSmoothingS
 // Re-exporta construtores para compatibilidade com main.js / WeaponRegistry
 export { buildHK416, buildHK416 as buildAR15, buildP9, buildUZI, buildM249, buildRiflePrototype, buildAK47, buildSW500, buildWinchester1912, buildWinchester1912 as buildM12, buildVSS, buildSCARH };
 
+// Configuração do tamanho do Muzzle Flash padrão VSS Glow por arma
+const FLASH_SIZES = {
+  'ar15': 0.25,        // HK416: tamanho atual da VSS (0.25)
+  'hk416': 0.25,
+  'ak47': 0.25,        // AK-47: tamanho atual da VSS (0.25)
+  'scar_h': 0.38,      // SCAR-H: aumentado
+  'scar': 0.38,
+  'rifle_proto': 0.38, // Rifle Prototype: aumentado
+  'uzi': 0.34,         // UZI: aumentado
+  'sw500': 0.52,       // S&W 500: muito grande
+  'm249': 0.56,        // M249: muito grande
+  'vss': 0,            // VSS: sem flash (silenciada, fica só com fumaça)
+  'p9': 0,             // P9: sem flash (só fumaça)
+  'm12': 0,            // M12: sem flash ("exceção da m13 q n tem flash mas tem um cano grossão")
+};
 
 /**
  * Viewmodel: Gerenciador de pose, física de mola (sway), recuo e animações da arma em 1ª pessoa.
@@ -35,14 +50,14 @@ export class Viewmodel {
     this.swayGroup.add(this.mount);
 
     // Muzzle Flash Light dinâmico
-    this.flashLight = new THREE.PointLight(0xffaa55, 0, 8, 1.6);
+    this.flashLight = new THREE.PointLight(0xff9922, 0, 5, 2.0);
     this.flashLight.position.set(0, 0.02, -0.5);
     this.mount.add(this.flashLight);
 
-    // Muzzle Flash Mesh volumétrico cruzado
+    // Muzzle Flash Mesh volumétrico cruzado (Padrão VSS Glow - 2 Planos Ortogonais Cruzados)
     this.flashGroup = new THREE.Group();
     
-    this.flashTex = this._createMuzzleFlashTexture();
+    this.flashTex = this._createVSSGlowTexture();
     this.flashMat = new THREE.MeshBasicMaterial({
       color: 0xffd88a,
       map: this.flashTex,
@@ -54,27 +69,18 @@ export class Viewmodel {
     });
     
     const flashGeo = new THREE.PlaneGeometry(1, 1);
-    flashGeo.translate(0, 0.5, 0); // Origem na base da chama
-    flashGeo.rotateX(-Math.PI / 2); // Deita o plano para apontar pra frente (-Z)
-    
     this.flashMesh1 = new THREE.Mesh(flashGeo, this.flashMat);
     this.flashMesh2 = new THREE.Mesh(flashGeo, this.flashMat);
-    this.flashMesh2.rotation.z = Math.PI / 2;
-    this.flashMesh3 = new THREE.Mesh(flashGeo, this.flashMat);
-    this.flashMesh3.rotation.z = Math.PI / 4;
-    this.flashMesh4 = new THREE.Mesh(flashGeo, this.flashMat);
-    this.flashMesh4.rotation.z = -Math.PI / 4;
+    this.flashMesh2.rotation.x = Math.PI / 2;
     
     this.flashGroup.add(this.flashMesh1);
     this.flashGroup.add(this.flashMesh2);
-    this.flashGroup.add(this.flashMesh3);
-    this.flashGroup.add(this.flashMesh4);
     this.flashGroup.visible = false;
     this.mount.add(this.flashGroup);
 
     this.flashTimer = 0;
-    this.flashDuration = 0.05;
-    this.flashMaxOpacity = 0.9;
+    this.flashDuration = 0.055;
+    this.flashMaxOpacity = 0.90;
 
     // Transição suave de saque (Draw animation)
     this.drawAmount = 0;
@@ -101,30 +107,48 @@ export class Viewmodel {
     this.locomotion = new LocomotionSmoothingSystem();
   }
 
+  _createVSSGlowTexture() {
+    if (typeof document === 'undefined') return new THREE.Texture();
+    const s = 64;
+    const c = document.createElement('canvas');
+    c.width = c.height = s;
+    const ctx = c.getContext('2d');
+    const g = ctx.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+    g.addColorStop(0.00, 'rgba(255,255,255,1)');
+    g.addColorStop(0.20, 'rgba(255,240,180,0.95)');
+    g.addColorStop(0.45, 'rgba(255,160,50,0.45)');
+    g.addColorStop(0.75, 'rgba(255,80,10,0.12)');
+    g.addColorStop(1.00, 'rgba(255,40,0,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, s, s);
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }
+
+  /* ============================================================
+     GAVETA: Antigo Muzzle Flash Estilizado em Chama (Legado)
+     ============================================================
   _createMuzzleFlashTexture() {
     if (typeof document === 'undefined') return new THREE.Texture();
     const w = 64, h = 128;
     const c = document.createElement('canvas');
     c.width = w; c.height = h;
     const ctx = c.getContext('2d');
-
     ctx.clearRect(0, 0, w, h);
     const cx = w / 2;
     const cy = h;
-
     const grad = ctx.createRadialGradient(cx, cy - 10, 0, cx, cy - 20, h);
     grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
     grad.addColorStop(0.1, 'rgba(255, 240, 150, 0.9)');
     grad.addColorStop(0.3, 'rgba(255, 120, 30, 0.6)');
     grad.addColorStop(1, 'rgba(255, 40, 0, 0)');
-
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.moveTo(cx, 0); 
     ctx.quadraticCurveTo(w, h - 30, cx, h);
     ctx.quadraticCurveTo(0, h - 30, cx, 0);
     ctx.fill();
-
     const coreGrad = ctx.createRadialGradient(cx, cy - 5, 0, cx, cy - 10, h/2.5);
     coreGrad.addColorStop(0, 'rgba(255, 255, 255, 1)');
     coreGrad.addColorStop(0.3, 'rgba(200, 240, 255, 0.8)');
@@ -136,11 +160,11 @@ export class Viewmodel {
     ctx.quadraticCurveTo(cx + 12, h - 15, cx, h);
     ctx.quadraticCurveTo(cx - 12, h - 15, cx, h / 3);
     ctx.fill();
-
     const tex = new THREE.CanvasTexture(c);
     tex.colorSpace = THREE.SRGBColorSpace;
     return tex;
   }
+  */
 
   registerModel(weaponId, buildFn) {
     const result  = buildFn();
@@ -423,33 +447,38 @@ export class Viewmodel {
   }
 
   flash(def) {
-    if (this.activePhysics) return;
-    const fp = def?.flashProfile || def?.tracerProfile?.flashProfile || {};
+    const wepId = def?.id || '';
+    const baseSize = FLASH_SIZES[wepId] !== undefined ? FLASH_SIZES[wepId] : 0;
+
+    // Se a arma não tem flash (VSS silenciada, P9, M12, etc.), garante que fique oculto
+    if (baseSize <= 0) {
+      this.flashGroup.visible = false;
+      this.flashLight.intensity = 0;
+      this.flashTimer = 0;
+      return;
+    }
+
     const mz = def?.muzzleLocal || [0, 0.02, -0.5];
 
-    // Posiciona e orienta no bocal da arma ativa com offset para mascarar saída
-    const maskOffset = fp.maskElasticOffset ?? 0.05;
+    // Posiciona e orienta no bocal da arma ativa com offset mínimo
     this.flashLight.position.set(mz[0], mz[1], mz[2] - 0.02);
-    this.flashGroup.position.set(mz[0], mz[1], mz[2] - maskOffset);
+    this.flashGroup.position.set(mz[0], mz[1], mz[2] - 0.015);
 
-    const baseSize = fp.size ?? 0.32;
-    const sizeJitter = baseSize * (0.85 + Math.random() * 0.3);
-    this.flashGroup.scale.set(sizeJitter, sizeJitter, sizeJitter);
-    this.flashGroup.rotation.z = Math.random() * Math.PI * 2;
+    const sizeJitter = baseSize * (0.85 + Math.random() * 0.30);
+    this.flashMesh1.scale.setScalar(sizeJitter);
+    this.flashMesh2.scale.setScalar(sizeJitter * 0.85);
+    this.flashMesh1.rotation.z = Math.random() * Math.PI * 2;
+    this.flashMesh2.rotation.z = Math.random() * Math.PI * 2;
 
-    const col = fp.color ? new THREE.Color(fp.color) : new THREE.Color(0xffd88a);
-    this.flashMat.color.copy(col);
-    this.flashLight.color.copy(col);
-
-    this.flashMaxOpacity = fp.opacity ?? 0.92;
+    this.flashMaxOpacity = 0.90;
     this.flashMat.opacity = this.flashMaxOpacity;
-    this.flashDuration = fp.duration ?? 0.05;
+    this.flashDuration = 0.055;
     this.flashTimer = this.flashDuration;
     this.flashGroup.visible = true;
 
-    const baseIntensity = fp.lightIntensity ?? 12.0;
-    this.flashLight.intensity = baseIntensity + Math.random() * (baseIntensity * 0.35);
-    this.flashLight.distance = fp.lightDistance ?? 6.0;
+    const baseIntensity = Math.min(16.0, baseSize * 26.0);
+    this.flashLight.intensity = baseIntensity + Math.random() * (baseIntensity * 0.25);
+    this.flashLight.distance = 5.0;
   }
 
   decayFlash(dt) {
@@ -457,8 +486,14 @@ export class Viewmodel {
       this.flashTimer = Math.max(0, this.flashTimer - dt);
       const ratio = this.flashTimer / Math.max(0.001, this.flashDuration);
       this.flashMat.opacity = this.flashMaxOpacity * ratio;
+      if (this.camera) {
+        this.flashMesh1.lookAt(this.camera.position);
+        this.flashMesh2.lookAt(this.camera.position);
+      }
       if (this.flashTimer <= 0) {
         this.flashGroup.visible = false;
+        this.flashMat.opacity = 0;
+        this.flashLight.intensity = 0;
       }
     } else if (this.flashGroup.visible) {
       this.flashGroup.visible = false;

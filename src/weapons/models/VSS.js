@@ -5,6 +5,7 @@ import * as THREE from 'three';
    ============================================================ */
 
 function makeGlowTexture() {
+  if (typeof document === 'undefined') return new THREE.Texture();
   const s = 64;
   const c = document.createElement('canvas');
   c.width = c.height = s;
@@ -81,18 +82,20 @@ class VSSPhysics {
     }
     this.recoil = Math.min(this.recoil + 0.35, 1.0);
     this.shake = Math.min(this.shake + 0.65, 1.2);
-    this.flashTimer = 0.055;
-    
-    // Muzzle Flash
-    const { muzzleFlash, muzzleFlash2, muzzleLight } = this.flashObj;
-    muzzleFlash.visible = true;
-    muzzleFlash2.visible = true;
-    const sc = 0.6 + Math.random() * 0.5;
-    muzzleFlash.scale.setScalar(sc);
-    muzzleFlash2.scale.setScalar(sc * 0.85);
-    muzzleFlash.rotation.z = Math.random() * Math.PI * 2;
-    muzzleFlash2.rotation.z = Math.random() * Math.PI * 2;
-    muzzleLight.intensity = 10;
+    // GAVETA: Antigo Muzzle Flash Local da VSS (Desativado - VSS silenciada, fica só com fumaça)
+    /*
+    if (this.flashObj) {
+      const { muzzleFlash, muzzleFlash2, muzzleLight } = this.flashObj;
+      muzzleFlash.visible = true;
+      muzzleFlash2.visible = true;
+      const sc = 0.6 + Math.random() * 0.5;
+      muzzleFlash.scale.setScalar(sc);
+      muzzleFlash2.scale.setScalar(sc * 0.85);
+      muzzleFlash.rotation.z = Math.random() * Math.PI * 2;
+      muzzleFlash2.rotation.z = Math.random() * Math.PI * 2;
+      muzzleLight.intensity = 10;
+    }
+    */
   }
 
   onReload() {
@@ -137,8 +140,9 @@ class VSSPhysics {
     this.rifle.rotation.x = r * 0.04;
     this.rifle.rotation.y = r * 0.008;
     
-    // Muzzle flash fade
-    if (this.flashTimer > 0) {
+    // GAVETA: Antigo Muzzle flash fade
+    /*
+    if (this.flashTimer > 0 && this.flashObj) {
       this.flashTimer -= dt;
       const k = Math.max(this.flashTimer / 0.055, 0);
       this.flashObj.flashMat.opacity = k * 0.85;
@@ -153,6 +157,7 @@ class VSSPhysics {
         this.flashObj.muzzleFlash2.lookAt(camera.position);
       }
     }
+    */
   }
 }
 
@@ -342,9 +347,12 @@ export function buildVSS() {
 
   rifle.add(opticGroup);
 
-  /* ---------- 9. MUZZLE FLASH E LUZES ---------- */
+  /* ============================================================
+     GAVETA: 9. MUZZLE FLASH E LUZES LOCAIS (DESATIVADO - VSS Silenciada)
+     O Muzzle Flash agora é centralizado via Viewmodel (VSS fica sem flash)
+     ============================================================ */
+  /*
   const MUZZLE_LOCAL = new THREE.Vector3(0, 0.012, -0.70);
-
   const flashMat = new THREE.MeshBasicMaterial({
     map: GLOW_TEX,
     transparent: true,
@@ -367,13 +375,9 @@ export function buildVSS() {
   const muzzleLight = new THREE.PointLight(0xff9922, 0, 1.2, 2.0);
   muzzleLight.position.set(0, 0.02, -0.68);
   rifle.add(muzzleLight);
+  */
 
-  const physics = new VSSPhysics(rifle, bolt, {
-    muzzleFlash,
-    muzzleFlash2,
-    muzzleLight,
-    flashMat
-  });
+  const physics = new VSSPhysics(rifle, bolt, null);
 
   return { 
     group: root,

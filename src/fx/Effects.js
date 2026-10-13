@@ -521,11 +521,10 @@ export class Effects {
         if (!e.muzzleWorld) return;
         if (e.weapon?.id === 'rifle_proto') {
           this._spawnProtoSparks(e.muzzleWorld, e.forward, 9);
-          this._spawnProtoSmoke(e.muzzleWorld, e.forward, 2);
-          return;
         }
-        const opacity = e.weapon?.smokeConeOpacity ?? 0.06;
-        this._spawnMuzzleSmoke(e.muzzleWorld, e.forward, opacity);
+        const opacity = e.weapon?.smokeConeOpacity ?? 0.28;
+        const scaleMul = e.weapon?.smokeConeScale ?? 1.2;
+        this._spawnMuzzleSmoke(e.muzzleWorld, e.forward, opacity, scaleMul);
       }),
       on('weapon:manual_eject_fx', e => {
         if (e.ejectWorld && e.right && e.up) {
@@ -733,29 +732,30 @@ export class Effects {
     }
   }
 
-  // 1. Cone de fumaça frontal durante o disparo (quase totalmente translúcida)
-  _spawnMuzzleSmoke(muzzlePos, forward, maxOpacity = 0.06) {
-    for (let i = 0; i < 3; i++) {
+  // 1. Cone de fumaça frontal durante o disparo (proporcional ao flash e cano da arma)
+  _spawnMuzzleSmoke(muzzlePos, forward, maxOpacity = 0.28, scaleMul = 1.0) {
+    const count = Math.max(3, Math.min(6, Math.round(3 * scaleMul)));
+    for (let i = 0; i < count; i++) {
       const p = this.smokes[this.smokeIdx];
       this.smokeIdx = (this.smokeIdx + 1) % MAX_SMOKE;
 
       p.mesh.position.copy(muzzlePos);
-      p.startScale = 0.6 + Math.random() * 0.5;
+      p.startScale = (0.7 + Math.random() * 0.5) * scaleMul;
       p.mesh.scale.setScalar(p.startScale);
       p.maxOpacity = maxOpacity;
       p.mesh.material.opacity = maxOpacity;
       p.mesh.visible = true;
       
-      // Projeção em cone para frente com leve abertura
-      const spread = 0.35;
-      p.vel.copy(forward).multiplyScalar(2.2 + Math.random() * 1.5).add(new THREE.Vector3(
+      // Projeção em cone para frente com leve abertura proporcional ao calibre/cano
+      const spread = 0.35 * Math.min(1.4, scaleMul);
+      p.vel.copy(forward).multiplyScalar((2.4 + Math.random() * 1.6) * Math.min(1.3, scaleMul)).add(new THREE.Vector3(
         (Math.random() - 0.5) * spread,
-        (Math.random() - 0.5) * spread + 0.1,
+        (Math.random() - 0.5) * spread + 0.08,
         (Math.random() - 0.5) * spread
       ));
       
-      p.growth = 2.2 + Math.random() * 1.0;
-      p.maxLife = 0.28 + Math.random() * 0.12; // evaporação rápida no ar
+      p.growth = 2.4 + Math.random() * 1.2;
+      p.maxLife = 0.38 + Math.random() * 0.20; // Duração equilibrada para formar o cone sem poluir
       p.life = p.maxLife;
       p.active = true;
     }
@@ -1463,7 +1463,7 @@ export class Effects {
       p.mesh.position.addScaledVector(p.vel, dt);
       const grow = 1 + (1 - t) * p.growth;
       p.mesh.scale.setScalar(p.startScale * grow);
-      p.mesh.material.opacity = t * t * (p.maxOpacity || 0.6);
+      p.mesh.material.opacity = Math.pow(t, 1.25) * (p.maxOpacity || 0.6);
     }
 
     // 4. Faíscas do Protótipo (simulação física com gravidade e arrasto)

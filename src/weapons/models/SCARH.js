@@ -267,17 +267,21 @@ export class PrototypePhysics {
     this.recoil = Math.min(this.recoil + 0.42, 1.15);
     this.shake = Math.min(this.shake + 0.85, 1.6);
 
-    // 3. Muzzle flash
+    // GAVETA: Antigo Muzzle flash local da SCAR-H (Desativado - Centralizado via Viewmodel)
+    /*
     this.flashTimer = 0.055;
-    const { muzzleFlash, muzzleFlash2, muzzleLight } = this.flashObj;
-    muzzleFlash.visible = true;
-    muzzleFlash2.visible = true;
-    const sc = 0.75 + Math.random() * 0.7;
-    muzzleFlash.scale.setScalar(sc);
-    muzzleFlash2.scale.setScalar(sc * 0.85);
-    muzzleFlash.rotation.z = Math.random() * Math.PI * 2;
-    muzzleFlash2.rotation.z = Math.random() * Math.PI * 2;
-    muzzleLight.intensity = 14;
+    if (this.flashObj) {
+      const { muzzleFlash, muzzleFlash2, muzzleLight } = this.flashObj;
+      muzzleFlash.visible = true;
+      muzzleFlash2.visible = true;
+      const sc = 0.75 + Math.random() * 0.7;
+      muzzleFlash.scale.setScalar(sc);
+      muzzleFlash2.scale.setScalar(sc * 0.85);
+      muzzleFlash.rotation.z = Math.random() * Math.PI * 2;
+      muzzleFlash2.rotation.z = Math.random() * Math.PI * 2;
+      muzzleLight.intensity = 14;
+    }
+    */
   }
 
   onReload() {
@@ -329,8 +333,9 @@ export class PrototypePhysics {
     this.rifle.rotation.z = r * 0.105;
     this.rifle.rotation.y = r * 0.012;
 
-    /* ---- muzzle flash ---- */
-    if (this.flashTimer > 0) {
+    // GAVETA: Antigo muzzle flash fade
+    /*
+    if (this.flashTimer > 0 && this.flashObj) {
       this.flashTimer -= dt;
       const k = Math.max(this.flashTimer / 0.055, 0);
       this.flashObj.flashMat.opacity = k * 0.95;
@@ -345,6 +350,7 @@ export class PrototypePhysics {
         this.flashObj.muzzleFlash2.lookAt(camera.position);
       }
     }
+    */
   }
 }
 
@@ -551,9 +557,12 @@ export function buildSCARH() {
   bolt.add(leftHandle);
   rifle.add(bolt);
 
-  /* ---------- 4.9 MUZZLE FLASH E POINT LIGHT OTIMIZADOS (X = 0.765 EXATO) ---------- */
+  /* ============================================================
+     GAVETA: 4.9 MUZZLE FLASH E POINT LIGHT LOCAIS (DESATIVADO)
+     O Muzzle Flash agora é centralizado via Viewmodel (Padrão VSS Glow aumentado)
+     ============================================================ */
+  /*
   const MUZZLE_LOCAL = new THREE.Vector3(0.765, 0.012, 0);
-
   const flashMat = new THREE.MeshBasicMaterial({
     map: GLOW_TEX,
     transparent: true,
@@ -576,13 +585,9 @@ export function buildSCARH() {
   const muzzleLight = new THREE.PointLight(0xff9922, 0, 1.4, 2.0);
   muzzleLight.position.set(0.80, 0.02, 0);
   rifle.add(muzzleLight);
+  */
 
-  const physics = new PrototypePhysics(rifle, bolt, {
-    muzzleFlash,
-    muzzleFlash2,
-    muzzleLight,
-    flashMat
-  });
+  const physics = new PrototypePhysics(rifle, bolt, null);
 
   return {
     group: root,

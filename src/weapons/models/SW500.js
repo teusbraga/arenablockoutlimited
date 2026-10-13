@@ -99,6 +99,8 @@ export class SW500Physics {
 
     this.targetCylRot += Math.PI / 3;
 
+    // GAVETA: Antigo Muzzle Flash Local do SW500 (Esfera estilizada - Desativado)
+    /*
     if (this.flashObj) {
       this.flashTimer = 0.065;
       const { muzzleFlash, muzzleLight } = this.flashObj;
@@ -110,6 +112,7 @@ export class SW500Physics {
       }
       if (muzzleLight) muzzleLight.intensity = 18;
     }
+    */
   }
 
   onReload() {
@@ -153,6 +156,8 @@ export class SW500Physics {
 
     this.shake += (0 - this.shake) * (1 - Math.exp(-dt * 8));
 
+    // GAVETA: Antigo muzzle flash fade
+    /*
     if (this.flashTimer > 0 && this.flashObj) {
       this.flashTimer -= dt;
       const f = Math.max(0, this.flashTimer / 0.065);
@@ -162,6 +167,7 @@ export class SW500Physics {
         if (this.flashObj.muzzleLight) this.flashObj.muzzleLight.intensity = 0;
       }
     }
+    */
   }
 }
 
@@ -412,6 +418,11 @@ export function buildSW500() {
   /* =========================================================
      7. CLARÃO DE BOCA & MONTAGEM FINAL DO GRUPO
      ========================================================= */
+  /* ============================================================
+     GAVETA: Muzzle Flash Estilizado em Esfera Local (Legado - Desativado)
+     O Muzzle Flash agora é centralizado via Viewmodel (Padrão VSS Glow muito grande)
+     ============================================================ */
+  /*
   const flashMat = new THREE.MeshBasicMaterial({
     color: 0xffcc55,
     transparent: true,
@@ -425,6 +436,8 @@ export function buildSW500() {
 
   const muzzleLight = new THREE.PointLight(0xffaa44, 0, 9, 1.5);
   muzzleLight.position.set(0, 0.016, -0.375);
+  g.add(muzzleFlash, muzzleLight);
+  */
 
   g.add(
     frameRear, recoilShield, topStrap, bottomStrap, frameFront,
@@ -432,21 +445,17 @@ export function buildSW500() {
     hammerGroup, cylinderLatch, screw1, screw2,
     cylinderGroup, barrelGroup, compGroup, gripGroup,
     rearSightMount, rearBladeL, rearBladeR, rearDotL, rearDotR, elevScrew,
-    frontSightBase, frontBlade, redRamp,
-    muzzleFlash, muzzleLight
+    frontSightBase, frontBlade, redRamp
   );
 
   root.traverse(o => {
-    if (o.isMesh && o !== muzzleFlash) {
+    if (o.isMesh) {
       o.castShadow = true;
       o.receiveShadow = true;
     }
   });
 
-  const physics = new SW500Physics(g, cylinderGroup, hammerGroup, {
-    muzzleFlash,
-    muzzleLight
-  });
+  const physics = new SW500Physics(g, cylinderGroup, hammerGroup, null);
 
   return {
     group: root,

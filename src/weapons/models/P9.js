@@ -61,7 +61,8 @@ export class P9Physics {
     this.recoil = Math.min(this.recoil + 0.38, 1.0);
     this.shake = Math.min(this.shake + 0.45, 0.9);
 
-    // 3. Muzzle Flash dinâmico
+    // GAVETA: Antigo Muzzle Flash Local da P9 (Desativado - Fica só com fumaça cônica)
+    /*
     if (this.flashObj) {
       this.flashTimer = 0.045;
       const { muzzleFlash, muzzleFlash2, muzzleLight } = this.flashObj;
@@ -75,6 +76,7 @@ export class P9Physics {
         if (muzzleLight) muzzleLight.intensity = 10;
       }
     }
+    */
   }
 
   onReload() {
@@ -125,7 +127,8 @@ export class P9Physics {
     this.pistol.position.y = r * 0.007;
     this.pistol.rotation.x = r * 0.088; // Cano empina sutilmente no recuo
 
-    // ---- 3. Muzzle Flash Fade ----
+    // GAVETA: Antigo Muzzle Flash Fade
+    /*
     if (this.flashObj && this.flashTimer > 0) {
       this.flashTimer -= dt;
       const k = Math.max(this.flashTimer / 0.045, 0);
@@ -140,6 +143,7 @@ export class P9Physics {
         if (this.flashObj.muzzleFlash2) this.flashObj.muzzleFlash2.lookAt(camera.position);
       }
     }
+    */
   }
 }
 
@@ -310,8 +314,12 @@ export function buildP9() {
   /* =========================================================
      4. MUZZLE FLASH E LIGHT DINÂMICOS
      ========================================================= */
+  /* ============================================================
+     GAVETA: 4. MUZZLE FLASH E LIGHT LOCAIS (DESATIVADO - P9 Sem Flash)
+     O Muzzle Flash agora é centralizado via Viewmodel (P9 fica só com fumaça)
+     ============================================================ */
+  /*
   const MUZZLE_LOCAL = new THREE.Vector3(0, 0.014, -0.115);
-
   const flashMat = new THREE.MeshBasicMaterial({
     map: GLOW_TEX,
     transparent: true,
@@ -335,13 +343,9 @@ export function buildP9() {
   const muzzleLight = new THREE.PointLight(0xffcc44, 0, 1.2, 1.8);
   muzzleLight.position.set(0, 0.02, -0.12);
   g.add(muzzleLight);
+  */
 
-  const physics = new P9Physics(g, slide, {
-    muzzleFlash,
-    muzzleFlash2,
-    muzzleLight,
-    flashMat
-  });
+  const physics = new P9Physics(g, slide, null);
 
   g.traverse(o => { if (o.isMesh) o.castShadow = true; });
 
