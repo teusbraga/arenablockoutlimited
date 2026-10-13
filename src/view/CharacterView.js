@@ -57,6 +57,7 @@ export class CharacterView {
     this.floatTime = Math.random() * 10;
     this.walkTime = Math.random() * 10;
     this.idleTime = Math.random() * 10;
+    this.moveBlend = 0;
     this.currentBodyYaw = 0;
     this.hasInitYaw = false;
 
@@ -300,24 +301,21 @@ export class CharacterView {
       this.root.position.set(charPos.x, charPos.y + yOffset, charPos.z);
     } else {
       const speed = Math.hypot(this.character.vel.x, this.character.vel.z);
-      if (speed > 0.15) {
-        this.walkTime += dt * speed * 3.8;
-        const swing = Math.sin(this.walkTime);
+      const targetBlend = speed > 0.1 ? Math.min(speed / 2.5, 1.0) : 0.0;
+      this.moveBlend += (targetBlend - this.moveBlend) * Math.min(dt * 24.0, 1.0);
 
-        this.leftLegPivot.rotation.x = swing * 0.65;
-        this.rightLegPivot.rotation.x = -swing * 0.65;
-        this.torso.position.y = Math.abs(swing) * 0.035;
-        this.gunGroup.position.y = 1.02 + Math.abs(swing) * 0.02;
-        this.gunGroup.rotation.z = -swing * 0.03;
-      } else {
-        this.leftLegPivot.rotation.x *= Math.max(0, 1 - dt * 12);
-        this.rightLegPivot.rotation.x *= Math.max(0, 1 - dt * 12);
-        this.torso.position.y *= Math.max(0, 1 - dt * 12);
+      this.walkTime += dt * Math.max(speed, 1.2) * 3.8;
+      this.idleTime += dt * 2.2;
 
-        this.idleTime += dt * 2.2;
-        this.gunGroup.position.y = 1.02 + Math.sin(this.idleTime) * 0.006;
-        this.gunGroup.rotation.z *= Math.max(0, 1 - dt * 8);
-      }
+      const swing = Math.sin(this.walkTime) * this.moveBlend;
+      this.leftLegPivot.rotation.x = swing * 0.65;
+      this.rightLegPivot.rotation.x = -swing * 0.65;
+      this.torso.position.y = Math.abs(swing) * 0.035;
+
+      const walkGunY = 1.02 + Math.abs(swing) * 0.02;
+      const idleGunY = 1.02 + Math.sin(this.idleTime) * 0.006;
+      this.gunGroup.position.y = walkGunY * this.moveBlend + idleGunY * (1.0 - this.moveBlend);
+      this.gunGroup.rotation.z = -swing * 0.03;
 
       // Aplicação de Lean / Peek tático no tronco e arma do Soldado
       const lean = this.character.lean || 0;
@@ -392,8 +390,8 @@ export class CharacterView {
       targetBodyYaw = aimYaw;
     }
 
-    if (this.skinType !== 'ghost' && moveSpeed > 0.15 && walkDir === -1) {
-      const swing = -Math.sin(this.walkTime);
+    if (this.skinType !== 'ghost' && this.moveBlend > 0.01 && walkDir === -1) {
+      const swing = -Math.sin(this.walkTime) * this.moveBlend;
       this.leftLegPivot.rotation.x = swing * 0.65;
       this.rightLegPivot.rotation.x = -swing * 0.65;
     }

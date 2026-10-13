@@ -16,7 +16,7 @@
       "recoilYaw": 0.0025,
       "recoilYawBias": -0.4,
       "adsFov": 56,
-      "adsSightDistance": 0.24,
+      "adsSightDistance": 0.4,
       "hipPos": [
         0.14,
         -0.15,
@@ -338,6 +338,119 @@
         }
       },
       "ammo": "energy_cell"
+    },
+    "scar_h": {
+      "id": "scar_h",
+      "name": "FN SCAR-H",
+      "auto": true,
+      "weight": 3.7,
+      "damageBody": 38,
+      "damageHead": 84,
+      "fireInterval": 0.10,
+      "magSize": 20,
+      "reloadTime": 1.85,
+      "spreadHip": 0.022,
+      "spreadAds": 0.0004,
+      "recoilPitch": 0.011,
+      "recoilYaw": 0.003,
+      "recoilYawBias": 0.15,
+      "adsFov": 56,
+      "adsSightDistance": 0.16,
+      "hipPos": [
+        0.14,
+        -0.14,
+        -0.32
+      ],
+      "hipRot": [
+        0,
+        0,
+        0
+      ],
+      "adsRot": [
+        0,
+        0,
+        0
+      ],
+      "sprintPos": [
+        0.22,
+        -0.26,
+        -0.32
+      ],
+      "sprintRot": [
+        0.62,
+        -0.45,
+        0.2
+      ],
+      "model": "scar_h",
+      "audioKey": "shot_ak47",
+      "sightLocal": [
+        0,
+        0.108,
+        -0.06
+      ],
+      "muzzleLocal": [
+        0,
+        0.012,
+        -0.765
+      ],
+      "ejectLocal": [
+        0.038,
+        0.024,
+        0.035
+      ],
+      "kickbackZ": 0.010,
+      "kickRotFactor": 1.6,
+      "smokeConeOpacity": 0.07,
+      "smokeResidualMax": 5,
+      "smokeResidualColor": "#d2d8e0",
+      "fireModes": [
+        "auto",
+        "semi"
+      ],
+      "mods": [],
+      "ballistics": {
+        "internal": {
+          "fireInterval": 0.10,
+          "adsTime": 0.22,
+          "reloadTime": 1.85
+        },
+        "external": {
+          "recoil": {
+            "vertical": 0.011,
+            "horizontal": 0.003,
+            "yawBias": 0.15,
+            "pattern": "climb_smooth",
+            "recoveryTime": 0.26
+          },
+          "sway": {
+            "base": 0.0018,
+            "multiplierAds": 0.15,
+            "speed": 1.6
+          },
+          "precision": {
+            "baseSpread": 0.0004,
+            "swaySpreadImpact": 0.35,
+            "dynamicLoss": {
+              "strafe": 0.022,
+              "walk": 0.015,
+              "run": 0.040
+            },
+            "recoveryTime": 0.28
+          }
+        },
+        "terminal": {
+          "damageBody": 38,
+          "damageHead": 84,
+          "damageFalloff": {
+            "startDistance": 50,
+            "endDistance": 140,
+            "minMultiplier": 0.82
+          },
+          "bulletDrop": 9.8,
+          "bulletSpeed": 715
+        }
+      },
+      "ammo": "7.62_soviet"
     },
     "uzi": {
       "id": "uzi",

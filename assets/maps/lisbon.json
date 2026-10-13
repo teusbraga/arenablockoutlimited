@@ -1,0 +1,1091 @@
+{
+  "name": "Lisboa — Bairro Alto & Baixa",
+  "id": "lisbon",
+  "size": [300, 300],
+  "bounds": [-145, 145, -145, 145],
+  "floorMaterial": "cobblestones",
+  "ambientLight": 0.55,
+  "directionalLight": {
+    "color": "#fff2db",
+    "intensity": 0.95,
+    "position": [70, 110, 40]
+  },
+  "environment": {
+    "fogColor": "#dcd0ba",
+    "fogNear": 70,
+    "fogFar": 220
+  },
+  "staticGeometry": [
+    {
+      "type": "perimeter_north",
+      "pos": [0, 0, -148],
+      "size": [300, 12.0, 4.0],
+      "material": "stone"
+    },
+    {
+      "type": "perimeter_south",
+      "pos": [0, 0, 148],
+      "size": [300, 12.0, 4.0],
+      "material": "stone"
+    },
+    {
+      "type": "perimeter_west",
+      "pos": [-148, 0, 0],
+      "size": [4.0, 12.0, 300],
+      "material": "stone"
+    },
+    {
+      "type": "perimeter_east",
+      "pos": [148, 0, 0],
+      "size": [4.0, 12.0, 300],
+      "material": "stone"
+    },
+    {
+      "type": "building_outer_nw",
+      "pos": [-115, 0, -80],
+      "size": [40.0, 9.5, 90.0],
+      "material": "wall_peeling_ochre"
+    },
+    {
+      "type": "roof_outer_nw",
+      "pos": [-115, 9.5, -80],
+      "size": [40.8, 1.8, 90.8],
+      "material": "roof"
+    },
+    {
+      "type": "building_outer_w_mid",
+      "pos": [-120, 0, 0],
+      "size": [30.0, 10.0, 50.0],
+      "material": "wall_white"
+    },
+    {
+      "type": "roof_outer_w_mid",
+      "pos": [-120, 10.0, 0],
+      "size": [30.8, 1.8, 50.8],
+      "material": "roof"
+    },
+    {
+      "type": "building_outer_sw",
+      "pos": [-115, 0, 80],
+      "size": [40.0, 9.0, 90.0],
+      "material": "wall_peeling_terra"
+    },
+    {
+      "type": "roof_outer_sw",
+      "pos": [-115, 9.0, 80],
+      "size": [40.8, 1.8, 90.8],
+      "material": "roof"
+    },
+    {
+      "type": "building_outer_ne",
+      "pos": [115, 0, -80],
+      "size": [40.0, 9.0, 90.0],
+      "material": "wall_white"
+    },
+    {
+      "type": "roof_outer_ne",
+      "pos": [115, 9.0, -80],
+      "size": [40.8, 1.8, 90.8],
+      "material": "roof"
+    },
+    {
+      "type": "building_outer_e_mid",
+      "pos": [120, 0, 0],
+      "size": [30.0, 8.5, 50.0],
+      "material": "wall_peeling_terra"
+    },
+    {
+      "type": "roof_outer_e_mid",
+      "pos": [120, 8.5, 0],
+      "size": [30.8, 1.6, 50.8],
+      "material": "roof"
+    },
+    {
+      "type": "building_outer_se",
+      "pos": [115, 0, 80],
+      "size": [40.0, 9.5, 90.0],
+      "material": "wall_peeling_ochre"
+    },
+    {
+      "type": "roof_outer_se",
+      "pos": [115, 9.5, 80],
+      "size": [40.8, 1.8, 90.8],
+      "material": "roof"
+    },
+    {
+      "type": "building_north_backdrop",
+      "pos": [0, 0, -140],
+      "size": [140.0, 10.0, 10.0],
+      "material": "wall_peeling_ochre"
+    },
+    {
+      "type": "roof_north_backdrop",
+      "pos": [0, 10.0, -140],
+      "size": [140.8, 1.8, 10.8],
+      "material": "roof"
+    },
+    {
+      "type": "building_south_backdrop",
+      "pos": [0, 0, 140],
+      "size": [140.0, 10.0, 10.0],
+      "material": "wall_peeling_terra"
+    },
+    {
+      "type": "roof_south_backdrop",
+      "pos": [0, 10.0, 140],
+      "size": [140.8, 1.8, 10.8],
+      "material": "roof"
+    },
+    {
+      "type": "building_alfama_a1",
+      "pos": [-65, 0, -90],
+      "size": [36.0, 8.5, 32.0],
+      "material": "wall_peeling_ochre"
+    },
+    {
+      "type": "roof_alfama_a1",
+      "pos": [-65, 8.5, -90],
+      "size": [36.6, 1.6, 32.6],
+      "material": "roof"
+    },
+    {
+      "type": "building_alfama_a2",
+      "pos": [-70, 0, -52],
+      "size": [30.0, 7.5, 28.0],
+      "material": "wall_peeling_terra"
+    },
+    {
+      "type": "roof_alfama_a2",
+      "pos": [-70, 7.5, -52],
+      "size": [30.6, 1.5, 28.6],
+      "material": "roof"
+    },
+    {
+      "type": "building_alfama_a3",
+      "pos": [-32, 0, -82],
+      "size": [18.0, 9.0, 36.0],
+      "material": "wall_white"
+    },
+    {
+      "type": "roof_alfama_a3",
+      "pos": [-32, 9.0, -82],
+      "size": [18.6, 1.6, 36.6],
+      "material": "roof"
+    },
+    {
+      "type": "building_alfama_a4",
+      "pos": [-36, 0, -44],
+      "size": [26.0, 8.0, 20.0],
+      "material": "wall_peeling_ochre"
+    },
+    {
+      "type": "roof_alfama_a4",
+      "pos": [-36, 8.0, -44],
+      "size": [26.6, 1.5, 20.6],
+      "material": "roof"
+    },
+    {
+      "type": "building_alfama_a5",
+      "pos": [-8, 0, -88],
+      "size": [18.0, 7.5, 34.0],
+      "material": "wall_peeling_terra"
+    },
+    {
+      "type": "roof_alfama_a5",
+      "pos": [-8, 7.5, -88],
+      "size": [18.6, 1.5, 34.6],
+      "material": "roof"
+    },
+    {
+      "type": "building_alfama_a6",
+      "pos": [-8, 0, -46],
+      "size": [16.0, 8.5, 24.0],
+      "material": "wall_white"
+    },
+    {
+      "type": "roof_alfama_a6",
+      "pos": [-8, 8.5, -46],
+      "size": [16.6, 1.6, 24.6],
+      "material": "roof"
+    },
+    {
+      "type": "building_mouraria_b1",
+      "pos": [24, 0, -86],
+      "size": [28.0, 8.0, 38.0],
+      "material": "wall_peeling_ochre"
+    },
+    {
+      "type": "roof_mouraria_b1",
+      "pos": [24, 8.0, -86],
+      "size": [28.6, 1.6, 38.6],
+      "material": "roof"
+    },
+    {
+      "type": "building_mouraria_b2",
+      "pos": [24, 0, -45],
+      "size": [24.0, 9.0, 22.0],
+      "material": "wall_peeling_terra"
+    },
+    {
+      "type": "roof_mouraria_b2",
+      "pos": [24, 9.0, -45],
+      "size": [24.6, 1.6, 22.6],
+      "material": "roof"
+    },
+    {
+      "type": "building_mouraria_b3",
+      "pos": [66, 0, -82],
+      "size": [36.0, 7.5, 44.0],
+      "material": "wall_white"
+    },
+    {
+      "type": "roof_mouraria_b3",
+      "pos": [66, 7.5, -82],
+      "size": [36.6, 1.6, 44.6],
+      "material": "roof"
+    },
+    {
+      "type": "building_mouraria_b4",
+      "pos": [64, 0, -36],
+      "size": [32.0, 8.5, 28.0],
+      "material": "wall_peeling_ochre"
+    },
+    {
+      "type": "roof_mouraria_b4",
+      "pos": [64, 8.5, -36],
+      "size": [32.6, 1.6, 28.6],
+      "material": "roof"
+    },
+    {
+      "type": "building_bairro_alto_c1",
+      "pos": [-68, 0, 0],
+      "size": [32.0, 8.5, 48.0],
+      "material": "wall_peeling_ochre"
+    },
+    {
+      "type": "roof_bairro_alto_c1",
+      "pos": [-68, 8.5, 0],
+      "size": [32.6, 1.6, 48.6],
+      "material": "roof"
+    },
+    {
+      "type": "building_bairro_alto_c2",
+      "pos": [-38, 0, 0],
+      "size": [10.0, 7.0, 28.0],
+      "material": "wall_white"
+    },
+    {
+      "type": "roof_bairro_alto_c2",
+      "pos": [-38, 7.0, 0],
+      "size": [10.6, 1.4, 28.6],
+      "material": "roof"
+    },
+    {
+      "type": "building_ribeira_d1",
+      "pos": [68, 0, 8],
+      "size": [32.0, 8.0, 44.0],
+      "material": "wall_peeling_terra"
+    },
+    {
+      "type": "roof_ribeira_d1",
+      "pos": [68, 8.0, 8],
+      "size": [32.6, 1.6, 44.6],
+      "material": "roof"
+    },
+    {
+      "type": "building_ribeira_d2",
+      "pos": [38, 0, 4],
+      "size": [10.0, 7.5, 32.0],
+      "material": "wall_peeling_ochre"
+    },
+    {
+      "type": "roof_ribeira_d2",
+      "pos": [38, 7.5, 4],
+      "size": [10.6, 1.4, 32.6],
+      "material": "roof"
+    },
+    {
+      "type": "building_baixa_s1",
+      "pos": [-66, 0, 54],
+      "size": [34.0, 8.5, 28.0],
+      "material": "wall_peeling_terra"
+    },
+    {
+      "type": "roof_baixa_s1",
+      "pos": [-66, 8.5, 54],
+      "size": [34.6, 1.6, 28.6],
+      "material": "roof"
+    },
+    {
+      "type": "building_baixa_s2",
+      "pos": [-66, 0, 94],
+      "size": [34.0, 8.0, 28.0],
+      "material": "wall_white"
+    },
+    {
+      "type": "roof_baixa_s2",
+      "pos": [-66, 8.0, 94],
+      "size": [34.6, 1.6, 28.6],
+      "material": "roof"
+    },
+    {
+      "type": "building_baixa_s3",
+      "pos": [-24, 0, 56],
+      "size": [22.0, 9.0, 32.0],
+      "material": "wall_peeling_ochre"
+    },
+    {
+      "type": "roof_baixa_s3",
+      "pos": [-24, 9.0, 56],
+      "size": [22.6, 1.6, 32.6],
+      "material": "roof"
+    },
+    {
+      "type": "building_baixa_s4",
+      "pos": [-24, 0, 96],
+      "size": [22.0, 8.5, 24.0],
+      "material": "wall_peeling_terra"
+    },
+    {
+      "type": "roof_baixa_s4",
+      "pos": [-24, 8.5, 96],
+      "size": [22.6, 1.6, 24.6],
+      "material": "roof"
+    },
+    {
+      "type": "building_baixa_s5",
+      "pos": [24, 0, 56],
+      "size": [22.0, 9.0, 32.0],
+      "material": "wall_white"
+    },
+    {
+      "type": "roof_baixa_s5",
+      "pos": [24, 9.0, 56],
+      "size": [22.6, 1.6, 32.6],
+      "material": "roof"
+    },
+    {
+      "type": "building_baixa_s6",
+      "pos": [24, 0, 96],
+      "size": [22.0, 8.5, 24.0],
+      "material": "wall_peeling_ochre"
+    },
+    {
+      "type": "roof_baixa_s6",
+      "pos": [24, 8.5, 96],
+      "size": [22.6, 1.6, 24.6],
+      "material": "roof"
+    },
+    {
+      "type": "building_baixa_s7",
+      "pos": [66, 0, 56],
+      "size": [30.0, 7.5, 26.0],
+      "material": "wall_peeling_terra"
+    },
+    {
+      "type": "roof_baixa_s7",
+      "pos": [66, 7.5, 56],
+      "size": [30.6, 1.5, 26.6],
+      "material": "roof"
+    },
+    {
+      "type": "building_baixa_s8",
+      "pos": [66, 0, 96],
+      "size": [30.0, 8.0, 24.0],
+      "material": "wall_white"
+    },
+    {
+      "type": "roof_baixa_s8",
+      "pos": [66, 8.0, 96],
+      "size": [30.6, 1.5, 24.6],
+      "material": "roof"
+    },
+    {
+      "type": "tram_body",
+      "pos": [11, 0, -6],
+      "size": [2.6, 2.8, 8.0],
+      "material": "caution_yellow"
+    },
+    {
+      "type": "tram_roof",
+      "pos": [11, 2.8, -6],
+      "size": [2.7, 0.4, 8.2],
+      "material": "stone"
+    },
+    {
+      "type": "tram_body",
+      "pos": [-5, 0, 52],
+      "size": [2.6, 2.8, 8.0],
+      "material": "caution_yellow"
+    },
+    {
+      "type": "tram_roof",
+      "pos": [-5, 2.8, 52],
+      "size": [2.7, 0.4, 8.2],
+      "material": "stone"
+    },
+    {
+      "type": "tram_body",
+      "pos": [5, 0, -68],
+      "size": [2.6, 2.8, 8.0],
+      "material": "caution_yellow"
+    },
+    {
+      "type": "tram_roof",
+      "pos": [5, 2.8, -68],
+      "size": [2.7, 0.4, 8.2],
+      "material": "stone"
+    },
+    {
+      "type": "car_body",
+      "pos": [6, 0, 88],
+      "size": [2.0, 0.9, 4.4],
+      "material": "metal_barrel",
+      "vaultable": true
+    },
+    {
+      "type": "car_cabin",
+      "pos": [6, 0.9, 88],
+      "size": [1.8, 0.65, 2.3],
+      "material": "steel_girder"
+    },
+    {
+      "type": "car_body",
+      "pos": [43, 0, 48],
+      "size": [2.0, 0.9, 4.4],
+      "material": "metal_barrel",
+      "vaultable": true
+    },
+    {
+      "type": "car_cabin",
+      "pos": [43, 0.9, 48],
+      "size": [1.8, 0.65, 2.3],
+      "material": "steel_girder"
+    },
+    {
+      "type": "car_body",
+      "pos": [41, 0, 78],
+      "size": [2.0, 0.9, 4.4],
+      "material": "metal_barrel",
+      "vaultable": true
+    },
+    {
+      "type": "car_cabin",
+      "pos": [41, 0.9, 78],
+      "size": [1.8, 0.65, 2.3],
+      "material": "steel_girder"
+    },
+    {
+      "type": "car_body",
+      "pos": [-42, 0, 62],
+      "size": [2.0, 0.9, 4.4],
+      "material": "metal_barrel",
+      "vaultable": true
+    },
+    {
+      "type": "car_cabin",
+      "pos": [-42, 0.9, 62],
+      "size": [1.8, 0.65, 2.3],
+      "material": "steel_girder"
+    },
+    {
+      "type": "car_body",
+      "pos": [-48, 0, -18],
+      "size": [2.0, 0.9, 4.4],
+      "material": "metal_barrel",
+      "vaultable": true
+    },
+    {
+      "type": "car_cabin",
+      "pos": [-48, 0.9, -18],
+      "size": [1.8, 0.65, 2.3],
+      "material": "steel_girder"
+    },
+    {
+      "type": "car_body",
+      "pos": [43, 0, -64],
+      "size": [2.0, 0.9, 4.4],
+      "material": "metal_barrel",
+      "vaultable": true
+    },
+    {
+      "type": "car_cabin",
+      "pos": [43, 0.9, -64],
+      "size": [1.8, 0.65, 2.3],
+      "material": "steel_girder"
+    },
+    {
+      "type": "plaza_bench_north",
+      "pos": [0, 0, -8],
+      "size": [6.0, 1.1, 1.2],
+      "material": "stone",
+      "vaultable": true
+    },
+    {
+      "type": "plaza_bench_south",
+      "pos": [0, 0, 8],
+      "size": [6.0, 1.1, 1.2],
+      "material": "stone",
+      "vaultable": true
+    },
+    {
+      "type": "plaza_bench_west",
+      "pos": [-8, 0, 0],
+      "size": [1.2, 1.1, 6.0],
+      "material": "stone",
+      "vaultable": true
+    },
+    {
+      "type": "plaza_bench_east",
+      "pos": [8, 0, 0],
+      "size": [1.2, 1.1, 6.0],
+      "material": "stone",
+      "vaultable": true
+    },
+    {
+      "type": "plaza_low_wall_nw",
+      "pos": [-16, 0, -15],
+      "size": [5.5, 1.15, 1.0],
+      "material": "stone",
+      "vaultable": true
+    },
+    {
+      "type": "plaza_low_wall_ne",
+      "pos": [16, 0, -15],
+      "size": [5.5, 1.15, 1.0],
+      "material": "stone",
+      "vaultable": true
+    },
+    {
+      "type": "plaza_low_wall_sw",
+      "pos": [-16, 0, 15],
+      "size": [5.5, 1.15, 1.0],
+      "material": "stone",
+      "vaultable": true
+    },
+    {
+      "type": "plaza_low_wall_se",
+      "pos": [16, 0, 15],
+      "size": [5.5, 1.15, 1.0],
+      "material": "stone",
+      "vaultable": true
+    },
+    {
+      "type": "alfama_cover_wall_1",
+      "pos": [-44, 0, -60],
+      "size": [3.5, 1.1, 0.9],
+      "material": "stone",
+      "vaultable": true
+    },
+    {
+      "type": "alfama_cover_wall_2",
+      "pos": [-20, 0, -68],
+      "size": [3.2, 1.15, 0.9],
+      "material": "stone",
+      "vaultable": true
+    },
+    {
+      "type": "alfama_cover_wall_3",
+      "pos": [-52, 0, -30],
+      "size": [3.5, 1.1, 1.0],
+      "material": "stone",
+      "vaultable": true
+    },
+    {
+      "type": "mouraria_cover_wall_1",
+      "pos": [43, 0, -42],
+      "size": [4.0, 1.15, 1.0],
+      "material": "stone",
+      "vaultable": true
+    },
+    {
+      "type": "baixa_cover_wall_mid",
+      "pos": [3, 0, 34],
+      "size": [5.0, 1.15, 1.0],
+      "material": "stone",
+      "vaultable": true
+    },
+    {
+      "type": "baixa_cover_wall_west",
+      "pos": [-42, 0, 36],
+      "size": [4.5, 1.1, 1.0],
+      "material": "stone",
+      "vaultable": true
+    },
+    {
+      "type": "baixa_cover_wall_east",
+      "pos": [43, 0, 34],
+      "size": [4.5, 1.1, 1.0],
+      "material": "stone",
+      "vaultable": true
+    },
+    {
+      "type": "south_spawn_cover_mid",
+      "pos": [0, 0, 112],
+      "size": [8.0, 1.2, 1.2],
+      "material": "stone",
+      "vaultable": true
+    },
+    {
+      "type": "south_spawn_cover_west",
+      "pos": [-38, 0, 114],
+      "size": [6.0, 1.15, 1.2],
+      "material": "stone",
+      "vaultable": true
+    },
+    {
+      "type": "south_spawn_cover_east",
+      "pos": [38, 0, 114],
+      "size": [6.0, 1.15, 1.2],
+      "material": "stone",
+      "vaultable": true
+    },
+    {
+      "type": "north_spawn_cover_mid",
+      "pos": [0, 0, -114],
+      "size": [8.0, 1.2, 1.2],
+      "material": "stone",
+      "vaultable": true
+    },
+    {
+      "type": "north_spawn_cover_west",
+      "pos": [-36, 0, -114],
+      "size": [6.0, 1.15, 1.2],
+      "material": "stone",
+      "vaultable": true
+    },
+    {
+      "type": "north_spawn_cover_east",
+      "pos": [36, 0, -114],
+      "size": [6.0, 1.15, 1.2],
+      "material": "stone",
+      "vaultable": true
+    }
+  ],
+  "props": [
+    {
+      "type": "village_well",
+      "pos": [0, 0, 0]
+    },
+    {
+      "type": "village_well",
+      "pos": [-32, 0, -59]
+    },
+    {
+      "type": "village_tree",
+      "pos": [-22, 0, -22],
+      "scale": 1.15
+    },
+    {
+      "type": "village_tree",
+      "pos": [22, 0, -22],
+      "scale": 1.1
+    },
+    {
+      "type": "village_tree",
+      "pos": [-22, 0, 22],
+      "scale": 1.1
+    },
+    {
+      "type": "village_tree",
+      "pos": [22, 0, 22],
+      "scale": 1.15
+    },
+    {
+      "type": "village_tree",
+      "pos": [-24, 0, 0],
+      "scale": 1.05
+    },
+    {
+      "type": "village_tree",
+      "pos": [24, 0, 0],
+      "scale": 1.05
+    },
+    {
+      "type": "village_tree",
+      "pos": [-42, 0, 96],
+      "scale": 1.1
+    },
+    {
+      "type": "village_tree",
+      "pos": [43, 0, -96],
+      "scale": 1.1
+    },
+    {
+      "type": "archway",
+      "pos": [-44, 0, -90],
+      "span": 6.0,
+      "height": 5.0,
+      "thickness": 1.2
+    },
+    {
+      "type": "archway",
+      "pos": [-44, 0, -76],
+      "span": 6.0,
+      "height": 5.0,
+      "thickness": 1.2
+    },
+    {
+      "type": "archway",
+      "pos": [-52, 0, -44],
+      "span": 6.0,
+      "height": 5.0,
+      "thickness": 1.2
+    },
+    {
+      "type": "archway",
+      "pos": [-20, 0, -88],
+      "span": 6.0,
+      "height": 5.0,
+      "thickness": 1.2
+    },
+    {
+      "type": "archway",
+      "pos": [-47.5, 0, -10],
+      "span": 9.0,
+      "height": 5.2,
+      "thickness": 1.2
+    },
+    {
+      "type": "archway",
+      "pos": [47.5, 0, 4],
+      "span": 9.0,
+      "height": 5.2,
+      "thickness": 1.2
+    },
+    {
+      "type": "market_stall",
+      "pos": [39, 0, 52],
+      "rotY": 0.0,
+      "width": 3.5,
+      "depth": 2.2,
+      "height": 2.7
+    },
+    {
+      "type": "market_stall",
+      "pos": [47, 0, 62],
+      "rotY": 3.14,
+      "width": 3.5,
+      "depth": 2.2,
+      "height": 2.7
+    },
+    {
+      "type": "market_stall",
+      "pos": [39, 0, 88],
+      "rotY": 0.0,
+      "width": 3.5,
+      "depth": 2.2,
+      "height": 2.7
+    },
+    {
+      "type": "market_stall",
+      "pos": [47, 0, 96],
+      "rotY": 3.14,
+      "width": 3.5,
+      "depth": 2.2,
+      "height": 2.7
+    },
+    {
+      "type": "market_stall",
+      "pos": [-18, 0, 28],
+      "rotY": 1.57,
+      "width": 3.5,
+      "depth": 2.2,
+      "height": 2.7
+    },
+    {
+      "type": "market_stall",
+      "pos": [18, 0, 28],
+      "rotY": -1.57,
+      "width": 3.5,
+      "depth": 2.2,
+      "height": 2.7
+    },
+    {
+      "type": "wine_barrel",
+      "pos": [-11, 0, 42],
+      "scale": 1.0
+    },
+    {
+      "type": "wine_barrel",
+      "pos": [-11, 0, 43.2],
+      "scale": 1.0
+    },
+    {
+      "type": "wine_barrel",
+      "pos": [11, 0, 66],
+      "scale": 1.0
+    },
+    {
+      "type": "wine_barrel",
+      "pos": [37, 0, 56],
+      "scale": 1.0
+    },
+    {
+      "type": "wine_barrel",
+      "pos": [-46, 0, -56],
+      "scale": 1.0
+    },
+    {
+      "type": "wine_barrel",
+      "pos": [9, 0, -54],
+      "scale": 1.0
+    },
+    {
+      "type": "wine_crate",
+      "pos": [11, 0, 44],
+      "rotY": 0.35,
+      "sx": 1.3,
+      "sy": 1.1,
+      "sz": 1.3
+    },
+    {
+      "type": "wine_crate",
+      "pos": [-11, 0, 68],
+      "rotY": -0.25,
+      "sx": 1.3,
+      "sy": 1.1,
+      "sz": 1.3
+    },
+    {
+      "type": "wine_crate",
+      "pos": [48, 0, 56],
+      "rotY": 0.15,
+      "sx": 1.3,
+      "sy": 1.1,
+      "sz": 1.3
+    },
+    {
+      "type": "wine_crate",
+      "pos": [-30, 0, -32],
+      "rotY": 0.5,
+      "sx": 1.3,
+      "sy": 1.1,
+      "sz": 1.3
+    },
+    {
+      "type": "wine_crate",
+      "pos": [30, 0, -32],
+      "rotY": -0.4,
+      "sx": 1.3,
+      "sy": 1.1,
+      "sz": 1.3
+    },
+    {
+      "type": "balcony",
+      "pos": [-36, 4.2, -33.4],
+      "width": 3.0,
+      "depth": 1.1
+    },
+    {
+      "type": "balcony",
+      "pos": [-8, 4.2, -33.4],
+      "width": 3.0,
+      "depth": 1.1
+    },
+    {
+      "type": "balcony",
+      "pos": [24, 4.2, -33.4],
+      "width": 3.0,
+      "depth": 1.1
+    },
+    {
+      "type": "balcony",
+      "pos": [-12.4, 4.5, 50],
+      "width": 3.0,
+      "depth": 1.1
+    },
+    {
+      "type": "balcony",
+      "pos": [12.4, 4.5, 50],
+      "width": 3.0,
+      "depth": 1.1
+    },
+    {
+      "type": "balcony",
+      "pos": [-32.4, 4.0, 0],
+      "width": 3.0,
+      "depth": 1.1
+    },
+    {
+      "type": "balcony",
+      "pos": [32.4, 4.0, 4],
+      "width": 3.0,
+      "depth": 1.1
+    },
+    {
+      "type": "window",
+      "pos": [-36, 4.8, -33.9],
+      "rotY": 0.0,
+      "width": 1.3,
+      "height": 1.8
+    },
+    {
+      "type": "window",
+      "pos": [-8, 4.8, -33.9],
+      "rotY": 0.0,
+      "width": 1.3,
+      "height": 1.8
+    },
+    {
+      "type": "window",
+      "pos": [24, 4.8, -33.9],
+      "rotY": 0.0,
+      "width": 1.3,
+      "height": 1.8
+    },
+    {
+      "type": "window",
+      "pos": [-24, 4.8, 39.9],
+      "rotY": 3.14,
+      "width": 1.3,
+      "height": 1.8
+    },
+    {
+      "type": "window",
+      "pos": [24, 4.8, 39.9],
+      "rotY": 3.14,
+      "width": 1.3,
+      "height": 1.8
+    },
+    {
+      "type": "window",
+      "pos": [-12.9, 4.8, 60],
+      "rotY": 1.57,
+      "width": 1.3,
+      "height": 1.8
+    },
+    {
+      "type": "window",
+      "pos": [12.9, 4.8, 60],
+      "rotY": -1.57,
+      "width": 1.3,
+      "height": 1.8
+    },
+    {
+      "type": "door_frame",
+      "pos": [-36, 0, -33.9],
+      "rotY": 0.0,
+      "width": 1.3,
+      "height": 2.4
+    },
+    {
+      "type": "door_frame",
+      "pos": [24, 0, -33.9],
+      "rotY": 0.0,
+      "width": 1.3,
+      "height": 2.4
+    },
+    {
+      "type": "door_frame",
+      "pos": [-12.9, 0, 56],
+      "rotY": 1.57,
+      "width": 1.3,
+      "height": 2.4
+    },
+    {
+      "type": "door_frame",
+      "pos": [12.9, 0, 56],
+      "rotY": -1.57,
+      "width": 1.3,
+      "height": 2.4
+    },
+    {
+      "type": "lantern",
+      "pos": [-32, 3.6, -33.8],
+      "rotY": 0.0
+    },
+    {
+      "type": "lantern",
+      "pos": [20, 3.6, -33.8],
+      "rotY": 0.0
+    },
+    {
+      "type": "lantern",
+      "pos": [-12.8, 3.6, 46],
+      "rotY": 1.57
+    },
+    {
+      "type": "lantern",
+      "pos": [12.8, 3.6, 46],
+      "rotY": -1.57
+    },
+    {
+      "type": "lantern",
+      "pos": [-40.8, 3.5, -82],
+      "rotY": -1.57
+    },
+    {
+      "type": "ivy",
+      "pos": [-46.9, 2.0, -86],
+      "rotY": 1.57,
+      "width": 2.5,
+      "height": 4.0
+    },
+    {
+      "type": "ivy",
+      "pos": [-51.9, 2.0, -8],
+      "rotY": 1.57,
+      "width": 2.5,
+      "height": 4.0
+    },
+    {
+      "type": "ivy",
+      "pos": [51.9, 2.0, 12],
+      "rotY": -1.57,
+      "width": 2.5,
+      "height": 4.0
+    },
+    {
+      "type": "ivy",
+      "pos": [-24, 2.0, -63.9],
+      "rotY": 0.0,
+      "width": 2.5,
+      "height": 4.0
+    }
+  ],
+  "doors": [
+    {
+      "pos": [-44, 0, -90],
+      "width": 1.4,
+      "height": 2.4,
+      "rotY": 0.0
+    },
+    {
+      "pos": [-20, 0, -88],
+      "width": 1.4,
+      "height": 2.4,
+      "rotY": 0.0
+    },
+    {
+      "pos": [-12.9, 0, 56],
+      "width": 1.4,
+      "height": 2.4,
+      "rotY": 1.57
+    },
+    {
+      "pos": [12.9, 0, 56],
+      "width": 1.4,
+      "height": 2.4,
+      "rotY": -1.57
+    }
+  ],
+  "playerSpawns": [
+    [-30, 1, 125],
+    [-18, 1, 125],
+    [-6, 1, 125],
+    [6, 1, 125],
+    [18, 1, 125],
+    [30, 1, 125]
+  ],
+  "botSpawns": [
+    [-42, 1, -125],
+    [-30, 1, -125],
+    [-18, 1, -125],
+    [-6, 1, -125],
+    [6, 1, -125],
+    [18, 1, -125],
+    [30, 1, -125],
+    [42, 1, -125]
+  ]
+}

@@ -10,9 +10,13 @@ import { buildAK47 } from './models/AK47.js';
 import { buildSW500 } from './models/SW500.js';
 import { buildWinchester1912 } from './models/Winchester1912.js';
 import { buildVSS } from './models/VSS.js';
+import { buildSCARH } from './models/SCARH.js';
+
+import { LocomotionSmoothingSystem } from '../new_mechanics/LocomotionSmoothingSystem.js';
 
 // Re-exporta construtores para compatibilidade com main.js / WeaponRegistry
-export { buildHK416, buildHK416 as buildAR15, buildP9, buildUZI, buildM249, buildRiflePrototype, buildAK47, buildSW500, buildWinchester1912, buildWinchester1912 as buildM12, buildVSS };
+export { buildHK416, buildHK416 as buildAR15, buildP9, buildUZI, buildM249, buildRiflePrototype, buildAK47, buildSW500, buildWinchester1912, buildWinchester1912 as buildM12, buildVSS, buildSCARH };
+
 
 /**
  * Viewmodel: Gerenciador de pose, física de mola (sway), recuo e animações da arma em 1ª pessoa.
@@ -92,6 +96,9 @@ export class Viewmodel {
     this.models = {};
     this.activeModel = null;
     this.activePhysics = null;
+
+    // Sistema de suavização de locomoção e transição de poses contínuas
+    this.locomotion = new LocomotionSmoothingSystem();
   }
 
   _createMuzzleFlashTexture() {
@@ -199,7 +206,7 @@ export class Viewmodel {
    * Layer 3: Atualiza a física de mola e oscilação orgânica do Viewmodel baseado na velocidade angular
    * do CameraRig (Layer 1/2) e na locomoção do jogador.
    */
-  applySwayFromRig(rig, dt, isADS, isSprinting, playerVel, weaponDef) {
+  applySwayFromRig(rig, dt, isADS, isSprinting, playerVel, weaponDef, options = {}) {
     // No ADS, o sway mantém inércia tática suave (sensação física de peso e paralaxe)
     const adsMul = isADS ? 0.18 : 0.55;
     const sprintMul = isSprinting ? 1.25 : 1.0;
@@ -236,42 +243,47 @@ export class Viewmodel {
     this.swayPos.x = THREE.MathUtils.clamp(this.swayPos.x, -maxSway, maxSway);
     this.swayPos.y = THREE.MathUtils.clamp(this.swayPos.y, -maxSway, maxSway);
 
-    // Walking Bob suave
+    // Atualiza o sistema unificado de locomoção contínua (elimina estalo de fase e degraus)
     const speed = playerVel ? Math.hypot(playerVel.x, playerVel.z) : 0;
-    const time = performance.now() * 0.001;
-    const bobScale = CONFIG.ACCESSIBILITY?.headbobScale ?? 1.0;
-    
-    const bobFreq = speed > 0.1 ? (isSprinting ? 11 : 7.5) : 0;
-    const bobAmt = (speed > 0.1 ? (isSprinting ? 0.018 : 0.009) : 0) * (isADS ? 0.15 : 1) * bobScale;
-    
-    const bobX = Math.sin(time * bobFreq) * bobAmt;
-    const bobY = Math.abs(Math.cos(time * bobFreq)) * bobAmt;
+    this.locomotion.update(dt, {
+      speedXZ: speed,
+      isSprinting,
+      isCrouched: options?.isCrouched ?? false,
+      isADS,
+      adsAmount: options?.adsAmount ?? (isADS ? 1.0 : 0.0),
+    });
 
-    // Respiração suave (ADS praticamente estático)
+    const bobScale = CONFIG.ACCESSIBILITY?.headbobScale ?? 1.0;
+    const { x: bobX, y: bobY } = this.locomotion.getWeaponBob(bobScale);
+
+    // Respiração suave ponderada pelo peso de repouso (desaparece gradualmente na corrida)
+    const time = performance.now() * 0.001;
+    const idleWeight = this.locomotion.idleWeight;
     let idleRotX, idleRotY, idlePosX, idlePosY;
     if (isADS) {
-      idleRotY = Math.sin(time * 1.5) * 0.0015;
-      idleRotX = Math.cos(time * 1.2) * 0.0015;
-      idlePosX = Math.sin(time * 1.5) * 0.0004;
-      idlePosY = Math.cos(time * 1.2) * 0.0004;
+      idleRotY = Math.sin(time * 1.5) * 0.0015 * idleWeight;
+      idleRotX = Math.cos(time * 1.2) * 0.0015 * idleWeight;
+      idlePosX = Math.sin(time * 1.5) * 0.0004 * idleWeight;
+      idlePosY = Math.cos(time * 1.2) * 0.0004 * idleWeight;
     } else {
-      idleRotY = Math.sin(time * 1.4) * 0.005;
-      idleRotX = Math.cos(time * 1.1) * 0.005;
-      idlePosX = Math.sin(time * 1.4) * 0.002;
-      idlePosY = Math.cos(time * 1.1) * 0.002;
+      idleRotY = Math.sin(time * 1.4) * 0.005 * idleWeight;
+      idleRotX = Math.cos(time * 1.1) * 0.005 * idleWeight;
+      idlePosX = Math.sin(time * 1.4) * 0.002 * idleWeight;
+      idlePosY = Math.cos(time * 1.1) * 0.002 * idleWeight;
     }
 
-    // Aplica Rotações no grupo de sway (amplitude reduzida em 60%):
+    // Aplica Rotações no grupo de sway:
     // - rotation.y: cano acompanha inércia virando na direção de atraso
-    // - rotation.x: cano sobe ou desce com o olhar vertical
+    // - rotation.x: cano sobe ou desce com o olhar vertical + inércia de arrancada/frenagem
     // - rotation.z: inclinação (banking) orgânica na direção do movimento
     this.swayGroup.rotation.y = -this.swayPos.x * 0.45 + idleRotY;
-    this.swayGroup.rotation.x = this.swayPos.y * 0.45 + idleRotX;
+    this.swayGroup.rotation.x = this.swayPos.y * 0.45 + idleRotX + this.locomotion.accelInertiaPitch;
     this.swayGroup.rotation.z = this.swayPos.x * 0.20;
     
-    // Aplica Posições (amplitude linear contida e controlada)
+    // Aplica Posições (bobbing com fase 100% contínua + offset suavizado + inércia longitudinal Z)
     this.swayGroup.position.x = this.swayPos.x * 0.18 + bobX + idlePosX;
-    this.swayGroup.position.y = this.swayPos.y * 0.18 + bobY + idlePosY - (speed > 0.1 ? 0.005 : 0);
+    this.swayGroup.position.y = this.swayPos.y * 0.18 + bobY + idlePosY + this.locomotion.locoOffsetY;
+    this.swayGroup.position.z = this.locomotion.accelInertiaZ;
 
     const mag = Math.hypot(this.swayPos.x, this.swayPos.y);
     this.smoothMag += (mag - this.smoothMag) * Math.min(dt * 6, 1);
@@ -311,20 +323,47 @@ export class Viewmodel {
     if (!def) return;
     const mount = this.mount;
 
-    // Escolhe pose alvo
-    let tPos = def.hipPos, tRot = def.hipRot;
-    if (isADS) { tPos = this._adsPos(def); tRot = def.adsRot; }
-    else if (isSprinting) { tPos = def.sprintPos; tRot = def.sprintRot; }
+    const hipPos = def.hipPos;
+    const hipRot = def.hipRot;
+    const adsPos = this._adsPos(def);
+    const adsRot = def.adsRot;
+    const sprintPos = def.sprintPos || hipPos;
+    const sprintRot = def.sprintRot || hipRot;
 
-    // Interpola a pose base (sem somar offsets de recoil diretamente na pose base)
-    const k = Math.min(dt * (isADS ? (12 + adsAmount * 12) : 10), 1);
-    this.basePos.x += (tPos[0] - this.basePos.x) * k;
-    this.basePos.y += (tPos[1] - this.basePos.y) * k;
-    this.basePos.z += (tPos[2] - this.basePos.z) * k;
+    // Alvo de pose:
+    // No ADS, mira diretamente no sight (sem duplo amortecimento com adsAmount),
+    // restaurando o tempo exato e ágil de abertura de mira original.
+    let tPosX, tPosY, tPosZ, tRotX, tRotY, tRotZ;
+    if (isADS) {
+      tPosX = adsPos[0];
+      tPosY = adsPos[1];
+      tPosZ = adsPos[2];
+      tRotX = adsRot[0];
+      tRotY = adsRot[1];
+      tRotZ = adsRot[2];
+    } else {
+      // Fora do ADS, faz o blend ponderado contínuo entre Hipfire e Sprint (70-90ms)
+      const sprintW = this.locomotion ? this.locomotion.sprintWeight : (isSprinting ? 1.0 : 0.0);
+      const hipW = Math.max(0.0, 1.0 - sprintW);
+      tPosX = hipPos[0] * hipW + sprintPos[0] * sprintW;
+      tPosY = hipPos[1] * hipW + sprintPos[1] * sprintW;
+      tPosZ = hipPos[2] * hipW + sprintPos[2] * sprintW;
 
-    this.baseRot.x += (tRot[0] - this.baseRot.x) * k;
-    this.baseRot.y += (tRot[1] - this.baseRot.y) * k;
-    this.baseRot.z += (tRot[2] - this.baseRot.z) * k;
+      tRotX = hipRot[0] * hipW + sprintRot[0] * sprintW;
+      tRotY = hipRot[1] * hipW + sprintRot[1] * sprintW;
+      tRotZ = hipRot[2] * hipW + sprintRot[2] * sprintW;
+    }
+
+    // Interpolação ágil e tática da pose base (resposta de ADS idêntica à original)
+    const curAdsAmount = adsAmount !== undefined ? adsAmount : (isADS ? 1.0 : 0.0);
+    const k = Math.min(dt * (isADS ? (16.0 + curAdsAmount * 14.0) : 24.0), 1.0);
+    this.basePos.x += (tPosX - this.basePos.x) * k;
+    this.basePos.y += (tPosY - this.basePos.y) * k;
+    this.basePos.z += (tPosZ - this.basePos.z) * k;
+
+    this.baseRot.x += (tRotX - this.baseRot.x) * k;
+    this.baseRot.y += (tRotY - this.baseRot.y) * k;
+    this.baseRot.z += (tRotZ - this.baseRot.z) * k;
 
     // Recoil decai dependente do peso da arma (armas leves voltam rápido; armas pesadas têm recuperação cadenciada)
     const weight = def.weight || 3.5;

@@ -173,7 +173,7 @@ export class ScopeSystem {
 
     this._unsubFired = on('weapon:fired', e => {
       const wepId = e.weapon?.id || e.weaponId;
-      if ((wepId === 'rifle_proto' || wepId === 'vss') && (this.adsTarget || this.scopeOn)) {
+      if ((wepId === 'rifle_proto' || wepId === 'vss' || wepId === 'scar_h') && (this.adsTarget || this.scopeOn)) {
         this.addOpticShake(0.95);
       }
     });
@@ -218,9 +218,93 @@ export class ScopeSystem {
     this.opticShake = Math.min(this.opticShake + amount, 1.8);
   }
 
-  buildReticle(type = 'duplex') {
+  buildReticle(type = 'acss') {
     const el = document.getElementById('reticle');
     if (!el) return;
+
+    if (type === 'acss') {
+      const red = '#ff1a24';
+      const black = '#111315';
+      const L = (x1, y1, x2, y2, w, color = black) =>
+        `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${w}" stroke-linecap="butt"/>`;
+      const C = (cx, cy, r, color = black) =>
+        `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}" stroke="none"/>`;
+      const T = (x, y, text, color = black, size = 2.4) =>
+        `<text x="${x}" y="${y}" font-family="monospace, sans-serif" font-weight="bold" font-size="${size}" fill="${color}" text-anchor="middle" dominant-baseline="central">${text}</text>`;
+
+      let s = '';
+
+      // 1. Red Horseshoe (ferradura tática vermelha iluminada aberta embaixo)
+      // Raio 5.4, aberta na parte inferior (~70 graus)
+      s += `<path d="M -3.8 3.8 A 5.4 5.4 0 1 1 3.8 3.8" fill="none" stroke="${red}" stroke-width="1.35" stroke-linecap="butt"/>`;
+
+      // 2. Red Chevron central (ápice exatamente em 0,0)
+      s += `<path d="M -1.8 2.0 L 0 0 L 1.8 2.0" fill="none" stroke="${red}" stroke-width="0.8" stroke-linejoin="miter" stroke-linecap="butt"/>`;
+      // Traço vertical central vermelho logo abaixo do chevron
+      s += L(0, 2.7, 0, 4.4, 0.65, red);
+
+      // 3. Walking Speed Leads Bracket (3.1 avg walking speed em volta da ferradura)
+      s += `<path d="M -5.8 4.2 L -5.8 -6.8 L 5.8 -6.8 L 5.8 4.2" fill="none" stroke="${black}" stroke-width="0.32"/>`;
+
+      // 4. Sprinting Leads (8.6mph avg target speed: 2 pontos laterais + bracket superior)
+      s += C(-14.0, 0, 0.85, black);
+      s += C(14.0, 0, 0.85, black);
+      s += `<path d="M -14.0 -1.2 L -14.0 -10.8 L 14.0 -10.8 L 14.0 -1.2" fill="none" stroke="${black}" stroke-width="0.32"/>`;
+
+      // 5. Árvore Balística Vertical BDC (Bullet Drop Compensation)
+      // Linha mestre vertical
+      s += L(0, 4.4, 0, 36.0, 0.45, black);
+
+      // Ticks horizontais de distância + Wind hold dots (pontos de vento)
+      // Distância 3 (300m)
+      s += L(-1.4, 7.2, 1.4, 7.2, 0.45, black);
+      s += C(-3.2, 7.2, 0.4, black);
+      s += C(3.2, 7.2, 0.4, black);
+
+      // Distância 4 (400m) - com número '4' à direita
+      s += L(-2.2, 11.8, 2.2, 11.8, 0.55, black);
+      s += T(3.8, 11.8, '4', black, 2.3);
+      s += C(-4.8, 11.8, 0.42, black);
+      s += C(6.2, 11.8, 0.42, black);
+
+      // Distância 5 (500m)
+      s += L(-1.6, 17.0, 1.6, 17.0, 0.45, black);
+      s += C(-6.2, 17.0, 0.42, black);
+      s += C(6.2, 17.0, 0.42, black);
+
+      // Distância 6 (600m) - com número '6' à direita
+      s += L(-2.6, 22.8, 2.6, 22.8, 0.55, black);
+      s += T(4.4, 22.8, '6', black, 2.3);
+      s += C(-7.8, 22.8, 0.45, black);
+      s += C(7.2, 22.8, 0.45, black);
+
+      // Distância 7 (700m)
+      s += L(-1.8, 29.0, 1.8, 29.0, 0.45, black);
+      s += C(-9.4, 29.0, 0.45, black);
+      s += C(9.4, 29.0, 0.45, black);
+
+      // Distância 8 (800m) - com número '8' à direita
+      s += L(-3.2, 35.5, 3.2, 35.5, 0.6, black);
+      s += T(5.2, 35.5, '8', black, 2.3);
+      s += C(-11.2, 35.5, 0.48, black);
+      s += C(8.4, 35.5, 0.48, black);
+
+      // 6. Telêmetro Estadiamétrico à Direita (Stadiametric Rangefinder Ladder: 4, 6, 8)
+      const rx = 19.5;
+      s += L(rx, 11.8, rx, 35.5, 0.6, black);
+      s += L(rx, 11.8, rx + 4.8, 11.8, 0.55, black);
+      s += T(rx - 2.2, 11.8, '4', black, 2.1);
+      s += L(rx, 17.0, rx + 3.6, 17.0, 0.45, black);
+      s += L(rx, 22.8, rx + 2.8, 22.8, 0.5, black);
+      s += T(rx - 2.2, 22.8, '6', black, 2.1);
+      s += L(rx, 29.0, rx + 2.2, 29.0, 0.45, black);
+      s += L(rx, 35.5, rx + 1.8, 35.5, 0.55, black);
+      s += T(rx - 2.2, 35.5, '8', black, 2.1);
+      s += L(rx, 35.5, rx + 4.8, 35.5, 0.55, black);
+
+      el.innerHTML = s;
+      return;
+    }
 
     if (type === 'pso1') {
       const L = (x1, y1, x2, y2, w, color = '#ff3311') => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${w}"/>`;
@@ -253,7 +337,7 @@ export class ScopeSystem {
       return;
     }
 
-    // Retículo Duplex Padrão (Rifle Prototype)
+    // Retículo Duplex Padrão
     const L = (x1, y1, x2, y2, w) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke-width="${w}"/>`;
     let s = '';
     // Linhas grossas externas + finas internas (estilo duplex)
@@ -293,7 +377,7 @@ export class ScopeSystem {
     this.activeDetails = this.models?.[weaponId] || null;
     this.protoDetails = this.activeDetails;
     this.baseDepth = null;
-    this.buildReticle(weaponId === 'vss' ? 'pso1' : 'duplex');
+    this.buildReticle(weaponId === 'vss' ? 'pso1' : 'acss');
   }
 
   attachToModel(protoDetails) {

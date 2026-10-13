@@ -109,8 +109,8 @@ export class ItemDrop {
         ctx.fill();
         ctx.stroke();
       }
-      // Scope para VSS / Proto / M249
-      if (weaponId === 'vss' || weaponId === 'rifle_proto') {
+      // Scope para VSS / Proto / SCAR-H
+      if (weaponId === 'vss' || weaponId === 'rifle_proto' || weaponId === 'scar_h') {
         ctx.fillStyle = '#00f0ff';
         ctx.fillRect(-22, -24, 42, 9);
         ctx.strokeRect(-22, -24, 42, 9);
@@ -127,7 +127,7 @@ export class ItemDrop {
     const def = WEAPONS[weaponId];
     let glowColor = 0xffcc00;
     if (def) {
-      if (def.type === 'sniper' || weaponId === 'vss' || weaponId === 'rifle_proto') {
+      if (def.type === 'sniper' || weaponId === 'vss' || weaponId === 'rifle_proto' || weaponId === 'scar_h') {
         glowColor = 0x00f0ff;
       } else if (def.type === 'heavy' || weaponId === 'm249') {
         glowColor = 0xff6600;
@@ -291,7 +291,7 @@ export class ItemDrop {
     // Cor do halo / identificação por tipo de arma
     let glowColor = 0xffcc00; // rifle padrão
     if (def) {
-      if (def.type === 'sniper' || this.weaponId === 'vss' || this.weaponId === 'rifle_proto') {
+      if (def.type === 'sniper' || this.weaponId === 'vss' || this.weaponId === 'rifle_proto' || this.weaponId === 'scar_h') {
         glowColor = 0x00f0ff;
       } else if (def.type === 'heavy' || this.weaponId === 'm249') {
         glowColor = 0xff6600;

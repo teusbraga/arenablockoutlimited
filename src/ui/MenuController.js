@@ -73,14 +73,20 @@ export class MenuController {
     const weaponSelect = document.getElementById('weapon-select');
     const saved = localStorage.getItem('blocky_weapon');
     if (saved && weaponSelect) weaponSelect.value = saved;
-    return weaponSelect ? weaponSelect.value : defaultWeapon;
+    if (weaponSelect && !weaponSelect.value) {
+      weaponSelect.value = defaultWeapon;
+    }
+    return (weaponSelect && weaponSelect.value) ? weaponSelect.value : defaultWeapon;
   }
 
   static getSavedSecondaryWeapon(defaultWeapon = 'p9') {
     const weaponSecondarySelect = document.getElementById('weapon-secondary-select');
     const saved = localStorage.getItem('blocky_weapon_secondary');
     if (saved && weaponSecondarySelect) weaponSecondarySelect.value = saved;
-    return weaponSecondarySelect ? weaponSecondarySelect.value : defaultWeapon;
+    if (weaponSecondarySelect && !weaponSecondarySelect.value) {
+      weaponSecondarySelect.value = defaultWeapon;
+    }
+    return (weaponSecondarySelect && weaponSecondarySelect.value) ? weaponSecondarySelect.value : defaultWeapon;
   }
 
   static getSavedBotSkin() {

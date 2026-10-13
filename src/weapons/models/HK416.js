@@ -1,66 +1,64 @@
 /**
  * ============================================================================
- *               HECKLER & KOCH HK416 — MONUMENTO PROCEDURAL
+ *         HECKLER & KOCH HK416 — FACELIFT v2.0 (M249 ADS SIGHT SYSTEM)
  * ============================================================================
- * Marco de engenharia e modelagem procedural comemorativo da versão final do 
- * protótipo FPS Blocky (Three.js).
- * 
- * Todo construído exclusivamente com primitivas geométricas (Box, Cylinder, 
- * Torus, Sphere) e materiais PBR de alto brilho anodizado militar.
- * 
- * ANATOMIA ESTRUTURAL:
- *   1. Upper & Lower Receiver:
- *      - Perfil elevado característico do sistema de pistão de curso curto HK.
- *      - Magwell alargado e chanfrado (flared magwell) com placas de reforço.
- *      - Pinos de desmontagem tática, seletor de tiro ambidestro (Safe/Auto),
- *        retém do ferrolho (bolt catch), retém do carregador e guarda-mato curvo.
- * 
- *   2. Conjunto de Ejeção & Assistência de Avanço:
- *      - Janela de ejeção chanfrada com tampa contra poeira (dust cover) aberta.
- *      - Ferrolho usinado cromado (bolt carrier) com cartucho 5.56mm em latão.
- *      - Defletor de estojos (brass deflector) e forward assist cilíndrico a 45°.
- *      - Alavanca de manejo tática ambidestra (charging handle) com trava larga.
- * 
- *   3. Guarda-Mão Quad-Rail (HK Free-Float Handguard):
- *      - Trilho Picatinny superior contínuo com dentes 3D usinados individualmente.
- *      - Trilhos laterais e inferior com janelas de arrefecimento em baixo relevo.
- *      - Parafuso mestre de fixação HK (cross-locking hex bolt).
- * 
- *   4. Sistema de Gás, Cano & Quebra-Chamas:
- *      - Bloco de gás com regulador de pressão de pistão.
- *      - Cano flutuante usinado em aço com anel espaçador (crush washer).
- *      - Quebra-chamas tático HK Birdcage com ranhuras longitudinais de alívio.
- * 
- *   5. Carregador Estilo P-MAG:
- *      - Curvatura ergonômica STANAG com nervuras horizontais antiderrapantes.
- *      - Baseplate alargado de polímero de alta densidade com orifício de extração.
- * 
- *   6. Punho Ergonômico HK Battle Grip V2:
- *      - Inclinação tática com beavertail traseiro e ressalto anatômico frontal.
- * 
- *   7. Coronha Telescópica HK E1 / SlimLine:
- *      - Tubo amortecedor mil-spec em aço com porca castelo e alavanca de ajuste.
- *      - Soleira de borracha estriada convexa com soquetes QD de bandoleira.
- * 
- *   8. Conjunto de Miras Diópter HK (Alinhamento Preciso no ADS):
- *      - Alça de mira traseira: tambor giratório cilíndrico (rotary drum diopter).
- *      - Massa de mira dianteira: anel protetor circular (hooded ring) com pino
- *        central e ponto de trítio verde neon de alta visibilidade.
+ * Facelift visual PBR de alto contraste (Anodized HK Black, Gunmetal Steel,
+ * Polymer Matte & RAL8000/Bronze accents) combinado com a arquitetura de
+ * mira de ferro de visada limpa da M249 cravada no socket Y = 0.076.
  * ============================================================================
  */
 
 import * as THREE from 'three';
 
-// Materiais PBR Táticos da HK416 (Preto Anodizado Brilhante de Alta Definição)
-export const M_HK_GLOSS    = new THREE.MeshStandardMaterial({ color: 0x4e5156, roughness: 0.35, metalness: 0.50 });
-export const M_HK_RECEIVER = new THREE.MeshStandardMaterial({ color: 0x4e5156, roughness: 0.40, metalness: 0.45 });
-export const M_HK_STEEL    = new THREE.MeshStandardMaterial({ color: 0x8a939c, roughness: 0.25, metalness: 0.80 });
-export const M_HK_POLYMER  = new THREE.MeshStandardMaterial({ color: 0x4e5156, roughness: 0.52, metalness: 0.22 });
-export const M_HK_MAG      = new THREE.MeshStandardMaterial({ color: 0x4e5156, roughness: 0.45, metalness: 0.35 });
+function makeHKRailTexture() {
+  if (typeof document === 'undefined') return new THREE.Texture();
+  const w = 128, h = 64;
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext('2d');
+
+  ctx.fillStyle = '#24282e';
+  ctx.fillRect(0, 0, w, h);
+
+  // Linhas de usinagem do Quad-Rail HK
+  ctx.fillStyle = '#16191d';
+  ctx.fillRect(0, 10, w, 4);
+  ctx.fillRect(0, 50, w, 4);
+
+  // Janelas ovais de ventilação em baixo-relevo
+  ctx.fillStyle = '#0f1114';
+  for (let x = 14; x < w - 14; x += 22) {
+    ctx.fillRect(x, 20, 14, 10);
+    ctx.fillRect(x, 36, 14, 10);
+  }
+
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+const HK_RAIL_TEX = makeHKRailTexture();
+
+// Materiais PBR Táticos da HK416 (Alto Contraste Militar)
+export const M_HK_GLOSS    = new THREE.MeshStandardMaterial({ color: 0x262b31, roughness: 0.30, metalness: 0.68 });
+export const M_HK_RECEIVER = new THREE.MeshStandardMaterial({ color: 0x1d2126, roughness: 0.36, metalness: 0.62 });
+export const M_HK_STEEL    = new THREE.MeshStandardMaterial({ color: 0x828c96, roughness: 0.22, metalness: 0.88 });
+export const M_HK_POLYMER  = new THREE.MeshStandardMaterial({ color: 0x17191c, roughness: 0.72, metalness: 0.14 });
+export const M_HK_MAG      = new THREE.MeshStandardMaterial({ color: 0x22262b, roughness: 0.55, metalness: 0.30 });
 export const M_HK_BRASS    = new THREE.MeshStandardMaterial({ color: 0xdfb850, roughness: 0.18, metalness: 0.92 });
-export const M_HK_TRIT     = new THREE.MeshBasicMaterial({ color: 0x33ff66 });
-export const M_HK_RED      = new THREE.MeshBasicMaterial({ color: 0xdd2222 });
-export const M_HK_WHITE    = new THREE.MeshBasicMaterial({ color: 0xdddddd });
+export const M_HK_TRIT     = new THREE.MeshBasicMaterial({ color: 0x55ff77 });
+export const M_HK_RED      = new THREE.MeshBasicMaterial({ color: 0xe62222 });
+export const M_HK_WHITE    = new THREE.MeshBasicMaterial({ color: 0xeeeeee });
+
+const M_HK_HANDGUARD = new THREE.MeshStandardMaterial({
+  color: 0xffffff,
+  map: HK_RAIL_TEX,
+  roughness: 0.34,
+  metalness: 0.65
+});
+const M_HK_DARK_STEEL = new THREE.MeshStandardMaterial({ color: 0x14171a, roughness: 0.42, metalness: 0.82 });
+const M_HK_RAL8000    = new THREE.MeshStandardMaterial({ color: 0x8c734b, roughness: 0.32, metalness: 0.65 });
 
 export function buildHK416() {
   const g = new THREE.Group();
@@ -68,37 +66,34 @@ export function buildHK416() {
   /* =========================================================
      1. RECEIVER SUPERIOR & INFERIOR (UPPER & LOWER)
      ========================================================= */
-  // Upper Receiver - Perfil clássico HK416 (mais alto que M4 para pistão de gás)
   const upper = new THREE.Mesh(new THREE.BoxGeometry(0.044, 0.052, 0.22), M_HK_RECEIVER);
   upper.position.set(0, 0.018, -0.02);
 
-  // Lower Receiver
   const lower = new THREE.Mesh(new THREE.BoxGeometry(0.046, 0.058, 0.16), M_HK_RECEIVER);
   lower.position.set(0, -0.030, 0.02);
 
-  // Magwell beveled alargado (Estilo HK flared magwell)
+  // Magwell chanfrado HK416
   const magwell = new THREE.Mesh(new THREE.BoxGeometry(0.048, 0.068, 0.076), M_HK_GLOSS);
   magwell.position.set(0, -0.052, -0.042);
-  const magwellLip = new THREE.Mesh(new THREE.BoxGeometry(0.052, 0.012, 0.082), M_HK_GLOSS);
+  const magwellLip = new THREE.Mesh(new THREE.BoxGeometry(0.052, 0.012, 0.082), M_HK_DARK_STEEL);
   magwellLip.position.set(0, -0.082, -0.042);
 
-  // Relevo lateral do Magwell (Logotipo / rebaixo do receiver)
-  const magwellPlateL = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.038, 0.050), M_HK_STEEL);
+  const magwellPlateL = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.038, 0.050), M_HK_GLOSS);
   magwellPlateL.position.set(-0.0245, -0.052, -0.042);
-  const magwellPlateR = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.038, 0.050), M_HK_STEEL);
+  const magwellPlateR = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.038, 0.050), M_HK_GLOSS);
   magwellPlateR.position.set(0.0245, -0.052, -0.042);
 
-  // Pinos de desmontagem tática (Takedown Pins)
-  const pinFront = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.050, 10), M_HK_STEEL);
+  // Pinos de desmontagem tática
+  const pinFront = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.050, 10), M_HK_DARK_STEEL);
   pinFront.rotation.z = Math.PI / 2;
   pinFront.position.set(0, -0.012, -0.070);
 
-  const pinRear = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.050, 10), M_HK_STEEL);
+  const pinRear = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.050, 10), M_HK_DARK_STEEL);
   pinRear.rotation.z = Math.PI / 2;
   pinRear.position.set(0, -0.006, 0.085);
 
-  // Seletor de tiro ambidestro (Safe / Semi / Auto)
-  const selectorL = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.008, 0.022), M_HK_STEEL);
+  // Seletor de tiro ambidestro HK (pictogramas Branco / Vermelho)
+  const selectorL = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.008, 0.022), M_HK_DARK_STEEL);
   selectorL.position.set(-0.025, -0.018, 0.052);
   selectorL.rotation.x = -0.4;
   const indSafe = new THREE.Mesh(new THREE.BoxGeometry(0.001, 0.003, 0.006), M_HK_WHITE);
@@ -106,19 +101,15 @@ export function buildHK416() {
   const indAuto = new THREE.Mesh(new THREE.BoxGeometry(0.001, 0.003, 0.006), M_HK_RED);
   indAuto.position.set(-0.024, -0.010, 0.060);
 
-  // Retém do ferrolho (Bolt Catch Paddle) à esquerda
   const boltCatch = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.020, 0.014), M_HK_STEEL);
   boltCatch.position.set(-0.024, 0.008, -0.018);
 
-  // Retém do carregador (Mag Release) à direita
-  const magRelease = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.012, 0.014), M_HK_STEEL);
+  const magRelease = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.012, 0.014), M_HK_RAL8000);
   magRelease.position.set(0.024, -0.032, -0.035);
 
-  // Guarda-mato tático curvado
   const trigGuard = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.006, 0.055), M_HK_POLYMER);
   trigGuard.position.set(0, -0.074, 0.028);
 
-  // Gatilho tático estilizado
   const trigger = new THREE.Mesh(new THREE.BoxGeometry(0.006, 0.022, 0.010), M_HK_STEEL);
   trigger.position.set(0, -0.054, 0.024);
   trigger.rotation.x = 0.28;
@@ -126,136 +117,109 @@ export function buildHK416() {
   /* =========================================================
      2. EJECTION PORT, BOLT CARRIER & FORWARD ASSIST
      ========================================================= */
-  // Janela de ejeção chanfrada (lado direito)
-  const ejectPort = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.022, 0.065), M_HK_GLOSS);
+  const ejectPort = new THREE.Mesh(new THREE.BoxGeometry(0.008, 0.022, 0.065), M_HK_DARK_STEEL);
   ejectPort.position.set(0.021, 0.022, -0.010);
 
-  // Ferrolho cromado usinado visível dentro da janela (Bolt Carrier Group)
   const boltCarrier = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.062, 12), M_HK_STEEL);
   boltCarrier.rotation.x = Math.PI / 2;
   boltCarrier.position.set(0.012, 0.022, -0.010);
 
-  // Cartucho 5.56mm dourado visível na câmara
   const brassCase = new THREE.Mesh(new THREE.CylinderGeometry(0.0048, 0.0048, 0.022, 10), M_HK_BRASS);
   brassCase.rotation.x = Math.PI / 2;
   brassCase.position.set(0.015, 0.020, -0.024);
 
-  // Tampa contra poeira aberta (Dust Cover abaixada)
-  const dustCover = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.018, 0.065), M_HK_RECEIVER);
+  const dustCover = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.018, 0.065), M_HK_GLOSS);
   dustCover.position.set(0.024, 0.006, -0.010);
   dustCover.rotation.z = -0.55;
 
-  // Defletor de estojos (Brass Deflector wedge)
   const deflector = new THREE.Mesh(new THREE.BoxGeometry(0.014, 0.020, 0.022), M_HK_GLOSS);
   deflector.position.set(0.026, 0.022, 0.038);
   deflector.rotation.y = -0.35;
 
-  // Assistente de avanço (Forward Assist cilíndrico a 45 graus)
   const fwdAssistHousing = new THREE.Mesh(new THREE.CylinderGeometry(0.009, 0.011, 0.026, 10), M_HK_GLOSS);
   fwdAssistHousing.rotation.z = -Math.PI / 4;
   fwdAssistHousing.position.set(0.028, 0.026, 0.070);
 
-  const fwdAssistButton = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.014, 10), M_HK_STEEL);
+  const fwdAssistButton = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.014, 10), M_HK_DARK_STEEL);
   fwdAssistButton.rotation.z = -Math.PI / 4;
   fwdAssistButton.position.set(0.037, 0.035, 0.070);
 
-  // Alavanca de manejo tática ambidestra traseira (Charging Handle)
-  const chargingHandle = new THREE.Mesh(new THREE.BoxGeometry(0.040, 0.010, 0.022), M_HK_RECEIVER);
+  // Charging Handle tático ambidestro com travas em RAL8000
+  const chargingHandle = new THREE.Mesh(new THREE.BoxGeometry(0.040, 0.010, 0.022), M_HK_DARK_STEEL);
   chargingHandle.position.set(0, 0.046, 0.102);
-  const latchL = new THREE.Mesh(new THREE.BoxGeometry(0.010, 0.014, 0.014), M_HK_GLOSS);
+  const latchL = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.012, 0.014), M_HK_RAL8000);
   latchL.position.set(-0.024, 0.046, 0.102);
 
   /* =========================================================
-     3. QUAD-RAIL HANDGUARD HK416 (M-LOK / PICATINNY HYBRID)
+     3. QUAD-RAIL HANDGUARD HK416 (COM TEXTURA PROCEDURAL)
      ========================================================= */
-  // Corpo do Guarda-mão octogonal alongado
-  const handguard = new THREE.Mesh(new THREE.BoxGeometry(0.048, 0.054, 0.22), M_HK_GLOSS);
+  const handguard = new THREE.Mesh(new THREE.BoxGeometry(0.048, 0.054, 0.22), M_HK_HANDGUARD);
   handguard.position.set(0, 0.019, -0.22);
 
   // Parafuso Mestre de fixação HK (Cross-Locking Hex Bolt)
   const hkHexBolt = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.007, 0.054, 8), M_HK_STEEL);
   hkHexBolt.rotation.z = Math.PI / 2;
-  hkHexBolt.position.set(0, 0.010, -0.125);
+  hkHexBolt.position.set(0, -0.002, -0.125);
 
-  // Trilho Picatinny Superior Contínuo Elevado (HK monolithic rail)
-  const topRail = new THREE.Mesh(new THREE.BoxGeometry(0.026, 0.013, 0.44), M_HK_GLOSS);
+  // Trilho Picatinny Superior Contínuo
+  const topRail = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.012, 0.44), M_HK_GLOSS);
   topRail.position.set(0, 0.048, -0.13);
 
-  // Ranhuras/Dentes Picatinny usinados no topo (Relevo 3D de alta definição)
-  for (let z = 0.06; z >= -0.32; z -= 0.020) {
-    const slot = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.004, 0.008), M_HK_STEEL);
-    slot.position.set(0, 0.053, z);
+  for (let z = 0.06; z >= -0.32; z -= 0.022) {
+    const slot = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.003, 0.008), M_HK_DARK_STEEL);
+    slot.position.set(0, 0.054, z);
     g.add(slot);
   }
 
-  // Trilhos Laterais (Quad Rail Picatinny esquerdo e direito)
-  const sideRailL = new THREE.Mesh(new THREE.BoxGeometry(0.007, 0.022, 0.19), M_HK_GLOSS);
+  const sideRailL = new THREE.Mesh(new THREE.BoxGeometry(0.007, 0.020, 0.19), M_HK_GLOSS);
   sideRailL.position.set(-0.027, 0.019, -0.22);
 
-  const sideRailR = new THREE.Mesh(new THREE.BoxGeometry(0.007, 0.022, 0.19), M_HK_GLOSS);
+  const sideRailR = new THREE.Mesh(new THREE.BoxGeometry(0.007, 0.020, 0.19), M_HK_GLOSS);
   sideRailR.position.set(0.027, 0.019, -0.22);
 
-  // Trilho Picatinny Inferior para grip / lanterna
   const bottomRail = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.007, 0.19), M_HK_GLOSS);
   bottomRail.position.set(0, -0.010, -0.22);
-
-  // Janelas de ventilação do pistão de gás (Cooling Vents em baixo relevo)
-  for (let vz = -0.15; vz >= -0.29; vz -= 0.038) {
-    const ventL = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.009, 0.022), M_HK_STEEL);
-    ventL.position.set(-0.025, 0.034, vz);
-    const ventR = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.009, 0.022), M_HK_STEEL);
-    ventR.position.set(0.025, 0.034, vz);
-    g.add(ventL, ventR);
-  }
 
   /* =========================================================
      4. SISTEMA DE GÁS, CANO & QUEBRA-CHAMAS (BARREL & MUZZLE)
      ========================================================= */
-  // Bloco de gás com pistão de curso curto (Short-Stroke Gas Block)
-  const gasBlock = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.046, 0.032), M_HK_RECEIVER);
-  gasBlock.position.set(0, 0.030, -0.345);
+  const gasBlock = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.044, 0.032), M_HK_DARK_STEEL);
+  gasBlock.position.set(0, 0.028, -0.345);
 
-  const gasRegulator = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.018, 10), M_HK_STEEL);
+  const gasRegulator = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.018, 10), M_HK_RAL8000);
   gasRegulator.rotation.x = Math.PI / 2;
-  gasRegulator.position.set(0, 0.044, -0.360);
+  gasRegulator.position.set(0, 0.042, -0.360);
 
-  // Cano de precisão em aço fosfatizado usinado
-  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.22, 16), M_HK_STEEL);
+  const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.011, 0.011, 0.22, 16), M_HK_DARK_STEEL);
   barrel.rotation.x = Math.PI / 2;
   barrel.position.set(0, 0.019, -0.40);
 
-  // Anel espaçador de boca de cano (Crush Washer)
-  const crushWasher = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.006, 12), M_HK_STEEL);
+  const crushWasher = new THREE.Mesh(new THREE.CylinderGeometry(0.013, 0.013, 0.006, 12), M_HK_RAL8000);
   crushWasher.rotation.x = Math.PI / 2;
   crushWasher.position.set(0, 0.019, -0.490);
 
-  // Quebra-chamas tático HK Birdcage com ranhuras longitudinais
   const flashHider = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.013, 0.046, 16), M_HK_GLOSS);
   flashHider.rotation.x = Math.PI / 2;
   flashHider.position.set(0, 0.019, -0.515);
 
-  // Coroa estriada na boca do quebra-chamas
   const muzzleTip = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.014, 0.008, 16), M_HK_STEEL);
   muzzleTip.rotation.x = Math.PI / 2;
   muzzleTip.position.set(0, 0.019, -0.540);
 
   /* =========================================================
-     5. CARREGADOR P-MAG COM NERVURAS (MAGAZINE)
+     5. CARREGADOR P-MAG / HK MARITIME (MAGAZINE)
      ========================================================= */
-  // Corpo curvado com formato Stanag / Magpul
   const mag = new THREE.Mesh(new THREE.BoxGeometry(0.029, 0.155, 0.060), M_HK_MAG);
   mag.position.set(0, -0.118, -0.030);
   mag.rotation.x = -0.16;
 
-  // Nervuras antiderrapantes horizontais em relevo no carregador
   for (let my = -0.07; my >= -0.16; my -= 0.018) {
-    const rib = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.006, 0.056), M_HK_GLOSS);
+    const rib = new THREE.Mesh(new THREE.BoxGeometry(0.031, 0.005, 0.056), M_HK_POLYMER);
     rib.position.set(0, my, -0.030 + (my * 0.16));
     rib.rotation.x = -0.16;
     g.add(rib);
   }
 
-  // Baseplate alargado de polímero com orifício de drenagem
   const magBase = new THREE.Mesh(new THREE.BoxGeometry(0.033, 0.018, 0.066), M_HK_POLYMER);
   magBase.position.set(0, -0.198, -0.042);
   magBase.rotation.x = -0.16;
@@ -263,109 +227,160 @@ export function buildHK416() {
   /* =========================================================
      6. PUNHO PISTOL GRIP ERGONÔMICO (HK BATTLE GRIP V2)
      ========================================================= */
-  // Corpo anatômico do punho inclinado
   const grip = new THREE.Mesh(new THREE.BoxGeometry(0.034, 0.105, 0.046), M_HK_POLYMER);
   grip.position.set(0, -0.105, 0.108);
   grip.rotation.x = -0.32;
 
-  // Ressalto frontal para apoio do dedo indicador/médio (Finger Ridge)
-  const fingerRidge = new THREE.Mesh(new THREE.BoxGeometry(0.034, 0.014, 0.010), M_HK_GLOSS);
+  const fingerRidge = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.014, 0.010), M_HK_GLOSS);
   fingerRidge.position.set(0, -0.098, 0.088);
   fingerRidge.rotation.x = -0.32;
 
-  // Beavertail superior do punho que abraça a junção do receiver
   const beavertail = new THREE.Mesh(new THREE.BoxGeometry(0.034, 0.028, 0.032), M_HK_POLYMER);
   beavertail.position.set(0, -0.052, 0.095);
   beavertail.rotation.x = -0.12;
 
-  // Tampa inferior do punho com parafuso
-  const gripCap = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.012, 0.048), M_HK_GLOSS);
+  const gripCap = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.012, 0.048), M_HK_RED);
   gripCap.position.set(0, -0.155, 0.126);
   gripCap.rotation.x = -0.32;
 
   /* =========================================================
      7. CORONHA TELESCÓPICA HK E1 / SLIMLINE (STOCK)
      ========================================================= */
-  // Tubo amortecedor mil-spec (Buffer Tube) em aço usinado brilhante
-  const bufferTube = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.16, 16), M_HK_STEEL);
+  const bufferTube = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.16, 16), M_HK_RAL8000);
   bufferTube.rotation.x = Math.PI / 2;
   bufferTube.position.set(0, 0.008, 0.18);
 
-  // Porca castelo do buffer tube (Castle Nut entalhada)
-  const castleNut = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.014, 12), M_HK_GLOSS);
+  const castleNut = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.014, 12), M_HK_DARK_STEEL);
   castleNut.rotation.x = Math.PI / 2;
   castleNut.position.set(0, 0.008, 0.105);
 
-  // Corpo principal da coronha HK com perfil trapezoidal e apoio de bochecha
-  const stockBody = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.075, 0.15), M_HK_GLOSS);
+  const stockBody = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.075, 0.15), M_HK_POLYMER);
   stockBody.position.set(0, -0.008, 0.24);
 
-  // Alavanca inferior de ajuste de posição da coronha
-  const stockLever = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.024, 0.08), M_HK_POLYMER);
+  // Detalhe superior de apoio de bochecha da HK SlimLine
+  const stockCheek = new THREE.Mesh(new THREE.BoxGeometry(0.041, 0.024, 0.13), M_HK_GLOSS);
+  stockCheek.position.set(0, 0.018, 0.242);
+
+  const stockLever = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.024, 0.08), M_HK_GLOSS);
   stockLever.position.set(0, -0.052, 0.23);
 
-  // Soleira de borracha convexa ergonômica (Buttpad estriado)
-  const buttpad = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.115, 0.022), M_HK_POLYMER);
+  const buttpad = new THREE.Mesh(new THREE.BoxGeometry(0.042, 0.115, 0.022), M_HK_DARK_STEEL);
   buttpad.position.set(0, -0.020, 0.315);
   buttpad.rotation.x = -0.08;
 
-  // Frisos de tração da soleira
-  for (let sy = 0.02; sy >= -0.06; sy -= 0.022) {
-    const padRib = new THREE.Mesh(new THREE.BoxGeometry(0.043, 0.006, 0.004), M_HK_GLOSS);
-    padRib.position.set(0, sy, 0.326 + (sy * 0.08));
-    padRib.rotation.x = -0.08;
-    g.add(padRib);
-  }
-
-  // Soquetes QD (Quick-Detach) para bandoleira em ambos os lados da coronha
   const qdL = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.004, 12), M_HK_STEEL);
   qdL.rotation.z = Math.PI / 2;
-  qdL.position.set(-0.020, -0.008, 0.26);
+  qdL.position.set(-0.021, -0.008, 0.26);
 
   const qdR = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.004, 12), M_HK_STEEL);
   qdR.rotation.z = Math.PI / 2;
-  qdR.position.set(0.020, -0.008, 0.26);
+  qdR.position.set(0.021, -0.008, 0.26);
 
   /* =========================================================
-     8. MIRA DIÓPTER ROTATIVA CLÁSSICA HECKLER & KOCH (SIGHTS)
+     8. SISTEMA DE MIRAS DE FERRO (MODELO DE REFERÊNCIA)
+        (Alça de mira com abertura circular 'peep', tambor
+         lateral direito e aletas chanfradas; Massa de mira
+         aberta com pino central e aletas chanfradas)
      ========================================================= */
-  // --- MIRA TRASEIRA (HK Rotary Drum Diopter) ---
-  const rearMount = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.016, 0.026), M_HK_GLOSS);
-  rearMount.position.set(0, 0.060, 0.050);
+  // --- ALÇA DE MIRA TRASEIRA (REAR SIGHT) ---
+  // Base de montagem sobre o trilho Picatinny com parafuso transversal
+  const rearSightBase = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.008, 0.024), M_HK_DARK_STEEL);
+  rearSightBase.position.set(0, 0.058, 0.045);
 
-  // Tambor diópter giratório chanfrado
-  const rearDrum = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.014, 0.018, 14), M_HK_RECEIVER);
-  rearDrum.rotation.x = Math.PI / 2;
-  rearDrum.position.set(0, 0.076, 0.050);
+  const rearClampPlate = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.008, 0.022), M_HK_GLOSS);
+  rearClampPlate.position.set(0.013, 0.058, 0.045);
 
-  // Abertura circular vazada (Peep Hole exato centrado em Y=0.076)
-  const rearApertureL = new THREE.Mesh(new THREE.BoxGeometry(0.007, 0.018, 0.010), M_HK_RECEIVER);
-  rearApertureL.position.set(-0.0078, 0.076, 0.050);
-  const rearApertureR = new THREE.Mesh(new THREE.BoxGeometry(0.007, 0.018, 0.010), M_HK_RECEIVER);
-  rearApertureR.position.set(0.0078, 0.076, 0.050);
-  const rearApertureTop = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.006, 0.010), M_HK_RECEIVER);
-  rearApertureTop.position.set(0, 0.085, 0.050);
+  const rearClampBolt = new THREE.Mesh(new THREE.CylinderGeometry(0.0025, 0.0025, 0.030, 8), M_HK_STEEL);
+  rearClampBolt.rotation.z = Math.PI / 2;
+  rearClampBolt.position.set(0, 0.056, 0.045);
 
-  // Parafuso lateral de ajuste de vento (Windage screw)
-  const windageKnob = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.030, 10), M_HK_STEEL);
-  windageKnob.rotation.z = Math.PI / 2;
-  windageKnob.position.set(0, 0.060, 0.050);
+  // Torre vertical de elevação rebaixada para abrir visada limpa
+  const rearTower = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.010, 0.016), M_HK_DARK_STEEL);
+  rearTower.position.set(0, 0.064, 0.045);
 
-  // --- MIRA DIANTEIRA (HK Hooded Front Sight - Anel Protetor Icônico) ---
-  const frontMount = new THREE.Mesh(new THREE.BoxGeometry(0.024, 0.014, 0.024), M_HK_GLOSS);
-  frontMount.position.set(0, 0.058, -0.260);
+  // Aletas protetoras verticais proporcionais (flanqueiam o anel suavemente, sem dominar a tela)
+  const rearWingL = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.012, 0.014), M_HK_DARK_STEEL);
+  rearWingL.position.set(-0.0085, 0.074, 0.045);
 
-  // Anel de proteção circular da alça de mira (Hood)
-  const frontHoodRing = new THREE.Mesh(new THREE.TorusGeometry(0.0092, 0.0016, 8, 20), M_HK_STEEL);
-  frontHoodRing.position.set(0, 0.076, -0.260);
+  const rearWingL_bevel = new THREE.Mesh(new THREE.BoxGeometry(0.0028, 0.0045, 0.014), M_HK_DARK_STEEL);
+  rearWingL_bevel.position.set(-0.0095, 0.0805, 0.045);
+  rearWingL_bevel.rotation.z = -0.45;
 
-  // Pino central fino de aço
-  const frontPost = new THREE.Mesh(new THREE.CylinderGeometry(0.0012, 0.0012, 0.012, 8), M_HK_STEEL);
-  frontPost.position.set(0, 0.071, -0.260);
+  const rearWingR = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.012, 0.014), M_HK_DARK_STEEL);
+  rearWingR.position.set(0.0085, 0.074, 0.045);
 
-  // Ponto de Trítio Verde Neon brilhante na ponta da massa de mira
-  const frontTrit = new THREE.Mesh(new THREE.SphereGeometry(0.0022, 10, 10), M_HK_TRIT);
-  frontTrit.position.set(0, 0.076, -0.260);
+  const rearWingR_bevel = new THREE.Mesh(new THREE.BoxGeometry(0.0028, 0.0045, 0.014), M_HK_DARK_STEEL);
+  rearWingR_bevel.position.set(0.0095, 0.0805, 0.045);
+  rearWingR_bevel.rotation.z = 0.45;
+
+  // Tambor de vento compacto e proporcional à direita (dimensões táticas autênticas)
+  const rearDrumWheel = new THREE.Mesh(new THREE.CylinderGeometry(0.0045, 0.0045, 0.0025, 14), M_HK_DARK_STEEL);
+  rearDrumWheel.rotation.z = Math.PI / 2;
+  rearDrumWheel.position.set(0.0115, 0.071, 0.045);
+
+  const rearKnobMain = new THREE.Mesh(new THREE.CylinderGeometry(0.0048, 0.0048, 0.003, 16), M_HK_STEEL);
+  rearKnobMain.rotation.z = Math.PI / 2;
+  rearKnobMain.position.set(0.014, 0.071, 0.045);
+
+  const rearKnobCap = new THREE.Mesh(new THREE.CylinderGeometry(0.0035, 0.0048, 0.002, 16), M_HK_DARK_STEEL);
+  rearKnobCap.rotation.z = Math.PI / 2;
+  rearKnobCap.position.set(0.0165, 0.071, 0.045);
+
+  // Eixo transversal do parafuso de ajuste
+  const rearAxleL = new THREE.Mesh(new THREE.CylinderGeometry(0.0025, 0.0025, 0.0025, 10), M_HK_STEEL);
+  rearAxleL.rotation.z = Math.PI / 2;
+  rearAxleL.position.set(-0.0105, 0.071, 0.045);
+
+  // Haste de suporte central do toro (fina e rebaixada, sem cobrir o orifício)
+  const peepStem = new THREE.Mesh(new THREE.BoxGeometry(0.003, 0.005, 0.003), M_HK_DARK_STEEL);
+  peepStem.position.set(0, 0.069, 0.045);
+
+  // Anel metálico com orifício circular preciso cravado no eixo Y = 0.076
+  const peepRing = new THREE.Mesh(new THREE.TorusGeometry(0.0034, 0.0011, 10, 20), M_HK_DARK_STEEL);
+  peepRing.position.set(0, 0.076, 0.045);
+
+  // --- MASSA DE MIRA DIANTEIRA (FRONT SIGHT) ---
+  // Base de fixação sobre o bloco de gás / início do trilho
+  const frontMount = new THREE.Mesh(new THREE.BoxGeometry(0.022, 0.008, 0.022), M_HK_DARK_STEEL);
+  frontMount.position.set(0, 0.058, -0.340);
+
+  const frontClampPlate = new THREE.Mesh(new THREE.BoxGeometry(0.004, 0.008, 0.020), M_HK_GLOSS);
+  frontClampPlate.position.set(0.012, 0.058, -0.340);
+
+  const frontClampBolt = new THREE.Mesh(new THREE.CylinderGeometry(0.0025, 0.0025, 0.028, 8), M_HK_STEEL);
+  frontClampBolt.rotation.z = Math.PI / 2;
+  frontClampBolt.position.set(0, 0.056, -0.340);
+
+  // Bloco vertical dianteiro
+  const frontTower = new THREE.Mesh(new THREE.BoxGeometry(0.016, 0.010, 0.016), M_HK_DARK_STEEL);
+  frontTower.position.set(0, 0.064, -0.340);
+
+  // Aletas protetoras dianteiras chanfradas no topo (Abertas, proporcionais ao pino)
+  const frontWingL = new THREE.Mesh(new THREE.BoxGeometry(0.0028, 0.013, 0.014), M_HK_DARK_STEEL);
+  frontWingL.position.set(-0.0065, 0.0725, -0.340);
+
+  const frontWingL_bevel = new THREE.Mesh(new THREE.BoxGeometry(0.0025, 0.004, 0.014), M_HK_DARK_STEEL);
+  frontWingL_bevel.position.set(-0.0073, 0.0785, -0.340);
+  frontWingL_bevel.rotation.z = -0.38;
+
+  const frontWingR = new THREE.Mesh(new THREE.BoxGeometry(0.0028, 0.013, 0.014), M_HK_DARK_STEEL);
+  frontWingR.position.set(0.0065, 0.0725, -0.340);
+
+  const frontWingR_bevel = new THREE.Mesh(new THREE.BoxGeometry(0.0025, 0.004, 0.014), M_HK_DARK_STEEL);
+  frontWingR_bevel.position.set(0.0073, 0.0785, -0.340);
+  frontWingR_bevel.rotation.z = 0.38;
+
+  // Base do pino de mira
+  const frontPostBase = new THREE.Mesh(new THREE.CylinderGeometry(0.0025, 0.0025, 0.004, 10), M_HK_DARK_STEEL);
+  frontPostBase.position.set(0, 0.068, -0.340);
+
+  // Pino central afilado (Front Post)
+  const frontPost = new THREE.Mesh(new THREE.CylinderGeometry(0.0008, 0.0010, 0.010, 8), M_HK_STEEL);
+  frontPost.position.set(0, 0.072, -0.340);
+
+  // Ponto de trítio neon verde na ponta do pino central (Y = 0.076 no sweetspot de disparo)
+  const frontTrit = new THREE.Mesh(new THREE.SphereGeometry(0.0011, 8, 8), M_HK_TRIT);
+  frontTrit.position.set(0, 0.076, -0.340);
 
   /* =========================================================
      9. MONTAGEM FINAL DO CONJUNTO
@@ -379,16 +394,21 @@ export function buildHK416() {
     handguard, hkHexBolt, topRail, sideRailL, sideRailR, bottomRail,
     gasBlock, gasRegulator, barrel, crushWasher, flashHider, muzzleTip,
     mag, magBase, grip, fingerRidge, beavertail, gripCap,
-    bufferTube, castleNut, stockBody, stockLever, buttpad, qdL, qdR,
-    rearMount, rearDrum, rearApertureL, rearApertureR, rearApertureTop, windageKnob,
-    frontMount, frontHoodRing, frontPost, frontTrit
+    bufferTube, castleNut, stockBody, stockCheek, stockLever, buttpad, qdL, qdR,
+    rearSightBase, rearClampPlate, rearClampBolt, rearTower,
+    rearWingL, rearWingL_bevel, rearWingR, rearWingR_bevel,
+    rearDrumWheel, rearKnobMain, rearKnobCap, rearAxleL,
+    peepStem, peepRing,
+    frontMount, frontClampPlate, frontClampBolt, frontTower,
+    frontWingL, frontWingL_bevel, frontWingR, frontWingR_bevel,
+    frontPostBase, frontPost, frontTrit
   );
 
-  g.traverse(o => { 
+  g.traverse(o => {
     if (o.isMesh) {
-      o.castShadow = true; 
+      o.castShadow = true;
       o.receiveShadow = true;
-    } 
+    }
   });
 
   return g;

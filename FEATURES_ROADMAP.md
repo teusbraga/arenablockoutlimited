@@ -32,6 +32,7 @@
   * *Layer 2:* Recuo cinemático (punch angular e coice linear no ombro com sub-stepping de 500Hz).
   * *Layer 3:* Trepidação de impacto (*camera shake*) e tranco direcional de dano (*flinch*).
 * **Passos Sincronizados:** Emissão de som procedimental com intervalos dependentes do ritmo (sprint: 0.30s, caminhada: 0.42s, agachado: 0.55s).
+* **Sistema de Suavização de Locomoção & Animações ([LocomotionSmoothingSystem.js](file:///c:/Users/Mateus/Desktop/Projetos/FPS%20BROWSER/deepseek/fps%20blocky/src/new_mechanics/LocomotionSmoothingSystem.js)):** Transições contínuas ultra-rápidas (70-90ms) entre Idle, Walk, Sprint e ADS. Elimina estalos de fase no bobbing através de acumulador incremental, integra inércia longitudinal e pondera as poses da arma sem nenhum teleporte visual.
 * **Regeneração e Respawn Determinístico:** Recuperação de HP após delay sem dano e contagem regressiva de reaparecimento no loop `fixedUpdate`.
 
 ---
@@ -200,4 +201,16 @@ flowchart LR
 - [ ] **Netcode com Client-Side Prediction e Interpolação:**
   - O cliente prediz sua própria movimentação localmente com resposta imediata.
   - O servidor valida as posições via `CollisionWorld` a 120Hz e transmite snapshots compactados via WebSockets ou WebRTC DataChannels.
+
+---
+
+### 📅 Fase 22: Fine-Tuning & Polimento da Suavização de Animação (Os 20% Restantes)
+- [ ] **Curva Hermite / S-Curve por Categoria de Arma:**
+  - Transição de arma pesada (LMG / Sniper) com amortecimento inicial mais encorpado (~100ms) e armas leves (P9, UZI) em resposta instantânea (~65-75ms).
+- [ ] **Inércia de Aterrissagem e Pulo (Landing Dip):**
+  - Impulso vertical elástico no `Viewmodel.swayGroup.position.y` ao tocar no solo após salto ou queda de mureta.
+- [ ] **Sprint-to-Fire Delay Procedural:**
+  - Janela de levantamento de cano ao disparar correndo proporcional à massa da arma.
+- [ ] **Documentação & Especificação Completa:** Consulte [`src/new_mechanics/locomotion_smoothing_system.md`](file:///c:/Users/Mateus/Desktop/Projetos/FPS%20BROWSER/deepseek/fps%20blocky/src/new_mechanics/locomotion_smoothing_system.md).
+
 

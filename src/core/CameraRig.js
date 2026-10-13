@@ -330,24 +330,34 @@ export class CameraRig {
     this.flinchPitch *= Math.max(0, 1 - dt * 15);
     this.flinchYaw *= Math.max(0, 1 - dt * 15);
 
-    // ---- 5. Head Bob & Locomoção ----
+    // ---- 5. Head Bob & Locomoção Suavizada ----
     const speedXZ = Math.hypot(player.vel.x, player.vel.z);
-    const isMoving = player.alive && player.onGround && speedXZ > 0.6;
+    const isMoving = player.alive && player.onGround && speedXZ > 0.15;
+    const userBobScale = CONFIG.ACCESSIBILITY?.headbobScale ?? 1.0;
+    const adsDamp = isAds ? 0.15 : 1.0; // No ADS amortece 85% do headbob da câmera para mira tática estável
 
     if (isMoving) {
-      const userBobScale = CONFIG.ACCESSIBILITY?.headbobScale ?? 1.0;
-      const rate = 9 + (player.sprinting ? 5 : 0) - player.crouchAmount * 3;
+      const moveRatio = Math.min(speedXZ / (CONFIG.PLAYER?.walkSpeed || 5.2), 1.8);
+      const rate = (9.0 + (player.sprinting ? 4.0 : 0.0) - (player.crouchAmount || 0) * 3.0) * Math.max(0.65, moveRatio);
       this.bobPhase += dt * rate;
-      const target = (player.sprinting ? 0.040 : 0.029) * userBobScale * Math.min(speedXZ / CONFIG.PLAYER.walkSpeed, 1.8);
-      this.bobAmt += (target - this.bobAmt) * Math.min(dt * 8, 1);
+      const target = (player.sprinting ? 0.036 : 0.026) * userBobScale * moveRatio * adsDamp;
+      this.bobAmt += (target - this.bobAmt) * Math.min(dt * 24.0, 1.0);
     } else {
-      this.bobAmt += (0 - this.bobAmt) * Math.min(dt * 6, 1);
+      this.bobAmt += (0 - this.bobAmt) * Math.min(dt * 22.0, 1.0);
+      // Avança a fase suavemente durante o decaimento para assentar sem travar no ápice
+      if (this.bobAmt > 0.001) {
+        this.bobPhase += dt * 8.0;
+      }
+    }
+
+    if (this.bobPhase > Math.PI * 2) {
+      this.bobPhase -= Math.PI * 2;
     }
 
     const bobY = Math.sin(this.bobPhase * 2) * this.bobAmt;
     const bobX = Math.cos(this.bobPhase) * this.bobAmt * 0.60;
-    this.bobRoll = Math.cos(this.bobPhase) * this.bobAmt * 0.16;
-    this.bobPitch = Math.sin(this.bobPhase * 2) * this.bobAmt * 0.07;
+    this.bobRoll = Math.cos(this.bobPhase) * this.bobAmt * 0.15;
+    this.bobPitch = Math.sin(this.bobPhase * 2) * this.bobAmt * 0.06;
 
     // ---- 6. Altura dos Olhos (Eye Height com Agachamento / Morte) ----
     let targetEye = CONFIG.PLAYER.eyeHeight + (CONFIG.PLAYER.eyeCrouch - CONFIG.PLAYER.eyeHeight) * player.crouchAmount;

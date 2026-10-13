@@ -31,7 +31,7 @@ export class GameManager {
 
   _getRandomWeaponId() {
     const keys = Object.keys(WEAPONS);
-    const catalog = keys.length > 0 ? keys : ['ar15', 'ak47', 'rifle_proto', 'uzi', 'm249', 'p9', 'sw500', 'm12', 'vss'];
+    const catalog = keys.length > 0 ? keys : ['ar15', 'ak47', 'rifle_proto', 'uzi', 'm249', 'p9', 'sw500', 'm12', 'vss', 'scar_h'];
     return catalog[Math.floor(Math.random() * catalog.length)];
   }
 

@@ -32,6 +32,15 @@
   * Estabilidade máxima: redução de 60% no recuo e na oscilação de respiração (*sway*).
   * Incapaz de correr (`sprint`) sem antes transitar de volta para agachado/em pé.
 
+### 1.4 Polimento de Inércia de Pulo/Aterrissagem & Sprint-to-Fire (Fine-Tuning da Locomoção)
+* **Status Atual:** 80% implementado pelo [`LocomotionSmoothingSystem.js`](file:///c:/Users/Mateus/Desktop/Projetos/FPS%20BROWSER/deepseek/fps%20blocky/src/new_mechanics/LocomotionSmoothingSystem.js) (janela de 70-90ms, sem estalos e com abertura rápida de ADS).
+* **Tweaks Restantes:**
+  * **Landing Dip:** Afundamento vertical elástico do modelo da arma ao tocar no chão após queda ou salto.
+  * **Curva Hermite S-Curve por Peso:** Armas pesadas (M249) com início de movimento mais cadenciado e pistolas com linearidade pura.
+  * **Sprint-to-Fire Time:** Delay analítico para erguer o cano ao disparar no meio da corrida.
+  * **Especificação Técnica:** [`src/new_mechanics/locomotion_smoothing_system.md`](file:///c:/Users/Mateus/Desktop/Projetos/FPS%20BROWSER/deepseek/fps%20blocky/src/new_mechanics/locomotion_smoothing_system.md).
+
+
 ---
 
 ## 2. 🎒 Gestão Tática de Armas & Recarga Realista

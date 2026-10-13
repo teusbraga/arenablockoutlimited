@@ -7,7 +7,7 @@ import { SceneSetup } from './core/SceneSetup.js';
 
 import { loadMap } from './world/MapLoader.js';
 import { Player } from './entities/Player.js';
-import { Viewmodel, buildHK416, buildP9, buildUZI, buildM249, buildRiflePrototype, buildAK47, buildSW500, buildM12, buildVSS } from './weapons/Viewmodel.js';
+import { Viewmodel, buildHK416, buildP9, buildUZI, buildM249, buildRiflePrototype, buildAK47, buildSW500, buildM12, buildVSS, buildSCARH } from './weapons/Viewmodel.js';
 import { ItemDrop } from './world/ItemDrop.js';
 import { WeaponSystem } from './weapons/WeaponSystem.js';
 import { initWeaponsFromData } from './weapons/WeaponDefs.js';
@@ -70,6 +70,7 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
     viewmodel.registerModel('m249', buildM249);
     viewmodel.registerModel('rifle_proto', buildRiflePrototype);
     viewmodel.registerModel('vss', buildVSS);
+    viewmodel.registerModel('scar_h', buildSCARH);
 
     // Registra construtores 3D para drops de armas no chão
     ItemDrop.setBuilders({
@@ -82,6 +83,7 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
       m249: buildM249,
       rifle_proto: buildRiflePrototype,
       vss: buildVSS,
+      scar_h: buildSCARH,
     });
 
     const initialWeapon = MenuController.getSavedWeapon('ar15');
@@ -135,13 +137,16 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
     const savedBotSkin = MenuController.getSavedBotSkin();
     if (savedBotSkin) gameManager.setBotSkin(savedBotSkin);
 
-    // 4. Scope System Unificado (Rifle Prototype & VSS Vintorez)
+    // 4. Scope System Unificado (Rifle Prototype, VSS Vintorez & SCAR-H)
     const scopeSystem = new ScopeSystem(renderer, scene);
     if (viewmodel.models['rifle_proto']?.details) {
       scopeSystem.attachWeaponModel('rifle_proto', viewmodel.models['rifle_proto'].details);
     }
     if (viewmodel.models['vss']?.details) {
       scopeSystem.attachWeaponModel('vss', viewmodel.models['vss'].details);
+    }
+    if (viewmodel.models['scar_h']?.details) {
+      scopeSystem.attachWeaponModel('scar_h', viewmodel.models['scar_h'].details);
     }
 
     // ---------------------------------------------------------
@@ -214,7 +219,7 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
 
       // _process: Animação visual, sway, partículas, interpolações e render (rAF)
       renderUpdate(alpha, dt) {
-        const isScoped = weapons.current === 'rifle_proto' || weapons.current === 'vss';
+        const isScoped = weapons.current === 'rifle_proto' || weapons.current === 'vss' || weapons.current === 'scar_h';
         const isGameplayActive = gameManager.hasStarted && !gameManager.roundOver && input.locked && !inventorySystem.isOpen;
 
         player.interpolatePosition(alpha);
@@ -271,7 +276,10 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
           }
 
           // Viewmodel Sway e Pose
-          viewmodel.applySwayFromRig(player.rig, dt, weapons.ads, player.sprinting, player.vel, weapons.def);
+          viewmodel.applySwayFromRig(player.rig, dt, weapons.ads, player.sprinting, player.vel, weapons.def, {
+            isCrouched: player.crouched,
+            adsAmount: weapons.adsAmount,
+          });
           viewmodel.updatePose(dt, weapons.current, {
             isADS: weapons.ads,
             isSprinting: player.sprinting,
@@ -285,11 +293,13 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
           // Efeitos visuais e partículas
           effects.update(dt, camera);
 
-          // FOV Dinâmico
+          // FOV Dinâmico (Proporcional ao peso contínuo de sprint para transição aveludada)
+          const sprintW = viewmodel.locomotion?.sprintWeight ?? (player.sprinting ? 1.0 : 0.0);
+          const sprintFovExtra = 8.0 * sprintW;
           const targetFov = weapons.ads
             ? (isScoped ? 60 : (weapons.def?.adsFov || CONFIG.CAMERA.adsFov))
-            : (player.sprinting ? CONFIG.CAMERA.hipFov + 8 : CONFIG.CAMERA.hipFov);
-          camera.fov += (targetFov - camera.fov) * Math.min(dt * 12, 1);
+            : (CONFIG.CAMERA.hipFov + sprintFovExtra);
+          camera.fov += (targetFov - camera.fov) * Math.min(dt * 26.0, 1.0);
           camera.updateProjectionMatrix();
 
           // Scope System Unificado

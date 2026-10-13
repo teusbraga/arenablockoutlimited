@@ -173,7 +173,7 @@ export class WeaponPreview3D {
     const def = WEAPONS[weaponId];
     let glowColor = 0xffcc00;
     if (def) {
-      if (def.type === 'sniper' || weaponId === 'vss' || weaponId === 'rifle_proto') {
+      if (def.type === 'sniper' || weaponId === 'vss' || weaponId === 'rifle_proto' || weaponId === 'scar_h') {
         glowColor = 0x00f0ff;
       } else if (def.type === 'heavy' || weaponId === 'm249') {
         glowColor = 0xff6600;
