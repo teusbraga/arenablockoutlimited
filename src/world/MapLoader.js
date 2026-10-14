@@ -4,6 +4,7 @@ import { Door } from './Door.js';
 import { materialFactory } from './MaterialFactory.js';
 import { ItalyProps } from './ItalyProps.js';
 import { loadingScreen } from '../ui/LoadingScreen.js';
+import { surfaceEyedropper } from './SurfaceEyedropper.js';
 
 // Mapeamento de dependências de materiais para cada tipo de prop especializado
 const PROP_MATERIAL_DEPS = {
@@ -110,6 +111,14 @@ export async function loadMap(url, scene) {
     });
   } else {
     loadingScreen.setProgress(50, 'Configurando materiais clássicos...');
+    for (const [matName, fn] of Object.entries(MATERIALS)) {
+      try {
+        const m = fn();
+        surfaceEyedropper.registerMaterial(matName, m);
+      } catch {
+        // Ignora em ambientes headless
+      }
+    }
   }
 
   // Configurações de iluminação / céu do mapa

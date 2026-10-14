@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { textures } from './TextureGenerator.js';
+import { surfaceEyedropper } from './SurfaceEyedropper.js';
 
 /**
  * MaterialFactory.js
@@ -670,9 +671,12 @@ export class MaterialFactory {
     if (this.factories.has(name)) {
       const mat = this.factories.get(name)();
       this.materials.set(name, mat);
+      surfaceEyedropper.registerMaterial(name, mat);
       return mat;
     }
-    return this.materials.get('wall') || new THREE.MeshStandardMaterial({ color: 0x888888 });
+    const fallbackMat = this.materials.get('wall') || new THREE.MeshStandardMaterial({ color: 0x888888 });
+    surfaceEyedropper.registerMaterial(name, fallbackMat);
+    return fallbackMat;
   }
 
   /**
@@ -720,6 +724,9 @@ export class MaterialFactory {
       mat[mapType] = texture;
       mat.needsUpdate = true;
       this._customImageTextures.set(`${materialName}_${mapType}`, texture);
+      if (mapType === 'map') {
+        surfaceEyedropper.registerMaterial(materialName, mat);
+      }
       return true;
     }
     return false;

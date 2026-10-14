@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { on } from '../core/EventBus.js';
 import { SMOKE_TEX } from '../weapons/models/RiflePrototype.js';
 import { WEAPONS } from '../weapons/WeaponDefs.js';
+import { surfaceEyedropper } from '../world/SurfaceEyedropper.js';
 
 const MAX_TRACERS = 120;
 const MAX_SPARKS = 80;
@@ -1094,7 +1095,17 @@ export class Effects {
 
     const n = normal ? new THREE.Vector3(normal.x, normal.y, normal.z).normalize() : new THREE.Vector3(0, 1, 0);
 
-    const colors = matCfg.colors && matCfg.colors.length > 0 ? matCfg.colors : ["#8c7d6b", "#968674", "#7d6f5e", "#a39280"];
+    // Amostragem com "Conta-Gotas" na fração milimétrica exata da superfície atingida
+    const sampledColor = surfaceEyedropper.sampleColor(point, n, materialName || matKey);
+    let colors = null;
+
+    if (sampledColor !== null) {
+      // Cores geradas organicamente a partir da cor real capturada no ponto de impacto
+      colors = surfaceEyedropper.generateJitteredColors(sampledColor, count, 0.08);
+    } else {
+      // Fallback seguro para as paletas do surface_impacts.json
+      colors = matCfg.colors && matCfg.colors.length > 0 ? matCfg.colors : ["#8c7d6b", "#968674", "#7d6f5e", "#a39280"];
+    }
 
     for (let i = 0; i < count; i++) {
       const p = this.smokes[this.smokeIdx];
@@ -1107,7 +1118,7 @@ export class Effects {
         point.z + n.z * 0.08 + (Math.random() - 0.5) * 0.04
       );
 
-      const rawCol = colors[Math.floor(Math.random() * colors.length)];
+      const rawCol = colors[i % colors.length];
       const col = typeof rawCol === 'string' ? parseInt(rawCol.replace('#', '0x')) : rawCol;
       p.mesh.material.color.setHex(col);
 
