@@ -1,0 +1,49 @@
+{
+  "$schema": "weapon_sfx_schema",
+  "weaponId": "m12",
+  "flash": {
+    "enabled": false,
+    "style": "none",
+    "size": 0,
+    "duration": 0,
+    "maxOpacity": 0,
+    "color": "#000000",
+    "lightIntensity": 0,
+    "lightDistance": 0,
+    "lightColor": "#000000",
+    "jitter": 0
+  },
+  "smoke": {
+    "enabled": true,
+    "style": "cone_jet",
+    "particleCount": 6,
+    "scale": 2,
+    "maxOpacity": 0.42,
+    "color": "#cbd0d8",
+    "speed": 19.5,
+    "reach": 0.88,
+    "spread": 0.48,
+    "growth": 3.6,
+    "drag": 4.5,
+    "buoyancy": 0.55,
+    "spin": 6.5,
+    "maxLife": 0.52
+  },
+  "barrelHeat": {
+    "enabled": true,
+    "triggerBurstCount": 2,
+    "particleCount": 5,
+    "scale": 0.65,
+    "opacity": 0.28,
+    "color": "#ffffff",
+    "riseSpeed": 0.52,
+    "growth": 3.6,
+    "maxLife": 1.15
+  },
+  "impactDustOverride": {
+    "scaleMultiplier": 1.6,
+    "speedMultiplier": 1.25,
+    "particleCount": 5,
+    "density": 0.65
+  }
+}

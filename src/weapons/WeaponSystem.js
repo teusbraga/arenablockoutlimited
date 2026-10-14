@@ -26,6 +26,23 @@ const _worldHitPoint = new THREE.Vector3();
 const _smokeMuzzleWorld = new THREE.Vector3();
 const _hittableMeshes = [];
 
+/**
+ * Calcula a duração do cooldown de fumaça após o término do disparo
+ * com base no tempo de fogo automático sustentado (em segundos).
+ *
+ * Regra Exponencial:
+ * 1s de spray = 0.3s de fumaça
+ * 2s de spray = 0.6s de fumaça (0.3 * 2^1)
+ * 3s de spray = 1.2s de fumaça (0.3 * 2^2)
+ */
+export function calculateSmokeCooldownDuration(sustainedSeconds) {
+  if (!sustainedSeconds || sustainedSeconds <= 0.05) return 0;
+  if (sustainedSeconds < 1.0) {
+    return 0.3 * sustainedSeconds;
+  }
+  return Math.min(0.3 * Math.pow(2, sustainedSeconds - 1.0), 6.0);
+}
+
 export class WeaponSystem {
   constructor({ camera, viewmodel, input, player, world, botsProvider, inventory, hud = null }) {
     this.camera = camera;
@@ -63,6 +80,13 @@ export class WeaponSystem {
     this.raycaster = new THREE.Raycaster();
     this.sprayBullets = 0;
     this.lastShotTimestamp = 0;
+
+    // Algoritmo de Fogo Sustentado e Cooldown de Fumaça
+    this.sustainedFireDuration = 0;
+    this.sustainedFireStartTime = 0;
+    this.smokeCooldownRemaining = 0;
+    this.smokeCooldownTotal = 0;
+    this.smokeCooldownInterval = 0;
 
     // Estado dinâmico de balística
     this.precisionPenalty = 0;
@@ -112,6 +136,11 @@ export class WeaponSystem {
     this.ammo = this.ammoByWeapon[id];
     this.reloading = false;
     this.reloadT = 0;
+    this.sustainedFireDuration = 0;
+    this.sustainedFireStartTime = 0;
+    this.smokeCooldownRemaining = 0;
+    this.smokeCooldownTotal = 0;
+    this.smokeCooldownInterval = 0;
     this.input?.consumeAction('fire');
     this.viewmodel.equip(id);
     emit('weapon:equipped', { id, name: WEAPONS[id].name, fireMode: this.fireModeByWeapon[id] });
@@ -302,26 +331,40 @@ export class WeaponSystem {
 
     if (this.ammo === 0 && !this.reloading && !isInfiniteAmmo) this.reload();
 
-    // ── Detecção de Término de Spray (Fumaça Residual de Calor) ─────────────
-    if (this.sprayBullets > 0) {
-      const ceaseDelay = Math.max(def.fireInterval * 1.4, 0.14);
-      if (!wantsFire || (nowSec - this.lastShotTimestamp) > ceaseDelay || this.reloading || this.ammo === 0) {
-        const magSize = def.magSize || 30;
-        const heatRatio = Math.min(1, this.sprayBullets / (magSize * 0.45));
-        const maxResidual = def.smokeResidualMax ?? 5;
-        const count = Math.round(heatRatio * maxResidual);
+    // ── Detecção de Término de Fogo Sustentado (Smoke Cooldown Exponencial) ─────────────
+    const smokeCeaseDelay = Math.max(def.fireInterval * 1.5, 0.16);
+    const hasCeasedFire = (nowSec - (this.lastShotTimestamp || 0)) > smokeCeaseDelay || this.reloading || this.ammo === 0;
 
-        if (count > 0) {
-          const mz = def.muzzleLocal || [0, 0.02, -0.5];
-          _smokeMuzzleWorld.set(mz[0], mz[1], mz[2]);
-          this.viewmodel.mount.localToWorld(_smokeMuzzleWorld);
-          emit('weapon:smoke:residual', {
-            muzzleWorld: _smokeMuzzleWorld,
-            count,
-            color: def.smokeResidualColor
-          });
-        }
-        this.sprayBullets = 0;
+    if (this.sustainedFireDuration > 0 && hasCeasedFire) {
+      const cooldownDuration = calculateSmokeCooldownDuration(this.sustainedFireDuration);
+      if (cooldownDuration > 0) {
+        this.smokeCooldownRemaining = cooldownDuration;
+        this.smokeCooldownTotal = cooldownDuration;
+        this.smokeCooldownInterval = 0; // Emite primeiro puff imediatamente
+      }
+      this.sustainedFireDuration = 0;
+      this.sustainedFireStartTime = 0;
+    }
+
+    // ── Emissão Contínua de Fumaça Branca durante o Cooldown do Cano ─────────────
+    if (this.smokeCooldownRemaining > 0 && !this.reloading) {
+      this.smokeCooldownRemaining -= dt;
+      this.smokeCooldownInterval -= dt;
+
+      if (this.smokeCooldownInterval <= 0) {
+        this.smokeCooldownInterval = 0.085; // Novo puff a cada 85ms
+        const mz = def.muzzleLocal || [0, 0.02, -0.5];
+        _smokeMuzzleWorld.set(mz[0], mz[1], mz[2]);
+        this.viewmodel.mount.localToWorld(_smokeMuzzleWorld);
+
+        const ratio = Math.max(0, this.smokeCooldownRemaining / Math.max(0.001, this.smokeCooldownTotal));
+        emit('weapon:smoke:residual', {
+          muzzleWorld: _smokeMuzzleWorld,
+          weapon: def,
+          count: 1,
+          ratio,
+          color: '#ffffff'
+        });
       }
     }
 
@@ -385,6 +428,18 @@ export class WeaponSystem {
 
     const now = performance.now() / 1000;
     this.sprayBullets = (this.sprayBullets || 0) + 1;
+
+    // Cancela qualquer fumaça de cooldown anterior que estava saindo
+    this.smokeCooldownRemaining = 0;
+
+    // Rastreia a duração cumulativa de fogo automático sustentado contínuo
+    const ceaseDelayThreshold = Math.max(def.fireInterval * 1.5, 0.16);
+    if (!this.sustainedFireStartTime || (now - (this.lastShotTimestamp || 0)) > ceaseDelayThreshold) {
+      this.sustainedFireStartTime = now;
+      this.sustainedFireDuration = def.fireInterval;
+    } else {
+      this.sustainedFireDuration = (now - this.sustainedFireStartTime) + def.fireInterval;
+    }
     this.lastShotTimestamp = now;
 
     const streakDelay = CONFIG.GUNPLAY?.fireStreakDecayDelay ?? 0.20;

@@ -104,4 +104,30 @@ describe('Muzzle Flash & Cone Smoke Modern Architecture Test', () => {
 
     effects.destroy();
   });
+
+  it('deve emitir pulverização violenta em tons cinza-castanho ao atingir superfícies (shot:world)', () => {
+    const scene = new THREE.Scene();
+    const effects = new Effects(scene);
+
+    const hitPoint = new THREE.Vector3(5, 1.2, 10);
+    const normal = new THREE.Vector3(0, 0, 1);
+
+    effects._spawnSurfaceImpactDust(hitPoint, normal, 1.0);
+
+    const activeDust = effects.smokes.filter(s => s.active);
+    assert.ok(activeDust.length >= 2, 'Deve gerar pelo menos 2 partículas de pulverização na parede');
+    
+    // Verifica tons de cinza-castanho
+    const hex = activeDust[0].mesh.material.color.getHex();
+    const isBrownishGrey = [0x8c7d6b, 0x968674, 0x7d6f5e, 0xa39280].includes(hex);
+    assert.ok(isBrownishGrey, 'Cor da pulverização deve ser em tom cinza-castanho');
+    assert.ok(activeDust[0].spin !== 0, 'Partícula deve possuir giro angular violento');
+
+    // Simula update com câmera
+    const fakeCamera = new THREE.PerspectiveCamera(60, 1, 0.1, 100);
+    effects.update(0.05, fakeCamera);
+    assert.ok(activeDust[0].mesh.scale.x > activeDust[0].startScale, 'Poeira de impacto deve expandir rapidamente');
+
+    effects.destroy();
+  });
 });

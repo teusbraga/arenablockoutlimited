@@ -17,20 +17,20 @@ import { LocomotionSmoothingSystem } from '../new_mechanics/LocomotionSmoothingS
 // Re-exporta construtores para compatibilidade com main.js / WeaponRegistry
 export { buildHK416, buildHK416 as buildAR15, buildP9, buildUZI, buildM249, buildRiflePrototype, buildAK47, buildSW500, buildWinchester1912, buildWinchester1912 as buildM12, buildVSS, buildSCARH };
 
-// Configuração do tamanho do Muzzle Flash padrão VSS Glow por arma
-const FLASH_SIZES = {
-  'ar15': 0.25,        // HK416: tamanho atual da VSS (0.25)
+// Fallback de segurança para mocks sem sfx compilado
+const FALLBACK_FLASH_SIZES = {
+  'ar15': 0.25,
   'hk416': 0.25,
-  'ak47': 0.25,        // AK-47: tamanho atual da VSS (0.25)
-  'scar_h': 0.38,      // SCAR-H: aumentado
+  'ak47': 0.25,
+  'scar_h': 0.38,
   'scar': 0.38,
-  'rifle_proto': 0.38, // Rifle Prototype: aumentado
-  'uzi': 0.34,         // UZI: aumentado
-  'sw500': 0.52,       // S&W 500: muito grande
-  'm249': 0.56,        // M249: muito grande
-  'vss': 0,            // VSS: sem flash (silenciada, fica só com fumaça)
-  'p9': 0,             // P9: sem flash (só fumaça)
-  'm12': 0,            // M12: sem flash ("exceção da m13 q n tem flash mas tem um cano grossão")
+  'rifle_proto': 0.38,
+  'uzi': 0.34,
+  'sw500': 0.52,
+  'm249': 0.56,
+  'vss': 0,
+  'p9': 0,
+  'm12': 0
 };
 
 /**
@@ -448,10 +448,20 @@ export class Viewmodel {
 
   flash(def) {
     const wepId = def?.id || '';
-    const baseSize = FLASH_SIZES[wepId] !== undefined ? FLASH_SIZES[wepId] : 0;
+    const flashConfig = def?.sfx?.flash;
+    let enabled = true;
+    let baseSize = 0.25;
+
+    if (flashConfig) {
+      enabled = flashConfig.enabled !== false;
+      baseSize = enabled ? (flashConfig.size ?? 0.25) : 0;
+    } else if (FALLBACK_FLASH_SIZES[wepId] !== undefined) {
+      baseSize = FALLBACK_FLASH_SIZES[wepId];
+      enabled = baseSize > 0;
+    }
 
     // Se a arma não tem flash (VSS silenciada, P9, M12, etc.), garante que fique oculto
-    if (baseSize <= 0) {
+    if (!enabled || baseSize <= 0) {
       this.flashGroup.visible = false;
       this.flashLight.intensity = 0;
       this.flashTimer = 0;
@@ -464,21 +474,29 @@ export class Viewmodel {
     this.flashLight.position.set(mz[0], mz[1], mz[2] - 0.02);
     this.flashGroup.position.set(mz[0], mz[1], mz[2] - 0.015);
 
-    const sizeJitter = baseSize * (0.85 + Math.random() * 0.30);
+    const jitterRatio = flashConfig?.jitter ?? 0.20;
+    const sizeJitter = baseSize * (1.0 - jitterRatio * 0.5 + Math.random() * jitterRatio);
     this.flashMesh1.scale.setScalar(sizeJitter);
     this.flashMesh2.scale.setScalar(sizeJitter * 0.85);
     this.flashMesh1.rotation.z = Math.random() * Math.PI * 2;
     this.flashMesh2.rotation.z = Math.random() * Math.PI * 2;
 
-    this.flashMaxOpacity = 0.90;
+    if (flashConfig?.color) {
+      this.flashMat.color.set(flashConfig.color);
+    }
+    if (flashConfig?.lightColor) {
+      this.flashLight.color.set(flashConfig.lightColor);
+    }
+
+    this.flashMaxOpacity = flashConfig?.maxOpacity ?? 0.90;
     this.flashMat.opacity = this.flashMaxOpacity;
-    this.flashDuration = 0.055;
+    this.flashDuration = flashConfig?.duration ?? 0.055;
     this.flashTimer = this.flashDuration;
     this.flashGroup.visible = true;
 
-    const baseIntensity = Math.min(16.0, baseSize * 26.0);
+    const baseIntensity = flashConfig?.lightIntensity ?? Math.min(16.0, baseSize * 26.0);
     this.flashLight.intensity = baseIntensity + Math.random() * (baseIntensity * 0.25);
-    this.flashLight.distance = 5.0;
+    this.flashLight.distance = flashConfig?.lightDistance ?? 5.0;
   }
 
   decayFlash(dt) {

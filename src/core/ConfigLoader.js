@@ -129,15 +129,35 @@ export class ConfigLoader {
       const ammoData = (ammoRes.status === 'fulfilled' && ammoRes.value) ? ammoRes.value : null;
       const audioData = (audioRes.status === 'fulfilled' && audioRes.value) ? audioRes.value : null;
 
+      // 3. Perfis Data-Driven de SFX/VFX de Armas (Flash, Fumaça, Calor Residual e Pulverização)
+      const sfxIds = ['default', 'ar15', 'ak47', 'scar_h', 'rifle_proto', 'uzi', 'sw500', 'm249', 'vss', 'p9', 'm12'];
+      const sfxResults = await Promise.allSettled(
+        sfxIds.map(id => fetch(`./assets/weapons/sfx/${id}_sfx.json`).then(r => r.ok ? r.json() : null).catch(() => null))
+      );
+      const weaponSFX = {};
+      sfxIds.forEach((id, idx) => {
+        const res = sfxResults[idx];
+        if (res.status === 'fulfilled' && res.value) {
+          weaponSFX[id] = res.value;
+        }
+      });
+
+      // 4. Configuração Data-Driven de Impactos e Pulverização por Material de Superfície
+      const surfaceImpacts = await fetch('./assets/weapons/sfx/surface_impacts.json')
+        .then(r => r.ok ? r.json() : null)
+        .catch(() => null);
+
       return {
         config: CONFIG,
         weapons: weaponsData,
         ammo: ammoData,
-        audio: audioData
+        audio: audioData,
+        weaponSFX,
+        surfaceImpacts
       };
     } catch (err) {
       console.warn('[ConfigLoader] Usando fallback de segurança padrão:', err);
-      return { config: CONFIG, weapons: null, audio: null };
+      return { config: CONFIG, weapons: null, audio: null, weaponSFX: {}, surfaceImpacts: null };
     }
   }
 }

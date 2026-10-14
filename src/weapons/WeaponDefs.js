@@ -68,7 +68,57 @@ export function normalizeBallistics(wep) {
 
 export let AMMO_TYPES = {};
 
-export function compileWeapons(baseList = BASE_WEAPONS, modsList = MODS, ammoList = AMMO_TYPES) {
+export const DEFAULT_SFX = {
+  flash: {
+    enabled: true,
+    style: 'radial_cross',
+    size: 0.25,
+    duration: 0.055,
+    maxOpacity: 0.90,
+    color: '#ffd27f',
+    lightIntensity: 7.5,
+    lightDistance: 5.0,
+    lightColor: '#ffeedd',
+    jitter: 0.20
+  },
+  smoke: {
+    enabled: true,
+    style: 'cone_jet',
+    particleCount: 3,
+    scale: 1.0,
+    maxOpacity: 0.28,
+    color: '#d8dce2',
+    speed: 18.0,
+    reach: 0.45,
+    spread: 0.35,
+    growth: 2.6,
+    drag: 4.5,
+    buoyancy: 0.45,
+    spin: 4.5,
+    maxLife: 0.42
+  },
+  barrelHeat: {
+    enabled: true,
+    triggerBurstCount: 4,
+    particleCount: 3,
+    scale: 0.40,
+    opacity: 0.20,
+    color: '#ffffff',
+    riseSpeed: 0.40,
+    growth: 3.0,
+    maxLife: 0.85
+  },
+  impactDustOverride: {
+    scaleMultiplier: 1.0,
+    speedMultiplier: 1.0,
+    particleCount: 3,
+    density: 0.45
+  }
+};
+
+export let WEAPON_SFX = {};
+
+export function compileWeapons(baseList = BASE_WEAPONS, modsList = MODS, ammoList = AMMO_TYPES, sfxList = WEAPON_SFX) {
   const compiled = {};
   for (const [key, base] of Object.entries(baseList)) {
     const finalWep = { ...base };
@@ -132,6 +182,16 @@ export function compileWeapons(baseList = BASE_WEAPONS, modsList = MODS, ammoLis
         }
       }
     }
+
+    // Vincula perfil SFX data-driven (Flash, Fumaça, Calor Residual e Pulverização)
+    const rawSfx = sfxList[key] || sfxList[finalWep.id] || sfxList['default'] || DEFAULT_SFX;
+    finalWep.sfx = {
+      flash: { ...DEFAULT_SFX.flash, ...(rawSfx.flash || {}) },
+      smoke: { ...DEFAULT_SFX.smoke, ...(rawSfx.smoke || {}) },
+      barrelHeat: { ...DEFAULT_SFX.barrelHeat, ...(rawSfx.barrelHeat || {}) },
+      impactDustOverride: { ...DEFAULT_SFX.impactDustOverride, ...(rawSfx.impactDustOverride || {}) }
+    };
+
     compiled[key] = finalWep;
   }
   return compiled;
@@ -141,16 +201,17 @@ export function compileWeapons(baseList = BASE_WEAPONS, modsList = MODS, ammoLis
 export let WEAPONS = {};
 
 /**
- * Inicializa WEAPONS a partir dos dados lidos de weapons.json e ammo.json.
+ * Inicializa WEAPONS a partir dos dados lidos de weapons.json, ammo.json e sfx.
  * Deve ser chamado uma vez durante o boot, antes de qualquer uso de WEAPONS.
  */
 export function initWeaponsFromData(data) {
   if (!data) return WEAPONS;
-  if (data.mods)    Object.assign(MODS,         data.mods);
-  if (data.weapons) Object.assign(BASE_WEAPONS, data.weapons);
-  if (data.ammo)    Object.assign(AMMO_TYPES,   data.ammo);
+  if (data.mods)                  Object.assign(MODS,         data.mods);
+  if (data.weapons)               Object.assign(BASE_WEAPONS, data.weapons);
+  if (data.ammo)                  Object.assign(AMMO_TYPES,   data.ammo);
+  if (data.sfx || data.weaponSFX) Object.assign(WEAPON_SFX,   data.sfx || data.weaponSFX);
   
-  const compiled = compileWeapons(BASE_WEAPONS, MODS, AMMO_TYPES);
+  const compiled = compileWeapons(BASE_WEAPONS, MODS, AMMO_TYPES, WEAPON_SFX);
   for (const k in WEAPONS) delete WEAPONS[k];
   Object.assign(WEAPONS, compiled);
   return WEAPONS;

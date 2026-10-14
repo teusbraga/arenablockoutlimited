@@ -1,0 +1,49 @@
+{
+  "$schema": "weapon_sfx_schema",
+  "weaponId": "ak47",
+  "flash": {
+    "enabled": true,
+    "style": "radial_cross",
+    "size": 0.25,
+    "duration": 0.055,
+    "maxOpacity": 0.9,
+    "color": "#ffc86b",
+    "lightIntensity": 8,
+    "lightDistance": 5.2,
+    "lightColor": "#ffe6c2",
+    "jitter": 0.22
+  },
+  "smoke": {
+    "enabled": true,
+    "style": "cone_jet",
+    "particleCount": 4,
+    "scale": 1.25,
+    "maxOpacity": 0.3,
+    "color": "#c8ccd3",
+    "speed": 18,
+    "reach": 0.55,
+    "spread": 0.36,
+    "growth": 2.7,
+    "drag": 4.5,
+    "buoyancy": 0.48,
+    "spin": 5,
+    "maxLife": 0.44
+  },
+  "barrelHeat": {
+    "enabled": true,
+    "triggerBurstCount": 3,
+    "particleCount": 4,
+    "scale": 0.45,
+    "opacity": 0.22,
+    "color": "#ffffff",
+    "riseSpeed": 0.42,
+    "growth": 3.2,
+    "maxLife": 0.9
+  },
+  "impactDustOverride": {
+    "scaleMultiplier": 1.15,
+    "speedMultiplier": 1.05,
+    "particleCount": 3,
+    "density": 0.5
+  }
+}

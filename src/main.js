@@ -41,9 +41,11 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
     const assets = await ConfigLoader.loadAll();
     if (assets.weapons) {
       assets.weapons.ammo = assets.ammo;
+      assets.weapons.weaponSFX = assets.weaponSFX;
       initWeaponsFromData(assets.weapons);
     }
     if (assets.audio) audio.setSoundBank(assets.audio);
+    if (assets.surfaceImpacts) effects.setSurfaceImpacts(assets.surfaceImpacts);
 
     // 2. Mapa e Jogador
     const mapUrl = MenuController.getSavedMap();

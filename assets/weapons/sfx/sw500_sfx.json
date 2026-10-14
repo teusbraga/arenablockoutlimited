@@ -1,0 +1,49 @@
+{
+  "$schema": "weapon_sfx_schema",
+  "weaponId": "sw500",
+  "flash": {
+    "enabled": true,
+    "style": "radial_cross",
+    "size": 0.52,
+    "duration": 0.065,
+    "maxOpacity": 0.96,
+    "color": "#ffb84d",
+    "lightIntensity": 15,
+    "lightDistance": 6.8,
+    "lightColor": "#ffe0b2",
+    "jitter": 0.2
+  },
+  "smoke": {
+    "enabled": true,
+    "style": "cone_jet",
+    "particleCount": 5,
+    "scale": 1.65,
+    "maxOpacity": 0.38,
+    "color": "#ced3da",
+    "speed": 20,
+    "reach": 0.72,
+    "spread": 0.42,
+    "growth": 3.2,
+    "drag": 4.5,
+    "buoyancy": 0.55,
+    "spin": 6,
+    "maxLife": 0.5
+  },
+  "barrelHeat": {
+    "enabled": true,
+    "triggerBurstCount": 2,
+    "particleCount": 4,
+    "scale": 0.55,
+    "opacity": 0.26,
+    "color": "#ffffff",
+    "riseSpeed": 0.48,
+    "growth": 3.4,
+    "maxLife": 1
+  },
+  "impactDustOverride": {
+    "scaleMultiplier": 1.45,
+    "speedMultiplier": 1.3,
+    "particleCount": 4,
+    "density": 0.6
+  }
+}

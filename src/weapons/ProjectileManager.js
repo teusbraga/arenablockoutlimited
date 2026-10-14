@@ -492,7 +492,8 @@ export class ProjectileManager {
             normal: norm,
             material: hitMat,
             distance: totalDistance,
-            soundDelay: acousticDelay
+            soundDelay: acousticDelay,
+            weapon: p.weaponDef
           });
 
           // Projétil continua vivo voando após o ricochete!
@@ -540,7 +541,8 @@ export class ProjectileManager {
             material: hitMat,
             thickness: wallThickness,
             distance: totalDistance,
-            soundDelay: acousticDelay
+            soundDelay: acousticDelay,
+            weapon: p.weaponDef
           });
 
           // Projétil continua sua trajetória mortal além da parede
@@ -557,7 +559,8 @@ export class ProjectileManager {
           material: hitMat,
           normal: norm,
           distance: totalDistance,
-          soundDelay: acousticDelay
+          soundDelay: acousticDelay,
+          weapon: p.weaponDef
         });
 
         continue;

@@ -5,7 +5,7 @@ import { WEAPONS } from '../weapons/WeaponDefs.js';
 
 const MAX_TRACERS = 120;
 const MAX_SPARKS = 80;
-const MAX_SMOKE = 40;
+const MAX_SMOKE = 80;
 const MAX_CASINGS = 24;
 const MAX_BLOOD_VOXELS = 80;
 const MAX_GHOST_SMOKE = 60;
@@ -80,10 +80,133 @@ export const DEFAULT_PHOTOGRAPHIC_PROFILE = {
 
 export const DEFAULT_TRACER_PROFILE = DEFAULT_SWIPE_PROFILE;
 
+export const DEFAULT_SURFACE_IMPACTS = {
+  materials: {
+    concrete: {
+      colors: ["#8c7d6b", "#968674", "#7d6f5e", "#a39280"],
+      particleCount: 4,
+      scale: 1.0,
+      speed: 3.6,
+      spread: 1.2,
+      growth: 3.4,
+      drag: 5.2,
+      buoyancy: 0.35,
+      maxLife: 0.55,
+      maxOpacity: 0.82,
+      sparks: 4
+    },
+    stone: {
+      colors: ["#807c77", "#918b84", "#6e6a65", "#9e978f"],
+      particleCount: 4,
+      scale: 1.0,
+      speed: 3.8,
+      spread: 1.1,
+      growth: 3.2,
+      drag: 5.4,
+      buoyancy: 0.32,
+      maxLife: 0.50,
+      maxOpacity: 0.80,
+      sparks: 6
+    },
+    wood: {
+      colors: ["#9c6f44", "#b0804e", "#7d5431", "#c4925e"],
+      particleCount: 4,
+      scale: 0.95,
+      speed: 3.2,
+      spread: 1.3,
+      growth: 3.2,
+      drag: 5.0,
+      buoyancy: 0.38,
+      maxLife: 0.55,
+      maxOpacity: 0.85,
+      sparks: 3
+    },
+    dirt: {
+      colors: ["#7a5f45", "#8c6f52", "#664f3a", "#997b5d"],
+      particleCount: 5,
+      scale: 1.35,
+      speed: 3.4,
+      spread: 1.4,
+      growth: 3.8,
+      drag: 4.6,
+      buoyancy: 0.45,
+      maxLife: 0.70,
+      maxOpacity: 0.88,
+      sparks: 3
+    },
+    sand: {
+      colors: ["#c2a67a", "#b59869", "#d4b88c", "#a38658"],
+      particleCount: 5,
+      scale: 1.40,
+      speed: 3.2,
+      spread: 1.5,
+      growth: 4.0,
+      drag: 4.4,
+      buoyancy: 0.42,
+      maxLife: 0.72,
+      maxOpacity: 0.85,
+      sparks: 2
+    },
+    grass: {
+      colors: ["#5a6b48", "#6e8257", "#4b593c", "#7a6245"],
+      particleCount: 4,
+      scale: 1.0,
+      speed: 3.0,
+      spread: 1.3,
+      growth: 3.2,
+      drag: 5.0,
+      buoyancy: 0.38,
+      maxLife: 0.55,
+      maxOpacity: 0.80,
+      sparks: 2
+    },
+    metal: {
+      colors: ["#6e747a", "#858c94", "#505459", "#9ea5ad"],
+      particleCount: 3,
+      scale: 0.75,
+      speed: 4.2,
+      spread: 0.9,
+      growth: 2.8,
+      drag: 6.5,
+      buoyancy: 0.25,
+      maxLife: 0.38,
+      maxOpacity: 0.75,
+      sparks: 8
+    },
+    glass: {
+      colors: ["#d0e6ec", "#b8d5dc", "#eaf4f7", "#ffffff"],
+      particleCount: 4,
+      scale: 0.85,
+      speed: 4.0,
+      spread: 1.4,
+      growth: 3.0,
+      drag: 5.5,
+      buoyancy: 0.28,
+      maxLife: 0.42,
+      maxOpacity: 0.78,
+      sparks: 5
+    },
+    default: {
+      colors: ["#8c7d6b", "#968674", "#7d6f5e", "#a39280"],
+      particleCount: 4,
+      scale: 1.0,
+      speed: 3.6,
+      spread: 1.2,
+      growth: 3.4,
+      drag: 5.2,
+      buoyancy: 0.35,
+      maxLife: 0.55,
+      maxOpacity: 0.82,
+      sparks: 4
+    }
+  }
+};
+
 export class Effects {
   constructor(scene, world = null) {
     this.scene = scene;
     this.world = world;
+    this.surfaceImpacts = null;
 
     // Constantes
     this.TRACER_LIFE = 0.15;
@@ -328,13 +451,36 @@ export class Effects {
       this.sparks.push({ mesh, vel: new THREE.Vector3(), life: 0, maxLife: 0.35, active: false });
     }
 
-    // 3. Smokes (Fumaça do tiro)
+    // 3. Smokes (Fumaça volumétrica do tiro e pulverização de superfícies)
+    this.smokeGeo = new THREE.PlaneGeometry(0.05, 0.05);
+    this.smokeTex = this._createSmokeTexture();
+
     for (let i = 0; i < MAX_SMOKE; i++) {
-      const mat = new THREE.MeshBasicMaterial({ color: 0xb8bcc2, transparent: true, opacity: 0.6, depthWrite: false });
-      const mesh = new THREE.Mesh(this.sparkGeo, mat);
+      const mat = new THREE.MeshBasicMaterial({
+        map: this.smokeTex,
+        color: 0xb8bcc2,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        side: THREE.DoubleSide
+      });
+      const mesh = new THREE.Mesh(this.smokeGeo, mat);
       mesh.visible = false;
+      mesh.renderOrder = 3;
+      mesh.frustumCulled = false;
       this.scene.add(mesh);
-      this.smokes.push({ mesh, vel: new THREE.Vector3(), life: 0, maxLife: 0.7, startScale: 1, growth: 1, active: false });
+      this.smokes.push({
+        mesh,
+        vel: new THREE.Vector3(),
+        life: 0,
+        maxLife: 0.7,
+        startScale: 1,
+        growth: 1,
+        maxOpacity: 0.6,
+        rotZ: 0,
+        spin: 0,
+        active: false
+      });
     }
 
     // 4. Faíscas da boca do cano (THREE.Points do protótipo)
@@ -482,20 +628,37 @@ export class Effects {
           speed: e.speed || wep?.ballistics?.terminal?.bulletSpeed || 700
         });
       }),
-        on('shot:world', e => this._spawnImpact(e.point, 0xd9c79b, 5)),
+      on('shot:world', e => {
+        const matKey = this._resolveMaterialKey(e.material);
+        const materialsPool = this.surfaceImpacts || DEFAULT_SURFACE_IMPACTS.materials;
+        const matCfg = materialsPool[matKey] || materialsPool.default || DEFAULT_SURFACE_IMPACTS.materials.default;
+        const sparkCount = matCfg.sparks ?? 4;
+        let sparkCol = 0xd9c79b;
+        if (matKey === 'wood') sparkCol = 0xb0804e;
+        else if (matKey === 'metal') sparkCol = 0xffe680;
+        else if (matKey === 'stone' || matKey === 'concrete') sparkCol = 0xd9c79b;
+        else if (matKey === 'dirt' || matKey === 'sand') sparkCol = 0x997b5d;
+        if (sparkCount > 0) {
+          this._spawnImpact(e.point, sparkCol, sparkCount);
+        }
+        this._spawnSurfaceImpactDust(e.point, e.normal, e.material, e.weapon);
+      }),
       on('shot:ricochet', e => {
         if (e?.point) {
           this._spawnImpact(e.point, 0xffe680, 8); // Faíscas brilhantes de ricochete
+          this._spawnSurfaceImpactDust(e.point, e.normal, e.material, e.weapon);
         }
       }),
       on('shot:penetration', e => {
         if (e?.entryPoint) {
           const col = e.material?.includes('wood') ? 0x8b5a2b : 0xcccccc;
           this._spawnImpact(e.entryPoint, col, 4); // Lascas/poeira na entrada
+          this._spawnSurfaceImpactDust(e.entryPoint, null, e.material, e.weapon);
         }
         if (e?.exitPoint) {
           const col = e.material?.includes('wood') ? 0xb58950 : 0xe0e0e0;
           this._spawnImpact(e.exitPoint, col, 6);  // Estilhaços na saída
+          this._spawnSurfaceImpactDust(e.exitPoint, null, e.material, e.weapon);
         }
       }),
       on('shot:bot', e => this._spawnImpact(e.point, e.headshot ? 0xffd166 : 0xc4504a, 6)),
@@ -522,9 +685,10 @@ export class Effects {
         if (e.weapon?.id === 'rifle_proto') {
           this._spawnProtoSparks(e.muzzleWorld, e.forward, 9);
         }
-        const opacity = e.weapon?.smokeConeOpacity ?? 0.28;
-        const scaleMul = e.weapon?.smokeConeScale ?? 1.2;
-        this._spawnMuzzleSmoke(e.muzzleWorld, e.forward, opacity, scaleMul);
+        const smokeCfg = e.weapon?.sfx?.smoke;
+        const opacity = e.weapon?.smokeConeOpacity ?? smokeCfg?.maxOpacity ?? 0.28;
+        const scaleMul = e.weapon?.smokeConeScale ?? smokeCfg?.scale ?? 1.2;
+        this._spawnMuzzleSmoke(e.muzzleWorld, e.forward, smokeCfg || opacity, e.weapon || scaleMul);
       }),
       on('weapon:manual_eject_fx', e => {
         if (e.ejectWorld && e.right && e.up) {
@@ -532,8 +696,9 @@ export class Effects {
         }
       }),
       on('weapon:smoke:residual', e => {
-        if (!e.muzzleWorld || !e.count) return;
-        this._spawnBarrelHeatSmoke(e.muzzleWorld, e.count, e.color);
+        if (!e.muzzleWorld) return;
+        const heatCfg = e.weapon?.sfx?.barrelHeat;
+        this._spawnBarrelHeatSmoke(e.muzzleWorld, e.count || 1, e.color || 0xffffff, heatCfg, e.ratio ?? 1.0);
       }),
     ];
   }
@@ -576,6 +741,8 @@ export class Effects {
     this.sparks = [];
 
     // Libera smokes
+    if (this.smokeGeo) this.smokeGeo.dispose();
+    if (this.smokeTex) this.smokeTex.dispose();
     for (const sm of this.smokes) {
       if (sm.mesh) {
         if (sm.mesh.parent) sm.mesh.parent.remove(sm.mesh);
@@ -633,6 +800,32 @@ export class Effects {
     }
     if (this.ghostSmokeGeo) this.ghostSmokeGeo.dispose();
     this.ghostSmokePool = [];
+  }
+
+  setWorld(world) {
+    this.world = world;
+  }
+
+  setGameManager(gm) {
+    this.gameManager = gm;
+  }
+
+  setSurfaceImpacts(data) {
+    this.surfaceImpacts = data?.materials || data || null;
+  }
+
+  _resolveMaterialKey(materialName) {
+    if (!materialName || typeof materialName !== 'string') return 'default';
+    const m = materialName.toLowerCase();
+    if (m.includes('wood') || m.includes('trunk') || m.includes('plank') || m.includes('door') || m.includes('crate')) return 'wood';
+    if (m.includes('concrete') || m.includes('wall') || m.includes('plaster')) return 'concrete';
+    if (m.includes('stone') || m.includes('cobble') || m.includes('brick') || m.includes('rock')) return 'stone';
+    if (m.includes('dirt') || m.includes('soil') || m.includes('mud') || m.includes('ground')) return 'dirt';
+    if (m.includes('sand')) return 'sand';
+    if (m.includes('grass') || m.includes('foliage') || m.includes('leaf')) return 'grass';
+    if (m.includes('metal') || m.includes('iron') || m.includes('steel')) return 'metal';
+    if (m.includes('glass') || m.includes('window')) return 'glass';
+    return 'default';
   }
 
   _spawnProtoSparks(pos, dir, count = 9) {
@@ -733,66 +926,215 @@ export class Effects {
   }
 
   // 1. Cone de fumaça frontal durante o disparo (proporcional ao flash e cano da arma)
-  _spawnMuzzleSmoke(muzzlePos, forward, maxOpacity = 0.28, scaleMul = 1.0) {
-    const count = Math.max(3, Math.min(6, Math.round(3 * scaleMul)));
+  _spawnMuzzleSmoke(muzzlePos, forward, configOrOpacity = 0.28, scaleMulOrWeapon = 1.0) {
+    let cfg = {};
+    if (configOrOpacity && typeof configOrOpacity === 'object') {
+      cfg = configOrOpacity;
+    } else if (scaleMulOrWeapon && typeof scaleMulOrWeapon === 'object' && scaleMulOrWeapon.sfx?.smoke) {
+      cfg = scaleMulOrWeapon.sfx.smoke;
+    } else {
+      const op = typeof configOrOpacity === 'number' ? configOrOpacity : 0.28;
+      const sc = typeof scaleMulOrWeapon === 'number' ? scaleMulOrWeapon : 1.0;
+      cfg = { maxOpacity: op, scale: sc };
+    }
+
+    if (cfg.enabled === false) return;
+
+    const scaleMul = cfg.scale ?? (typeof scaleMulOrWeapon === 'number' ? scaleMulOrWeapon : 1.0);
+    const maxOpacity = cfg.maxOpacity ?? (typeof configOrOpacity === 'number' ? configOrOpacity : 0.28);
+    const count = cfg.particleCount ?? Math.max(3, Math.min(6, Math.round(3 * scaleMul)));
+    const speed = cfg.speed ?? 18.0;
+    const reach = cfg.reach ?? (0.45 * scaleMul);
+    const spreadVal = cfg.spread ?? (0.35 * Math.min(1.4, scaleMul));
+    const growth = cfg.growth ?? 2.6;
+    const drag = cfg.drag ?? 4.5;
+    const buoyancy = cfg.buoyancy ?? 0.45;
+    const spinBase = cfg.spin ?? 4.5;
+    const maxLifeBase = cfg.maxLife ?? 0.42;
+    const colorHex = cfg.color ? (typeof cfg.color === 'string' ? parseInt(cfg.color.replace('#', '0x')) : cfg.color) : 0xd8dce2;
+
     for (let i = 0; i < count; i++) {
       const p = this.smokes[this.smokeIdx];
       this.smokeIdx = (this.smokeIdx + 1) % MAX_SMOKE;
 
       p.mesh.position.copy(muzzlePos);
-      p.startScale = (0.7 + Math.random() * 0.5) * scaleMul;
+      p.mesh.material.color.setHex(colorHex);
+      p.startScale = (0.65 + Math.random() * 0.45) * scaleMul;
       p.mesh.scale.setScalar(p.startScale);
       p.maxOpacity = maxOpacity;
       p.mesh.material.opacity = maxOpacity;
+      p.rotZ = Math.random() * Math.PI * 2;
+      p.spin = (Math.random() - 0.5) * (spinBase * 2.0);
       p.mesh.visible = true;
-      
-      // Projeção em cone para frente com leve abertura proporcional ao calibre/cano
-      const spread = 0.35 * Math.min(1.4, scaleMul);
-      p.vel.copy(forward).multiplyScalar((2.4 + Math.random() * 1.6) * Math.min(1.3, scaleMul)).add(new THREE.Vector3(
-        (Math.random() - 0.5) * spread,
-        (Math.random() - 0.5) * spread + 0.08,
-        (Math.random() - 0.5) * spread
-      ));
-      
-      p.growth = 2.4 + Math.random() * 1.2;
-      p.maxLife = 0.38 + Math.random() * 0.20; // Duração equilibrada para formar o cone sem poluir
+
+      // Dinâmica balística de alta velocidade com frenagem no alcance (reach)
+      p.reach = reach * (0.85 + Math.random() * 0.30);
+      p.distanceTraveled = 0;
+      p.drag = drag;
+      p.buoyancy = buoyancy;
+      p.growth = growth * (0.90 + Math.random() * 0.25);
+      p.maxLife = maxLifeBase * (0.85 + Math.random() * 0.30);
       p.life = p.maxLife;
+
+      // Velocidade frontal violenta inicial + abertura de cone (spread)
+      p.vel.copy(forward).multiplyScalar(speed * (0.90 + Math.random() * 0.20)).add(new THREE.Vector3(
+        (Math.random() - 0.5) * spreadVal,
+        (Math.random() - 0.5) * spreadVal + 0.08,
+        (Math.random() - 0.5) * spreadVal
+      ));
+
       p.active = true;
     }
   }
 
   // 2. Fumaça de calor residual do cano quente ao término de spray (flutua suavemente para cima)
-  _spawnBarrelHeatSmoke(muzzlePos, count = 3, color = null) {
-    const total = Math.min(count, 6);
+  _spawnBarrelHeatSmoke(muzzlePos, count = 1, color = null, heatConfig = null, ratio = 1.0) {
+    const cfg = heatConfig || {};
+    if (cfg.enabled === false) return;
+
+    const total = Math.min(count || 1, 4);
+    const baseScale = cfg.scale ?? 0.40;
+    // Conforme o cano vai esfriando (ratio 1.0 -> 0.0), a intensidade da fumaça diminui suavemente
+    const scale = baseScale * (0.75 + 0.35 * Math.max(0, ratio));
+    const opacity = (cfg.opacity ?? 0.28) * (0.35 + 0.65 * Math.max(0, ratio));
+    const riseSpeed = (cfg.riseSpeed ?? 0.45) * (0.75 + 0.25 * Math.max(0, ratio));
+    const maxLife = (cfg.maxLife ?? 0.90) * (0.75 + 0.25 * Math.max(0, ratio));
+    const growth = cfg.growth ?? 3.2;
+
+    // Fumaça de cooldown sempre branca pura
+    const colorHex = 0xffffff;
+
     for (let i = 0; i < total; i++) {
       const p = this.smokes[this.smokeIdx];
       this.smokeIdx = (this.smokeIdx + 1) % MAX_SMOKE;
 
-      // Leve atraso e deslocamento natural ao redor da boca do cano
-      const jitter = 0.015;
+      const jitter = 0.018;
       p.mesh.position.set(
         muzzlePos.x + (Math.random() - 0.5) * jitter,
         muzzlePos.y + (Math.random() - 0.5) * jitter,
         muzzlePos.z + (Math.random() - 0.5) * jitter
       );
 
-      if (color) p.mesh.material.color.set(color);
-
-      p.startScale = 0.4 + Math.random() * 0.3;
+      p.mesh.material.color.setHex(colorHex);
+      p.startScale = scale * (0.85 + Math.random() * 0.30);
       p.mesh.scale.setScalar(p.startScale);
-      p.maxOpacity = 0.18 + Math.random() * 0.10; // translúcida, perceptível e graciosa
+      p.maxOpacity = opacity;
       p.mesh.material.opacity = p.maxOpacity;
+      p.mesh.renderOrder = 3;
+      p.rotZ = Math.random() * Math.PI * 2;
+      p.spin = (Math.random() - 0.5) * 1.5;
       p.mesh.visible = true;
 
-      // Flutuação ascendente (corrente térmica de ar quente)
       p.vel.set(
-        (Math.random() - 0.5) * 0.15,
-        0.35 + Math.random() * 0.30, // sobe em Y
-        (Math.random() - 0.5) * 0.15
+        (Math.random() - 0.5) * 0.12,
+        riseSpeed * (0.85 + Math.random() * 0.30),
+        (Math.random() - 0.5) * 0.12
       );
 
-      p.growth = 3.0 + Math.random() * 1.5;
-      p.maxLife = 0.70 + Math.random() * 0.40; // persiste suavemente
+      p.drag = 1.4;
+      p.buoyancy = 0.25;
+      p.reach = 999;
+      p.distanceTraveled = 0;
+      p.growth = growth;
+      p.maxLife = maxLife * (0.85 + Math.random() * 0.40);
+      p.life = p.maxLife;
+      p.active = true;
+    }
+  }
+
+  // 3. Fumaça de pulverização violenta da superfície ao ser atingida por tiro (paredes/chão)
+  _spawnSurfaceImpactDust(point, normal = null, materialOrScale = null, weaponOrOverride = null) {
+    let materialName = null;
+    let weaponDef = null;
+    let legacyScale = 1.0;
+    let dustOverride = null;
+
+    if (typeof materialOrScale === 'string') {
+      materialName = materialOrScale;
+    } else if (typeof materialOrScale === 'number') {
+      legacyScale = materialOrScale;
+    }
+
+    if (weaponOrOverride) {
+      if (weaponOrOverride.sfx?.impactDustOverride) {
+        weaponDef = weaponOrOverride;
+        dustOverride = weaponDef.sfx.impactDustOverride;
+      } else if (weaponOrOverride.scaleMultiplier !== undefined || weaponOrOverride.particleCount !== undefined) {
+        dustOverride = weaponOrOverride;
+      } else if (typeof weaponOrOverride === 'number') {
+        legacyScale = weaponOrOverride;
+      }
+    }
+
+    const matKey = this._resolveMaterialKey(materialName);
+    const materialsPool = this.surfaceImpacts || DEFAULT_SURFACE_IMPACTS.materials;
+    const matCfg = materialsPool[matKey] || materialsPool.default || DEFAULT_SURFACE_IMPACTS.materials.default;
+
+    // Fator de escala espacial: calibra a geometria base (0.05m) para que o puff de poeira nasça
+    // com ~0.25m a 0.35m de diâmetro e expanda até ~0.80m, ficando bem nítido e visível no mundo 3D
+    const impactVisualMul = 5.2;
+
+    const baseScale = matCfg.scale ?? 1.0;
+    const scaleMul = baseScale * legacyScale * (dustOverride?.scaleMultiplier ?? 1.0);
+    const speedMul = (matCfg.speed ?? 3.6) * (dustOverride?.speedMultiplier ?? 1.0);
+    const count = dustOverride?.particleCount ?? matCfg.particleCount ?? 4;
+    // Densidade/Opacidade da nuvem: usa maxOpacity do material (0.80 a 0.88) com modulador da arma
+    let density = matCfg.maxOpacity ?? 0.82;
+    if (dustOverride?.densityMultiplier !== undefined) {
+      density *= dustOverride.densityMultiplier;
+    } else if (dustOverride?.density !== undefined) {
+      // Se density foi especificado (< 0.6), preserva o piso sólido de visibilidade
+      density = Math.max(0.75, Math.min(1.0, density * (dustOverride.density >= 0.7 ? dustOverride.density : 1.0)));
+    }
+    const spread = matCfg.spread ?? 1.2;
+    const growth = matCfg.growth ?? 3.4;
+    const drag = matCfg.drag ?? 5.2;
+    const buoyancy = matCfg.buoyancy ?? 0.35;
+    const maxLifeBase = matCfg.maxLife ?? 0.55;
+
+    const n = normal ? new THREE.Vector3(normal.x, normal.y, normal.z).normalize() : new THREE.Vector3(0, 1, 0);
+
+    const colors = matCfg.colors && matCfg.colors.length > 0 ? matCfg.colors : ["#8c7d6b", "#968674", "#7d6f5e", "#a39280"];
+
+    for (let i = 0; i < count; i++) {
+      const p = this.smokes[this.smokeIdx];
+      this.smokeIdx = (this.smokeIdx + 1) % MAX_SMOKE;
+
+      // Desloca 0.08m para fora da parede (+n) para evitar clipping no depth test da geometria
+      p.mesh.position.set(
+        point.x + n.x * 0.08 + (Math.random() - 0.5) * 0.04,
+        point.y + n.y * 0.08 + (Math.random() - 0.5) * 0.04,
+        point.z + n.z * 0.08 + (Math.random() - 0.5) * 0.04
+      );
+
+      const rawCol = colors[Math.floor(Math.random() * colors.length)];
+      const col = typeof rawCol === 'string' ? parseInt(rawCol.replace('#', '0x')) : rawCol;
+      p.mesh.material.color.setHex(col);
+
+      p.startScale = (0.75 + Math.random() * 0.45) * scaleMul * impactVisualMul;
+      p.mesh.scale.setScalar(p.startScale);
+      p.maxOpacity = density * (0.90 + Math.random() * 0.20);
+      p.mesh.material.opacity = p.maxOpacity;
+      p.mesh.renderOrder = 3;
+      p.rotZ = Math.random() * Math.PI * 2;
+      p.spin = (Math.random() - 0.5) * 8.0;
+      p.mesh.visible = true;
+
+      // Velocidade do estouro de impacto projetada estritamente para fora da parede (+n)
+      const forwardSpeed = speedMul * (0.85 + Math.random() * 0.30);
+      const tangentSpread = spread * 0.70;
+      p.vel.copy(n).multiplyScalar(forwardSpeed).add(new THREE.Vector3(
+        (Math.random() - 0.5) * tangentSpread,
+        (Math.random() - 0.5) * tangentSpread + 0.30,
+        (Math.random() - 0.5) * tangentSpread
+      ));
+
+      p.drag = drag;
+      p.buoyancy = buoyancy;
+      p.reach = 0.55 * scaleMul;
+      p.distanceTraveled = 0;
+      p.growth = growth * (0.85 + Math.random() * 0.30);
+      p.maxLife = maxLifeBase * (0.85 + Math.random() * 0.30);
       p.life = p.maxLife;
       p.active = true;
     }
@@ -961,6 +1303,46 @@ export class Effects {
       polygonOffset: true,
       polygonOffsetFactor: -1
     });
+  }
+
+  _createSmokeTexture() {
+    if (typeof document === 'undefined') {
+      return new THREE.Texture();
+    }
+    const c = document.createElement('canvas');
+    c.width = 128;
+    c.height = 128;
+    const ctx = c.getContext && c.getContext('2d');
+    if (!ctx || typeof ctx.createRadialGradient !== 'function') {
+      return new THREE.Texture();
+    }
+
+    ctx.clearRect(0, 0, 128, 128);
+
+    // Múltiplos lóbulos suaves orgânicos para parecer nuvem/puff real de pó e fumaça
+    const puffs = [
+      { x: 64, y: 64, r: 54, a: 0.85 },
+      { x: 50, y: 54, r: 40, a: 0.65 },
+      { x: 78, y: 56, r: 42, a: 0.60 },
+      { x: 58, y: 76, r: 44, a: 0.65 },
+      { x: 76, y: 74, r: 36, a: 0.55 }
+    ];
+
+    for (const p of puffs) {
+      const g = ctx.createRadialGradient(p.x, p.y, 2, p.x, p.y, p.r);
+      g.addColorStop(0.0, `rgba(255, 255, 255, ${p.a})`);
+      g.addColorStop(0.40, `rgba(240, 240, 240, ${p.a * 0.62})`);
+      g.addColorStop(0.75, `rgba(215, 215, 215, ${p.a * 0.22})`);
+      g.addColorStop(1.0, 'rgba(180, 180, 180, 0.0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
   }
 
   _spawnSoldierBloodVoxels(pos, isHeadshot = false) {
@@ -1443,7 +1825,7 @@ export class Effects {
       p.mesh.material.opacity = p.life / p.maxLife;
     }
 
-    // 3. Smokes
+    // 3. Smokes (Fumaça volumétrica do bocal e pulverização de superfícies)
     for (let i = 0; i < MAX_SMOKE; i++) {
       const p = this.smokes[i];
       if (!p.active) continue;
@@ -1456,14 +1838,37 @@ export class Effects {
       }
 
       const t = p.life / p.maxLife; // 1 -> 0
-      p.vel.y += 0.9 * dt; // empuxo
-      p.vel.x *= (1 - 2.2 * dt); // drag
-      p.vel.z *= (1 - 2.2 * dt);
-      
+      const progress = 1 - t;       // 0 -> 1
+
+      // Avanço balístico e verificação do alcance máximo frontal (reach)
+      const currentSpeed = p.vel.length();
+      p.distanceTraveled = (p.distanceTraveled || 0) + currentSpeed * dt;
+
+      // Se a fumaça atingir o alcance frontal máximo (reach), sofre frenagem aerodinâmica extra forte
+      const baseDrag = p.drag || 4.5;
+      const dragFactor = (p.reach && p.distanceTraveled >= p.reach)
+        ? Math.max(baseDrag * 2.2, 9.5)
+        : baseDrag;
+
+      p.vel.multiplyScalar(Math.max(0, 1 - dragFactor * dt));
+      p.vel.y += (p.buoyancy ?? 0.45) * dt;
       p.mesh.position.addScaledVector(p.vel, dt);
-      const grow = 1 + (1 - t) * p.growth;
+
+      // Expansão sub-linear (rápida no início, estabilizando no final)
+      const expandProgress = Math.pow(progress, 0.55);
+      const grow = 1 + expandProgress * p.growth;
       p.mesh.scale.setScalar(p.startScale * grow);
-      p.mesh.material.opacity = Math.pow(t, 1.25) * (p.maxOpacity || 0.6);
+
+      // Billboard voltado para a visão com rotação individual Z (vórtice orgânico)
+      if (camera) {
+        p.mesh.quaternion.copy(camera.quaternion);
+      }
+      p.rotZ = (p.rotZ || 0) + (p.spin || 0) * dt;
+      p.mesh.rotateZ(p.rotZ);
+
+      // Dissipação suave com retenção de volume inicial
+      const fade = Math.min(1.0, progress * 8.0) * Math.pow(t, 0.85);
+      p.mesh.material.opacity = fade * (p.maxOpacity || 0.6);
     }
 
     // 4. Faíscas do Protótipo (simulação física com gravidade e arrasto)

@@ -1,0 +1,49 @@
+{
+  "$schema": "weapon_sfx_schema",
+  "weaponId": "vss",
+  "flash": {
+    "enabled": false,
+    "style": "none",
+    "size": 0,
+    "duration": 0,
+    "maxOpacity": 0,
+    "color": "#000000",
+    "lightIntensity": 0,
+    "lightDistance": 0,
+    "lightColor": "#000000",
+    "jitter": 0
+  },
+  "smoke": {
+    "enabled": true,
+    "style": "cone_jet",
+    "particleCount": 3,
+    "scale": 0.85,
+    "maxOpacity": 0.22,
+    "color": "#dcdfe4",
+    "speed": 16,
+    "reach": 0.22,
+    "spread": 0.22,
+    "growth": 2.2,
+    "drag": 4.8,
+    "buoyancy": 0.38,
+    "spin": 3.8,
+    "maxLife": 0.34
+  },
+  "barrelHeat": {
+    "enabled": true,
+    "triggerBurstCount": 4,
+    "particleCount": 3,
+    "scale": 0.35,
+    "opacity": 0.16,
+    "color": "#ffffff",
+    "riseSpeed": 0.35,
+    "growth": 2.6,
+    "maxLife": 0.7
+  },
+  "impactDustOverride": {
+    "scaleMultiplier": 1,
+    "speedMultiplier": 0.95,
+    "particleCount": 3,
+    "density": 0.42
+  }
+}

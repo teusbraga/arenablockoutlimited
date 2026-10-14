@@ -1,0 +1,49 @@
+{
+  "$schema": "weapon_sfx_schema",
+  "weaponId": "scar_h",
+  "flash": {
+    "enabled": true,
+    "style": "radial_cross",
+    "size": 0.38,
+    "duration": 0.058,
+    "maxOpacity": 0.92,
+    "color": "#ffd27f",
+    "lightIntensity": 10.5,
+    "lightDistance": 5.8,
+    "lightColor": "#ffeedd",
+    "jitter": 0.22
+  },
+  "smoke": {
+    "enabled": true,
+    "style": "cone_jet",
+    "particleCount": 4,
+    "scale": 1.45,
+    "maxOpacity": 0.34,
+    "color": "#d2d7de",
+    "speed": 19,
+    "reach": 0.65,
+    "spread": 0.38,
+    "growth": 2.8,
+    "drag": 4.5,
+    "buoyancy": 0.5,
+    "spin": 5.2,
+    "maxLife": 0.46
+  },
+  "barrelHeat": {
+    "enabled": true,
+    "triggerBurstCount": 3,
+    "particleCount": 4,
+    "scale": 0.5,
+    "opacity": 0.24,
+    "color": "#ffffff",
+    "riseSpeed": 0.45,
+    "growth": 3.2,
+    "maxLife": 0.95
+  },
+  "impactDustOverride": {
+    "scaleMultiplier": 1.25,
+    "speedMultiplier": 1.15,
+    "particleCount": 4,
+    "density": 0.52
+  }
+}

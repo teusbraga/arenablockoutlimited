@@ -1,0 +1,122 @@
+{
+  "$schema": "surface_impacts_schema",
+  "materials": {
+    "concrete": {
+      "colors": ["#8c7d6b", "#968674", "#7d6f5e", "#a39280"],
+      "particleCount": 4,
+      "scale": 1.0,
+      "speed": 3.6,
+      "spread": 1.2,
+      "growth": 3.4,
+      "drag": 5.2,
+      "buoyancy": 0.35,
+      "maxLife": 0.55,
+      "maxOpacity": 0.82,
+      "sparks": 4
+    },
+    "stone": {
+      "colors": ["#807c77", "#918b84", "#6e6a65", "#9e978f"],
+      "particleCount": 4,
+      "scale": 1.0,
+      "speed": 3.8,
+      "spread": 1.1,
+      "growth": 3.2,
+      "drag": 5.4,
+      "buoyancy": 0.32,
+      "maxLife": 0.50,
+      "maxOpacity": 0.80,
+      "sparks": 6
+    },
+    "wood": {
+      "colors": ["#9c6f44", "#b0804e", "#7d5431", "#c4925e"],
+      "particleCount": 4,
+      "scale": 0.95,
+      "speed": 3.2,
+      "spread": 1.3,
+      "growth": 3.2,
+      "drag": 5.0,
+      "buoyancy": 0.38,
+      "maxLife": 0.55,
+      "maxOpacity": 0.85,
+      "sparks": 3
+    },
+    "dirt": {
+      "colors": ["#7a5f45", "#8c6f52", "#664f3a", "#997b5d"],
+      "particleCount": 5,
+      "scale": 1.35,
+      "speed": 3.4,
+      "spread": 1.4,
+      "growth": 3.8,
+      "drag": 4.6,
+      "buoyancy": 0.45,
+      "maxLife": 0.70,
+      "maxOpacity": 0.88,
+      "sparks": 3
+    },
+    "sand": {
+      "colors": ["#c2a67a", "#b59869", "#d4b88c", "#a38658"],
+      "particleCount": 5,
+      "scale": 1.40,
+      "speed": 3.2,
+      "spread": 1.5,
+      "growth": 4.0,
+      "drag": 4.4,
+      "buoyancy": 0.42,
+      "maxLife": 0.72,
+      "maxOpacity": 0.85,
+      "sparks": 2
+    },
+    "grass": {
+      "colors": ["#5a6b48", "#6e8257", "#4b593c", "#7a6245"],
+      "particleCount": 4,
+      "scale": 1.0,
+      "speed": 3.0,
+      "spread": 1.3,
+      "growth": 3.2,
+      "drag": 5.0,
+      "buoyancy": 0.38,
+      "maxLife": 0.55,
+      "maxOpacity": 0.80,
+      "sparks": 2
+    },
+    "metal": {
+      "colors": ["#6e747a", "#858c94", "#505459", "#9ea5ad"],
+      "particleCount": 3,
+      "scale": 0.75,
+      "speed": 4.2,
+      "spread": 0.9,
+      "growth": 2.8,
+      "drag": 6.5,
+      "buoyancy": 0.25,
+      "maxLife": 0.38,
+      "maxOpacity": 0.75,
+      "sparks": 8
+    },
+    "glass": {
+      "colors": ["#d0e6ec", "#b8d5dc", "#eaf4f7", "#ffffff"],
+      "particleCount": 4,
+      "scale": 0.85,
+      "speed": 4.0,
+      "spread": 1.4,
+      "growth": 3.0,
+      "drag": 5.5,
+      "buoyancy": 0.28,
+      "maxLife": 0.42,
+      "maxOpacity": 0.78,
+      "sparks": 5
+    },
+    "default": {
+      "colors": ["#8c7d6b", "#968674", "#7d6f5e", "#a39280"],
+      "particleCount": 4,
+      "scale": 1.0,
+      "speed": 3.6,
+      "spread": 1.2,
+      "growth": 3.4,
+      "drag": 5.2,
+      "buoyancy": 0.35,
+      "maxLife": 0.55,
+      "maxOpacity": 0.82,
+      "sparks": 4
+    }
+  }
+}

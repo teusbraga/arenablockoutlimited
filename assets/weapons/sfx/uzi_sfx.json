@@ -1,0 +1,49 @@
+{
+  "$schema": "weapon_sfx_schema",
+  "weaponId": "uzi",
+  "flash": {
+    "enabled": true,
+    "style": "radial_cross",
+    "size": 0.34,
+    "duration": 0.05,
+    "maxOpacity": 0.88,
+    "color": "#ffd27f",
+    "lightIntensity": 7,
+    "lightDistance": 4.5,
+    "lightColor": "#ffeedd",
+    "jitter": 0.25
+  },
+  "smoke": {
+    "enabled": true,
+    "style": "cone_jet",
+    "particleCount": 3,
+    "scale": 1,
+    "maxOpacity": 0.26,
+    "color": "#dce0e5",
+    "speed": 17,
+    "reach": 0.28,
+    "spread": 0.4,
+    "growth": 2.4,
+    "drag": 4.8,
+    "buoyancy": 0.4,
+    "spin": 4.2,
+    "maxLife": 0.36
+  },
+  "barrelHeat": {
+    "enabled": true,
+    "triggerBurstCount": 5,
+    "particleCount": 3,
+    "scale": 0.35,
+    "opacity": 0.18,
+    "color": "#ffffff",
+    "riseSpeed": 0.38,
+    "growth": 2.8,
+    "maxLife": 0.75
+  },
+  "impactDustOverride": {
+    "scaleMultiplier": 0.85,
+    "speedMultiplier": 0.9,
+    "particleCount": 2,
+    "density": 0.4
+  }
+}

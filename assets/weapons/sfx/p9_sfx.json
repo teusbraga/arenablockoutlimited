@@ -1,0 +1,49 @@
+{
+  "$schema": "weapon_sfx_schema",
+  "weaponId": "p9",
+  "flash": {
+    "enabled": false,
+    "style": "none",
+    "size": 0,
+    "duration": 0,
+    "maxOpacity": 0,
+    "color": "#000000",
+    "lightIntensity": 0,
+    "lightDistance": 0,
+    "lightColor": "#000000",
+    "jitter": 0
+  },
+  "smoke": {
+    "enabled": true,
+    "style": "cone_jet",
+    "particleCount": 3,
+    "scale": 0.85,
+    "maxOpacity": 0.24,
+    "color": "#e0e3e8",
+    "speed": 16,
+    "reach": 0.2,
+    "spread": 0.3,
+    "growth": 2.2,
+    "drag": 4.8,
+    "buoyancy": 0.38,
+    "spin": 4,
+    "maxLife": 0.32
+  },
+  "barrelHeat": {
+    "enabled": true,
+    "triggerBurstCount": 6,
+    "particleCount": 2,
+    "scale": 0.3,
+    "opacity": 0.16,
+    "color": "#ffffff",
+    "riseSpeed": 0.35,
+    "growth": 2.5,
+    "maxLife": 0.65
+  },
+  "impactDustOverride": {
+    "scaleMultiplier": 0.8,
+    "speedMultiplier": 0.9,
+    "particleCount": 2,
+    "density": 0.38
+  }
+}
