@@ -54,6 +54,30 @@ export const DEFAULT_CONFIG = {
     vibrationEnabled: true,
     suppressionEnabled: true
   },
+  LOCOMOTION: {
+    stepDistance: {
+      walk: 2.20,
+      sprint: 2.90,
+      crouch: 1.40
+    },
+    walkBob: {
+      type: 'convex_parabola',
+      amplitudeX: 0.018,
+      amplitudeY: 0.0048,
+      pitchAmount: 0.007,
+      rollAmount: 0.012
+    },
+    sprintBob: {
+      type: 'lemniscate_infinity',
+      amplitudeX: 0.038,
+      amplitudeY: 0.0014,
+      pitchAmount: 0.005,
+      rollAmount: 0.022
+    },
+    crouchBobMultiplier: 0.60,
+    crouchVerticalMultiplier: 0.40,
+    adsDamping: 0.15
+  },
   CHEATS: {
     godMode: false,
     infiniteAmmo: false
@@ -117,6 +141,9 @@ export class ConfigLoader {
         }
         if (gp.accessibility) {
           deepMerge(CONFIG.ACCESSIBILITY, gp.accessibility);
+        }
+        if (gp.locomotion) {
+          deepMerge(CONFIG.LOCOMOTION, gp.locomotion);
         }
       }
 

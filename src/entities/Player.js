@@ -200,17 +200,7 @@ export class Player extends Character {
     this.pos.z = Math.max(minZ, Math.min(maxZ, this.pos.z));
 
     // ---- Passos sonoros ----
-    const speedXZ = Math.hypot(this.vel.x, this.vel.z);
-    if (this.alive && this.onGround && speedXZ > 1) {
-      this.stepTimer -= dt;
-      const interval = this.sprinting ? 0.30 : (this.crouched ? 0.55 : 0.42);
-      if (this.stepTimer <= 0) {
-        this.stepTimer = interval;
-        emit('player:footstep', { pos: this.pos.clone(), material: this.groundMaterial || 'floor' });
-      }
-    } else {
-      this.stepTimer = 0;
-    }
+    // Sincronizados 1:1 com o impacto de pisada e Head Bob no CameraRig (via odometria).
 
     // ---- Regeneração de Vida ----
     const now = performance.now() / 1000;

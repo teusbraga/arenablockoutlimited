@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { CONFIG } from './ConfigLoader.js';
+import { emit } from './EventBus.js';
 
 /**
  * Utilitário de amortecimento elástico analítico com garantia de estabilidade numérica (estilo SmoothDamp).
@@ -71,6 +72,7 @@ export class CameraRig {
     this.bobAmt = 0;
     this.bobRoll = 0;
     this.bobPitch = 0;
+    this.sprintWeight = 0;
 
     // ---- Altura dos Olhos (Eye Height) ----
     this.eyeHeight = CONFIG.PLAYER.eyeHeight;
@@ -217,6 +219,11 @@ export class CameraRig {
     this.shakeIntensity = 0;
     this.shakeRot.set(0, 0, 0);
     this.shakePos.set(0, 0, 0);
+    this.bobPhase = 0;
+    this.bobAmt = 0;
+    this.bobRoll = 0;
+    this.bobPitch = 0;
+    this.sprintWeight = 0;
   }
 
   /**
@@ -330,34 +337,100 @@ export class CameraRig {
     this.flinchPitch *= Math.max(0, 1 - dt * 15);
     this.flinchYaw *= Math.max(0, 1 - dt * 15);
 
-    // ---- 5. Head Bob & Locomoção Suavizada ----
+    // ---- 5. Head Bob & Locomoção Suavizada (Geometrias Dedicadas & Sincronização de Passos) ----
     const speedXZ = Math.hypot(player.vel.x, player.vel.z);
     const isMoving = player.alive && player.onGround && speedXZ > 0.15;
     const userBobScale = CONFIG.ACCESSIBILITY?.headbobScale ?? 1.0;
-    const adsDamp = isAds ? 0.15 : 1.0; // No ADS amortece 85% do headbob da câmera para mira tática estável
+
+    const locoCfg = CONFIG.LOCOMOTION || {};
+    const stepCfg = locoCfg.stepDistance || { walk: 2.20, sprint: 2.90, crouch: 1.40 };
+    const walkBobCfg = locoCfg.walkBob || {
+      type: 'convex_parabola',
+      amplitudeX: 0.018,
+      amplitudeY: 0.024,
+      pitchAmount: 0.035,
+      rollAmount: 0.012
+    };
+    const sprintBobCfg = locoCfg.sprintBob || {
+      type: 'lemniscate_infinity',
+      amplitudeX: 0.038,
+      amplitudeY: 0.014,
+      pitchAmount: 0.050,
+      rollAmount: 0.022
+    };
+    const crouchMul = locoCfg.crouchBobMultiplier ?? 0.60;
+    const crouchYMul = locoCfg.crouchVerticalMultiplier ?? 0.40;
+    const adsDampFactor = locoCfg.adsDamping ?? 0.15;
+    const adsDamp = isAds ? adsDampFactor : 1.0;
+
+    // Transição contínua e suave do peso de corrida (sprintWeight)
+    const targetSprint = (player.sprinting && speedXZ > (CONFIG.PLAYER?.walkSpeed || 5.2) * 0.7) ? 1.0 : 0.0;
+    this.sprintWeight += (targetSprint - this.sprintWeight) * Math.min(dt * 14.0, 1.0);
+
+    const crouchAmount = player.crouchAmount || 0;
+    let targetStepDist = THREE.MathUtils.lerp(stepCfg.walk, stepCfg.sprint, this.sprintWeight);
+    targetStepDist = THREE.MathUtils.lerp(targetStepDist, stepCfg.crouch, crouchAmount);
 
     if (isMoving) {
       const moveRatio = Math.min(speedXZ / (CONFIG.PLAYER?.walkSpeed || 5.2), 1.8);
-      const rate = (9.0 + (player.sprinting ? 4.0 : 0.0) - (player.crouchAmount || 0) * 3.0) * Math.max(0.65, moveRatio);
-      this.bobPhase += dt * rate;
-      const target = (player.sprinting ? 0.036 : 0.026) * userBobScale * moveRatio * adsDamp;
-      this.bobAmt += (target - this.bobAmt) * Math.min(dt * 24.0, 1.0);
+
+      // Deslocamento real no solo -> avanço de fase odimétrica (1 passada de 1 pé = π radianos)
+      const distFrame = speedXZ * dt;
+      const dPhase = (Math.PI * distFrame) / Math.max(targetStepDist, 0.4);
+
+      const prevPhase = this.bobPhase;
+      this.bobPhase += dPhase;
+
+      // Sincronização sonora 1:1: disparo do som de passos na compressão de impacto (fronteiras de π e 2π)
+      const prevStep = Math.floor(prevPhase / Math.PI);
+      const curStep = Math.floor(this.bobPhase / Math.PI);
+      if (curStep > prevStep) {
+        const footPos = player.pos?.clone ? player.pos.clone() : (player.renderPos ? { ...player.renderPos } : new THREE.Vector3());
+        emit('player:footstep', { pos: footPos, material: player.groundMaterial || 'floor' });
+      }
+
+      if (this.bobPhase >= Math.PI * 2) {
+        this.bobPhase -= Math.PI * 2;
+      }
+
+      const crouchFactor = THREE.MathUtils.lerp(1.0, crouchMul, crouchAmount);
+      const targetAmt = userBobScale * moveRatio * adsDamp * crouchFactor;
+      this.bobAmt += (targetAmt - this.bobAmt) * Math.min(dt * 24.0, 1.0);
     } else {
       this.bobAmt += (0 - this.bobAmt) * Math.min(dt * 22.0, 1.0);
       // Avança a fase suavemente durante o decaimento para assentar sem travar no ápice
       if (this.bobAmt > 0.001) {
-        this.bobPhase += dt * 8.0;
+        this.bobPhase += dt * 6.0;
+        if (this.bobPhase >= Math.PI * 2) {
+          this.bobPhase -= Math.PI * 2;
+        }
       }
     }
 
-    if (this.bobPhase > Math.PI * 2) {
-      this.bobPhase -= Math.PI * 2;
-    }
+    // ── Curva A: Parábola Convexa (Caminhada) ──
+    // u normalizado do passo atual [0..1]
+    const u = (this.bobPhase % Math.PI) / Math.PI;
+    // Parábola convexa: atinge o ápice em u=0.5 e afunda em u=0 e u=1 (impacto)
+    const parabola = (4.0 * u * (1.0 - u) - 0.5);
+    const xWalk = Math.cos(this.bobPhase) * walkBobCfg.amplitudeX;
+    const yWalk = parabola * walkBobCfg.amplitudeY;
+    const rollWalk = Math.cos(this.bobPhase) * walkBobCfg.rollAmount;
+    const pitchWalk = parabola * walkBobCfg.pitchAmount;
 
-    const bobY = Math.sin(this.bobPhase * 2) * this.bobAmt;
-    const bobX = Math.cos(this.bobPhase) * this.bobAmt * 0.60;
-    this.bobRoll = Math.cos(this.bobPhase) * this.bobAmt * 0.15;
-    this.bobPitch = Math.sin(this.bobPhase * 2) * this.bobAmt * 0.06;
+    // ── Curva B: Lemniscata de Bernoulli / Lissajous ("8 Invertido" / Infinito) (Corrida) ──
+    // Trajetória em 8 deitado com maior amplitude horizontal e menor amplitude vertical
+    const xSprint = Math.sin(this.bobPhase) * sprintBobCfg.amplitudeX;
+    const ySprint = Math.sin(this.bobPhase * 2) * sprintBobCfg.amplitudeY;
+    const rollSprint = Math.cos(this.bobPhase) * sprintBobCfg.rollAmount;
+    const pitchSprint = Math.sin(this.bobPhase * 2) * sprintBobCfg.pitchAmount;
+
+    // Interpolação analítica suave entre as duas geometrias sem descontinuidade
+    const w = this.sprintWeight;
+    const crouchYFactor = THREE.MathUtils.lerp(1.0, crouchYMul, crouchAmount);
+    const bobX = ((1.0 - w) * xWalk + w * xSprint) * this.bobAmt;
+    const bobY = ((1.0 - w) * yWalk + w * ySprint) * this.bobAmt * crouchYFactor;
+    this.bobRoll = ((1.0 - w) * rollWalk + w * rollSprint) * this.bobAmt;
+    this.bobPitch = ((1.0 - w) * pitchWalk + w * pitchSprint) * this.bobAmt * crouchYFactor;
 
     // ---- 6. Altura dos Olhos (Eye Height com Agachamento / Morte) ----
     let targetEye = CONFIG.PLAYER.eyeHeight + (CONFIG.PLAYER.eyeCrouch - CONFIG.PLAYER.eyeHeight) * player.crouchAmount;
@@ -381,10 +454,12 @@ export class CameraRig {
     const backX = Math.sin(this.currentYaw);
     const backZ = Math.cos(this.currentYaw);
 
+    const baseP = player.renderPos || player.pos || { x: 0, y: 0, z: 0 };
+
     const firstPersonPos = {
-      x: player.renderPos.x + (bobX + leanOffsetDist) * rightX + rightX * this.recoilPos.x + backX * this.recoilPos.z + this.shakePos.x,
-      y: player.renderPos.y + this.eyeHeight - leanDrop + bobY + this.recoilPos.y + this.shakePos.y,
-      z: player.renderPos.z + (bobX + leanOffsetDist) * rightZ + rightZ * this.recoilPos.x + backZ * this.recoilPos.z + this.shakePos.z
+      x: baseP.x + (bobX + leanOffsetDist) * rightX + rightX * this.recoilPos.x + backX * this.recoilPos.z + this.shakePos.x,
+      y: baseP.y + this.eyeHeight - leanDrop + bobY + this.recoilPos.y + this.shakePos.y,
+      z: baseP.z + (bobX + leanOffsetDist) * rightZ + rightZ * this.recoilPos.x + backZ * this.recoilPos.z + this.shakePos.z
     };
 
     // Interpolação suave do modo de perspectiva (0 = 1st person, 1 = 3rd person)
@@ -403,9 +478,9 @@ export class CameraRig {
 
       // Ponto de pivô de cabeça/ombros do player
       const pivot = {
-        x: player.renderPos.x + (leanOffsetDist + this.tpOffsetRight * this.thirdPersonAmount) * rightX,
-        y: player.renderPos.y + this.eyeHeight - leanDrop + (this.tpOffsetY * this.thirdPersonAmount),
-        z: player.renderPos.z + (leanOffsetDist + this.tpOffsetRight * this.thirdPersonAmount) * rightZ
+        x: baseP.x + (leanOffsetDist + this.tpOffsetRight * this.thirdPersonAmount) * rightX,
+        y: baseP.y + this.eyeHeight - leanDrop + (this.tpOffsetY * this.thirdPersonAmount),
+        z: baseP.z + (leanOffsetDist + this.tpOffsetRight * this.thirdPersonAmount) * rightZ
       };
 
       // Verificação de oclusão / colisão contra paredes (Spring Arm)
