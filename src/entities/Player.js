@@ -201,7 +201,7 @@ export class Player extends Character {
 
     // ---- Passos sonoros ----
     const speedXZ = Math.hypot(this.vel.x, this.vel.z);
-    if (this.alive && this.onGround && speedXZ > 1) {
+    if (!this.rig && this.alive && this.onGround && speedXZ > 1) {
       this.stepTimer -= dt;
       const interval = this.sprinting ? 0.30 : (this.crouched ? 0.55 : 0.42);
       if (this.stepTimer <= 0) {
@@ -261,6 +261,13 @@ export class Player extends Character {
   updateCamera(camera, dt) {
     this.rig.update(dt, this);
     this.rig.applyToCamera(camera);
+
+    // Passos sonoros 100% sincronizados com a fase cinemática da passada do CameraRig
+    const speedXZ = Math.hypot(this.vel.x, this.vel.z);
+    if (this.alive && this.onGround && speedXZ > 0.8 && this.rig.stepTriggered) {
+      this.rig.stepTriggered = false;
+      emit('player:footstep', { pos: this.pos.clone(), material: this.groundMaterial || 'floor' });
+    }
   }
 
   takeDamage(dmg, source) {

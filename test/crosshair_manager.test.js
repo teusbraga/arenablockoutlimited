@@ -32,7 +32,7 @@ test('CrosshairManager - Defaults and Config Persistence', () => {
   assert.equal(cm.config.style, 'cross');
   assert.equal(cm.config.color, '#00ff66');
   assert.equal(cm.config.length, 7);
-  assert.equal(cm.config.noFireWarning, true);
+  assert.equal(cm.config.noFireWarning, false);
 
   // Alterar e salvar config
   cm.saveConfig({ style: 't_shape', length: 12, color: '#00ffff' });

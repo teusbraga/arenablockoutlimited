@@ -150,7 +150,7 @@ export class LocomotionSmoothingSystem {
     if (amt <= 0.00001) return { x: 0, y: 0 };
     return {
       x: Math.sin(this.bobPhase) * amt,
-      y: Math.abs(Math.cos(this.bobPhase)) * amt
+      y: Math.sin(this.bobPhase * 2) * amt * 0.16
     };
   }
 }

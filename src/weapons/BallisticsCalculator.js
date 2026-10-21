@@ -26,8 +26,16 @@ export class BallisticsCalculator {
     // Precisão base do cano
     let baseSpread = prec.baseSpread ?? (isAds ? (def?.spreadAds ?? 0.0015) : (def?.spreadHip ?? 0.02));
     if (!isAds) {
-      // No hipfire, baseSpread expande proporcionalmente
-      baseSpread = Math.max(baseSpread, def?.spreadHip ?? 0.02);
+      // Se em repouso (primeiro tiro sem movimento e sem penalidade de rajada),
+      // concede 100% da precisão intrínseca da arma (prec.baseSpread).
+      // Se a arma for 100% precisa em repouso (baseSpread = 0), atira com 100% de precisão!
+      const isResting = speedRatio < 0.08 && precisionPenalty <= 0.0001;
+      if (isResting) {
+        baseSpread = prec.baseSpread ?? (def?.spreadAds ?? 0.0015);
+      } else {
+        // Em movimento ou durante a rajada contínua, abre a dispersão para spreadHip
+        baseSpread = Math.max(baseSpread, def?.spreadHip ?? 0.02);
+      }
     }
 
     // Impacto do sway sobre a precisão
@@ -42,6 +50,9 @@ export class BallisticsCalculator {
     } else if (speedRatio > 0.05) {
       moveLoss = (dyn.walk ?? 0.015) * speedRatio;
     }
+
+    // Teto defensivo para a penalidade de locomoção (evita cones excessivos > 5 graus)
+    moveLoss = Math.min(moveLoss, 0.035);
 
     if (isAds) {
       // ADS amortece a perda de precisão por movimento em 50%

@@ -77,10 +77,10 @@ export class BarrelCrosshairAlignment {
    * @param {Object} weaponDef Definição da arma (de src/weapons/WeaponDefs.js)
    * @param {boolean} isADS Se o jogador está mirando com a arma (Iron Sight / Scope)
    * @param {number} [dt=0.016] Delta time do frame
-   * @param {{pitch: number, yaw: number}} [sprayRecoil=null] Recuo acumulado da rajada atual
+   * @param {THREE.Vector3} [muzzlePosOverride=null] Posição pré-compensada da boca do cano
    * @returns {{ aimPointWorld: THREE.Vector3, barrelAimDir: THREE.Vector3, screenPos: {x: number, y: number} }}
    */
-  update(weaponDef, isADS, dt = 0.016, sprayRecoil = null) {
+  update(weaponDef, isADS, dt = 0.016, sprayRecoil = null, muzzlePosOverride = null) {
     if (!this.viewmodel || !this.viewmodel.mount || !this.camera || !weaponDef) {
       return {
         aimPointWorld: this.aimPointWorld,
@@ -92,10 +92,14 @@ export class BarrelCrosshairAlignment {
     const mount = this.viewmodel.mount;
 
     // 1. Obter a posição de mundo da boca do cano (Muzzle)
-    const mz = weaponDef.muzzleLocal || [0, 0.02, -0.5];
-    _vMuzzle.set(mz[0], mz[1], mz[2]);
-    mount.localToWorld(_vMuzzle);
-    this.muzzleWorld.copy(_vMuzzle);
+    if (muzzlePosOverride) {
+      this.muzzleWorld.copy(muzzlePosOverride);
+    } else {
+      const mz = weaponDef.muzzleLocal || [0, 0.02, -0.5];
+      _vMuzzle.set(mz[0], mz[1], mz[2]);
+      mount.localToWorld(_vMuzzle);
+      this.muzzleWorld.copy(_vMuzzle);
+    }
 
     // 2. Extrair matriz de rotação atual do mount
     mount.updateWorldMatrix(true, false);
@@ -119,13 +123,14 @@ export class BarrelCrosshairAlignment {
     }
     this.pureAimPointWorld.copy(_vPureTarget3D);
 
-    // 2B. Direção BALÍSTICA Completa do Cano (inclui kickRotX + sprayRecoil para balas e tracers 3D)
+    // 2B. Direção BALÍSTICA Fiel do Cano 3D (respeita mount.matrixWorld, kickRotX físico e sway natural)
     _vMuzzleDir.set(0, 0, -1).applyMatrix4(_matRot).normalize();
     if (sprayRecoil && (Math.abs(sprayRecoil.pitch) > 0.0001 || Math.abs(sprayRecoil.yaw) > 0.0001)) {
       _vRight.set(1, 0, 0).applyMatrix4(_matRot).normalize();
       _vUp.set(0, 1, 0).applyMatrix4(_matRot).normalize();
-      _vMuzzleDir.addScaledVector(_vUp, sprayRecoil.pitch * 0.65)
-                 .addScaledVector(_vRight, -sprayRecoil.yaw * 0.65)
+      const recoilGain = 0.54; // ~17% mais conservador que o antigo 0.65
+      _vMuzzleDir.addScaledVector(_vUp, sprayRecoil.pitch * recoilGain)
+                 .addScaledVector(_vRight, -sprayRecoil.yaw * recoilGain)
                  .normalize();
     }
     this.barrelAimDir.copy(_vMuzzleDir);
@@ -147,7 +152,7 @@ export class BarrelCrosshairAlignment {
     }
 
     // 4. Projetar o ponto PURO de alinhamento do cano (_vPureTarget3D) para coordenadas 2D de tela (HUD)
-    _vScreen.copy(_vPureTarget3D).project(this.camera);
+    _vScreen.copy(this.aimPointWorld).project(this.camera);
 
     const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
     const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 1080;

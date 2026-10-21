@@ -7,15 +7,17 @@ import { Bot } from '../src/entities/Bot.js';
 
 // Polyfill DOM Canvas para testes headless em Node.js
 if (typeof document === 'undefined') {
+  const dummyCtx = new Proxy({}, {
+    get: (target, prop) => {
+      if (prop === 'createRadialGradient' || prop === 'createLinearGradient') {
+        return () => ({ addColorStop: () => {} });
+      }
+      return () => {};
+    }
+  });
   global.document = {
     createElement: () => ({
-      getContext: () => ({
-        createRadialGradient: () => ({ addColorStop: () => {} }),
-        fillRect: () => {},
-        beginPath: () => {},
-        arc: () => {},
-        fill: () => {}
-      }),
+      getContext: () => dummyCtx,
       width: 64,
       height: 64
     })

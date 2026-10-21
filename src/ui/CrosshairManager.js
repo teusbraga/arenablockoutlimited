@@ -2,8 +2,8 @@ import { emit, on } from '../core/EventBus.js';
 
 export const DEFAULT_CROSSHAIR_CONFIG = {
   style: 'cross',           // 'cross' | 't_shape' | 'none'
-  mode: 'dynamic',          // 'static' | 'dynamic' (abertura das hastes com spread)
-  dynamicAlignment: true,   // true | false (alinhamento dinâmico 3D do cano na HUD)
+  mode: 'static',          // 'static' | 'dynamic' (abertura das hastes com spread)
+  dynamicAlignment: false,   // true | false (alinhamento dinâmico 3D do cano na HUD)
   followRecoil: false,      // true | false (subida/desvio da mira com o recuo/spray)
   centerDot: false,         // true | false
   length: 7,                // 2 a 24 px
@@ -11,7 +11,7 @@ export const DEFAULT_CROSSHAIR_CONFIG = {
   gap: 5,                   // -4 a 20 px
   outline: 1,               // 0 a 3 px
   color: '#00ff66',         // hex
-  noFireWarning: true,      // true | false
+  noFireWarning: false,      // true | false
   aimAssist: true           // true ('true' = ON) | 'none' (false = OFF)
 };
 
@@ -181,7 +181,7 @@ export class CrosshairManager {
     // 2. EIXO 1 — Comportamento de Dispersão: Estático vs Dinâmico (Abrir/Fechar das hastes com spread)
     let currentGap = cfg.gap;
     if (cfg.mode === 'dynamic') {
-      const dynamicSpreadOffset = Math.max(0, (spread - 0.015) * 450);
+      const dynamicSpreadOffset = Math.max(0, (spread - 0.010) * 480);
       currentGap = cfg.gap + dynamicSpreadOffset;
     }
     this.el.style.setProperty('--gap', `${currentGap.toFixed(1)}px`);

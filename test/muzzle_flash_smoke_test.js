@@ -130,4 +130,55 @@ describe('Muzzle Flash & Cone Smoke Modern Architecture Test', () => {
 
     effects.destroy();
   });
+
+  it('deve aplicar delay sequencial de 20ms entre artefatos de fumaça e velocidade reduzida em 20%', () => {
+    const scene = new THREE.Scene();
+    const effects = new Effects(scene);
+
+    const muzzle = new THREE.Vector3(0, 1.5, 0);
+    const forward = new THREE.Vector3(0, 0, -1);
+
+    // Dispara com speed base 20.0 e 5 partículas
+    effects._spawnMuzzleSmoke(muzzle, forward, {
+      speed: 20.0,
+      particleCount: 5,
+      delayStep: 0.020,
+      scale: 1.0,
+      maxOpacity: 0.3
+    });
+
+    const activeSmokes = effects.smokes.filter(s => s.active);
+    assert.strictEqual(activeSmokes.length, 5, 'Deve ativar 5 partículas');
+
+    // 1. Verifica velocidade e alcance longo do cone (reach >= 1.35m)
+    const tipSpeed = activeSmokes[0].vel.length();
+    assert.ok(Math.abs(tipSpeed - (20.0 * 0.70 * 1.15)) < 0.1, 'Velocidade da ponta deve refletir projeção do cone longo');
+    assert.ok(activeSmokes[0].reach >= 1.35, 'Cone deve ser longo (reach >= 1.35m)');
+
+    // 2. No frame 0: apenas a partícula 0 está visível, nascendo encorpada no bocal (0.26)
+    assert.strictEqual(activeSmokes[0].delay, 0, 'Partícula 0 deve ter delay 0');
+    assert.strictEqual(activeSmokes[0].mesh.visible, true, 'Partícula 0 deve estar visível no frame 0');
+    assert.strictEqual(activeSmokes[0].mesh.scale.x, 0.26, 'Partícula 0 deve nascer encorpada no bocal (0.26)');
+
+    assert.ok(Math.abs(activeSmokes[1].delay - 0.020) < 0.001, 'Partícula 1 deve ter delay configurado');
+    assert.strictEqual(activeSmokes[1].mesh.visible, false, 'Partícula 1 deve estar invisível no frame 0');
+
+    // 3. Após 25ms, partícula 1 torna-se visível e partícula 0 cresce para diâmetro maior
+    effects.update(0.025);
+    assert.strictEqual(activeSmokes[1].mesh.visible, true, 'Partícula 1 deve estar visível após delay');
+    assert.ok(activeSmokes[0].mesh.scale.x > 0.26, 'Partícula 0 deve crescer conforme viaja pelo cone longo');
+
+    // 4. Todas as partículas ativam e avançam ao longo do cone longo
+    effects.update(0.060);
+    for (let i = 0; i < 5; i++) {
+      assert.strictEqual(activeSmokes[i].mesh.visible, true, `Partícula ${i} deve estar visível`);
+    }
+
+    // 5. Esmaecimento total no final: se a partícula atingir o reach total, opacidade esmaece totalmente a 0.0
+    activeSmokes[0].distanceTraveled = activeSmokes[0].reach;
+    effects.update(0.016);
+    assert.strictEqual(activeSmokes[0].mesh.material.opacity, 0, 'Fumaça deve esmaecer totalmente a 0.0 no final do cone');
+
+    effects.destroy();
+  });
 });

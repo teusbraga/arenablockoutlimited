@@ -6,7 +6,7 @@ import { surfaceEyedropper } from '../world/SurfaceEyedropper.js';
 
 const MAX_TRACERS = 120;
 const MAX_SPARKS = 80;
-const MAX_SMOKE = 80;
+const MAX_SMOKE = 160;
 const MAX_CASINGS = 24;
 const MAX_BLOOD_VOXELS = 80;
 const MAX_GHOST_SMOKE = 60;
@@ -473,6 +473,13 @@ export class Effects {
       this.smokes.push({
         mesh,
         vel: new THREE.Vector3(),
+        spawnPos: new THREE.Vector3(),
+        delay: 0,
+        distanceTraveled: 0,
+        isConeSmoke: false,
+        isTip: false,
+        baseMuzzleScale: 0.2,
+        targetConeScale: 0.5,
         life: 0,
         maxLife: 0.7,
         startScale: 1,
@@ -689,7 +696,7 @@ export class Effects {
         const smokeCfg = e.weapon?.sfx?.smoke;
         const opacity = e.weapon?.smokeConeOpacity ?? smokeCfg?.maxOpacity ?? 0.28;
         const scaleMul = e.weapon?.smokeConeScale ?? smokeCfg?.scale ?? 1.2;
-        this._spawnMuzzleSmoke(e.muzzleWorld, e.forward, smokeCfg || opacity, e.weapon || scaleMul);
+        this._spawnMuzzleSmoke(e.muzzleWorld, e.forward, smokeCfg || opacity, e.weapon || scaleMul, e.right, e.up);
       }),
       on('weapon:manual_eject_fx', e => {
         if (e.ejectWorld && e.right && e.up) {
@@ -927,7 +934,7 @@ export class Effects {
   }
 
   // 1. Cone de fumaça frontal durante o disparo (proporcional ao flash e cano da arma)
-  _spawnMuzzleSmoke(muzzlePos, forward, configOrOpacity = 0.28, scaleMulOrWeapon = 1.0) {
+  _spawnMuzzleSmoke(muzzlePos, forward, configOrOpacity = 0.28, scaleMulOrWeapon = 1.0, right = null, up = null) {
     let cfg = {};
     if (configOrOpacity && typeof configOrOpacity === 'object') {
       cfg = configOrOpacity;
@@ -942,47 +949,101 @@ export class Effects {
     if (cfg.enabled === false) return;
 
     const scaleMul = cfg.scale ?? (typeof scaleMulOrWeapon === 'number' ? scaleMulOrWeapon : 1.0);
-    const maxOpacity = cfg.maxOpacity ?? (typeof configOrOpacity === 'number' ? configOrOpacity : 0.28);
-    const count = cfg.particleCount ?? Math.max(3, Math.min(6, Math.round(3 * scaleMul)));
-    const speed = cfg.speed ?? 18.0;
-    const reach = cfg.reach ?? (0.45 * scaleMul);
-    const spreadVal = cfg.spread ?? (0.35 * Math.min(1.4, scaleMul));
-    const growth = cfg.growth ?? 2.6;
-    const drag = cfg.drag ?? 4.5;
-    const buoyancy = cfg.buoyancy ?? 0.45;
-    const spinBase = cfg.spin ?? 4.5;
+    const maxOpacity = cfg.maxOpacity ?? (typeof configOrOpacity === 'number' ? configOrOpacity : 0.32);
+    const count = cfg.particleCount ?? Math.max(7, Math.min(10, Math.round(8 * scaleMul)));
+    const baseSpeed = cfg.speed ?? 18.0;
+    // Velocidade de ejeção vigorosa para projetar o cone longo para a frente
+    const speed = baseSpeed * 0.70;
+    // Cone longo: alcance ampliado para se projetar claramente à frente da arma (~1.4m a 1.8m)
+    const longReachMultiplier = 2.4;
+    const reach = cfg.reach ? Math.max(1.35 * scaleMul, cfg.reach * longReachMultiplier) : (1.50 * scaleMul);
+    // Leque radial ampliado para encorpar o diâmetro do cone de spray
+    const spreadVal = cfg.spread ?? (0.65 * Math.min(1.4, scaleMul));
+    const drag = cfg.drag ?? 4.8;
+    const buoyancy = cfg.buoyancy ?? 0.28;
+    const spinBase = cfg.spin ?? 4.8;
     const maxLifeBase = cfg.maxLife ?? 0.42;
-    const colorHex = cfg.color ? (typeof cfg.color === 'string' ? parseInt(cfg.color.replace('#', '0x')) : cfg.color) : 0xd8dce2;
+    // Delay dinâmico curto entre partículas (10ms) para formar uma corrente contínua e sobreposta
+    const delayStep = cfg.delayStep ?? 0.010;
+    // Fumaça de live shot com cor branca gasosa pura (#ffffff) idêntica à de cooldown
+    const colorHex = cfg.color ? (typeof cfg.color === 'string' ? parseInt(cfg.color.replace('#', '0x')) : cfg.color) : 0xffffff;
 
-    for (let i = 0; i < count; i++) {
+    // Constrói base ortonormal perpendicular ao vetor forward para abertura cônica radial 360°
+    let rVec = right;
+    let uVec = up;
+    if (!rVec || !uVec) {
+      rVec = new THREE.Vector3();
+      uVec = new THREE.Vector3();
+      if (Math.abs(forward.y) > 0.95) {
+        rVec.set(1, 0, 0);
+      } else {
+        rVec.crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+      }
+      uVec.crossVectors(rVec, forward).normalize();
+    }
+
+    // Geração do Cone de Spray Visível Longo e Encorpado:
+    // 1 tiro modo semi gera uma cadeia contínua de bolhas sobrepostas da boca do cano até a ponta
+    const steps = count;
+
+    for (let i = 0; i < steps; i++) {
       const p = this.smokes[this.smokeIdx];
       this.smokeIdx = (this.smokeIdx + 1) % MAX_SMOKE;
 
+      // s: 1.0 na bolha da ponta (mais veloz e maior) -> 0.0 na bolha da cauda (menor e colada no cano)
+      const s = 1.0 - (i / (steps - 1));
+      const isTip = (i === 0);
+      const isBase = (i === steps - 1);
+
+      p.isConeSmoke = true;
+      p.isTip = isTip;
+
+      // TODAS as partículas têm origem rigorosamente na boca do cano 3D
+      p.spawnPos.copy(muzzlePos);
       p.mesh.position.copy(muzzlePos);
+      p.distanceTraveled = 0;
       p.mesh.material.color.setHex(colorHex);
-      p.startScale = (0.65 + Math.random() * 0.45) * scaleMul;
-      p.mesh.scale.setScalar(p.startScale);
-      p.maxOpacity = maxOpacity;
-      p.mesh.material.opacity = maxOpacity;
+
+      // Delay escalonado (10ms): saem em corrente contínua encadeada
+      p.delay = i * delayStep;
+
+      // Diâmetro encorpado: nasce com 0.26m na boca do cano e alarga para 1.75m+ na ponta
+      p.baseMuzzleScale = 0.26 * scaleMul;
+      const targetScale = isTip
+        ? (1.75 + Math.random() * 0.20)
+        : (0.55 + s * 1.05 + Math.random() * 0.10);
+      p.targetConeScale = targetScale * scaleMul;
+      p.startScale = p.targetConeScale;
+      p.mesh.scale.setScalar(p.baseMuzzleScale);
+
+      // Opacidade suave e densa nas sobreposições
+      const opacityFactor = isTip ? 1.0 : (0.90 + (1 - s) * 0.20);
+      p.maxOpacity = Math.min(1.0, maxOpacity * opacityFactor);
+      p.mesh.material.opacity = p.delay > 0 ? 0 : p.maxOpacity;
+      p.mesh.renderOrder = 3;
       p.rotZ = Math.random() * Math.PI * 2;
       p.spin = (Math.random() - 0.5) * (spinBase * 2.0);
-      p.mesh.visible = true;
+      p.mesh.visible = (p.delay === 0);
 
-      // Dinâmica balística de alta velocidade com frenagem no alcance (reach)
-      p.reach = reach * (0.85 + Math.random() * 0.30);
-      p.distanceTraveled = 0;
-      p.drag = drag;
+      // Alcance longo: a ponta viaja o reach total longo; as de trás preenchem o comprimento
+      p.reach = reach * (0.65 + s * 0.35);
+      p.drag = drag * (0.85 + (1 - s) * 0.30);
       p.buoyancy = buoyancy;
-      p.growth = growth * (0.90 + Math.random() * 0.25);
-      p.maxLife = maxLifeBase * (0.85 + Math.random() * 0.30);
+      p.maxLife = maxLifeBase * (isTip ? 1.05 : (0.55 + s * 0.45));
       p.life = p.maxLife;
 
-      // Velocidade frontal violenta inicial + abertura de cone (spread)
-      p.vel.copy(forward).multiplyScalar(speed * (0.90 + Math.random() * 0.20)).add(new THREE.Vector3(
-        (Math.random() - 0.5) * spreadVal,
-        (Math.random() - 0.5) * spreadVal + 0.08,
-        (Math.random() - 0.5) * spreadVal
-      ));
+      // Velocidades escalonadas mantendo os anéis conectados uns nos outros
+      const speedRatio = isTip ? 1.15 : (0.35 + s * 0.65);
+      const fwdSpeed = speed * speedRatio;
+
+      // Abertura cônica em leque radial ampla para encorpar o cone 3D
+      const radialJitter = spreadVal * (0.35 + s * 0.65);
+      const angle = (i * 2.39996);
+      p.vel.copy(forward).multiplyScalar(fwdSpeed);
+      if (rVec && uVec && radialJitter > 0) {
+        p.vel.addScaledVector(rVec, Math.cos(angle) * radialJitter)
+             .addScaledVector(uVec, Math.sin(angle) * radialJitter);
+      }
 
       p.active = true;
     }
@@ -1024,6 +1085,8 @@ export class Effects {
       p.mesh.renderOrder = 3;
       p.rotZ = Math.random() * Math.PI * 2;
       p.spin = (Math.random() - 0.5) * 1.5;
+      p.delay = 0;
+      p.isConeSmoke = false;
       p.mesh.visible = true;
 
       p.vel.set(
@@ -1129,6 +1192,8 @@ export class Effects {
       p.mesh.renderOrder = 3;
       p.rotZ = Math.random() * Math.PI * 2;
       p.spin = (Math.random() - 0.5) * 8.0;
+      p.delay = 0;
+      p.isConeSmoke = false;
       p.mesh.visible = true;
 
       // Velocidade do estouro de impacto projetada estritamente para fora da parede (+n)
@@ -1841,6 +1906,25 @@ export class Effects {
       const p = this.smokes[i];
       if (!p.active) continue;
 
+      // Gestão de delay sequencial (20ms entre artefatos de fumaça ao disparar)
+      if (p.delay > 0) {
+        p.delay -= dt;
+        if (p.delay > 0) {
+          p.mesh.visible = false;
+          continue;
+        }
+        // Delay expirou: o artefato é expelido da boca do cano neste frame
+        p.mesh.visible = true;
+        p.mesh.position.copy(p.spawnPos);
+        p.distanceTraveled = 0;
+        const subDt = Math.min(dt, -p.delay);
+        p.delay = 0;
+        if (subDt > 0) {
+          p.distanceTraveled += p.vel.length() * subDt;
+          p.mesh.position.addScaledVector(p.vel, subDt);
+        }
+      }
+
       p.life -= dt;
       if (p.life <= 0) {
         p.active = false;
@@ -1865,10 +1949,17 @@ export class Effects {
       p.vel.y += (p.buoyancy ?? 0.45) * dt;
       p.mesh.position.addScaledVector(p.vel, dt);
 
-      // Expansão sub-linear (rápida no início, estabilizando no final)
-      const expandProgress = Math.pow(progress, 0.55);
-      const grow = 1 + expandProgress * p.growth;
-      p.mesh.scale.setScalar(p.startScale * grow);
+      if (p.isConeSmoke) {
+        // Modelo de Cone Longo: Cresce pequeno na boca do cano e alarga para grande
+        const distRatio = Math.min(1.0, (p.distanceTraveled || 0) / Math.max(0.1, p.reach));
+        const coneScale = THREE.MathUtils.lerp(p.baseMuzzleScale, p.targetConeScale, Math.pow(distRatio, 0.48));
+        p.mesh.scale.setScalar(coneScale);
+      } else {
+        // Expansão sub-linear padrão (outros efeitos)
+        const expandProgress = Math.pow(progress, 0.55);
+        const grow = 1 + expandProgress * p.growth;
+        p.mesh.scale.setScalar(p.startScale * grow);
+      }
 
       // Billboard voltado para a visão com rotação individual Z (vórtice orgânico)
       if (camera) {
@@ -1877,9 +1968,19 @@ export class Effects {
       p.rotZ = (p.rotZ || 0) + (p.spin || 0) * dt;
       p.mesh.rotateZ(p.rotZ);
 
-      // Dissipação suave com retenção de volume inicial
-      const fade = Math.min(1.0, progress * 8.0) * Math.pow(t, 0.85);
-      p.mesh.material.opacity = fade * (p.maxOpacity || 0.6);
+      if (p.isConeSmoke) {
+        // Esmaece totalmente no final: à medida que a fumaça viaja até o alcance final do cone longo,
+        // a opacidade dissipa continuamente até 0.0 absoluto (desaparecimento total no ar)
+        const distRatio = Math.min(1.0, (p.distanceTraveled || 0) / Math.max(0.1, p.reach));
+        const fadeIn = Math.min(1.0, progress * 10.0);
+        const lifeFade = Math.pow(t, 0.85);
+        const distanceFade = Math.max(0.0, 1.0 - Math.pow(distRatio, 1.35));
+        p.mesh.material.opacity = (p.maxOpacity || 0.28) * fadeIn * lifeFade * distanceFade;
+      } else {
+        // Dissipação suave com retenção de volume inicial
+        const fade = Math.min(1.0, progress * 8.0) * Math.pow(t, 0.85);
+        p.mesh.material.opacity = fade * (p.maxOpacity || 0.6);
+      }
     }
 
     // 4. Faíscas do Protótipo (simulação física com gravidade e arrasto)

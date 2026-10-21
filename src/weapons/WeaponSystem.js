@@ -24,6 +24,7 @@ const _upCopy = new THREE.Vector3();
 const _botHitPoint = new THREE.Vector3();
 const _worldHitPoint = new THREE.Vector3();
 const _smokeMuzzleWorld = new THREE.Vector3();
+const _targetPoint = new THREE.Vector3();
 const _hittableMeshes = [];
 
 /**
@@ -548,10 +549,27 @@ export class WeaponSystem {
       : false;
 
     if (isDynamicAlignment && this.barrelAlignment && !this.ads) {
-      this.barrelAlignment.update(def, this.ads, 0.016, this.sprayRecoil);
+      this.barrelAlignment.update(def, this.ads, 0.016, this.sprayRecoil, _muzzleWorld);
       if (this.barrelAlignment.aimPointWorld) {
         _dir.copy(this.barrelAlignment.aimPointWorld).sub(_muzzleWorld).normalize();
       }
+    } else if (!this.ads) {
+      // Modo Estático (Zeroing de Convergência da Retícula Central):
+      // Elimina o erro crônico de paralaxe (14cm lateral / 15cm vertical).
+      // Raycast a partir do centro da câmera para encontrar o ponto focal de mira.
+      const zeroDist = 50.0;
+      let targetPoint = null;
+      if (this.world && typeof this.world.raycast === 'function') {
+        const hit = this.world.raycast(_camPos, _dir, 120.0);
+        if (hit && (hit.distance || hit.dist) > 0.5) {
+          targetPoint = hit.point;
+        }
+      }
+      if (!targetPoint) {
+        _targetPoint.copy(_camPos).addScaledVector(_dir, zeroDist);
+        targetPoint = _targetPoint;
+      }
+      _dir.copy(targetPoint).sub(_muzzleWorld).normalize();
     }
 
     // Se o cano estiver obstruído/comprimido contra a parede (Wall Press) e o mount ainda não tiver

@@ -71,6 +71,7 @@ export class CameraRig {
     this.bobAmt = 0;
     this.bobRoll = 0;
     this.bobPitch = 0;
+    this.stepTriggered = false;
 
     // ---- Altura dos Olhos (Eye Height) ----
     this.eyeHeight = CONFIG.PLAYER.eyeHeight;
@@ -336,10 +337,17 @@ export class CameraRig {
     const userBobScale = CONFIG.ACCESSIBILITY?.headbobScale ?? 1.0;
     const adsDamp = isAds ? 0.15 : 1.0; // No ADS amortece 85% do headbob da câmera para mira tática estável
 
+    this.stepTriggered = false;
+
     if (isMoving) {
       const moveRatio = Math.min(speedXZ / (CONFIG.PLAYER?.walkSpeed || 5.2), 1.8);
-      const rate = (9.0 + (player.sprinting ? 4.0 : 0.0) - (player.crouchAmount || 0) * 3.0) * Math.max(0.65, moveRatio);
+      const rate = Math.max(speedXZ * 1.75, 3.0);
+      const prevStepCycle = Math.floor(this.bobPhase / Math.PI);
       this.bobPhase += dt * rate;
+      const curStepCycle = Math.floor(this.bobPhase / Math.PI);
+      if (curStepCycle !== prevStepCycle) {
+        this.stepTriggered = true;
+      }
       const target = (player.sprinting ? 0.036 : 0.026) * userBobScale * moveRatio * adsDamp;
       this.bobAmt += (target - this.bobAmt) * Math.min(dt * 24.0, 1.0);
     } else {
@@ -354,10 +362,11 @@ export class CameraRig {
       this.bobPhase -= Math.PI * 2;
     }
 
-    const bobY = Math.sin(this.bobPhase * 2) * this.bobAmt;
-    const bobX = Math.cos(this.bobPhase) * this.bobAmt * 0.60;
-    this.bobRoll = Math.cos(this.bobPhase) * this.bobAmt * 0.15;
-    this.bobPitch = Math.sin(this.bobPhase * 2) * this.bobAmt * 0.06;
+    const bobX = Math.cos(this.bobPhase) * this.bobAmt * 0.70;
+    const bobY = Math.sin(this.bobPhase * 2) * this.bobAmt * 0.16;
+    this.bobRoll = Math.cos(this.bobPhase) * this.bobAmt * 0.08;
+    // Elipse estreita: Roll lateral suave e Pitch vertical quase imperceptivel
+    this.bobPitch = 0; // ZERO tremor angular no horizonte (mira e horizonte perfeitamente estaveis)
 
     // ---- 6. Altura dos Olhos (Eye Height com Agachamento / Morte) ----
     let targetEye = CONFIG.PLAYER.eyeHeight + (CONFIG.PLAYER.eyeCrouch - CONFIG.PLAYER.eyeHeight) * player.crouchAmount;

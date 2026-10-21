@@ -16,18 +16,18 @@
   "smoke": {
     "enabled": true,
     "style": "cone_jet",
-    "particleCount": 3,
-    "scale": 1,
-    "maxOpacity": 0.26,
-    "color": "#dce0e5",
-    "speed": 17,
+    "particleCount": 4,
+    "scale": 0.70,
+    "maxOpacity": 0.18,
+    "color": "#ffffff",
+    "speed": 19.5,
     "reach": 0.28,
-    "spread": 0.4,
-    "growth": 2.4,
-    "drag": 4.8,
-    "buoyancy": 0.4,
+    "spread": 0.50,
+    "growth": 4.0,
+    "drag": 6.0,
+    "buoyancy": 0.45,
     "spin": 4.2,
-    "maxLife": 0.36
+    "maxLife": 0.26
   },
   "barrelHeat": {
     "enabled": true,
