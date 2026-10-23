@@ -122,7 +122,7 @@ export class ViewmodelArms {
     this._colZ = new THREE.Vector3();
     this._basisMat = new THREE.Matrix4();
     this._targetHandQ = new THREE.Quaternion();
-    this._wristWorldQ = new THREE.Quaternion();
+    this._wristMountQ = new THREE.Quaternion();
     this._invUpperQ = new THREE.Quaternion();
 
     this.setWeapon('ar15');
@@ -198,12 +198,17 @@ export class ViewmodelArms {
     }
 
     this._basisMat.makeBasis(this._colX, this._colY, this._colZ);
-    const targetHandWorldQ = this._targetHandQ.setFromRotationMatrix(this._basisMat);
+    const targetHandMountQ = this._targetHandQ.setFromRotationMatrix(this._basisMat);
 
-    // Converte a orientação desejada do espaço de mundo/mount para a junta local do pulso (wrist)
-    const wristWorldQ = this._wristWorldQ;
-    arm.wrist.getWorldQuaternion(wristWorldQ);
-    arm.hand.quaternion.copy(wristWorldQ.invert().multiply(targetHandWorldQ));
+    // Converte a orientação desejada do espaço de mount para a junta local do pulso (wrist)
+    // O pulso está na cadeia: shoulder -> upperArm -> elbow -> forearm (identidade) -> wrist (identidade)
+    // Usar a rotação acumulada estritamente no espaço do mount elimina 100% o efeito bússola com o mouse
+    const wristMountQ = this._wristMountQ;
+    wristMountQ.copy(arm.shoulder.quaternion)
+      .multiply(arm.upperArm.quaternion)
+      .multiply(arm.elbow.quaternion);
+
+    arm.hand.quaternion.copy(wristMountQ.invert().multiply(targetHandMountQ));
   }
 
   _solvePose(weaponId, { isADS = false, reloadProgress = 0, isSprinting = false } = {}) {
