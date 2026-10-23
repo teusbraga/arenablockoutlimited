@@ -30,7 +30,7 @@ describe('Tactic Man Continuous & Viewmodel Arms Integration', () => {
     assert.ok(torsoMesh, 'combat_shirt_torso_mesh deve existir no tronco');
   });
 
-  it('ViewmodelArms instancia braços táticos 1ª pessoa e resolve poses para as 10 armas', () => {
+  it('ViewmodelArms instancia braços táticos 1ª pessoa, alinha empunhadura e suporta modo 1 mão', () => {
     const mount = new THREE.Group();
     const arms = new ViewmodelArms(mount);
 
@@ -38,19 +38,31 @@ describe('Tactic Man Continuous & Viewmodel Arms Integration', () => {
     assert.ok(arms.leftArm.hand, 'Mão esquerda deve existir');
     assert.ok(arms.rightArm.hand, 'Mão direita deve existir');
 
-    const weapons = ['ar15', 'hk416', 'ak47', 'scar_h', 'rifle_proto', 'm249', 'vss', 'uzi', 'm12', 'p9', 'sw500'];
-    for (const wId of weapons) {
+    // Bulbos de ombro devem estar ocultos para evitar clipagem na tela
+    const bulbL = arms.leftArm.shoulder.getObjectByName('shoulder_bulb_Left');
+    const bulbR = arms.rightArm.shoulder.getObjectByName('shoulder_bulb_Right');
+    assert.strictEqual(bulbL?.visible, false, 'Bulbo de ombro esquerdo deve estar oculto em 1ª pessoa');
+    assert.strictEqual(bulbR?.visible, false, 'Bulbo de ombro direito deve estar oculto em 1ª pessoa');
+
+    const twoHandWeapons = ['ar15', 'hk416', 'ak47', 'scar_h', 'rifle_proto', 'm249', 'vss', 'uzi', 'm12'];
+    for (const wId of twoHandWeapons) {
       arms.setWeapon(wId);
       arms.update(wId, { isADS: false, isSprinting: false, reloadProgress: 0 });
-      assert.ok(arms.leftArm.shoulder.position.y < 0, `Ombro esquerdo deve estar posicionado para ${wId}`);
-      assert.ok(arms.rightArm.shoulder.position.y < 0, `Ombro direito deve estar posicionado para ${wId}`);
+      assert.strictEqual(arms.leftArm.shoulder.visible, true, `Arma ${wId} deve ter braço esquerdo visível (2 mãos)`);
+      assert.ok(arms.rightArm.shoulder.position.y < 0, `Ombro direito deve estar abaixo do corte`);
 
-      // Testa pose em ADS
-      arms.update(wId, { isADS: true, isSprinting: false, reloadProgress: 0 });
-
-      // Testa animação de recarga
+      // Testa animação de recarga dip
       arms.update(wId, { isADS: false, isSprinting: false, reloadProgress: 0.5 });
-      assert.ok(arms.leftArm.shoulder.position.y < -0.25, 'Braço esquerdo deve abaixar durante o reload dip');
+      assert.ok(arms.leftArm.shoulder.position.y < -0.38, 'Braço esquerdo deve abaixar durante o reload dip');
+    }
+
+    // Pistolas e revólveres (1 mão só)
+    const oneHandWeapons = ['p9', 'sw500'];
+    for (const wId of oneHandWeapons) {
+      arms.setWeapon(wId);
+      arms.update(wId, { isADS: false, isSprinting: false, reloadProgress: 0 });
+      assert.strictEqual(arms.leftArm.shoulder.visible, false, `Arma ${wId} deve ter braço esquerdo oculto (1 mão só)`);
+      assert.strictEqual(arms.rightArm.shoulder.visible, true, `Arma ${wId} deve ter braço direito ativo`);
     }
 
     arms.destroy();
