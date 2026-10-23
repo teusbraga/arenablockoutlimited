@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { createTacticalCharacter, TACTICAL_PALETTES, getTacticalMaterials } from './models/TacticalManModel.js';
 
 const GHOST_COLORS = [
   0xff1e1e, // Blinky (Vermelho)
@@ -6,40 +7,6 @@ const GHOST_COLORS = [
   0x00f0ff, // Inky (Ciano)
   0xff9900, // Clyde (Laranja)
 ];
-
-// Paletas militares táticas para os Soldados Blocky
-const SOLDIER_PALETTES = [
-  { uniform: 0x3b4a34, vest: 0x263322, helmet: 0x2e3b29, pants: 0x344230, skin: 0xdca183 }, // Woodland Green
-  { uniform: 0x48515a, vest: 0x2b3137, helmet: 0x384047, pants: 0x3f474f, skin: 0xc69075 }, // Urban Slate
-  { uniform: 0x7a6b4c, vest: 0x544730, helmet: 0x695a3d, pants: 0x6e5f41, skin: 0xe0ad91 }, // Desert Tan
-  { uniform: 0x252a2f, vest: 0x181c20, helmet: 0x202428, pants: 0x22262a, skin: 0xb57f66 }, // Spec-Ops Dark
-];
-
-function _getSharedSoldierMaterials(palIdx) {
-  if (!CharacterView._sharedMaterials) {
-    CharacterView._sharedMaterials = [];
-  }
-  if (CharacterView._sharedMaterials[palIdx]) {
-    return CharacterView._sharedMaterials[palIdx];
-  }
-  const pal = SOLDIER_PALETTES[palIdx];
-  const mats = {
-    mUniform: new THREE.MeshStandardMaterial({ color: pal.uniform, roughness: 0.65, metalness: 0.1 }),
-    mVest:    new THREE.MeshStandardMaterial({ color: pal.vest,    roughness: 0.70, metalness: 0.15 }),
-    mHelmet:  new THREE.MeshStandardMaterial({ color: pal.helmet,  roughness: 0.50, metalness: 0.25 }),
-    mPants:   new THREE.MeshStandardMaterial({ color: pal.pants,   roughness: 0.75, metalness: 0.05 }),
-    mSkin:    new THREE.MeshStandardMaterial({ color: pal.skin,    roughness: 0.60, metalness: 0.05 }),
-    mBoots:   new THREE.MeshStandardMaterial({ color: 0x181a1c,    roughness: 0.80, metalness: 0.20 }),
-    mGoggles: new THREE.MeshStandardMaterial({ color: 0x11161d,    roughness: 0.20, metalness: 0.85 }),
-    mGun:     new THREE.MeshStandardMaterial({ color: 0x2e3338,    roughness: 0.35, metalness: 0.80 }),
-    mGunDark: new THREE.MeshStandardMaterial({ color: 0x181a1c,    roughness: 0.45, metalness: 0.60 }),
-  };
-  for (const k of Object.keys(mats)) {
-    mats[k].userData = { isShared: true };
-  }
-  CharacterView._sharedMaterials[palIdx] = mats;
-  return mats;
-}
 
 export class CharacterView {
   constructor(character, scene, options = {}) {
@@ -60,6 +27,8 @@ export class CharacterView {
     this.moveBlend = 0;
     this.currentBodyYaw = 0;
     this.hasInitYaw = false;
+
+    this.tactical = null;
 
     this._buildMesh();
     if (this.scene) {
@@ -113,160 +82,76 @@ export class CharacterView {
       this.root.add(this.body, this.head, eyeL, pupilL, eyeR, pupilR);
 
     } else {
-      /* SOLDADO BLOCKY TÁTICO */
-      const palIdx = (this.id - 1) % SOLDIER_PALETTES.length;
-      const {
-        mUniform, mVest, mHelmet, mPants, mSkin,
-        mBoots, mGoggles, mGun, mGunDark
-      } = _getSharedSoldierMaterials(palIdx);
+      /* SOLDADO TÁTICO CONTÍNUO (TACTIC MAN CONTINUOUS COM VARIAÇÕES E ACESSÓRIOS DE CABEÇA) */
+      const palIdx = (this.id - 1) % TACTICAL_PALETTES.length;
+      const headVar = (this.id - 1) % 5;
 
-      // ---- 1. Tronco / Torso ----
-      this.torso = new THREE.Group();
-      this.root.add(this.torso);
+      const tactical = createTacticalCharacter(THREE, {
+        paletteIndex: palIdx,
+        headVariant: headVar,
+        character: this.character
+      });
 
-      this.body = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.58, 0.28), mUniform);
-      this.body.position.y = 0.95;
-      this.body.castShadow = true;
-      this.body.userData = { type: 'character', character: this.character, bot: this.character, part: 'body' };
-      this.torso.add(this.body);
+      this.tactical = tactical;
+      this.root.add(tactical.root);
 
-      const vest = new THREE.Mesh(new THREE.BoxGeometry(0.51, 0.44, 0.31), mVest);
-      vest.position.set(0, 0.97, 0);
-      vest.castShadow = true;
-
-      const pouchL = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.14, 0.06), mVest);
-      pouchL.position.set(-0.12, 0.88, 0.18);
-      const pouchR = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.14, 0.06), mVest);
-      pouchR.position.set(0.12, 0.88, 0.18);
-
-      this.torso.add(vest, pouchL, pouchR);
-
-      // ---- 2. Cabeça e Capacete (com pivô de pescoço para pitch / olhar para cima/baixo) ----
-      this.headGroup = new THREE.Group();
-      this.headGroup.position.set(0, 1.25, 0); // Altura da base do pescoço
-      this.torso.add(this.headGroup);
-
-      this.head = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.32, 0.32), mSkin);
-      this.head.position.set(0, 0.15, 0);
-      this.head.castShadow = true;
-      this.head.userData = { type: 'character', character: this.character, bot: this.character, part: 'head' };
-      this.headGroup.add(this.head);
-
-      const helmet = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.16, 0.36), mHelmet);
-      helmet.position.set(0, 0.25, 0);
-      helmet.castShadow = true;
-
-      const goggles = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.08, 0.04), mGoggles);
-      goggles.position.set(0, 0.16, 0.18);
-
-      this.headGroup.add(helmet, goggles);
-
-      // ---- 3. Pernas Articuladas ----
-      this.leftLegPivot = new THREE.Group();
-      this.leftLegPivot.position.set(-0.15, 0.66, 0);
-      this.root.add(this.leftLegPivot);
-
-      const legL = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.65, 0.20), mPants);
-      legL.position.set(0, -0.325, 0);
-      legL.castShadow = true;
-      const bootL = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.18, 0.25), mBoots);
-      bootL.position.set(0, -0.56, 0.02);
-      bootL.castShadow = true;
-      this.leftLegPivot.add(legL, bootL);
-
-      this.rightLegPivot = new THREE.Group();
-      this.rightLegPivot.position.set(0.15, 0.66, 0);
-      this.root.add(this.rightLegPivot);
-
-      const legR = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.65, 0.20), mPants);
-      legR.position.set(0, -0.325, 0);
-      legR.castShadow = true;
-      const bootR = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.18, 0.25), mBoots);
-      bootR.position.set(0, -0.56, 0.02);
-      bootR.castShadow = true;
-      this.rightLegPivot.add(legR, bootR);
-
-      // ---- 4. Braços e Ombros ----
+      // Referências para hitboxes e compatibilidade
+      this.torso = tactical.chest;
+      this.body = tactical.torsoMesh;
+      this.headGroup = tactical.neck;
+      this.head = tactical.headMesh;
+      this.leftLegPivot = tactical.leftLeg.hip;
+      this.rightLegPivot = tactical.rightLeg.hip;
+      this.leftArmPivot = tactical.leftArm.shoulder;
+      this.rightArmPivot = tactical.rightArm.shoulder;
       this.armsGroup = new THREE.Group();
       this.torso.add(this.armsGroup);
 
-      this.rightArmPivot = new THREE.Group();
-      this.rightArmPivot.position.set(0.31, 1.15, 0);
-      this.armsGroup.add(this.rightArmPivot);
+      // Postura dos braços segurando o fuzil em 3ª pessoa
+      tactical.rightArm.upperArm.rotation.set(0.68, -0.18, 0.0);
+      tactical.rightArm.elbow.rotation.x = -0.62;
+      tactical.leftArm.upperArm.rotation.set(0.52, 0.28, 0.0);
+      tactical.leftArm.elbow.rotation.x = -0.78;
 
-      const armR = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.38, 0.15), mUniform);
-      armR.position.set(0, -0.16, 0.08);
-      armR.rotation.x = -0.55;
-      armR.rotation.y = -0.22;
-      armR.castShadow = true;
-
-      const handR = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.13, 0.13), mBoots);
-      handR.position.set(-0.06, -0.28, 0.24);
-      handR.castShadow = true;
-      this.rightArmPivot.add(armR, handR);
-
-      this.leftArmPivot = new THREE.Group();
-      this.leftArmPivot.position.set(-0.31, 1.15, 0);
-      this.armsGroup.add(this.leftArmPivot);
-
-      const armL = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.38, 0.15), mUniform);
-      armL.position.set(0.08, -0.15, 0.12);
-      armL.rotation.x = -0.75;
-      armL.rotation.y = 0.45;
-      armL.castShadow = true;
-
-      const handL = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.13, 0.13), mBoots);
-      handL.position.set(0.18, -0.23, 0.38);
-      handL.castShadow = true;
-      this.leftArmPivot.add(armL, handL);
-
-      // ---- 5. Arma Blocky ----
+      // Arma de 3ª pessoa e Muzzle Flash
+      const mats = getTacticalMaterials(THREE, palIdx);
       this.gunGroup = new THREE.Group();
-      this.gunGroup.position.set(0.10, 1.02, 0.32);
+      this.gunGroup.position.set(0.08, 0.04, 0.28);
       this.gunGroup.rotation.y = -0.06;
-      this.armsGroup.add(this.gunGroup);
+      this.torso.add(this.gunGroup);
 
-      const gunReceiver = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.09, 0.34), mGun);
+      const gunReceiver = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.32), mats.gunMat);
       gunReceiver.castShadow = true;
 
-      const gunHandguard = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.085, 0.18), mGunDark);
-      gunHandguard.position.set(0, 0, 0.19);
+      const gunHandguard = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.075, 0.16), mats.gunDarkMat);
+      gunHandguard.position.set(0, 0, 0.18);
       gunHandguard.castShadow = true;
 
-      const gunBarrel = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.035, 0.24), mGun);
-      gunBarrel.position.set(0, 0.012, 0.40);
+      const gunBarrel = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.22), mats.gunMat);
+      gunBarrel.position.set(0, 0.01, 0.36);
       gunBarrel.castShadow = true;
 
-      const gunMuzzle = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.045, 0.06), mGunDark);
-      gunMuzzle.position.set(0, 0.012, 0.53);
+      const gunMuzzle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.05), mats.gunDarkMat);
+      gunMuzzle.position.set(0, 0.01, 0.48);
       gunMuzzle.castShadow = true;
 
-      const gunMag = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.16, 0.09), mGunDark);
-      gunMag.position.set(0, -0.11, 0.06);
-      gunMag.rotation.x = 0.22;
+      const gunMag = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.14, 0.08), mats.gunDarkMat);
+      gunMag.position.set(0, -0.10, 0.06);
+      gunMag.rotation.x = 0.20;
       gunMag.castShadow = true;
 
-      const gunStock = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.11, 0.16), mGunDark);
-      gunStock.position.set(0, 0.005, -0.22);
+      const gunStock = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.10, 0.15), mats.gunDarkMat);
+      gunStock.position.set(0, 0.005, -0.20);
       gunStock.castShadow = true;
-
-      const gunGrip = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.11, 0.06), mGunDark);
-      gunGrip.position.set(0, -0.08, -0.06);
-      gunGrip.rotation.x = -0.28;
-      gunGrip.castShadow = true;
-
-      const gunSight = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.035, 0.10), mGunDark);
-      gunSight.position.set(0, 0.060, 0.03);
-      gunSight.castShadow = true;
 
       const flashMat = new THREE.MeshBasicMaterial({ color: 0xffe066, transparent: true, opacity: 0.9 });
       this.muzzleFlash = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), flashMat);
-      this.muzzleFlash.position.set(0, 0.012, 0.58);
+      this.muzzleFlash.position.set(0, 0.01, 0.52);
       this.muzzleFlash.visible = false;
 
       this.gunGroup.add(
         gunReceiver, gunHandguard, gunBarrel, gunMuzzle,
-        gunMag, gunStock, gunGrip, gunSight, this.muzzleFlash
+        gunMag, gunStock, this.muzzleFlash
       );
     }
   }
@@ -308,43 +193,41 @@ export class CharacterView {
       this.idleTime += dt * 2.2;
 
       const swing = Math.sin(this.walkTime) * this.moveBlend;
-      this.leftLegPivot.rotation.x = swing * 0.65;
-      this.rightLegPivot.rotation.x = -swing * 0.65;
-      this.torso.position.y = Math.abs(swing) * 0.035;
 
-      const walkGunY = 1.02 + Math.abs(swing) * 0.02;
-      const idleGunY = 1.02 + Math.sin(this.idleTime) * 0.006;
-      this.gunGroup.position.y = walkGunY * this.moveBlend + idleGunY * (1.0 - this.moveBlend);
-      this.gunGroup.rotation.z = -swing * 0.03;
+      if (this.tactical) {
+        // Articulação biomecânica das pernas (quadril e joelho dobrando naturalmente)
+        this.tactical.leftLeg.hip.rotation.x = swing * 0.65;
+        this.tactical.leftLeg.knee.rotation.x = Math.max(0, -swing * 0.65);
+        this.tactical.rightLeg.hip.rotation.x = -swing * 0.65;
+        this.tactical.rightLeg.knee.rotation.x = Math.max(0, swing * 0.65);
 
-      // Aplicação de Lean / Peek tático no tronco e arma do Soldado
-      const lean = this.character.lean || 0;
-      if (this.torso) {
-        this.torso.rotation.z = -lean * 0.20; // ~11.5 graus de inclinação
-        this.torso.position.x = lean * 0.15;  // 15cm de deslocamento lateral da cabeça/tronco
-      }
-      if (this.gunGroup) {
-        this.gunGroup.rotation.z += -lean * 0.16;
-        this.gunGroup.position.x = 0.08 + lean * 0.14;
-      }
+        // Respiração / Sway sutil na arma e tronco
+        const walkGunY = 0.04 + Math.abs(swing) * 0.015;
+        const idleGunY = 0.04 + Math.sin(this.idleTime) * 0.005;
+        if (this.gunGroup) {
+          this.gunGroup.position.y = walkGunY * this.moveBlend + idleGunY * (1.0 - this.moveBlend);
+          this.gunGroup.rotation.z = -swing * 0.02;
+        }
 
-      // Inclinação vertical (Pitch - olhar para cima/baixo)
-      const pitch = this.character.pitch || 0;
-      if (this.headGroup) {
-        this.headGroup.rotation.x = pitch * 0.75;
-      }
-      if (this.armsGroup) {
-        this.armsGroup.rotation.x = pitch * 0.70;
+        // Lean tático no tronco e arma
+        const lean = this.character.lean || 0;
+        this.tactical.chest.rotation.z = -lean * 0.20;
+        this.tactical.chest.position.x = lean * 0.12;
+
+        // Pitch vertical (olhar para cima/baixo)
+        const pitch = this.character.pitch || 0;
+        this.tactical.neck.rotation.x = pitch * 0.75;
+        this.tactical.rightArm.shoulder.rotation.x = pitch * 0.60;
+        this.tactical.leftArm.shoulder.rotation.x = pitch * 0.60;
+      } else {
+        if (this.leftLegPivot) this.leftLegPivot.rotation.x = swing * 0.65;
+        if (this.rightLegPivot) this.rightLegPivot.rotation.x = -swing * 0.65;
       }
 
       this.root.position.set(charPos.x, charPos.y, charPos.z);
     }
 
     // Orientação Cinemática do Personagem:
-    // - No Three.js o modelo 3D do Soldado tem frente (óculos e cano da arma) em +Z.
-    // - O Player (que possui CameraRig) usa convenção de câmera Three.js onde yaw=0 aponta para -Z,
-    //   portanto precisa de +Math.PI para alinhar o modelo 3D com a mira.
-    // - Os Bots calculam yaw via Math.atan2(dx, dz), onde yaw=0 JÁ aponta para +Z!
     const isCameraConvention = Boolean(this.character.rig);
     const aimYaw = isCameraConvention
       ? (this.character.yaw || 0) + Math.PI
@@ -362,15 +245,13 @@ export class CharacterView {
     let targetBodyYaw = aimYaw;
     let walkDir = 1;
 
-    // Se estiver em movimento ativo (velocidade > 0.35m/s), os pés alinham com o deslocamento
+    // Se estiver em movimento ativo, pés alinham com deslocamento
     if (moveSpeed > 0.35) {
       let moveAngle = Math.atan2(vx, vz);
       let diffMoveAim = moveAngle - aimYaw;
       while (diffMoveAim > Math.PI) diffMoveAim -= Math.PI * 2;
       while (diffMoveAim < -Math.PI) diffMoveAim += Math.PI * 2;
 
-      // Se estiver andando de costas/recuando (> 95° da mira), mantém o quadril virado para a frente
-      // e inverte o ciclo da passada (backpedal), evitando girar o boneco de costas ao atirar!
       if (Math.abs(diffMoveAim) > Math.PI * 0.53) {
         moveAngle += Math.PI;
         walkDir = -1;
@@ -379,24 +260,23 @@ export class CharacterView {
         while (diffMoveAim < -Math.PI) diffMoveAim += Math.PI * 2;
       }
 
-      // Limita a abertura do quadril em relação à mira (~60°) para que o torso sempre alcance o alvo
       const maxHipOffset = 1.05;
       if (Math.abs(diffMoveAim) > maxHipOffset) {
         moveAngle = aimYaw + Math.sign(diffMoveAim) * maxHipOffset;
       }
       targetBodyYaw = moveAngle;
     } else {
-      // Parado: alinha suavemente com a mira
       targetBodyYaw = aimYaw;
     }
 
-    if (this.skinType !== 'ghost' && this.moveBlend > 0.01 && walkDir === -1) {
+    if (this.skinType !== 'ghost' && this.moveBlend > 0.01 && walkDir === -1 && this.tactical) {
       const swing = -Math.sin(this.walkTime) * this.moveBlend;
-      this.leftLegPivot.rotation.x = swing * 0.65;
-      this.rightLegPivot.rotation.x = -swing * 0.65;
+      this.tactical.leftLeg.hip.rotation.x = swing * 0.65;
+      this.tactical.leftLeg.knee.rotation.x = Math.max(0, -swing * 0.65);
+      this.tactical.rightLeg.hip.rotation.x = -swing * 0.65;
+      this.tactical.rightLeg.knee.rotation.x = Math.max(0, swing * 0.65);
     }
 
-    // Interpolação suave do ângulo do corpo (evita estalos bruscos ao mudar de direção)
     let diffTarget = targetBodyYaw - this.currentBodyYaw;
     while (diffTarget > Math.PI) diffTarget -= Math.PI * 2;
     while (diffTarget < -Math.PI) diffTarget += Math.PI * 2;
@@ -405,12 +285,12 @@ export class CharacterView {
 
     this.root.rotation.y = this.currentBodyYaw;
 
-    // Torso twist: compensa a diferença entre o quadril (pés) e a mira para que a arma e a cabeça apontem sempre para o alvo
+    // Torso twist
     if (this.torso) {
       let spineTwist = aimYaw - this.currentBodyYaw;
       while (spineTwist > Math.PI) spineTwist -= Math.PI * 2;
       while (spineTwist < -Math.PI) spineTwist += Math.PI * 2;
-      const maxSpineTwist = 1.25; // ~72 graus
+      const maxSpineTwist = 1.25;
       this.torso.rotation.y = Math.max(-maxSpineTwist, Math.min(maxSpineTwist, spineTwist));
     }
   }

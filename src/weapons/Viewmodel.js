@@ -13,6 +13,7 @@ import { buildVSS } from './models/VSS.js';
 import { buildSCARH } from './models/SCARH.js';
 
 import { LocomotionSmoothingSystem } from '../new_mechanics/LocomotionSmoothingSystem.js';
+import { ViewmodelArms } from './ViewmodelArms.js';
 
 // Re-exporta construtores para compatibilidade com main.js / WeaponRegistry
 export { buildHK416, buildHK416 as buildAR15, buildP9, buildUZI, buildM249, buildRiflePrototype, buildAK47, buildSW500, buildWinchester1912, buildWinchester1912 as buildM12, buildVSS, buildSCARH };
@@ -105,6 +106,7 @@ export class Viewmodel {
 
     // Sistema de suavização de locomoção e transição de poses contínuas
     this.locomotion = new LocomotionSmoothingSystem();
+    this.arms = new ViewmodelArms(this.mount);
   }
 
   _createVSSGlowTexture() {
@@ -192,6 +194,9 @@ export class Viewmodel {
 
       // Inicia transição suave de saque
       this.drawAmount = 1.0;
+      if (this.arms) {
+        this.arms.setWeapon(weaponId);
+      }
     }
   }
 
@@ -434,6 +439,10 @@ export class Viewmodel {
     }
 
     // Executa a física de recoil elástico, blowback, câmara vazia e muzzle flash originais do protótipo
+    if (this.arms) {
+      this.arms.update(weaponId, { isADS, isSprinting, reloadProgress });
+    }
+
     if (this.activePhysics) {
       this.activePhysics.update(dt, this.camera, ammo ?? 30);
     }
