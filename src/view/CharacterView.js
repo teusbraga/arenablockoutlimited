@@ -85,8 +85,9 @@ export class CharacterView {
       this.root.add(this.body, this.head, eyeL, pupilL, eyeR, pupilR);
 
     } else {
-      /* SOLDADO TÁTICO CONTÍNUO (TACTIC MAN CONTINUOUS AUTÊNTICO COM PBR & BULBOS ANATÔMICOS) */
-      this.tactical = createCharacter(THREE);
+      /* SOLDADO TÁTICO CONTÍNUO (TACTIC MAN CONTINUOUS AUTÊNTICO COM PALETA DE CORES POR BOT) */
+      const palIdx = Math.max(0, (this.id - 1) % 5);
+      this.tactical = createCharacter(THREE, { paletteIndex: palIdx });
       this.root.add(this.tactical);
 
       const joints = this.tactical.userData.joints;

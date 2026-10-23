@@ -760,9 +760,77 @@ function createTacticalCombatShirtTexture(THREE) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// PALETA DE MATERIAIS TÁTICOS PBR
+// PALETAS TÁTICAS MILITARES & MATERIAIS PBR
 // ═══════════════════════════════════════════════════════════════════════════
-export function createCharacterMaterials(THREE) {
+export const TACTICAL_PALETTES = [
+  {
+    name: 'Woodland Green',
+    uniform: 0x3a4833,
+    sheenColor: 0x6b7d58,
+    vest: 0x303c2a,
+    vestBorder: 0x20241e,
+    vestStrap: 0x161815,
+    magPouch: 0x3a4832,
+    pads: 0x161816,
+    boots: 0x1a1918,
+    greyPanel: 0x484f56
+  },
+  {
+    name: 'Urban Slate',
+    uniform: 0x3c444d,
+    sheenColor: 0x64748b,
+    vest: 0x24282f,
+    vestBorder: 0x181b20,
+    vestStrap: 0x121417,
+    magPouch: 0x2c323a,
+    pads: 0x121416,
+    boots: 0x141618,
+    greyPanel: 0x343a42
+  },
+  {
+    name: 'Desert Coyote',
+    uniform: 0x78674d,
+    sheenColor: 0xa8906c,
+    vest: 0x544633,
+    vestBorder: 0x3e3324,
+    vestStrap: 0x282117,
+    magPouch: 0x5c4d38,
+    pads: 0x2e271c,
+    boots: 0x30271c,
+    greyPanel: 0x61533e
+  },
+  {
+    name: 'Spec-Ops Dark',
+    uniform: 0x1f2327,
+    sheenColor: 0x3f464e,
+    vest: 0x151719,
+    vestBorder: 0x0e1011,
+    vestStrap: 0x090a0b,
+    magPouch: 0x181a1d,
+    pads: 0x0a0c0d,
+    boots: 0x0f1011,
+    greyPanel: 0x22262a
+  },
+  {
+    name: 'Mercenary Camo',
+    uniform: 0x484d3d,
+    sheenColor: 0x788065,
+    vest: 0x363b2e,
+    vestBorder: 0x262920,
+    vestStrap: 0x181a14,
+    magPouch: 0x3c4234,
+    pads: 0x1a1c17,
+    boots: 0x181916,
+    greyPanel: 0x3d4234
+  }
+];
+
+export function createCharacterMaterials(THREE, options = {}) {
+  const pIdx = typeof options.paletteIndex === 'number'
+    ? Math.max(0, Math.min(options.paletteIndex, TACTICAL_PALETTES.length - 1))
+    : 0;
+  const pal = TACTICAL_PALETTES[pIdx];
+
   const faceTexture = createProceduralFaceTexture(THREE);
   const hairTextures = createHairCardTextures(THREE);
   const shirtTexture = createTacticalCombatShirtTexture(THREE);
@@ -804,14 +872,14 @@ export function createCharacterMaterials(THREE) {
     shadowSide: THREE.DoubleSide
   });
 
-  // 3. Uniforme Tático de Combate (Verde Oliva Militar & Cinza Tático)
+  // 3. Uniforme Tático de Combate (Verde Oliva Militar & Cinza Tático / Paleta Personalizada)
   const oliveCombatMat = new THREE.MeshPhysicalMaterial({
-    color: 0x3a4833, // Verde Oliva de combate autêntico
+    color: pal.uniform,
     roughness: 0.80,
     metalness: 0.04,
     sheen: 0.48,
     sheenRoughness: 0.65,
-    sheenColor: new THREE.Color(0x6b7d58),
+    sheenColor: new THREE.Color(pal.sheenColor),
     side: THREE.DoubleSide
   });
 
@@ -823,43 +891,43 @@ export function createCharacterMaterials(THREE) {
   });
 
   const darkTacticalGreyMat = new THREE.MeshStandardMaterial({
-    color: 0x484f56, // Cinza tático de reforço / stretch panels
+    color: pal.greyPanel,
     roughness: 0.75,
     metalness: 0.08,
     side: THREE.DoubleSide
   });
 
-  // 4. Colete Balístico 3D (Ranger Green Escuro / Preto Tático)
+  // 4. Colete Balístico 3D (Ranger Green Escuro / Preto Tático / Paleta)
   const vestMainMat = new THREE.MeshStandardMaterial({
-    color: 0x303c2a, // Verde oliva escuro militar cordura 1000D
+    color: pal.vest,
     roughness: 0.72,
     metalness: 0.08,
     side: THREE.DoubleSide
   });
 
   const vestBorderMat = new THREE.MeshStandardMaterial({
-    color: 0x20241e, // Fitas de borda reforçadas
+    color: pal.vestBorder,
     roughness: 0.65,
     metalness: 0.10,
     side: THREE.DoubleSide
   });
 
   const vestStrapMat = new THREE.MeshStandardMaterial({
-    color: 0x161815, // Fitas de nylon MOLLE pretas com contraste
+    color: pal.vestStrap,
     roughness: 0.68,
     metalness: 0.12,
     side: THREE.DoubleSide
   });
 
   const magPouchMat = new THREE.MeshStandardMaterial({
-    color: 0x3a4832, // Porta-carregadores em relevo
+    color: pal.magPouch,
     roughness: 0.74,
     metalness: 0.06,
     side: THREE.DoubleSide
   });
 
   const patchVelcroMat = new THREE.MeshStandardMaterial({
-    color: 0x484f56, // Velcro cinza tático
+    color: pal.greyPanel,
     roughness: 0.90,
     metalness: 0.02,
     side: THREE.DoubleSide
@@ -867,7 +935,7 @@ export function createCharacterMaterials(THREE) {
 
   // 5. Proteções Rígidas (Joelheiras & Cotoveleiras de Polímero)
   const polymerHardPadMat = new THREE.MeshStandardMaterial({
-    color: 0x161816, // Polímero rígido fosco
+    color: pal.pads,
     roughness: 0.45,
     metalness: 0.18,
     side: THREE.DoubleSide
@@ -882,7 +950,7 @@ export function createCharacterMaterials(THREE) {
 
   // 6. Bota Militar de Combate (Couro Tático & Solado Vulcanizado Tratorado)
   const tacticalBootLeatherMat = new THREE.MeshPhysicalMaterial({
-    color: 0x1a1918, // Couro militar preto encerado
+    color: pal.boots,
     roughness: 0.50,
     metalness: 0.10,
     clearcoat: 0.22,
@@ -2124,7 +2192,7 @@ function createTacticalLeg(THREE, side, mats) {
 // ═══════════════════════════════════════════════════════════════════════════
 export function createCharacter(THREEInstance = THREE, options = {}) {
   const T = THREEInstance || THREE;
-  const mats = createCharacterMaterials(T);
+  const mats = options.mats || createCharacterMaterials(T, options);
 
   const rootGroup = new T.Group();
   rootGroup.name = 'TacticalMan_MidPoly';
