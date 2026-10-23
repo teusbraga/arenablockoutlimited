@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createTacticalCharacter, TACTICAL_PALETTES, getTacticalMaterials } from './models/TacticalManModel.js';
+import createCharacter from './models/TacticalManContinuous.js';
 
 const GHOST_COLORS = [
   0xff1e1e, // Blinky (Vermelho)
@@ -7,6 +7,8 @@ const GHOST_COLORS = [
   0x00f0ff, // Inky (Ciano)
   0xff9900, // Clyde (Laranja)
 ];
+
+const toRad = (deg) => deg * (Math.PI / 180);
 
 export class CharacterView {
   constructor(character, scene, options = {}) {
@@ -29,6 +31,7 @@ export class CharacterView {
     this.hasInitYaw = false;
 
     this.tactical = null;
+    this.joints = null;
 
     this._buildMesh();
     if (this.scene) {
@@ -82,65 +85,67 @@ export class CharacterView {
       this.root.add(this.body, this.head, eyeL, pupilL, eyeR, pupilR);
 
     } else {
-      /* SOLDADO TÁTICO CONTÍNUO (TACTIC MAN CONTINUOUS COM VARIAÇÕES E ACESSÓRIOS DE CABEÇA) */
-      const palIdx = (this.id - 1) % TACTICAL_PALETTES.length;
-      const headVar = (this.id - 1) % 5;
+      /* SOLDADO TÁTICO CONTÍNUO (TACTIC MAN CONTINUOUS AUTÊNTICO COM PBR & BULBOS ANATÔMICOS) */
+      this.tactical = createCharacter(THREE);
+      this.root.add(this.tactical);
 
-      const tactical = createTacticalCharacter(THREE, {
-        paletteIndex: palIdx,
-        headVariant: headVar,
-        character: this.character
-      });
+      const joints = this.tactical.userData.joints;
+      this.joints = joints;
 
-      this.tactical = tactical;
-      this.root.add(tactical.root);
+      // Vincula referências anatômicas
+      this.torso = joints.chest;
+      this.headGroup = joints.neck;
 
-      // Referências para hitboxes e compatibilidade
-      this.torso = tactical.chest;
-      this.body = tactical.torsoMesh;
-      this.headGroup = tactical.neck;
-      this.head = tactical.headMesh;
-      this.leftLegPivot = tactical.leftLeg.hip;
-      this.rightLegPivot = tactical.rightLeg.hip;
-      this.leftArmPivot = tactical.leftArm.shoulder;
-      this.rightArmPivot = tactical.rightArm.shoulder;
-      this.armsGroup = new THREE.Group();
-      this.torso.add(this.armsGroup);
+      // Obtém as malhas específicas para registro de hitboxes de tiro (headshot e body hit)
+      this.head = joints.head.getObjectByName('tactical_head_face') || joints.head;
+      this.body = joints.chest.getObjectByName('combat_shirt_torso_mesh') || joints.chest;
 
-      // Postura dos braços segurando o fuzil em 3ª pessoa
-      tactical.rightArm.upperArm.rotation.set(0.68, -0.18, 0.0);
-      tactical.rightArm.elbow.rotation.x = -0.62;
-      tactical.leftArm.upperArm.rotation.set(0.52, 0.28, 0.0);
-      tactical.leftArm.elbow.rotation.x = -0.78;
+      this.head.userData = { type: 'character', character: this.character, bot: this.character, part: 'head' };
+      this.body.userData = { type: 'character', character: this.character, bot: this.character, part: 'body' };
 
-      // Arma de 3ª pessoa e Muzzle Flash
-      const mats = getTacticalMaterials(THREE, palIdx);
+      // Pivôs de articulação para compatibilidade
+      this.leftLegPivot = joints.hipLeft;
+      this.rightLegPivot = joints.hipRight;
+      this.leftArmPivot = joints.shoulderLeft;
+      this.rightArmPivot = joints.shoulderRight;
+
+      // Postura tática pronta segurando o fuzil (longgun grip)
+      joints.upperArmRight.rotation.set(-toRad(68), toRad(18), 0);
+      joints.elbowRight.rotation.x = -toRad(62);
+      joints.upperArmLeft.rotation.set(-toRad(52), -toRad(28), 0);
+      joints.elbowLeft.rotation.x = -toRad(78);
+
+      // Terceira Pessoa: Fuzil tático posicionado exatamente nas mãos do operador
+      const mGun = new THREE.MeshStandardMaterial({ color: 0x22252a, roughness: 0.35, metalness: 0.80 });
+      const mGunDark = new THREE.MeshStandardMaterial({ color: 0x141618, roughness: 0.45, metalness: 0.60 });
+
       this.gunGroup = new THREE.Group();
-      this.gunGroup.position.set(0.08, 0.04, 0.28);
-      this.gunGroup.rotation.y = -0.06;
-      this.torso.add(this.gunGroup);
+      this.gunGroup.name = 'third_person_gun';
+      // Posiciona na altura do peito, alinhado com a empunhadura direita e o guarda-mão esquerdo
+      this.gunGroup.position.set(-0.04, 0.23, 0.38);
+      joints.chest.add(this.gunGroup);
 
-      const gunReceiver = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.32), mats.gunMat);
+      const gunReceiver = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.32), mGun);
       gunReceiver.castShadow = true;
 
-      const gunHandguard = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.075, 0.16), mats.gunDarkMat);
+      const gunHandguard = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.075, 0.16), mGunDark);
       gunHandguard.position.set(0, 0, 0.18);
       gunHandguard.castShadow = true;
 
-      const gunBarrel = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.22), mats.gunMat);
+      const gunBarrel = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.22), mGun);
       gunBarrel.position.set(0, 0.01, 0.36);
       gunBarrel.castShadow = true;
 
-      const gunMuzzle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.05), mats.gunDarkMat);
+      const gunMuzzle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.05), mGunDark);
       gunMuzzle.position.set(0, 0.01, 0.48);
       gunMuzzle.castShadow = true;
 
-      const gunMag = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.14, 0.08), mats.gunDarkMat);
+      const gunMag = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.14, 0.08), mGunDark);
       gunMag.position.set(0, -0.10, 0.06);
       gunMag.rotation.x = 0.20;
       gunMag.castShadow = true;
 
-      const gunStock = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.10, 0.15), mats.gunDarkMat);
+      const gunStock = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.10, 0.15), mGunDark);
       gunStock.position.set(0, 0.005, -0.20);
       gunStock.castShadow = true;
 
@@ -194,31 +199,31 @@ export class CharacterView {
 
       const swing = Math.sin(this.walkTime) * this.moveBlend;
 
-      if (this.tactical) {
+      if (this.joints) {
         // Articulação biomecânica das pernas (quadril e joelho dobrando naturalmente)
-        this.tactical.leftLeg.hip.rotation.x = swing * 0.65;
-        this.tactical.leftLeg.knee.rotation.x = Math.max(0, -swing * 0.65);
-        this.tactical.rightLeg.hip.rotation.x = -swing * 0.65;
-        this.tactical.rightLeg.knee.rotation.x = Math.max(0, swing * 0.65);
+        this.joints.hipLeft.rotation.x = swing * 0.65;
+        this.joints.kneeLeft.rotation.x = Math.max(0, -swing * 0.65);
+        this.joints.hipRight.rotation.x = -swing * 0.65;
+        this.joints.kneeRight.rotation.x = Math.max(0, swing * 0.75);
 
-        // Respiração / Sway sutil na arma e tronco
-        const walkGunY = 0.04 + Math.abs(swing) * 0.015;
-        const idleGunY = 0.04 + Math.sin(this.idleTime) * 0.005;
+        // Respiração e sway sutil na arma
+        const walkGunY = 0.23 + Math.abs(swing) * 0.012;
+        const idleGunY = 0.23 + Math.sin(this.idleTime) * 0.004;
         if (this.gunGroup) {
           this.gunGroup.position.y = walkGunY * this.moveBlend + idleGunY * (1.0 - this.moveBlend);
           this.gunGroup.rotation.z = -swing * 0.02;
         }
 
-        // Lean tático no tronco e arma
+        // Lean tático no tronco e arma (preservado do quadril para cima)
         const lean = this.character.lean || 0;
-        this.tactical.chest.rotation.z = -lean * 0.20;
-        this.tactical.chest.position.x = lean * 0.12;
+        this.joints.chest.rotation.z = -lean * 0.20;
+        this.joints.chest.position.x = lean * 0.12;
 
-        // Pitch vertical (olhar para cima/baixo)
+        // Pitch vertical (olhar para cima/baixo na mira)
         const pitch = this.character.pitch || 0;
-        this.tactical.neck.rotation.x = pitch * 0.75;
-        this.tactical.rightArm.shoulder.rotation.x = pitch * 0.60;
-        this.tactical.leftArm.shoulder.rotation.x = pitch * 0.60;
+        this.joints.neck.rotation.x = pitch * 0.75;
+        this.joints.shoulderRight.rotation.x = pitch * 0.65;
+        this.joints.shoulderLeft.rotation.x = pitch * 0.65;
       } else {
         if (this.leftLegPivot) this.leftLegPivot.rotation.x = swing * 0.65;
         if (this.rightLegPivot) this.rightLegPivot.rotation.x = -swing * 0.65;
@@ -227,7 +232,7 @@ export class CharacterView {
       this.root.position.set(charPos.x, charPos.y, charPos.z);
     }
 
-    // Orientação Cinemática do Personagem:
+    // Orientação Cinemática do Personagem
     const isCameraConvention = Boolean(this.character.rig);
     const aimYaw = isCameraConvention
       ? (this.character.yaw || 0) + Math.PI
@@ -269,12 +274,12 @@ export class CharacterView {
       targetBodyYaw = aimYaw;
     }
 
-    if (this.skinType !== 'ghost' && this.moveBlend > 0.01 && walkDir === -1 && this.tactical) {
+    if (this.skinType !== 'ghost' && this.moveBlend > 0.01 && walkDir === -1 && this.joints) {
       const swing = -Math.sin(this.walkTime) * this.moveBlend;
-      this.tactical.leftLeg.hip.rotation.x = swing * 0.65;
-      this.tactical.leftLeg.knee.rotation.x = Math.max(0, -swing * 0.65);
-      this.tactical.rightLeg.hip.rotation.x = -swing * 0.65;
-      this.tactical.rightLeg.knee.rotation.x = Math.max(0, swing * 0.65);
+      this.joints.hipLeft.rotation.x = swing * 0.65;
+      this.joints.kneeLeft.rotation.x = Math.max(0, -swing * 0.65);
+      this.joints.hipRight.rotation.x = -swing * 0.65;
+      this.joints.kneeRight.rotation.x = Math.max(0, swing * 0.75);
     }
 
     let diffTarget = targetBodyYaw - this.currentBodyYaw;
