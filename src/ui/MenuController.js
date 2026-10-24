@@ -4,12 +4,126 @@ import { materialFactory } from '../world/MaterialFactory.js';
 import { DEFAULT_CROSSHAIR_CONFIG } from './CrosshairManager.js';
 import { WeaponPreview3D } from './WeaponPreview3D.js';
 
+export const SOLDIER_SKIN_PRESETS = {
+  woodland: {
+    id: 'woodland',
+    name: 'Woodland Green',
+    icon: '🌲',
+    uniform: '#3a4833',
+    sheenColor: '#6b7d58',
+    vest: '#303c2a',
+    pads: '#161816',
+    skinTone: '#c4987e',
+  },
+  urban: {
+    id: 'urban',
+    name: 'Urban Slate',
+    icon: '🏙️',
+    uniform: '#3c444d',
+    sheenColor: '#64748b',
+    vest: '#24282f',
+    pads: '#121416',
+    skinTone: '#c4987e',
+  },
+  desert: {
+    id: 'desert',
+    name: 'Desert Coyote',
+    icon: '🏜️',
+    uniform: '#78674d',
+    sheenColor: '#a8906c',
+    vest: '#544633',
+    pads: '#2e271c',
+    skinTone: '#b58363',
+  },
+  specops: {
+    id: 'specops',
+    name: 'Spec-Ops Dark',
+    icon: '🌑',
+    uniform: '#1f2327',
+    sheenColor: '#3f464e',
+    vest: '#151719',
+    pads: '#0a0c0d',
+    skinTone: '#c4987e',
+  },
+  mercenary: {
+    id: 'mercenary',
+    name: 'Mercenary Camo',
+    icon: '🍂',
+    uniform: '#484d3d',
+    sheenColor: '#788065',
+    vest: '#363b2e',
+    pads: '#1a1c17',
+    skinTone: '#9e6e4f',
+  },
+  arctic: {
+    id: 'arctic',
+    name: 'Arctic Snow',
+    icon: '❄️',
+    uniform: '#cdd6db',
+    sheenColor: '#f0f5fa',
+    vest: '#7b878f',
+    pads: '#383e43',
+    skinTone: '#e6be9f',
+  },
+  crimson: {
+    id: 'crimson',
+    name: 'Crimson Ops',
+    icon: '🩸',
+    uniform: '#5a1f24',
+    sheenColor: '#8a333b',
+    vest: '#281316',
+    pads: '#140c0d',
+    skinTone: '#c4987e',
+  },
+  navy: {
+    id: 'navy',
+    name: 'Navy Seal',
+    icon: '⚓',
+    uniform: '#232f3e',
+    sheenColor: '#3c5068',
+    vest: '#151d28',
+    pads: '#0c1015',
+    skinTone: '#c4987e',
+  },
+  hazard: {
+    id: 'hazard',
+    name: 'Toxic Hazard',
+    icon: '🧪',
+    uniform: '#666128',
+    sheenColor: '#9c953d',
+    vest: '#2d2c1c',
+    pads: '#15150f',
+    skinTone: '#c4987e',
+  },
+  custom: {
+    id: 'custom',
+    name: 'Personalizado',
+    icon: '🛠️',
+    uniform: '#3a4833',
+    sheenColor: '#6b7d58',
+    vest: '#303c2a',
+    pads: '#161816',
+    skinTone: '#c4987e',
+  }
+};
+
+export const DEFAULT_SOLDIER_SKIN = {
+  preset: 'woodland',
+  name: 'Woodland Green',
+  uniform: '#3a4833',
+  sheenColor: '#6b7d58',
+  vest: '#303c2a',
+  pads: '#161816',
+  skinTone: '#c4987e',
+};
+
 /**
  * MenuController
  * Gerencia a interface HTML do menu, sliders, seletores de mapa/arma/skin, texturas e pointer-lock / touch.
  */
 export class MenuController {
-  constructor({ input, gameManager, weapons, crosshairManager }) {
+  constructor({ input, gameManager, weapons, crosshairManager, audio }) {
+    this.audio = audio;
     this.input = input;
     this.gameManager = gameManager;
     this.weapons = weapons;
@@ -53,13 +167,16 @@ export class MenuController {
     // Vitrine 3D Interativa na Aba Loadout
     this.weaponPreview = new WeaponPreview3D({
       initialWeaponId: this.weaponSelect?.value || 'ar15',
+      initialSoldierSkin: MenuController.getSavedSoldierSkin(),
     });
 
     this._bindDOM();
     this._bindTabs();
+    this._bindSoldierSkinUI();
     this._bindCrosshairUI(this.crosshairManager);
     this._bindLockEvents();
     this._bindTextureKeys();
+    this._bindAudioUI(this.audio);
   }
 
   static getSavedMap(defaultUrl = './assets/maps/dust.json') {
@@ -94,6 +211,29 @@ export class MenuController {
     const saved = localStorage.getItem('blocky_botskin');
     if (saved && botSkinSelect) botSkinSelect.value = saved;
     return botSkinSelect ? botSkinSelect.value : null;
+  }
+
+  static getSavedSoldierSkin() {
+    try {
+      const raw = localStorage.getItem('blocky_soldier_skin');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          return { ...DEFAULT_SOLDIER_SKIN, ...parsed };
+        }
+      }
+    } catch (err) {
+      console.warn('[MenuController] Erro ao carregar skin de soldado:', err);
+    }
+    return { ...DEFAULT_SOLDIER_SKIN };
+  }
+
+  static saveSoldierSkin(skin) {
+    try {
+      localStorage.setItem('blocky_soldier_skin', JSON.stringify(skin));
+    } catch (err) {
+      console.warn('[MenuController] Erro ao salvar skin de soldado:', err);
+    }
   }
 
   _bindDOM() {
@@ -577,6 +717,212 @@ export class MenuController {
         text: 'MIRA CS2 RESTAURADA PARA O PADRÃO',
         color: '#00ff66',
         duration: 1500
+      });
+    });
+  }
+
+  _bindSoldierSkinUI() {
+    this.soldierPresetSelect = document.getElementById('soldier-preset-select');
+    this.soldierPalettePills = document.getElementById('soldier-palette-pills');
+    this.soldierColorUniform = document.getElementById('soldier-color-uniform');
+    this.soldierValUniform = document.getElementById('soldier-val-uniform');
+    this.soldierColorVest = document.getElementById('soldier-color-vest');
+    this.soldierValVest = document.getElementById('soldier-val-vest');
+    this.soldierColorPads = document.getElementById('soldier-color-pads');
+    this.soldierValPads = document.getElementById('soldier-val-pads');
+    this.soldierColorSkin = document.getElementById('soldier-color-skin');
+    this.soldierValSkin = document.getElementById('soldier-val-skin');
+    this.btnPreviewSoldier = document.getElementById('btn-preview-soldier');
+
+    // Inicializa com a skin salva
+    this.currentSoldierSkin = MenuController.getSavedSoldierSkin();
+    this._applySoldierSkinConfig(this.currentSoldierSkin, false);
+
+    // Dropdown de Predefinições
+    this.soldierPresetSelect?.addEventListener('change', () => {
+      const val = this.soldierPresetSelect.value;
+      if (val === 'custom') {
+        this.currentSoldierSkin.preset = 'custom';
+        this.currentSoldierSkin.name = 'Personalizado';
+        this._applySoldierSkinConfig(this.currentSoldierSkin, true);
+      } else {
+        this._selectSoldierPreset(val);
+      }
+      this.weaponPreview?.showSoldier(this.currentSoldierSkin);
+    });
+
+    // Pílulas de Acesso Rápido
+    if (this.soldierPalettePills) {
+      const pills = this.soldierPalettePills.querySelectorAll('.skin-preset-pill');
+      pills.forEach(pill => {
+        pill.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const presetId = pill.getAttribute('data-preset');
+          if (presetId) {
+            this._selectSoldierPreset(presetId);
+            this.weaponPreview?.showSoldier(this.currentSoldierSkin);
+          }
+        });
+      });
+    }
+
+    // Color Pickers
+    const bindPicker = (inputEl, valEl, field) => {
+      inputEl?.addEventListener('input', () => {
+        if (valEl) valEl.textContent = inputEl.value.toUpperCase();
+        this.currentSoldierSkin[field] = inputEl.value;
+        this.currentSoldierSkin.preset = 'custom';
+        this.currentSoldierSkin.name = 'Personalizado';
+        if (this.soldierPresetSelect) this.soldierPresetSelect.value = 'custom';
+        this._updatePillsActiveState('custom');
+        MenuController.saveSoldierSkin(this.currentSoldierSkin);
+        this.weaponPreview?.updateSoldierSkin(this.currentSoldierSkin);
+        emit('player:skinChanged', this.currentSoldierSkin);
+      });
+    };
+
+    bindPicker(this.soldierColorUniform, this.soldierValUniform, 'uniform');
+    bindPicker(this.soldierColorVest, this.soldierValVest, 'vest');
+    bindPicker(this.soldierColorPads, this.soldierValPads, 'pads');
+    bindPicker(this.soldierColorSkin, this.soldierValSkin, 'skinTone');
+
+    // Botão de Ver no 3D
+    this.btnPreviewSoldier?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.weaponPreview?.showSoldier(this.currentSoldierSkin);
+    });
+  }
+
+  _updatePillsActiveState(activeId) {
+    if (!this.soldierPalettePills) return;
+    const pills = this.soldierPalettePills.querySelectorAll('.skin-preset-pill');
+    pills.forEach(p => {
+      p.classList.toggle('active', p.getAttribute('data-preset') === activeId);
+    });
+  }
+
+  _selectSoldierPreset(presetId) {
+    const preset = SOLDIER_SKIN_PRESETS[presetId];
+    if (preset) {
+      const nextSkin = {
+        preset: presetId,
+        name: preset.name,
+        uniform: preset.uniform,
+        sheenColor: preset.sheenColor,
+        vest: preset.vest,
+        pads: preset.pads,
+        skinTone: preset.skinTone,
+      };
+      this._applySoldierSkinConfig(nextSkin, true);
+    }
+  }
+
+  _applySoldierSkinConfig(skin, shouldSave = true) {
+    this.currentSoldierSkin = { ...skin };
+
+    if (this.soldierPresetSelect) {
+      this.soldierPresetSelect.value = skin.preset || 'custom';
+    }
+    if (this.soldierColorUniform) {
+      this.soldierColorUniform.value = skin.uniform || '#3a4833';
+      if (this.soldierValUniform) this.soldierValUniform.textContent = (skin.uniform || '#3a4833').toUpperCase();
+    }
+    if (this.soldierColorVest) {
+      this.soldierColorVest.value = skin.vest || '#303c2a';
+      if (this.soldierValVest) this.soldierValVest.textContent = (skin.vest || '#303c2a').toUpperCase();
+    }
+    if (this.soldierColorPads) {
+      this.soldierColorPads.value = skin.pads || '#161816';
+      if (this.soldierValPads) this.soldierValPads.textContent = (skin.pads || '#161816').toUpperCase();
+    }
+    if (this.soldierColorSkin) {
+      this.soldierColorSkin.value = skin.skinTone || '#c4987e';
+      if (this.soldierValSkin) this.soldierValSkin.textContent = (skin.skinTone || '#c4987e').toUpperCase();
+    }
+
+    this._updatePillsActiveState(skin.preset || 'custom');
+
+    if (shouldSave) {
+      MenuController.saveSoldierSkin(this.currentSoldierSkin);
+    }
+
+    this.weaponPreview?.updateSoldierSkin(this.currentSoldierSkin);
+    emit('player:skinChanged', this.currentSoldierSkin);
+  }
+
+  _bindAudioUI(audio) {
+    if (!audio) return;
+
+    const volMasterSlider = document.getElementById('vol-master-slider');
+    const volMasterVal = document.getElementById('vol-master-val');
+    const volFootstepsSlider = document.getElementById('vol-footsteps-slider');
+    const volFootstepsVal = document.getElementById('vol-footsteps-val');
+    const volWeaponsSlider = document.getElementById('vol-weapons-slider');
+    const volWeaponsVal = document.getElementById('vol-weapons-val');
+    const volImpactsSlider = document.getElementById('vol-impacts-slider');
+    const volImpactsVal = document.getElementById('vol-impacts-val');
+    const volTraumaSlider = document.getElementById('vol-trauma-slider');
+    const volTraumaVal = document.getElementById('vol-trauma-val');
+    const volBtnReset = document.getElementById('vol-btn-reset');
+
+    const updateSlider = (slider, valEl, val) => {
+      if (slider) slider.value = val;
+      if (valEl) valEl.textContent = `${Math.round(val * 100)}%`;
+    };
+
+    // Sincroniza valores iniciais
+    if (audio.volumes) {
+      updateSlider(volMasterSlider, volMasterVal, audio.volumes.master ?? 1.00);
+      updateSlider(volFootstepsSlider, volFootstepsVal, audio.volumes.footsteps ?? 0.05);
+      updateSlider(volWeaponsSlider, volWeaponsVal, audio.volumes.weapons ?? 1.00);
+      updateSlider(volImpactsSlider, volImpactsVal, audio.volumes.impacts ?? 0.45);
+      updateSlider(volTraumaSlider, volTraumaVal, audio.volumes.trauma ?? 0.80);
+    }
+
+    volMasterSlider?.addEventListener('input', () => {
+      const val = parseFloat(volMasterSlider.value);
+      if (volMasterVal) volMasterVal.textContent = `${Math.round(val * 100)}%`;
+      audio.setMasterVolume(val);
+    });
+
+    volFootstepsSlider?.addEventListener('input', () => {
+      const val = parseFloat(volFootstepsSlider.value);
+      if (volFootstepsVal) volFootstepsVal.textContent = `${Math.round(val * 100)}%`;
+      audio.setFootstepsVolume(val);
+    });
+
+    volWeaponsSlider?.addEventListener('input', () => {
+      const val = parseFloat(volWeaponsSlider.value);
+      if (volWeaponsVal) volWeaponsVal.textContent = `${Math.round(val * 100)}%`;
+      audio.setWeaponsVolume(val);
+    });
+
+    volImpactsSlider?.addEventListener('input', () => {
+      const val = parseFloat(volImpactsSlider.value);
+      if (volImpactsVal) volImpactsVal.textContent = `${Math.round(val * 100)}%`;
+      audio.setImpactsVolume(val);
+    });
+
+    volTraumaSlider?.addEventListener('input', () => {
+      const val = parseFloat(volTraumaSlider.value);
+      if (volTraumaVal) volTraumaVal.textContent = `${Math.round(val * 100)}%`;
+      audio.setTraumaVolume(val);
+    });
+
+    volBtnReset?.addEventListener('click', () => {
+      audio.resetVolumes();
+      updateSlider(volMasterSlider, volMasterVal, audio.volumes.master);
+      updateSlider(volFootstepsSlider, volFootstepsVal, audio.volumes.footsteps);
+      updateSlider(volWeaponsSlider, volWeaponsVal, audio.volumes.weapons);
+      updateSlider(volImpactsSlider, volImpactsVal, audio.volumes.impacts);
+      updateSlider(volTraumaSlider, volTraumaVal, audio.volumes.trauma);
+
+      emit('hud:popup', {
+        text: 'PADRÕES DE ÁUDIO RESTAURADOS',
+        color: '#7bc67e',
+        duration: 1600,
       });
     });
   }

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { WEAPONS } from '../weapons/WeaponDefs.js';
 import { ItemDrop } from '../world/ItemDrop.js';
+import createCharacter, { applyPaletteToCharacter } from '../view/models/TacticalManContinuous.js';
 
 /**
  * WeaponPreview3D
@@ -13,11 +14,14 @@ export class WeaponPreview3D {
     canvasId = 'weapon-preview-canvas',
     containerId = 'weapon-preview-box',
     initialWeaponId = 'ar15',
+    initialSoldierSkin = null,
   } = {}) {
     this.canvasId = canvasId;
     this.containerId = containerId;
     this.weaponId = initialWeaponId;
-    this.activeSlot = 0; // 0 = Primária, 1 = Secundária
+    this.currentSoldierSkin = initialSoldierSkin;
+    this.soldierModel = null;
+    this.activeSlot = 0; // 0 = Primária, 1 = Secundária, 'soldier' = Soldado
 
     this.autoRotate = true;
     this.dragMode = 'rotate'; // 'rotate' | 'pan'
@@ -77,6 +81,7 @@ export class WeaponPreview3D {
 
     this.btnSlot1 = document.getElementById('wp-btn-slot1');
     this.btnSlot2 = document.getElementById('wp-btn-slot2');
+    this.btnSoldier = document.getElementById('wp-btn-soldier');
     this.btnModeRotate = document.getElementById('wp-btn-mode-rotate');
     this.btnModePan = document.getElementById('wp-btn-mode-pan');
     this.btnAutoSpin = document.getElementById('wp-btn-autospin');
@@ -208,6 +213,11 @@ export class WeaponPreview3D {
    * Troca a arma exibida na vitrine 3D.
    */
   setWeapon(weaponId, slotIndex = null) {
+    this.soldierModel = null;
+    this.btnSoldier?.classList.remove('active');
+    if (this.ringMesh) this.ringMesh.position.y = -0.22;
+    if (this.discMesh) this.discMesh.position.y = -0.222;
+
     if (slotIndex !== null) {
       this.activeSlot = slotIndex;
       this.btnSlot1?.classList.toggle('active', slotIndex === 0);
@@ -287,6 +297,117 @@ export class WeaponPreview3D {
     this._renderSingleFrame();
   }
 
+  /**
+   * Exibe o Soldado Tático Contínuo na vitrine 3D com a skin ativa.
+   */
+  showSoldier(soldierSkin = null) {
+    if (soldierSkin) {
+      this.currentSoldierSkin = soldierSkin;
+    }
+    this.activeSlot = 'soldier';
+
+    this.btnSlot1?.classList.remove('active');
+    this.btnSlot2?.classList.remove('active');
+    this.btnSoldier?.classList.add('active');
+
+    if (this.emptyNoticeEl) {
+      this.emptyNoticeEl.style.display = 'none';
+    }
+    this.rootGroup.visible = true;
+
+    // Limpa modelo anterior
+    while (this.weaponHolder.children.length > 0) {
+      this.weaponHolder.remove(this.weaponHolder.children[0]);
+    }
+
+    const skin = this.currentSoldierSkin || {};
+    const skinName = skin.name || skin.preset || 'Woodland Green';
+    const hexColor = skin.sheenColor || skin.uniform || '#00f0ff';
+
+    if (this.nameLabelEl) {
+      this.nameLabelEl.textContent = `OPERADOR: ${skinName.toUpperCase()}`;
+      this.nameLabelEl.style.color = hexColor;
+    }
+
+    const glowColor = new THREE.Color(hexColor).getHex();
+    if (this.ringMat) this.ringMat.color.setHex(glowColor);
+    if (this.discMat) this.discMat.color.setHex(glowColor);
+    if (this.rimLight) this.rimLight.color.setHex(glowColor);
+
+    if (this.ringMesh) this.ringMesh.position.y = -0.35;
+    if (this.discMesh) this.discMesh.position.y = -0.352;
+
+    this.soldierModel = createCharacter(THREE, { palette: skin });
+
+    const joints = this.soldierModel.userData?.joints;
+    if (joints) {
+      const toRad = (deg) => deg * (Math.PI / 180);
+      joints.upperArmRight.rotation.set(-toRad(68), toRad(18), 0);
+      joints.elbowRight.rotation.x = -toRad(62);
+      joints.upperArmLeft.rotation.set(-toRad(52), -toRad(28), 0);
+      joints.elbowLeft.rotation.x = -toRad(78);
+
+      const mGun = new THREE.MeshStandardMaterial({ color: 0x22252a, roughness: 0.35, metalness: 0.80 });
+      const mGunDark = new THREE.MeshStandardMaterial({ color: 0x141618, roughness: 0.45, metalness: 0.60 });
+
+      const gunGroup = new THREE.Group();
+      gunGroup.position.set(-0.04, 0.23, 0.38);
+      joints.chest.add(gunGroup);
+
+      const gunReceiver = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.32), mGun);
+      const gunHandguard = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.075, 0.16), mGunDark);
+      gunHandguard.position.set(0, 0, 0.18);
+      const gunBarrel = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.22), mGun);
+      gunBarrel.position.set(0, 0.01, 0.36);
+      const gunMuzzle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.05), mGunDark);
+      gunMuzzle.position.set(0, 0.01, 0.48);
+      const gunMag = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.14, 0.08), mGunDark);
+      gunMag.position.set(0, -0.10, 0.06);
+      gunMag.rotation.x = 0.20;
+      const gunStock = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.10, 0.15), mGunDark);
+      gunStock.position.set(0, 0.005, -0.20);
+      gunGroup.add(gunReceiver, gunHandguard, gunBarrel, gunMuzzle, gunMag, gunStock);
+    }
+
+    const pivot = new THREE.Group();
+    // Centraliza o soldado verticalmente para que os pés fiquem sobre a base circular do halo
+    this.soldierModel.position.set(0, -0.86, 0);
+    pivot.add(this.soldierModel);
+
+    // Ajusta a escala para enquadramento perfeito na vitrine 3D
+    const scale = 0.38;
+    pivot.scale.setScalar(scale);
+
+    this.weaponHolder.add(pivot);
+    this._renderSingleFrame();
+  }
+
+  /**
+   * Atualiza as cores da skin em tempo real caso o soldado esteja em exibição.
+   */
+  updateSoldierSkin(soldierSkin) {
+    if (!soldierSkin) return;
+    this.currentSoldierSkin = soldierSkin;
+    if (this.activeSlot === 'soldier') {
+      if (this.soldierModel) {
+        applyPaletteToCharacter(this.soldierModel, soldierSkin);
+        const skinName = soldierSkin.name || soldierSkin.preset || 'Operador';
+        const hexColor = soldierSkin.sheenColor || soldierSkin.uniform || '#00f0ff';
+        if (this.nameLabelEl) {
+          this.nameLabelEl.textContent = `OPERADOR: ${skinName.toUpperCase()}`;
+          this.nameLabelEl.style.color = hexColor;
+        }
+        const glowColor = new THREE.Color(hexColor).getHex();
+        if (this.ringMat) this.ringMat.color.setHex(glowColor);
+        if (this.discMat) this.discMat.color.setHex(glowColor);
+        if (this.rimLight) this.rimLight.color.setHex(glowColor);
+        this._renderSingleFrame();
+      } else {
+        this.showSoldier(soldierSkin);
+      }
+    }
+  }
+
   setAutoRotate(enabled) {
     this.autoRotate = Boolean(enabled);
     this.btnAutoSpin?.classList.toggle('active', this.autoRotate);
@@ -354,6 +475,12 @@ export class WeaponPreview3D {
       e.stopPropagation();
       const sel2 = document.getElementById('weapon-secondary-select');
       this.setWeapon(sel2 ? sel2.value : 'p9', 1);
+    });
+
+    this.btnSoldier?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      this.showSoldier();
     });
 
     this.btnModeRotate?.addEventListener('click', (e) => {

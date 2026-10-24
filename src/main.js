@@ -92,6 +92,16 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
     const secondaryWeapon = MenuController.getSavedSecondaryWeapon('p9');
     viewmodel.equip(initialWeapon);
 
+    // Aplica a skin de soldado salva no jogador (3ª pessoa) e braços (1ª pessoa)
+    const savedSoldierSkin = MenuController.getSavedSoldierSkin();
+    player.setSoldierSkin(savedSoldierSkin);
+    viewmodel.arms?.applySkin(savedSoldierSkin);
+
+    on('player:skinChanged', (skin) => {
+      player.setSoldierSkin(skin);
+      viewmodel.arms?.applySkin(skin);
+    });
+
     let gameManager = null;
     const weapons = new WeaponSystem({
       camera,
@@ -186,7 +196,7 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
     scene.remove(dummyDropGroup);
 
     // 5. Interface e Menus
-    new MenuController({ input, gameManager, weapons, crosshairManager: hud.crosshairManager });
+    new MenuController({ input, gameManager, weapons, crosshairManager: hud.crosshairManager, audio });
 
     // Finaliza a tela de carregamento com transição suave
     loadingScreen.hide();

@@ -439,12 +439,17 @@ export class Viewmodel {
     }
 
     // Executa a física de recoil elástico, blowback, câmara vazia e muzzle flash originais do protótipo
-    if (this.arms) {
-      this.arms.update(weaponId, { isADS, isSprinting, reloadProgress });
-    }
-
     if (this.activePhysics) {
       this.activePhysics.update(dt, this.camera, ammo ?? 30);
+    }
+
+    if (this.arms) {
+      this.arms.update(weaponId, {
+        isADS,
+        isSprinting,
+        reloadProgress,
+        pumpHandle: this.activePhysics?.pumpHandle || null
+      });
     }
   }
 

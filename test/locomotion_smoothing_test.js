@@ -5,16 +5,13 @@ import * as THREE from 'three';
 if (typeof document === 'undefined') {
   global.document = {
     createElement: () => ({
-      getContext: () => ({
-        createRadialGradient: () => ({ addColorStop: () => {} }),
-        createLinearGradient: () => ({ addColorStop: () => {} }),
-        fillRect: () => {},
-        beginPath: () => {},
-        arc: () => {},
-        fill: () => {},
-        clearRect: () => {},
-        moveTo: () => {},
-        quadraticCurveTo: () => {}
+      getContext: () => new Proxy({
+        canvas: { width: 64, height: 64 }
+      }, {
+        get: (target, prop) => {
+          if (prop in target) return target[prop];
+          return () => ({ addColorStop: () => {} });
+        }
       }),
       width: 64,
       height: 64

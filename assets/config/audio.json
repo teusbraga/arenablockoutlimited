@@ -1,33 +1,3 @@
 {
-  "sounds": {
-    "shot_hk416": { "freqA": 180, "freqB": 46, "dur": 0.095, "type": "sawtooth", "gain": 0.22 },
-    "shot_ak47":  { "freqA": 160, "freqB": 42, "dur": 0.110, "type": "sawtooth", "gain": 0.25 },
-    "shot_uzi":   { "freqA": 290, "freqB": 85, "dur": 0.058, "type": "sawtooth", "gain": 0.18 },
-    "shot_m249":  { "freqA": 140, "freqB": 38, "dur": 0.115, "type": "sawtooth", "gain": 0.28 },
-    "shot_p9": { "freqA": 260, "freqB": 90, "dur": 0.070, "type": "square", "gain": 0.16 },
-    "shot_sw500": { "freqA": 120, "freqB": 24, "dur": 0.350, "type": "sawtooth", "gain": 0.45 },
-    "shot_m12":   { "freqA": 130, "freqB": 28, "dur": 0.320, "type": "sawtooth", "gain": 0.40 },
-    "weapon_cycle": { "freqA": 600, "freqB": 300, "dur": 0.070, "type": "square", "gain": 0.09 },
-    "reload_start": { "freqA": 400, "freqB": 200, "dur": 0.060, "type": "square", "gain": 0.10 },
-    "reload_end": { "freqA": 200, "freqB": 700, "dur": 0.090, "type": "square", "gain": 0.12 },
-    "hit_bot": { "freqA": 800, "freqB": 400, "dur": 0.090, "type": "sine", "gain": 0.14 },
-    "hit_headshot": { "freqA": 1200, "freqB": 700, "dur": 0.090, "type": "sine", "gain": 0.18 },
-    "hit_world": { "freqA": 180, "freqB": 90, "dur": 0.050, "type": "triangle", "gain": 0.05 },
-    "bot_died": { "freqA": 300, "freqB": 40, "dur": 0.300, "type": "triangle", "gain": 0.18 },
-    "bot_shot": { "freqA": 110, "freqB": 45, "dur": 0.080, "type": "sawtooth", "gain": 0.10 },
-    "player_damaged": { "freqA": 220, "freqB": 90, "dur": 0.150, "type": "sawtooth", "gain": 0.16 },
-    "footstep": { "freqA": 180, "freqB": 90, "dur": 0.045, "type": "triangle", "gain": 0.06 },
-    "footstep_wood": { "freqA": 240, "freqB": 110, "dur": 0.050, "type": "triangle", "gain": 0.07 },
-    "footstep_metal": { "freqA": 420, "freqB": 170, "dur": 0.038, "type": "square", "gain": 0.05 },
-    "footstep_dirt": { "freqA": 130, "freqB": 60, "dur": 0.060, "type": "sine", "gain": 0.055 },
-    "footstep_concrete": { "freqA": 190, "freqB": 85, "dur": 0.045, "type": "triangle", "gain": 0.06 },
-    "smoke_pop": { "freqA": 220, "freqB": 55, "dur": 0.120, "type": "sine", "gain": 0.25 },
-    "smoke_hiss": { "freqA": 2200, "freqB": 1800, "dur": 10.0, "type": "sine", "gain": 0.35 },
-    "grenade_bounce": { "freqA": 340, "freqB": 130, "dur": 0.040, "type": "triangle", "gain": 0.08 },
-    "ricochet": { "freqA": 1600, "freqB": 850, "dur": 0.180, "type": "sine", "gain": 0.18 },
-    "penetration_wood": { "freqA": 280, "freqB": 90, "dur": 0.075, "type": "triangle", "gain": 0.14 },
-    "penetration_metal": { "freqA": 550, "freqB": 220, "dur": 0.065, "type": "square", "gain": 0.16 },
-    "penetration_concrete": { "freqA": 220, "freqB": 70, "dur": 0.085, "type": "sawtooth", "gain": 0.15 },
-    "bullet_whizby": { "freqA": 2800, "freqB": 850, "dur": 0.090, "type": "sawtooth", "gain": 0.22 }
-  }
+  "sounds": {}
 }

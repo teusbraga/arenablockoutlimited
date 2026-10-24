@@ -1,14 +1,70 @@
 import * as THREE from 'three';
 import { on } from '../core/EventBus.js';
+import { NoiseBuffers } from './procedural/NoiseBuffers.js';
+import { SOUND_PRESETS } from './procedural/SoundPresets.js';
+import { WeaponSynthesizer } from './procedural/WeaponSynthesizer.js';
+import { TerminalBallistics } from './procedural/TerminalBallistics.js';
+import { PlayerTraumaAcoustics } from './procedural/PlayerTraumaAcoustics.js';
+import { LocomotionAcoustics } from './procedural/LocomotionAcoustics.js';
 
 export class AudioSystem {
   constructor() {
     this.ctx = null;
-    // sounds populado exclusivamente via setSoundBank(audio.json) durante o boot
     this.sounds = {};
     this.camera = null;
     this.world = null;
     this.activeSpatialLoops = new Map();
+
+    // Módulos de Síntese Procedural
+    this.noiseBuffers = null;
+    this.weaponSynth = null;
+    this.terminalBallistics = null;
+    this.traumaAcoustics = null;
+    this.locomotionAcoustics = null;
+    this.presets = SOUND_PRESETS;
+
+    // Barramento de Áudio e Ducking Dinâmico de Sobrepressão
+    this.masterCompressor = null;
+    this.masterGain = null;
+    this.weaponsGain = null;
+    this.foleyGain = null;
+    this.footstepsGain = null;
+    this.impactsGain = null;
+    this.traumaGain = null;
+
+    // Configurações de Volume Persistentes (localStorage) - Preset Calibrado
+    if (typeof localStorage !== 'undefined') {
+      try {
+        if (!localStorage.getItem('blocky_audio_preset_v2')) {
+          localStorage.setItem('blocky_audio_preset_v2', 'true');
+          localStorage.setItem('blocky_vol_master', '1.0');
+          localStorage.setItem('blocky_vol_weapons', '1.0');
+          localStorage.setItem('blocky_vol_footsteps', '0.05');
+          localStorage.setItem('blocky_vol_impacts', '0.45');
+          localStorage.setItem('blocky_vol_trauma', '0.80');
+        }
+      } catch (_) {}
+    }
+
+    const getSavedVol = (key, fallback) => {
+      if (typeof localStorage === 'undefined') return fallback;
+      try {
+        const v = localStorage.getItem(key);
+        return v !== null ? parseFloat(v) : fallback;
+      } catch (_) {
+        return fallback;
+      }
+    };
+
+    this.volumes = {
+      master: getSavedVol('blocky_vol_master', 1.00),
+      weapons: getSavedVol('blocky_vol_weapons', 1.00),
+      footsteps: getSavedVol('blocky_vol_footsteps', 0.05),
+      impacts: getSavedVol('blocky_vol_impacts', 0.45),
+      trauma: getSavedVol('blocky_vol_trauma', 0.80),
+    };
+
+    this._threeFwd = null;
     this._bind();
   }
 
@@ -20,276 +76,228 @@ export class AudioSystem {
 
   _ensure() {
     if (!this.ctx) {
-      try { 
-        this.ctx = new (window.AudioContext || window.webkitAudioContext)(); 
-      } catch (e) { 
-        return null; 
+      try {
+        const AudioCtx = (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext)) || null;
+        if (!AudioCtx) return null;
+        this.ctx = new AudioCtx();
+      } catch (e) {
+        return null;
+      }
+
+      if (this.ctx) {
+        this._initAudioGraph();
       }
     }
-    if (this.ctx.state === 'suspended') {
+
+    if (this.ctx && this.ctx.state === 'suspended') {
       this.ctx.resume();
     }
     return this.ctx;
   }
 
-  _tone(freqA, freqB, dur, type, gain, panX = 0) {
-    const ctx = this._ensure();
-    if (!ctx) return;
-    const osc = ctx.createOscillator();
-    const g = ctx.createGain();
-    const pan = ctx.createStereoPanner ? ctx.createStereoPanner() : null;
+  _initAudioGraph() {
+    if (!this.ctx) return;
 
-    osc.type = type || 'sine';
-    osc.frequency.setValueAtTime(freqA, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(Math.max(freqB, 1), ctx.currentTime + dur);
+    // 1. Compressor Mestre (Limiter protetor contra distorção de pico / clipping)
+    if (this.ctx.createDynamicsCompressor) {
+      this.masterCompressor = this.ctx.createDynamicsCompressor();
+      this.masterCompressor.threshold.setValueAtTime(-3, this.ctx.currentTime);
+      this.masterCompressor.knee.setValueAtTime(6, this.ctx.currentTime);
+      this.masterCompressor.ratio.setValueAtTime(12, this.ctx.currentTime);
+      this.masterCompressor.attack.setValueAtTime(0.003, this.ctx.currentTime);
+      this.masterCompressor.release.setValueAtTime(0.12, this.ctx.currentTime);
+    }
 
-    g.gain.setValueAtTime(gain, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    // 2. Ganho Master
+    this.masterGain = this.ctx.createGain();
+    this.masterGain.gain.setValueAtTime(this.volumes.master, this.ctx.currentTime);
 
-    osc.connect(g);
-    if (pan) {
-      pan.pan.value = Math.max(-1, Math.min(1, panX));
-      g.connect(pan);
-      pan.connect(ctx.destination);
+    // 3. Canal de Armas (Disparos com soco sem ducking neles mesmos)
+    this.weaponsGain = this.ctx.createGain();
+    this.weaponsGain.gain.setValueAtTime(this.volumes.weapons, this.ctx.currentTime);
+
+    // 4. Canal Secundário / Foley Master (Passos, impactos, fumaça — sofre Ducking de sobrepressão)
+    this.foleyGain = this.ctx.createGain();
+    this.foleyGain.gain.setValueAtTime(1.0, this.ctx.currentTime);
+
+    // 5. Sub-buses dedicados conectados ao foleyGain (Sofrem ducking coletivo mas possuem ganhos individuais)
+    this.footstepsGain = this.ctx.createGain();
+    this.footstepsGain.gain.setValueAtTime(this.volumes.footsteps, this.ctx.currentTime);
+    this.footstepsGain.connect(this.foleyGain);
+
+    this.impactsGain = this.ctx.createGain();
+    this.impactsGain.gain.setValueAtTime(this.volumes.impacts, this.ctx.currentTime);
+    this.impactsGain.connect(this.foleyGain);
+
+    this.traumaGain = this.ctx.createGain();
+    this.traumaGain.gain.setValueAtTime(this.volumes.trauma, this.ctx.currentTime);
+    this.traumaGain.connect(this.foleyGain);
+
+    // Roteamento em cascata
+    if (this.masterCompressor) {
+      this.weaponsGain.connect(this.masterCompressor);
+      this.foleyGain.connect(this.masterCompressor);
+      this.masterCompressor.connect(this.masterGain);
     } else {
-      g.connect(ctx.destination);
+      this.weaponsGain.connect(this.masterGain);
+      this.foleyGain.connect(this.masterGain);
     }
+    this.masterGain.connect(this.ctx.destination);
 
-    osc.start();
-    osc.stop(ctx.currentTime + dur + 0.02);
-  }
-
-  initNoiseBuffer() {
-    const ctx = this._ensure();
-    if (!ctx || this.noiseBuffer) return;
-    const len = Math.floor(ctx.sampleRate * 0.2);
-    this.noiseBuffer = ctx.createBuffer(1, len, ctx.sampleRate);
-    const d = this.noiseBuffer.getChannelData(0);
-    for (let i = 0; i < len; i++) {
-      const t = i / len;
-      d[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 2.6);
-    }
-  }
-
-  playPrototypeShot() {
-    const ctx = this._ensure();
-    if (!ctx) return;
-    this.initNoiseBuffer();
-    if (!this.noiseBuffer) return;
-
-    const t = ctx.currentTime;
-
-    const src = ctx.createBufferSource();
-    src.buffer = this.noiseBuffer;
-    const bp = ctx.createBiquadFilter();
-    bp.type = 'lowpass';
-    bp.frequency.value = 2400;
-    bp.Q.value = 0.7;
-    const g1 = ctx.createGain();
-    g1.gain.setValueAtTime(0.30, t);
-    g1.gain.exponentialRampToValueAtTime(0.0005, t + 0.16);
-    src.connect(bp); bp.connect(g1); g1.connect(ctx.destination);
-    src.start(t);
-
-    const osc = ctx.createOscillator();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(165, t);
-    osc.frequency.exponentialRampToValueAtTime(48, t + 0.11);
-    const g2 = ctx.createGain();
-    g2.gain.setValueAtTime(0.26, t);
-    g2.gain.exponentialRampToValueAtTime(0.0005, t + 0.14);
-    osc.connect(g2); g2.connect(ctx.destination);
-    osc.start(t); osc.stop(t + 0.16);
-  }
-
-  playMagnumBoom() {
-    const ctx = this._ensure();
-    if (!ctx) return;
-    this.initNoiseBuffer();
-    const t = ctx.currentTime;
-
-    // 1. Onda de choque com filtro passa-baixa ressonante
-    if (this.noiseBuffer) {
-      const src = ctx.createBufferSource();
-      src.buffer = this.noiseBuffer;
-      const lp = ctx.createBiquadFilter();
-      lp.type = 'lowpass';
-      lp.frequency.setValueAtTime(3200, t);
-      lp.frequency.exponentialRampToValueAtTime(160, t + 0.38);
-      lp.Q.value = 3.5;
-      const gNoise = ctx.createGain();
-      gNoise.gain.setValueAtTime(0.50, t);
-      gNoise.gain.exponentialRampToValueAtTime(0.0005, t + 0.40);
-      src.connect(lp); lp.connect(gNoise); gNoise.connect(ctx.destination);
-      src.start(t);
-    }
-
-    // 2. Sub-bass boom dramático e estrondoso (130Hz -> 25Hz)
-    const subOsc = ctx.createOscillator();
-    subOsc.type = 'sine';
-    subOsc.frequency.setValueAtTime(130, t);
-    subOsc.frequency.exponentialRampToValueAtTime(25, t + 0.45);
-    const gSub = ctx.createGain();
-    gSub.gain.setValueAtTime(0.58, t);
-    gSub.gain.exponentialRampToValueAtTime(0.0005, t + 0.48);
-    subOsc.connect(gSub); gSub.connect(ctx.destination);
-    subOsc.start(t); subOsc.stop(t + 0.50);
-
-    // 3. Estalo violento da detonação da pólvora Magnum
-    const punchOsc = ctx.createOscillator();
-    punchOsc.type = 'sawtooth';
-    punchOsc.frequency.setValueAtTime(280, t);
-    punchOsc.frequency.exponentialRampToValueAtTime(38, t + 0.14);
-    const gPunch = ctx.createGain();
-    gPunch.gain.setValueAtTime(0.36, t);
-    gPunch.gain.exponentialRampToValueAtTime(0.0005, t + 0.16);
-    punchOsc.connect(gPunch); gPunch.connect(ctx.destination);
-    punchOsc.start(t); punchOsc.stop(t + 0.18);
-  }
-
-  playShotgunBlast() {
-    const ctx = this._ensure();
-    if (!ctx) return;
-    this.initNoiseBuffer();
-    const t = ctx.currentTime;
-
-    // 1. Onda de choque explosiva de calibre 12
-    if (this.noiseBuffer) {
-      const src = ctx.createBufferSource();
-      src.buffer = this.noiseBuffer;
-      const lp = ctx.createBiquadFilter();
-      lp.type = 'lowpass';
-      lp.frequency.setValueAtTime(4200, t);
-      lp.frequency.exponentialRampToValueAtTime(220, t + 0.32);
-      lp.Q.value = 2.8;
-      const gNoise = ctx.createGain();
-      gNoise.gain.setValueAtTime(0.52, t);
-      gNoise.gain.exponentialRampToValueAtTime(0.0005, t + 0.35);
-      src.connect(lp); lp.connect(gNoise); gNoise.connect(ctx.destination);
-      src.start(t);
-    }
-
-    // 2. Sub-bass boom encorpado
-    const subOsc = ctx.createOscillator();
-    subOsc.type = 'sine';
-    subOsc.frequency.setValueAtTime(140, t);
-    subOsc.frequency.exponentialRampToValueAtTime(30, t + 0.38);
-    const gSub = ctx.createGain();
-    gSub.gain.setValueAtTime(0.54, t);
-    gSub.gain.exponentialRampToValueAtTime(0.0005, t + 0.42);
-    subOsc.connect(gSub); gSub.connect(ctx.destination);
-    subOsc.start(t); subOsc.stop(t + 0.44);
-
-    // 3. Estalo violento da detonação
-    const crackOsc = ctx.createOscillator();
-    crackOsc.type = 'sawtooth';
-    crackOsc.frequency.setValueAtTime(320, t);
-    crackOsc.frequency.exponentialRampToValueAtTime(45, t + 0.12);
-    const gCrack = ctx.createGain();
-    gCrack.gain.setValueAtTime(0.38, t);
-    gCrack.gain.exponentialRampToValueAtTime(0.0005, t + 0.15);
-    crackOsc.connect(gCrack); gCrack.connect(ctx.destination);
-    crackOsc.start(t); crackOsc.stop(t + 0.16);
-  }
-
-  playPumpRackSound(stage = 'back') {
-    const ctx = this._ensure();
-    if (!ctx) return;
-    const t = ctx.currentTime;
-
-    if (stage === 'back') {
-      const osc = ctx.createOscillator();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(380, t);
-      osc.frequency.exponentialRampToValueAtTime(140, t + 0.07);
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(0.22, t);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
-      osc.connect(g); g.connect(ctx.destination);
-      osc.start(t); osc.stop(t + 0.09);
-
-      const clack = ctx.createOscillator();
-      clack.type = 'square';
-      clack.frequency.setValueAtTime(820, t + 0.02);
-      clack.frequency.exponentialRampToValueAtTime(260, t + 0.06);
-      const gClack = ctx.createGain();
-      gClack.gain.setValueAtTime(0.16, t + 0.02);
-      gClack.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
-      clack.connect(gClack); gClack.connect(ctx.destination);
-      clack.start(t + 0.02); clack.stop(t + 0.08);
-    } else {
-      const lock = ctx.createOscillator();
-      lock.type = 'square';
-      lock.frequency.setValueAtTime(1050, t);
-      lock.frequency.exponentialRampToValueAtTime(180, t + 0.06);
-      const gLock = ctx.createGain();
-      gLock.gain.setValueAtTime(0.25, t);
-      gLock.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
-      lock.connect(gLock); gLock.connect(ctx.destination);
-      lock.start(t); lock.stop(t + 0.08);
-
-      const thud = ctx.createOscillator();
-      thud.type = 'sine';
-      thud.frequency.setValueAtTime(180, t);
-      thud.frequency.exponentialRampToValueAtTime(60, t + 0.07);
-      const gThud = ctx.createGain();
-      gThud.gain.setValueAtTime(0.20, t);
-      gThud.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
-      thud.connect(gThud); gThud.connect(ctx.destination);
-      thud.start(t); thud.stop(t + 0.09);
-    }
-  }
-
-  playClickSound(freq = 900, vol = 0.08) {
-    const ctx = this._ensure();
-    if (!ctx) return;
-    const t = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(freq, t);
-    osc.frequency.exponentialRampToValueAtTime(freq * 0.55, t + 0.05);
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(vol, t);
-    g.gain.exponentialRampToValueAtTime(0.0005, t + 0.06);
-    osc.connect(g); g.connect(ctx.destination);
-    osc.start(t); osc.stop(t + 0.07);
-  }
-
-  play(soundKey, panX = 0) {
-    const s = this.sounds[soundKey];
-    if (s) {
-      this._tone(s.freqA, s.freqB, s.dur, s.type, s.gain, panX);
-    }
-  }
-
-  playFootstep(material = 'floor') {
-    const mat = (material || 'floor').toLowerCase();
-    
-    // 1. Madeira / Caixotes / Troncos
-    if (mat.includes('wood') || mat.includes('crate') || mat.includes('plywood') || mat.includes('trunk')) {
-      const s = this.sounds['footstep_wood'] || { freqA: 240, freqB: 110, dur: 0.050, type: 'triangle', gain: 0.07 };
-      this._tone(s.freqA, s.freqB, s.dur, s.type, s.gain);
-      return;
-    }
-    // 2. Metal / Andaimes / Grades / Vigas de Aço
-    if (mat.includes('metal') || mat.includes('steel') || mat.includes('scaffold') || mat.includes('fence')) {
-      const s = this.sounds['footstep_metal'] || { freqA: 420, freqB: 170, dur: 0.038, type: 'square', gain: 0.05 };
-      this._tone(s.freqA, s.freqB, s.dur, s.type, s.gain);
-      return;
-    }
-    // 3. Areia / Terra / Grama / Folhagem (Macio e abafado)
-    if (mat.includes('sand') || mat.includes('dirt') || mat.includes('grass') || mat.includes('foliage')) {
-      const s = this.sounds['footstep_dirt'] || { freqA: 130, freqB: 60, dur: 0.060, type: 'sine', gain: 0.055 };
-      this._tone(s.freqA, s.freqB, s.dur, s.type, s.gain);
-      return;
-    }
-    // 4. Concreto / Pedra / Piso padrão (Seco e firme)
-    const s = this.sounds['footstep_concrete'] || this.sounds['footstep'] || { freqA: 190, freqB: 85, dur: 0.045, type: 'triangle', gain: 0.06 };
-    this._tone(s.freqA, s.freqB, s.dur, s.type, s.gain);
+    // 6. Inicialização dos sintetizadores com buffers de ruído persistentes
+    this.noiseBuffers = new NoiseBuffers(this.ctx);
+    this.weaponSynth = new WeaponSynthesizer(this.noiseBuffers);
+    this.terminalBallistics = new TerminalBallistics(this.noiseBuffers);
+    this.traumaAcoustics = new PlayerTraumaAcoustics(this.noiseBuffers);
+    this.locomotionAcoustics = new LocomotionAcoustics(this.noiseBuffers);
   }
 
   // =========================================================================
-  // ÁUDIO ESPACIAL 3D & OCLUSÃO GEOMÉTRICA (TIER S #1)
+  // CONTROLE DE VOLUMES DO MIXER
+  // =========================================================================
+
+  setMasterVolume(val) {
+    val = Math.max(0, Math.min(1, parseFloat(val) || 0));
+    this.volumes.master = val;
+    if (typeof localStorage !== 'undefined') localStorage.setItem('blocky_vol_master', val.toString());
+    if (this.ctx && this.masterGain) {
+      this.masterGain.gain.setValueAtTime(val, this.ctx.currentTime);
+    }
+  }
+
+  setWeaponsVolume(val) {
+    val = Math.max(0, Math.min(1, parseFloat(val) || 0));
+    this.volumes.weapons = val;
+    if (typeof localStorage !== 'undefined') localStorage.setItem('blocky_vol_weapons', val.toString());
+    if (this.ctx && this.weaponsGain) {
+      this.weaponsGain.gain.setValueAtTime(val, this.ctx.currentTime);
+    }
+  }
+
+  setFootstepsVolume(val) {
+    val = Math.max(0, Math.min(1, parseFloat(val) || 0));
+    this.volumes.footsteps = val;
+    if (typeof localStorage !== 'undefined') localStorage.setItem('blocky_vol_footsteps', val.toString());
+    if (this.ctx && this.footstepsGain) {
+      this.footstepsGain.gain.setValueAtTime(val, this.ctx.currentTime);
+    }
+  }
+
+  setImpactsVolume(val) {
+    val = Math.max(0, Math.min(1, parseFloat(val) || 0));
+    this.volumes.impacts = val;
+    if (typeof localStorage !== 'undefined') localStorage.setItem('blocky_vol_impacts', val.toString());
+    if (this.ctx && this.impactsGain) {
+      this.impactsGain.gain.setValueAtTime(val, this.ctx.currentTime);
+    }
+  }
+
+  setTraumaVolume(val) {
+    val = Math.max(0, Math.min(1, parseFloat(val) || 0));
+    this.volumes.trauma = val;
+    if (typeof localStorage !== 'undefined') localStorage.setItem('blocky_vol_trauma', val.toString());
+    if (this.ctx && this.traumaGain) {
+      this.traumaGain.gain.setValueAtTime(val, this.ctx.currentTime);
+    }
+  }
+
+  resetVolumes() {
+    this.setMasterVolume(1.00);
+    this.setWeaponsVolume(1.00);
+    this.setFootstepsVolume(0.05);
+    this.setImpactsVolume(0.45);
+    this.setTraumaVolume(0.80);
+  }
+
+  /**
+   * Concussão Opressiva (Acoustic Ducking):
+   * Disparos próximos atenuam sons secundários por 180-240ms, criando a sensação
+   * física de perda transitória de sensibilidade auditiva pela onda de choque.
+   */
+  triggerAcousticDucking(duckGain = 0.50, duration = 0.22) {
+    if (!this.ctx || !this.foleyGain) return;
+    const t = this.ctx.currentTime;
+    try {
+      this.foleyGain.gain.cancelScheduledValues(t);
+      this.foleyGain.gain.setValueAtTime(this.foleyGain.gain.value, t);
+      this.foleyGain.gain.linearRampToValueAtTime(duckGain, t + 0.005);
+      this.foleyGain.gain.exponentialRampToValueAtTime(1.0, t + duration);
+    } catch (_) {}
+  }
+
+  _tone() {
+    // Desativado: sons de sintetizador arcade legados foram removidos
+    return;
+  }
+
+  playClickSound() {
+    const ctx = this._ensure();
+    if (!ctx) return;
+    const t = ctx.currentTime;
+    const dest = this.foleyGain || ctx.destination;
+
+    // 1. Estalo de percussão mecânica com ruído filtrado (Gatilho em câmara vazia)
+    if (this.noiseBuffers?.white) {
+      const clickSrc = this.noiseBuffers.createSource('white', false);
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.setValueAtTime(3200, t);
+      bp.Q.setValueAtTime(3.0, t);
+
+      const clickEnv = ctx.createGain();
+      clickEnv.gain.setValueAtTime(0.0001, t);
+      clickEnv.gain.linearRampToValueAtTime(0.18, t + 0.001);
+      clickEnv.gain.exponentialRampToValueAtTime(0.0001, t + 0.018);
+
+      clickSrc.connect(bp);
+      bp.connect(clickEnv);
+      clickEnv.connect(dest);
+
+      clickSrc.start(t);
+      clickSrc.stop(t + 0.025);
+    }
+
+    // 2. Transiente metálico seco de impacto do desconector / cão batendo em falso
+    const pinOsc = ctx.createOscillator();
+    const pinGain = ctx.createGain();
+    pinOsc.type = 'triangle';
+    pinOsc.frequency.setValueAtTime(1600, t);
+    pinOsc.frequency.exponentialRampToValueAtTime(380, t + 0.012);
+
+    pinGain.gain.setValueAtTime(0.0001, t);
+    pinGain.gain.linearRampToValueAtTime(0.10, t + 0.001);
+    pinGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.015);
+
+    pinOsc.connect(pinGain);
+    pinGain.connect(dest);
+
+    pinOsc.start(t);
+    pinOsc.stop(t + 0.02);
+  }
+
+  play() {
+    // Desativado: sons arcade legados foram removidos
+    return;
+  }
+
+  playFootstep(material = 'floor') {
+    const ctx = this._ensure();
+    if (!ctx) return;
+    const dest = this.footstepsGain || this.foleyGain || ctx.destination;
+    if (this.locomotionAcoustics) {
+      this.locomotionAcoustics.synthesizeFootstep(
+        this.presets.footstep_default,
+        ctx,
+        dest,
+        null,
+        material,
+        true
+      );
+    }
+  }
+
+  // =========================================================================
+  // ÁUDIO ESPACIAL 3D & OCLUSÃO GEOMÉTRICA
   // =========================================================================
 
   setCamera(camera) {
@@ -300,9 +308,6 @@ export class AudioSystem {
     this.world = world;
   }
 
-  /**
-   * Atualiza a posição e orientação tridimensional do ouvinte (Listener) no Web Audio API
-   */
   updateListener(camera) {
     if (camera) this.camera = camera;
     const ctx = this._ensure();
@@ -341,10 +346,6 @@ export class AudioSystem {
     }
   }
 
-  /**
-   * Executa raycast no CollisionWorld para verificar se há obstáculos sólidos entre o ouvinte e a fonte sonora.
-   * Retorna true se estiver ocluído por paredes.
-   */
   checkOcclusion(srcPos) {
     if (!this.world || !this.camera || !srcPos) return false;
     const camPos = this.camera.position;
@@ -355,23 +356,94 @@ export class AudioSystem {
     if (dist < 0.25) return false;
 
     const dir = { x: dx / dist, y: dy / dist, z: dz / dist };
-    // Subtrai tolerância na ponta para não colidir no próprio piso do emissor
     const maxTestDist = Math.max(0.1, dist - 0.25);
     const hit = this.world.raycast(camPos, dir, maxTestDist);
     return !!hit;
   }
 
   /**
-   * Inicia loop sonoro espacial 3D contínuo de chiado de fumaça sob pressão (smoke hiss).
-   * Modula dinamicamente filtro de oclusão por parede (muffled) e posicionamento HRTF.
+   * Constrói destino espacial 3D com HRTF, oclusão por raycast e amortecimento de ar por distância.
    */
+  createSpatialDestination(pos, isFoley = true) {
+    const ctx = this._ensure();
+    if (!ctx) return { node: null, dist: 0 };
+
+    const t = ctx.currentTime;
+    let dist = 1.0;
+    if (this.camera && pos) {
+      const c = this.camera.position;
+      dist = Math.hypot(pos.x - c.x, pos.y - c.y, pos.z - c.z);
+    }
+
+    // 1. Filtro de Oclusão por Parede
+    const isOccluded = pos ? this.checkOcclusion(pos) : false;
+    const occFilter = ctx.createBiquadFilter();
+    occFilter.type = 'lowpass';
+    occFilter.frequency.setValueAtTime(isOccluded ? 550 : 14000, t);
+    occFilter.Q.setValueAtTime(isOccluded ? 1.4 : 0.7, t);
+
+    // 2. Filtro Atmosférico por Distância (Rolloff natural de altas frequências)
+    const airFilter = ctx.createBiquadFilter();
+    airFilter.type = 'lowpass';
+    const airCutoff = Math.max(800, 16000 - dist * 220);
+    airFilter.frequency.setValueAtTime(airCutoff, t);
+
+    // 3. Panner 3D HRTF
+    let panner = null;
+    if (pos && ctx.createPanner) {
+      panner = ctx.createPanner();
+      panner.panningModel = 'HRTF';
+      panner.distanceModel = 'inverse';
+      panner.refDistance = 2.0;
+      panner.maxDistance = 75.0;
+      panner.rolloffFactor = 1.0;
+      if (panner.positionX) {
+        panner.positionX.setValueAtTime(pos.x, t);
+        panner.positionY.setValueAtTime(pos.y, t);
+        panner.positionZ.setValueAtTime(pos.z, t);
+      } else if (panner.setPosition) {
+        panner.setPosition(pos.x, pos.y, pos.z);
+      }
+    }
+
+    let bus = this.foleyGain || ctx.destination;
+    if (isFoley === false || isFoley === 'weapons') {
+      bus = this.weaponsGain || ctx.destination;
+    } else if (isFoley === 'impacts') {
+      bus = this.impactsGain || this.foleyGain || ctx.destination;
+    } else if (isFoley === 'footsteps') {
+      bus = this.footstepsGain || this.foleyGain || ctx.destination;
+    } else if (isFoley === 'trauma') {
+      bus = this.traumaGain || this.foleyGain || ctx.destination;
+    }
+
+    occFilter.connect(airFilter);
+    if (panner) {
+      airFilter.connect(panner);
+      panner.connect(bus);
+    } else {
+      airFilter.connect(bus);
+    }
+
+    return {
+      node: occFilter,
+      dist,
+      isOccluded
+    };
+  }
+
+  playSpatial() {
+    // Desativado: sons espaciais arcade legados foram removidos
+    return;
+  }
+
+  // --- LOOPS ESPACIAIS (SMOKE GRENADE HISS) ---
   startSmokeHiss({ id = 'smoke_default', pos, duration = 10.0, gain = 0.35 } = {}) {
     const ctx = this._ensure();
     if (!ctx || !pos) return;
 
     this.stopSpatialLoop(id);
 
-    // Buffer de ruído aerado com looping
     const bufLen = Math.floor(ctx.sampleRate * 2.0);
     const buffer = ctx.createBuffer(1, bufLen, ctx.sampleRate);
     const data = buffer.getChannelData(0);
@@ -387,26 +459,22 @@ export class AudioSystem {
     src.buffer = buffer;
     src.loop = true;
 
-    // Filtro passa-banda para timbre aerado de fumaça/gás sob pressão
     const bandpass = ctx.createBiquadFilter();
     bandpass.type = 'bandpass';
     bandpass.frequency.value = 2100;
     bandpass.Q.value = 0.85;
 
-    // Filtro de oclusão passa-baixa dinâmico
     const isOccluded = this.checkOcclusion(pos);
     const occlusionFilter = ctx.createBiquadFilter();
     occlusionFilter.type = 'lowpass';
     occlusionFilter.frequency.value = isOccluded ? 550 : 13000;
     occlusionFilter.Q.value = isOccluded ? 1.4 : 0.7;
 
-    // Ganho
     const gainNode = ctx.createGain();
     const targetGain = isOccluded ? gain * 0.35 : gain;
     gainNode.gain.setValueAtTime(0.001, ctx.currentTime);
     gainNode.gain.exponentialRampToValueAtTime(targetGain, ctx.currentTime + 0.20);
 
-    // Panner 3D com HRTF
     let panner = null;
     if (ctx.createPanner) {
       panner = ctx.createPanner();
@@ -425,16 +493,16 @@ export class AudioSystem {
       }
     }
 
-    // Conexões: Source -> Bandpass -> Occlusion -> Gain -> Panner -> Destination
     src.connect(bandpass);
     bandpass.connect(occlusionFilter);
     occlusionFilter.connect(gainNode);
 
+    const bus = this.foleyGain || ctx.destination;
     if (panner) {
       gainNode.connect(panner);
-      panner.connect(ctx.destination);
+      panner.connect(bus);
     } else {
-      gainNode.connect(ctx.destination);
+      gainNode.connect(bus);
     }
 
     src.start();
@@ -472,69 +540,6 @@ export class AudioSystem {
     }
   }
 
-  /**
-   * Dispara som pontual no espaço 3D com HRTF e atenuação/oclusão de parede
-   */
-  playSpatial(soundKey, pos) {
-    const s = this.sounds[soundKey];
-    const ctx = this._ensure();
-    if (!ctx || !s) {
-      if (s) this.play(soundKey);
-      return;
-    }
-
-    const t = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const g = ctx.createGain();
-    const occ = ctx.createBiquadFilter();
-    occ.type = 'lowpass';
-
-    const isOccluded = pos ? this.checkOcclusion(pos) : false;
-    occ.frequency.value = isOccluded ? 550 : 14000;
-    occ.Q.value = isOccluded ? 1.3 : 0.7;
-    const finalGain = isOccluded ? s.gain * 0.40 : s.gain;
-
-    osc.type = s.type || 'sine';
-    osc.frequency.setValueAtTime(s.freqA, t);
-    osc.frequency.exponentialRampToValueAtTime(Math.max(s.freqB, 1), t + s.dur);
-
-    g.gain.setValueAtTime(finalGain, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + s.dur);
-
-    let panner = null;
-    if (pos && ctx.createPanner) {
-      panner = ctx.createPanner();
-      panner.panningModel = 'HRTF';
-      panner.distanceModel = 'inverse';
-      panner.refDistance = 2.0;
-      panner.maxDistance = 60.0;
-      panner.rolloffFactor = 1.0;
-      if (panner.positionX) {
-        panner.positionX.setValueAtTime(pos.x, t);
-        panner.positionY.setValueAtTime(pos.y, t);
-        panner.positionZ.setValueAtTime(pos.z, t);
-      } else if (panner.setPosition) {
-        panner.setPosition(pos.x, pos.y, pos.z);
-      }
-    }
-
-    osc.connect(occ);
-    occ.connect(g);
-
-    if (panner) {
-      g.connect(panner);
-      panner.connect(ctx.destination);
-    } else {
-      g.connect(ctx.destination);
-    }
-
-    osc.start(t);
-    osc.stop(t + s.dur + 0.05);
-  }
-
-  /**
-   * Atualização contínua de física acústica (atualiza oclusão em tempo real e fades de loops)
-   */
   update(dt) {
     if (!this.activeSpatialLoops || this.activeSpatialLoops.size === 0 || !this.ctx) return;
     const t = this.ctx.currentTime;
@@ -542,7 +547,6 @@ export class AudioSystem {
     for (const [id, item] of this.activeSpatialLoops.entries()) {
       item.elapsed += dt;
 
-      // Posição no Panner
       if (item.panner) {
         if (item.panner.positionX) {
           item.panner.positionX.setValueAtTime(item.pos.x, t);
@@ -553,14 +557,12 @@ export class AudioSystem {
         }
       }
 
-      // Teste dinâmico de oclusão por paredes
       const isOccluded = this.checkOcclusion(item.pos);
       item.isOccluded = isOccluded;
 
       const targetCutoff = isOccluded ? 550 : 13000;
       const targetGain = isOccluded ? item.baseGain * 0.35 : item.baseGain;
 
-      // Se estiver nos últimos 2 segundos da vida útil, faz fade-out suave
       const timeLeft = item.duration - item.elapsed;
       let finalGain = targetGain;
       if (timeLeft < 2.0 && timeLeft > 0) {
@@ -577,105 +579,218 @@ export class AudioSystem {
     }
   }
 
+  // =========================================================================
+  // DISPATCHERS DE ÁUDIO PROCEDURAL
+  // =========================================================================
+
+  playProceduralShot(weaponId, destinationNode = null) {
+    const ctx = this._ensure();
+    if (!ctx || !this.weaponSynth) return;
+
+    const dest = destinationNode || this.weaponsGain || ctx.destination;
+    const id = (weaponId || '').toLowerCase();
+
+    // 1. Winchester 1912 (Shotgun)
+    if (id === 'm12') {
+      this.weaponSynth.synthesizeShotgunBlast12G(this.presets.shotgun_blast_12g, ctx, dest, null, true);
+      // Se for o disparo em 1ª pessoa (dest === this.weaponsGain), engatilha ciclo de pump
+      if (!destinationNode || destinationNode === this.weaponsGain) {
+        setTimeout(() => this.playPumpRackSound('back'), 220);
+        setTimeout(() => this.playPumpRackSound('forward'), 420);
+      }
+      return;
+    }
+
+    // 2. S&W .500 Magnum
+    if (id === 'sw500') {
+      this.weaponSynth.synthesizeSW500Magnum(this.presets.sw500_magnum, ctx, dest, null, true);
+      return;
+    }
+
+    // 3. Fuzil 5.56mm NATO (HK416, M249, Prototype)
+    if (id === 'ar15' || id === 'm249' || id === 'rifle_proto') {
+      this.weaponSynth.synthesizeRifle556(this.presets.rifle_556, ctx, dest, null, true);
+      return;
+    }
+
+    // 4. Fuzil Soviético AK-47 7.62x39mm (Disparo Dramático + Pistão de 500g)
+    if (id === 'ak47') {
+      this.weaponSynth.synthesizeAK47(this.presets.ak47_762x39, ctx, dest, null, true);
+      return;
+    }
+
+    // 5. Fuzil .308 Win / 7.62x51mm (SCAR-H)
+    if (id === 'scar_h') {
+      this.weaponSynth.synthesizeRifle308(this.presets.rifle_308, ctx, dest, null, true);
+      return;
+    }
+
+    // 5. UZI 9mm Open-Bolt
+    if (id === 'uzi') {
+      this.weaponSynth.synthesizeUzi(this.presets.smg_uzi_9mm, ctx, dest, null, true);
+      return;
+    }
+
+    // 6. VSS Vintorez 9x39mm
+    if (id === 'vss') {
+      this.weaponSynth.synthesizeVSS(this.presets.vss_vintorez_9x39, ctx, dest, null, true);
+      return;
+    }
+
+    // 7. P-9 / Pistolas 9mm
+    if (id === 'p9') {
+      this.weaponSynth.synthesizeGunshot9mm(this.presets.gunshot_9mm, ctx, dest, null, true);
+      return;
+    }
+
+    // Fallback padrão: Fuzil 5.56
+    this.weaponSynth.synthesizeRifle556(this.presets.rifle_556, ctx, dest, null, true);
+  }
+
+  playPumpRackSound(stage = 'back') {
+    const ctx = this._ensure();
+    if (!ctx || !this.weaponSynth) return;
+    const dest = this.foleyGain || ctx.destination;
+    if (stage === 'back') {
+      this.weaponSynth.synthesizeShotgunPumpBack(this.presets.shotgun_pump_back, ctx, dest, null, true);
+    } else {
+      this.weaponSynth.synthesizeShotgunPumpForward(this.presets.shotgun_pump_forward, ctx, dest, null, true);
+    }
+  }
+
+  playProceduralSurfaceHit(material, pos, soundDelay = 0) {
+    const ctx = this._ensure();
+    if (!ctx || !this.terminalBallistics) return;
+
+    const execute = () => {
+      const { node } = this.createSpatialDestination(pos, 'impacts');
+      const dest = node || this.impactsGain || this.foleyGain || ctx.destination;
+      const mat = (material || '').toLowerCase();
+
+      if (mat.includes('wood') || mat.includes('crate') || mat.includes('board') || mat.includes('door')) {
+        this.terminalBallistics.synthesizeBulletHitWood(this.presets.bullet_hit_wood, ctx, dest, null, true);
+      } else if (mat.includes('metal') || mat.includes('steel') || mat.includes('scaffold') || mat.includes('barrel')) {
+        this.terminalBallistics.synthesizeBulletHitMetal(this.presets.bullet_hit_metal, ctx, dest, null, true);
+      } else if (mat.includes('concrete') || mat.includes('stone') || mat.includes('brick') || mat.includes('masonry') || mat.includes('wall')) {
+        this.terminalBallistics.synthesizeBulletHitMasonry(this.presets.bullet_hit_masonry, ctx, dest, null, true);
+      } else {
+        // Areia, terra, solo granular, grama, chão genérico
+        this.terminalBallistics.synthesizeBulletHitSand(this.presets.bullet_hit_sand, ctx, dest, null, true);
+      }
+    };
+
+    if (soundDelay && soundDelay > 0.035) {
+      setTimeout(execute, Math.round(soundDelay * 1000));
+    } else {
+      execute();
+    }
+  }
+
   _bind() {
     this._unsubs = [
+      // 1. Disparo da Arma do Jogador (1ª Pessoa)
       on('weapon:fired', e => {
-        if (e.weapon?.id === 'rifle_proto' || e.weapon?.audioKey === 'shot_proto') {
-          this.playPrototypeShot();
-          return;
-        }
-        if (e.weapon?.id === 'sw500' || e.weapon?.audioKey === 'shot_sw500') {
-          this.playMagnumBoom();
-          return;
-        }
-        if (e.weapon?.id === 'm12' || e.weapon?.audioKey === 'shot_m12') {
-          this.playShotgunBlast();
-          return;
-        }
-        const key = e.weapon?.audioKey || (e.weapon?.id === 'p9' ? 'shot_p9' : 'shot_hk416');
-        if (this.sounds[key]) {
-          this.play(key);
-        } else if (e.weapon?.audioShot) {
-          const shot = e.weapon.audioShot;
-          this._tone(shot.freqA, shot.freqB, shot.dur, shot.type, shot.gain);
-        }
+        const weaponId = e?.weaponId || e?.weapon?.id || 'ar15';
+        this.playProceduralShot(weaponId, null);
+        // Sobrepressão e concussão imediata no ouvido do próprio atirador
+        this.triggerAcousticDucking(0.45, 0.22);
       }),
-      on('weapon:empty', () => this.playClickSound(900, 0.08)),
-      on('weapon:pump', e => this.playPumpRackSound(e?.stage || 'back')),
-      on('weapon:cycle',        () => this.play('weapon_cycle')),
-      on('weapon:reload:start', () => this.play('reload_start')),
-      on('weapon:reload:end',   () => this.play('reload_end')),
-      on('shot:bot', e => {
-        const key = e.headshot ? 'hit_headshot' : 'hit_bot';
-        if (e?.soundDelay && e.soundDelay > 0.04) {
-          setTimeout(() => this.play(key), Math.round(e.soundDelay * 1000));
-        } else {
-          this.play(key);
-        }
-      }),
-      on('shot:world', e => {
-        const soundKey = 'hit_world';
-        if (e?.pos) {
-          this.playSpatial(soundKey, e.pos);
-        } else if (e?.soundDelay && e.soundDelay > 0.04) {
-          setTimeout(() => this.play(soundKey), Math.round(e.soundDelay * 1000));
-        } else {
-          this.play(soundKey);
-        }
-      }),
-      on('bot:died', e => e?.pos ? this.playSpatial('bot_died', e.pos) : this.play('bot_died')),
-      on('bot:fired', e => e?.pos ? this.playSpatial('bot_shot', e.pos) : this.play('bot_shot')),
-      on('player:damaged',  () => this.play('player_damaged')),
-      on('player:died',     () => this.play('player_died')),
-      on('player:footstep', e => this.playFootstep(e?.material)),
-      on('cheat:activated', () => this.play('hit_headshot')),
 
-      // Eventos de Granada de Fumaça & Áudio Espacial
+      // 2. Disparo de Bots no Espaço 3D
+      on('bot:fired', e => {
+        const weaponId = e?.weaponId || e?.bot?.weaponId || 'ak47';
+        const pos = e?.muzzleWorld || e?.pos;
+        const { node, dist } = this.createSpatialDestination(pos, false);
+        this.playProceduralShot(weaponId, node);
+
+        // Se o disparo inimigo estiver colado no jogador (< 4.5m), aplica sobrepressão opressiva
+        if (dist < 4.5) {
+          const duckAmount = Math.max(0.40, 0.40 + (dist / 4.5) * 0.35);
+          this.triggerAcousticDucking(duckAmount, 0.18);
+        }
+      }),
+
+      on('weapon:empty', () => this.playClickSound()),
+      on('weapon:pump', e => this.playPumpRackSound(e?.stage || 'back')),
+
+      // 3. Recargas Mecânicas Táteis Procedurais
+      on('weapon:reload:start', e => {
+        const ctx = this._ensure();
+        if (!ctx || !this.weaponSynth) return;
+        const wId = e?.weaponId || 'ar15';
+        const dest = this.foleyGain || ctx.destination;
+
+        if (wId === 'm12') {
+          // Inserção da Shell Calibre 12 calibrada da imagem
+          this.weaponSynth.synthesizeShotgunLoadShell(this.presets.shotgun_load_shell, ctx, dest, null, true);
+        } else if (wId === 'p9') {
+          this.weaponSynth.synthesizeSlidePull(this.presets.pistol_slide_pull, ctx, dest, null, true);
+        } else if (wId === 'ak47') {
+          this.weaponSynth.synthesizeMagAkMetalInsert(this.presets.mag_ak_metal_insert, ctx, dest, null, true);
+        } else {
+          // Fuzis Stanag (HK416, SCAR-H, M249, UZI, VSS)
+          this.weaponSynth.synthesizeMagStanagInsert(this.presets.mag_stanag_insert, ctx, dest, null, true);
+        }
+      }),
+
+      on('weapon:reload:end', e => {
+        const ctx = this._ensure();
+        if (!ctx || !this.weaponSynth) return;
+        const wId = e?.weaponId || 'ar15';
+        const dest = this.foleyGain || ctx.destination;
+
+        if (wId === 'p9') {
+          this.weaponSynth.synthesizeSlideRelease(this.presets.pistol_slide_release, ctx, dest, null, true);
+        } else if (wId === 'm12') {
+          this.weaponSynth.synthesizeShotgunPumpForward(this.presets.shotgun_pump_forward, ctx, dest, null, true);
+        } else {
+          // Fechamento de ferrolho em bateria procedural (eliminado o beep square wave)
+          this.weaponSynth.synthesizeSlideRelease(this.presets.pistol_slide_release, ctx, dest, null, true);
+        }
+      }),
+
+      // 4. Balística Terminal de Superfície (Impactos, Penetração e Ricochete Procedurais)
+      on('shot:world', e => {
+        const hitPos = e?.point || e?.pos;
+        this.playProceduralSurfaceHit(e?.material, hitPos, e?.soundDelay || 0);
+      }),
+
+      on('shot:penetration', e => {
+        const hitPos = e?.entryPoint || e?.point || e?.pos;
+        this.playProceduralSurfaceHit(e?.material || 'wood', hitPos, 0);
+      }),
+
+      on('shot:ricochet', e => {
+        const hitPos = e?.point || e?.pos;
+        this.playProceduralSurfaceHit('metal', hitPos, 0);
+      }),
+
+      // 5. Dano no Jogador: Exclusivamente Placa Balística / Kevlar com Ressonância Dinâmica
+      on('player:damaged', e => {
+        const ctx = this._ensure();
+        const dmg = e?.dmg || 25;
+        const dest = this.traumaGain || this.foleyGain || ctx.destination;
+        if (ctx && this.traumaAcoustics) {
+          this.traumaAcoustics.synthesizeBulletHitKevlar(
+            this.presets.bullet_hit_kevlar,
+            ctx,
+            dest,
+            null,
+            dmg
+          );
+        }
+      }),
+
+      on('player:footstep', e => this.playFootstep(e?.material)),
+
+      // 6. Granada de Fumaça (Hissing de Fumaça Procedural)
       on('smoke:detonate', e => {
         if (e?.pos) {
-          this.playSpatial('smoke_pop', e.pos);
           this.startSmokeHiss({ id: e.id || 'smoke_nade', pos: e.pos, duration: e.duration || 10.0 });
         }
       }),
-      on('smoke:bounce', e => {
-        if (e?.pos) this.playSpatial('grenade_bounce', e.pos);
-      }),
       on('smoke:stop', e => {
         if (e?.id) this.stopSpatialLoop(e.id);
-      }),
-
-      // Balística Terminal: Ricochete e Penetração de Paredes
-      on('shot:ricochet', e => {
-        const p = e?.point || e?.pos;
-        if (p) {
-          this.playSpatial('ricochet', p);
-        } else {
-          this.play('ricochet');
-        }
-      }),
-      on('shot:penetration', e => {
-        const mat = (e?.material || 'wall').toLowerCase();
-        let soundKey = 'penetration_wood';
-        if (mat.includes('metal') || mat.includes('steel')) {
-          soundKey = 'penetration_metal';
-        } else if (mat.includes('concrete') || mat.includes('stone') || mat.includes('brick')) {
-          soundKey = 'penetration_concrete';
-        }
-        const p = e?.entryPoint || e?.point;
-        if (p) {
-          this.playSpatial(soundKey, p);
-        } else {
-          this.play(soundKey);
-        }
-      }),
-
-      // Supressão Tática: Estalo Supersônico próximo
-      on('player:suppression', e => {
-        if (e?.pos) {
-          this.playSpatial('bullet_whizby', e.pos);
-        } else {
-          this.play('bullet_whizby');
-        }
       })
     ];
   }

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import createCharacter from './models/TacticalManContinuous.js';
+import createCharacter, { applyPaletteToCharacter } from './models/TacticalManContinuous.js';
 
 const GHOST_COLORS = [
   0xff1e1e, // Blinky (Vermelho)
@@ -14,6 +14,7 @@ export class CharacterView {
   constructor(character, scene, options = {}) {
     this.character = character;
     this.scene = scene;
+    this.options = options;
     this.skinType = options.skinType || 'soldier';
     this.id = options.id || 1;
 
@@ -85,9 +86,14 @@ export class CharacterView {
       this.root.add(this.body, this.head, eyeL, pupilL, eyeR, pupilR);
 
     } else {
-      /* SOLDADO TÁTICO CONTÍNUO (TACTIC MAN CONTINUOUS AUTÊNTICO COM PALETA DE CORES POR BOT) */
+      /* SOLDADO TÁTICO CONTÍNUO (TACTIC MAN CONTINUOUS AUTÊNTICO COM PALETA DE CORES POR BOT OU PLAYER) */
       const palIdx = Math.max(0, (this.id - 1) % 5);
-      this.tactical = createCharacter(THREE, { paletteIndex: palIdx });
+      const soldierSkin = this.options.soldierSkin || this.options.palette || null;
+      this.tactical = createCharacter(THREE, {
+        paletteIndex: palIdx,
+        palette: soldierSkin,
+        skinTone: this.options.skinTone || null
+      });
       this.root.add(this.tactical);
 
       const joints = this.tactical.userData.joints;
@@ -298,6 +304,12 @@ export class CharacterView {
       while (spineTwist < -Math.PI) spineTwist += Math.PI * 2;
       const maxSpineTwist = 1.25;
       this.torso.rotation.y = Math.max(-maxSpineTwist, Math.min(maxSpineTwist, spineTwist));
+    }
+  }
+
+  applySoldierSkin(skinConfig) {
+    if (this.tactical && skinConfig) {
+      applyPaletteToCharacter(this.tactical, skinConfig);
     }
   }
 

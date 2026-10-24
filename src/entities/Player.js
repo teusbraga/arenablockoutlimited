@@ -314,6 +314,13 @@ export class Player extends Character {
     emit('player:respawn');
   }
 
+  setSoldierSkin(skinConfig) {
+    this.soldierSkin = skinConfig;
+    if (this.view) {
+      this.view.applySoldierSkin(skinConfig);
+    }
+  }
+
   destroy() {
     if (this._unsubAds) {
       this._unsubAds();

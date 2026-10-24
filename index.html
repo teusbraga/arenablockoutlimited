@@ -491,6 +491,94 @@
     z-index: 1;
   }
 
+  /* Seção de Customização de Skin do Soldado */
+  .soldier-skin-card {
+    background: rgba(14, 18, 23, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: 4px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .soldier-skin-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .soldier-skin-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 11.5px;
+    letter-spacing: 0.08em;
+    color: rgba(240, 245, 255, 0.9);
+  }
+  .soldier-palette-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .skin-preset-pill {
+    padding: 3px 6px;
+    font-size: 9.5px;
+    font-family: 'JetBrains Mono', monospace;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: rgba(220, 228, 238, 0.78);
+    border-radius: 3px;
+    cursor: pointer;
+    line-height: 1.2;
+    transition: all 0.12s ease;
+  }
+  .skin-preset-pill:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.35);
+    color: #fff;
+  }
+  .skin-preset-pill.active {
+    background: rgba(232, 147, 58, 0.22);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 600;
+  }
+  .soldier-color-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px 10px;
+  }
+  .soldier-color-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    font-size: 10.5px;
+    color: rgba(180, 188, 198, 0.75);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .soldier-picker-wrap {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .soldier-picker-wrap input[type="color"] {
+    width: 22px;
+    height: 20px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 2px;
+    cursor: pointer;
+    background: transparent;
+  }
+  .soldier-picker-wrap span {
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    color: rgba(240, 245, 252, 0.85);
+    min-width: 50px;
+  }
+
   #hitmarker{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%) scale(1.3);
     font-family:'Oswald',sans-serif;font-size:24px;color:var(--warn);opacity:0;
     pointer-events:none;transition:opacity .08s,transform .08s;z-index:110;}
@@ -986,6 +1074,10 @@
       min-height: 86px;
       margin-bottom: 2px;
     }
+    .soldier-color-grid {
+      grid-template-columns: 1fr;
+      gap: 4px;
+    }
     #overlay .menu-option {
       font-size: 10.5px;
       gap: 8px;
@@ -1412,6 +1504,7 @@
         <button type="button" class="menu-tab-btn" data-tab="match">🎮 PARTIDA</button>
         <button type="button" class="menu-tab-btn" data-tab="textures">🎨 TEXTURAS</button>
         <button type="button" class="menu-tab-btn" data-tab="crosshair">🎯 MIRA</button>
+        <button type="button" class="menu-tab-btn" data-tab="audio">🔊 ÁUDIO</button>
         <button type="button" class="menu-tab-btn" data-tab="system">⚙️ AJUSTES</button>
       </div>
 
@@ -1426,6 +1519,7 @@
               <div class="wp-preview-controls">
                 <button type="button" id="wp-btn-slot1" class="wp-pill-btn active" title="Visualizar Arma Primária">[1] PRI</button>
                 <button type="button" id="wp-btn-slot2" class="wp-pill-btn" title="Visualizar Arma Secundária">[2] SEC</button>
+                <button type="button" id="wp-btn-soldier" class="wp-pill-btn" title="Visualizar Modelo do Soldado / Skin">[👤] OPERADOR</button>
                 <button type="button" id="wp-btn-mode-rotate" class="wp-pill-btn active" title="Modo Arrastar: Girar Modelo 3D">🔄 GIRAR</button>
                 <button type="button" id="wp-btn-mode-pan" class="wp-pill-btn" title="Modo Arrastar: Mover Modelo 3D">✋ MOVER</button>
                 <button type="button" id="wp-btn-autospin" class="wp-pill-btn active" title="Ativar/Pausar Rotação Automática">⟳ AUTO</button>
@@ -1467,6 +1561,78 @@
               <option value="vss">VSS Vintorez (Subsonic 9x39mm Sniper)</option>
               <option value="scar_h">FN SCAR-H (Mk 17 7.62 NATO)</option>
             </select>
+          </div>
+
+          <!-- Customização do Soldado / Skin do Character -->
+          <div class="soldier-skin-card">
+            <div class="soldier-skin-header">
+              <span class="soldier-skin-title">🪖 SKIN DO OPERADOR (CHARACTER)</span>
+              <button type="button" id="btn-preview-soldier" class="wp-pill-btn" title="Ver Soldado na Vitrine 3D">👁️ VER NO 3D</button>
+            </div>
+
+            <div class="menu-option">
+              <label for="soldier-preset-select">Camuflagem / Paleta</label>
+              <select id="soldier-preset-select">
+                <option value="woodland" selected>🌲 Woodland Green (Florestal Padrão)</option>
+                <option value="urban">🏙️ Urban Slate (Cinza SWAT)</option>
+                <option value="desert">🏜️ Desert Coyote (Areia do Deserto)</option>
+                <option value="specops">🌑 Spec-Ops Dark (Preto Furtivo)</option>
+                <option value="mercenary">🍂 Mercenary Camo (Forças Terrestres)</option>
+                <option value="arctic">❄️ Arctic Snow (Branco Neve)</option>
+                <option value="crimson">🩸 Crimson Ops (Vermelho Tático)</option>
+                <option value="navy">⚓ Navy Seal (Azul Noturno)</option>
+                <option value="hazard">🧪 Toxic Hazard (Amarelo Ocre)</option>
+                <option value="custom">🛠️ Personalizado (Custom)</option>
+              </select>
+            </div>
+
+            <!-- Botões Rápidos de Camuflagem -->
+            <div class="soldier-palette-pills" id="soldier-palette-pills">
+              <button type="button" class="skin-preset-pill active" data-preset="woodland" title="Woodland Green">🌲 Floresta</button>
+              <button type="button" class="skin-preset-pill" data-preset="urban" title="Urban Slate">🏙️ SWAT</button>
+              <button type="button" class="skin-preset-pill" data-preset="desert" title="Desert Coyote">🏜️ Deserto</button>
+              <button type="button" class="skin-preset-pill" data-preset="specops" title="Spec-Ops Dark">🌑 Furtivo</button>
+              <button type="button" class="skin-preset-pill" data-preset="mercenary" title="Mercenary Camo">🍂 Mercenário</button>
+              <button type="button" class="skin-preset-pill" data-preset="arctic" title="Arctic Snow">❄️ Neve</button>
+              <button type="button" class="skin-preset-pill" data-preset="crimson" title="Crimson Ops">🩸 Crimson</button>
+              <button type="button" class="skin-preset-pill" data-preset="navy" title="Navy Seal">⚓ Navy</button>
+              <button type="button" class="skin-preset-pill" data-preset="hazard" title="Toxic Hazard">🧪 Tóxico</button>
+            </div>
+
+            <!-- Grade de Seleção de Cores Livres (Fine Tuning) -->
+            <div class="soldier-color-grid">
+              <div class="soldier-color-item">
+                <label for="soldier-color-uniform">👕 Farda</label>
+                <div class="soldier-picker-wrap">
+                  <input type="color" id="soldier-color-uniform" value="#3a4833">
+                  <span id="soldier-val-uniform">#3A4833</span>
+                </div>
+              </div>
+
+              <div class="soldier-color-item">
+                <label for="soldier-color-vest">🦺 Colete</label>
+                <div class="soldier-picker-wrap">
+                  <input type="color" id="soldier-color-vest" value="#303c2a">
+                  <span id="soldier-val-vest">#303C2A</span>
+                </div>
+              </div>
+
+              <div class="soldier-color-item">
+                <label for="soldier-color-pads">🥾 Proteções</label>
+                <div class="soldier-picker-wrap">
+                  <input type="color" id="soldier-color-pads" value="#161816">
+                  <span id="soldier-val-pads">#161816</span>
+                </div>
+              </div>
+
+              <div class="soldier-color-item">
+                <label for="soldier-color-skin">🧑 Pele</label>
+                <div class="soldier-picker-wrap">
+                  <input type="color" id="soldier-color-skin" value="#c4987e">
+                  <span id="soldier-val-skin">#C4987E</span>
+                </div>
+              </div>
+            </div>
           </div>
           <div class="menu-option">
             <label for="bot-skin-select">Tipo de Inimigos</label>
@@ -1685,7 +1851,49 @@
           </div>
         </div>
 
-        <!-- Aba 5: Ajustes e Sistema -->
+        <!-- Aba 5: Mixer de Áudio e Volumes -->
+        <div class="menu-tab-panel" data-panel="audio">
+          <div class="menu-option">
+            <label for="vol-master-slider">Volume Geral (Master)</label>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input id="vol-master-slider" type="range" min="0" max="1.0" step="0.05" value="1.00">
+              <span id="vol-master-val">100%</span>
+            </div>
+          </div>
+          <div class="menu-option">
+            <label for="vol-footsteps-slider">Passos (Locomoção / Foley)</label>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input id="vol-footsteps-slider" type="range" min="0" max="1.0" step="0.05" value="0.05">
+              <span id="vol-footsteps-val">5%</span>
+            </div>
+          </div>
+          <div class="menu-option">
+            <label for="vol-weapons-slider">Disparos de Armas</label>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input id="vol-weapons-slider" type="range" min="0" max="1.0" step="0.05" value="1.00">
+              <span id="vol-weapons-val">100%</span>
+            </div>
+          </div>
+          <div class="menu-option">
+            <label for="vol-impacts-slider">Impactos Balísticos (Superfícies)</label>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input id="vol-impacts-slider" type="range" min="0" max="1.0" step="0.05" value="0.45">
+              <span id="vol-impacts-val">45%</span>
+            </div>
+          </div>
+          <div class="menu-option">
+            <label for="vol-trauma-slider">Dano no Jogador (Kevlar / Trauma)</label>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <input id="vol-trauma-slider" type="range" min="0" max="1.0" step="0.05" value="0.80">
+              <span id="vol-trauma-val">80%</span>
+            </div>
+          </div>
+          <div class="menu-option" style="justify-content:flex-end;margin-top:10px;">
+            <button id="vol-btn-reset" type="button" style="font-size:10px;padding:6px 14px;border:1px solid rgba(255,255,255,0.2);background:transparent;color:var(--dim);cursor:pointer;">↺ RESTAURAR PADRÕES DE ÁUDIO</button>
+          </div>
+        </div>
+
+        <!-- Aba 6: Ajustes e Sistema -->
         <div class="menu-tab-panel" data-panel="system">
           <div class="menu-option">
             <label for="sens-slider">Sensibilidade Câmera</label>
