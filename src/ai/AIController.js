@@ -349,6 +349,6 @@ export class AIController {
     });
     
     // Evento de muzzle flash
-    emit('weapon:fired', { muzzleWorld: _muzzleWorld, forward: _forward });
+    // Muzzle flash e áudio 3D são disparados via bot:fired
   }
 }

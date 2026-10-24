@@ -345,6 +345,7 @@ export class WeaponSystem {
           this.qteSuccess = true;
           emit('weapon:qte:result', { success: true });
           emit('notification', { message: '⚡ Recarga Tática Perfeita!' });
+          this.reserveMagsByWeapon[this.current] = Math.max(0, (this.reserveMagsByWeapon[this.current] ?? 3) - 1);
 
           // Restaura munição completa do novo carregador
           this.ammoRestored = true;
@@ -415,6 +416,9 @@ export class WeaponSystem {
 
       // Ponto de inserção do novo carregador (78% do ciclo) -> Balas restauradas
       if (p >= 0.78 && !this.ammoRestored) {
+        if (this.reloadType === 'tactical') {
+          this.reserveMagsByWeapon[this.current] = Math.max(0, (this.reserveMagsByWeapon[this.current] ?? 3) - 1);
+        }
         this.ammoRestored = true;
         this.ammo = def.magSize;
         this.ammoByWeapon[this.current] = this.ammo;

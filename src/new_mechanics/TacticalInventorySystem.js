@@ -36,8 +36,8 @@ export class TacticalInventorySystem {
 
     // Equipamento corporal ativo (Equipped Gear)
     this.gear = {
-      primary: null,    // ID da arma no slot 1 (ex: 'hk416')
-      secondary: null,  // ID da arma no slot 2 (ex: 'p9')
+      primary: options.primary || null,    // ID da arma no slot 1 (ex: 'hk416')
+      secondary: options.secondary || null,  // ID da arma no slot 2 (ex: 'p9')
       armor: {
         id: 'light_vest',
         name: 'Colete Balístico Leve',

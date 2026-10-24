@@ -6,6 +6,8 @@ import { initWeaponsFromData, WEAPONS } from '../src/weapons/WeaponDefs.js';
 import { MagazineDrop } from '../src/weapons/MagazineDrop.js';
 import { on } from '../src/core/EventBus.js';
 import { Input } from '../src/core/Input.js';
+import { Player } from '../src/entities/Player.js';
+import { TacticalInventorySystem } from '../src/new_mechanics/TacticalInventorySystem.js';
 import fs from 'node:fs';
 
 if (!globalThis.window) globalThis.window = globalThis;
@@ -132,6 +134,7 @@ test('Tactical Reload - Retention Reload with QTE Success Completes Immediately'
   assert.equal(ws.reloading, false, 'Recarga deve TERMINAR IMEDIATAMENTE ao acertar o tempo!');
   assert.equal(ws.ammo, WEAPONS.ar15.magSize, 'Arma imediatamente restaurada ao acertar o tempo');
   assert.ok(reloadEnded, 'Deve ter emitido weapon:reload:end');
+  assert.equal(ws.getReserveMags('ar15'), 2, 'Recarga tática com acerto consome 1 carregador da reserva');
 
   unsubStart();
   unsubRes();
@@ -164,6 +167,7 @@ test('Tactical Reload - Retention Reload with QTE Failure Takes 4.0s', () => {
   // Advance to 4.0s total
   ws.update(1.0);
   assert.equal(ws.reloading, false, 'Recarga completa após 4.0s');
+  assert.equal(ws.getReserveMags('ar15'), 2, 'Recarga tática completa consome 1 carregador da reserva');
 
   unsubRes();
 });
@@ -336,4 +340,30 @@ test('Tactical Reload - Input Hold R triggers Tactical QTE, Needle Strike Finish
   input.releaseAction('reload');
   ws.update(0.016);
   assert.equal(ws.reloading, false, 'Não deve engatilhar uma segunda recarga fantasma ao soltar R do QTE');
+});
+
+test('Tactical Inventory & Player Heal - Medkit heals player HP and syncs gear', () => {
+  const world = { raycast: () => null, addBox: () => {} };
+  const player = new Player(world, [-24, 24, -24, 24], [0, 0.1, 0]);
+  const inv = new TacticalInventorySystem({
+    primary: 'hk416',
+    secondary: 'p9'
+  });
+  assert.equal(inv.gear.primary, 'hk416');
+  assert.equal(inv.gear.secondary, 'p9');
+
+  player.hp = 45;
+  let hpReceived = null;
+  const unsubHp = on('player:hp', e => { hpReceived = e.hp; });
+
+  // Slot 2 in storage is medkit (healAmount: 50)
+  assert.equal(inv.storage[2].id, 'medkit');
+  const used = inv.useItem(2);
+  assert.equal(used, true);
+  assert.equal(player.hp, 95);
+  assert.equal(hpReceived, 95);
+
+  unsubHp();
+  inv.destroy();
+  player.destroy();
 });

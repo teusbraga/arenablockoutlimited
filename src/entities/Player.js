@@ -59,6 +59,12 @@ export class Player extends Character {
         this.togglePerspective();
       }
     });
+
+    this._unsubHeal = on('player:heal', ({ amount }) => {
+      if (!this.alive) return;
+      this.hp = Math.min(this.maxHp, this.hp + (amount || 50));
+      emit('player:hp', { hp: this.hp, max: this.maxHp });
+    });
   }
 
   get yaw() {
@@ -327,6 +333,10 @@ export class Player extends Character {
     if (this._unsubFired) {
       this._unsubFired();
       this._unsubFired = null;
+    }
+    if (this._unsubHeal) {
+      this._unsubHeal();
+      this._unsubHeal = null;
     }
     if (this.view) {
       this.view.destroy();

@@ -132,7 +132,10 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
     });
     player.setAimAssist(aimAssist);
 
-    const inventorySystem = new TacticalInventorySystem();
+    const inventorySystem = new TacticalInventorySystem({
+      primary: weapons.slots[0] || null,
+      secondary: weapons.slots[1] || null
+    });
 
     gameManager = new GameManager({
       scene,
