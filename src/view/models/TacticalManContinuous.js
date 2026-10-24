@@ -1666,19 +1666,22 @@ function createTacticalHand(THREE, side, wristPos, armDir, mats, options = {}) {
     handGroup.add(fMesh);
   });
 
-  // 3. Polegar: Oposição Medial e Flexão (Relaxada 18° ou Grip Firme 45°)
+  // 3. Polegar: Oposição Medial e Flexão (Relaxada 18° ou Grip Firme Tangencial 70°)
   const thumbLen = midLen * 0.80; // ~0.068m
   const thumbBase = add(
     add(wristPos, mul(d, palmLen * 0.34)),
-    add(mul(rTrans, 0.026), mul(uPalm, 0.008))
+    add(mul(rTrans, grip ? 0.014 : 0.026), mul(uPalm, grip ? 0.014 : 0.008))
   );
 
-  const thumbOppDeg = ((grip ? 42 : 32) * Math.PI) / 180;
-  const thumbCurlDeg = ((grip ? 45 : 18) * Math.PI) / 180;
+  const thumbOppDeg = ((grip ? 55 : 32) * Math.PI) / 180;
+  const thumbCurlDeg = ((grip ? 70 : 18) * Math.PI) / 180;
+  const rTransF = grip ? 0.12 : 0.52;
+  const dF = grip ? 0.82 : 0.58;
+  const uPalmF = grip ? 0.55 : 0.62;
   const thumbMainDir = norm(
     add(
-      add(mul(d, 0.58), mul(rTrans, 0.52)),
-      mul(uPalm, Math.sin(thumbOppDeg) * 0.62)
+      add(mul(d, dF), mul(rTrans, rTransF)),
+      mul(uPalm, Math.sin(thumbOppDeg) * uPalmF)
     )
   );
 
@@ -1693,11 +1696,11 @@ function createTacticalHand(THREE, side, wristPos, armDir, mats, options = {}) {
       thumbBase,
       add(
         mul(thumbMainDir, thumbLen * t),
-        mul(uPalm, thumbLen * 0.25 * Math.sin(curl))
+        mul(uPalm, thumbLen * (grip ? 0.35 : 0.25) * Math.sin(curl))
       )
     );
 
-    const tTangent = norm(add(thumbMainDir, mul(uPalm, Math.sin(curl) * 0.4)));
+    const tTangent = norm(add(thumbMainDir, mul(uPalm, Math.sin(curl) * (grip ? 0.65 : 0.40))));
     const tTrans = norm(cross(uPalm, tTangent));
     const tNorm = cross(tTangent, tTrans);
 
