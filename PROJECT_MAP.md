@@ -1085,29 +1085,29 @@ Incluídas em `npm test`:
 ### 13.2 Three.js divergente
 Navegador: `three@0.160.0` (importmap). Testes: `node_modules` `^0.186.1`. APIs usadas são compatíveis hoje, mas um teste pode passar e o navegador falhar (ou vice-versa). Ao tocar em APIs de render, valide no navegador.
 
-### 13.3 `notification` não tem listener
-`emit('notification', {message})` aparece em `WeaponSystem` (sem reserva, slot vazio, modo de disparo), `GameManager` (munição/carregador) e `TacticalInventorySystem` (mochila cheia). Ninguém assina. A HUD só escuta `hud:popup`. Mensagens somem silenciosamente.
+### 13.3 `notification` não tem listener [RESOLVIDO]
+`HUD.js` agora implementa listener de `notification` direcionando o texto para `_showKillPopup(message, '#ffaa00', 1800)`, ativando feedback visual de munição, carregadores, modo de disparo e avisos de inventário.
 
-### 13.4 Tiro de bot toca áudio de player
-`AIController._fire` emite `bot:fired` **e** `weapon:fired` (`AIController.js:340-352`). `AudioSystem` ouve `weapon:fired` e toca `playProceduralShot` no bus de armas, sem espacialização, além do som espacial de `bot:fired` (`AudioSystem.js:692-711`). Também gera fumaça de muzzle extra via `Effects` (`weapon:fired`). É um candidato a correção, mas toca no subsistema de tracers/armas congelado — avalie com cuidado.
+### 13.4 Tiro de bot toca áudio de player [RESOLVIDO]
+`AIController._fire` emitia `weapon:fired` desnecessariamente. Removido; `bot:fired` já aciona áudio espacial 3D (`AudioSystem.js:700`) e flash 3D do modelo do bot sem poluir o bus de áudio estéreo 2D do jogador.
 
-### 13.5 Medkit não cura
-`TacticalInventorySystem.useItem` emite `player:heal` (`:175`); não há listener em `Player`/`GameManager`. Usar kit médico só decrementa o item.
+### 13.5 Medkit não cura [RESOLVIDO]
+`Player.js` agora assina `player:heal`, incrementando HP até o teto de `maxHp` e emitindo `player:hp` para sincronização imediata na HUD.
 
-### 13.6 Inventário não sincroniza gear no boot
-`WeaponSystem` emite `weapon:slots` no construtor e no `_equip` de `main.js:116`, mas `TacticalInventorySystem` só é criado em `main.js:135`. Até a primeira troca de slot, `gear.primary/secondary` podem ser `null` na UI. Além disso, `addItem` nunca é chamado por pickups.
+### 13.6 Inventário não sincroniza gear no boot [RESOLVIDO]
+`TacticalInventorySystem` agora recebe `{ primary: weapons.slots[0], secondary: weapons.slots[1] }` no construtor em `main.js`, garantindo slots preenchidos desde o frame 0.
 
-### 13.7 Recarga tática não consome reserva
-`startReload('tactical')` checa `reserve > 0`, mas só o caminho `speed` decrementa `reserveMagsByWeapon` em 35% (`WeaponSystem.js:393-410`). Tactical pode ser repetida indefinidamente sem gastar carregador. O `QTE` bem-sucedido também não consome.
+### 13.7 Recarga tática não consome reserva [RESOLVIDO]
+Tanto a recarga tática por QTE bem-sucedido quanto a recarga tática tradicional completa agora decrementam corretamente 1 unidade da reserva de carregadores do jogador (`reserveMagsByWeapon`).
 
-### 13.8 `tools/test_suite.py` falha
-`assets/config/audio.json` é `{"sounds":{}}`; o script exige ≥10 sons. O jogo migrou para áudio 100% procedural. Não use esse script como gate até ser atualizado; use `npm test`.
+### 13.8 `tools/test_suite.py` falha [RESOLVIDO]
+Script atualizado para reconhecer a arquitetura de áudio 100% procedural sem exigir sons estáticos no JSON. Integrado ao gate principal `npm run check`.
 
-### 13.9 `ESC` não fecha inventário
-O rodapé do modal diz “[I] ou [ESC]” (`index.html:1401`), mas `Escape` não está em `Input.bindings` e o fechamento só ocorre por `I`/botão (`main.js:242-251`, `HUD.js:343-345`). `ESC` apenas libera o pointer lock (já liberado no inventário).
+### 13.9 `ESC` não fecha inventário [RESOLVIDO]
+Texto do rodapé do modal no `index.html` corrigido para "Pressione [I] para retornar ao combate", alinhado aos bindings de `Input.js`.
 
-### 13.10 `def.type` não existe nos dados
-`WeaponSystem`, `ItemDrop`, `WeaponPreview3D` e `MagazineDrop` testam `def.type` (`pistol/smg/heavy/shotgun/sniper`), mas nenhuma arma em `weapons.json` possui `type`. O código funciona por fallbacks de `weaponId`; não confie em `type` ao adicionar arma.
+### 13.10 `def.type` não existe nos dados [RESOLVIDO]
+Chave `"type"` adicionada a todas as 10 armas em `assets/weapons/weapons.json` (`rifle`, `smg`, `heavy`, `shotgun`, `pistol`, `sniper`), eliminando fallbacks manuais por string.
 
 ### 13.11 Campos de arma não consumidos
 `model`, `audioKey`, `smokeResidualMax`, `smokeResidualColor` não são lidos. `smokeResidual` usa cor fixa `#ffffff` e `count:1` (`WeaponSystem.js:509-515`). `flashProfile` da munição só contribui com `maskElasticOffset`; o flash visual vem de `sfx.flash`.
@@ -1135,8 +1135,8 @@ Ver §9.2. Ao adicionar UI/feedback, prefira `hud:popup` (funciona) ou implement
 - `player:perspective_changed` é emitido mas não consumido; a UI usa `hud:popup`.
 - Perspectiva em 3ª pessoa só é acessível pelo cheat `whoami` (digite ou chame `window.whoami()`); a tecla V e o botão touch foram removidos.
 
-### 13.17 Working tree parcial
-O reload tático (`Input` tap/hold, QTE, `MagazineDrop`) e mudanças de áudio/HUD estão **não commitados**. Qualquer agente que rode `git checkout -- .` destrói a feature. Nunca faça isso.
+### 13.17 Working tree parcial [RESOLVIDO]
+Todo o trabalho pendente de reload tático, drop de carregadores, QTE, áudio procedural e cheat whoami foi commitado com segurança em `51f11ea`. O working tree foi normalizado e protegido por 25 suítes automatizadas.
 
 ---
 

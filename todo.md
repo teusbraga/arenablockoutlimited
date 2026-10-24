@@ -66,20 +66,20 @@ Esses pontos não devem ser reescritos. O trabalho é consolidar em volta deles.
 ## Backlog priorizado
 
 ### P0 — Antes de qualquer refatoração
-- [ ] Commitar o trabalho em andamento (reload tático, `MagazineDrop`, QTE, `whoami`) ou registrar claramente que é intocável.
-- [ ] Não rodar `git checkout -- .`, `git restore .` ou `git clean -fd`.
-- [ ] Confirmar com o usuário quais “defeitos” são intencionais antes de corrigi-los (`PROJECT_MAP.md` §13).
+- [x] Commitar o trabalho em andamento (reload tático, `MagazineDrop`, QTE, `whoami`) ou registrar claramente que é intocável. (Commit `51f11ea`)
+- [x] Não rodar `git checkout -- .`, `git restore .` ou `git clean -fd`.
+- [x] Confirmar com o usuário quais “defeitos” são intencionais antes de corrigi-los (`PROJECT_MAP.md` §13).
 
 ### P1 — Confiabilidade
-- [ ] Adicionar os 8 testes restantes ao `npm test`.
-- [ ] Corrigir ou aposentar `tools/test_suite.py` (ele não representa o estado atual).
-- [ ] Implementar listener de `notification` na HUD **ou** substituir todos os usos por `hud:popup` e remover o evento.
-- [ ] Remover eventos e campos mortos, ou implementar os consumidores.
+- [x] Adicionar os 8 testes restantes ao `npm test`. (Gate unificado com 25 suítes no total)
+- [x] Corrigir ou aposentar `tools/test_suite.py` (ele não representa o estado atual). (Atualizado para validar áudio procedural e SoundPresets)
+- [x] Implementar listener de `notification` na HUD **ou** substituir todos os usos por `hud:popup` e remover o evento. (Listener ativado em HUD.js)
+- [x] Remover eventos e campos mortos, ou implementar os consumidores. (`def.type` formalizado nas 10 armas, listeners órfãos podados)
 - [ ] Unificar a versão de Three.js entre navegador e testes.
 - [ ] Adicionar lint/format/typecheck mínimos (sem build step).
 
 ### P2 — Redução de arquivos-Deus
-- [ ] Extrair CSS e HUD de `index.html` para arquivos próprios, mantendo o importmap.
+- [x] Extrair CSS e HUD de `index.html` para arquivos próprios, mantendo o importmap. (1294 linhas extraídas para `assets/css/main.css`, index.html caiu para 701 linhas)
 - [ ] Dividir `Effects.js` em `tracers`, `smoke`, `sparks`, `casings`, `blood`.
 - [ ] Dividir `TextureGenerator.js` por domínio (italy, dust, woods, urban).
 - [ ] Dividir `ItalyProps.js` por categoria (arquitetura, vegetação, militar).
@@ -87,16 +87,16 @@ Esses pontos não devem ser reescritos. O trabalho é consolidar em volta deles.
 - [ ] Quebrar `MenuController` em controladores por aba.
 
 ### P3 — Consolidação de sistemas
-- [ ] Definir um único ponto de decisão para mira (câmera + cano + HUD + aim assist).
-- [ ] Definir um único ponto de resolução de dano (projétil → entidade → eventos).
+- [x] Definir um único ponto de decisão para mira (câmera + cano + HUD + aim assist). (Formalizado em `docs/PIPELINES.md` e coberto por `test/mira_pipeline_test.js`)
+- [x] Definir um único ponto de resolução de dano (projétil → entidade → eventos). (Formalizado em `docs/PIPELINES.md` e coberto por `test/damage_pipeline_test.js`)
 - [ ] Integrar de verdade ou remover `LocomotionSmoothingSystem` dos documentos que o anunciam como integrado.
 - [ ] Revisar `new_mechanics/` e renomear para domínios reais.
 
 ### P4 — Documentação
-- [ ] Reescrever `README.md` a partir de `PROJECT_MAP.md`.
-- [ ] Corrigir `HUD.md` e `walkthrough.md` ou marcá-los como históricos.
-- [ ] Atualizar `#controls` no `index.html`.
-- [ ] Manter `PROJECT_MAP.md` §13 como registro vivo de divergências.
+- [x] Reescrever `README.md` a partir de `PROJECT_MAP.md`.
+- [x] Corrigir `HUD.md` e `walkthrough.md` ou marcá-los como históricos.
+- [x] Atualizar `#controls` no `index.html`.
+- [x] Manter `PROJECT_MAP.md` §13 como registro vivo de divergências.
 
 ---
 
