@@ -2,7 +2,10 @@
 
 > **Browser-native tactical FPS with ballistic simulation, procedural weapons, and AI opponents — zero install required.**
 
-[![Tests](https://img.shields.io/badge/tests-13%20suites-green)]()
+> [!IMPORTANT]
+> **Fonte Canônica da Verdade:** A documentação técnica canônica, schemas de dados, contratos de eventos e regras de arquitetura estão centralizados em [`PROJECT_MAP.md`](./PROJECT_MAP.md) e [`AGENTS.md`](./AGENTS.md). Consulte-os para qualquer detalhe de implementação.
+
+[![Tests](https://img.shields.io/badge/tests-23%20suites-green)]()
 [![Three.js](https://img.shields.io/badge/three.js-0.186%2B-blue)]()
 [![PWA](https://img.shields.io/badge/PWA-installable-blueviolet)]()
 [![Platform](https://img.shields.io/badge/platform-web%20%7C%20mobile-lightgrey)]()
@@ -45,11 +48,12 @@ A single-player FPS built entirely on **Three.js + Web APIs** — no Unity, no U
 - Loot drop system with floating animation and category-color halo
 - Multi-biome prop library: CS Italy · Village · Desert · Jungle
 
-### 🔫 Weapons (9 guns)
+### 🔫 Weapons (10 guns)
 | Gun | Type | Unique Feature |
 |---|---|---|
 | AK-47 | Assault Rifle | Banana mag (5-segment trigonometric arc), right-pull spray |
 | HK416 | Assault Carbine | Monolithic quad-rail, hooded front sight, linear-left spray |
+| FN SCAR-H | Battle Rifle | 7.62 NATO, high damage, smooth climb recoil |
 | M249 SAW | Light Machine Gun | 100-round ammo box, 6-bullet articulated belt, bipod |
 | P-9 | Pistol | Animated slide blowback, slide-lock on empty |
 | Rifle Prototype | Assault Carbine | Red dot PIP-ready optic, animated left-side charging handle |
@@ -106,7 +110,7 @@ Audio:          Web Audio API (procedural synthesis)
 Textures:       HTML5 Canvas 2D API (procedural generation)
 Networking:     None — single-player offline
 PWA:            Web App Manifest + Service Worker
-Tests:          Node.js test runner (headless, 13 suites)
+Tests:          Node.js test runner (headless, 23 suites)
 Runtime dep:    three@^0.186.1 (only production dependency)
 ```
 
@@ -135,16 +139,17 @@ cd arena-blockout
 # No build step! Just serve the files statically
 npx serve .
 # or
-python -m http.server 8080
+python -m http.server 8000
 # or use VS Code Live Server
 
-# Open http://localhost:8080
+# Open http://localhost:8000
 ```
 
 ### Running Tests
 ```bash
 npm install   # installs three.js for headless tests
-npm test      # runs all 13 headless simulation suites
+npm test      # runs all 23 headless simulation suites
+npm run check # runs test_suite.py (JSON & imports) + all 23 headless suites
 ```
 
 ---
@@ -312,15 +317,16 @@ weaponBuilders['mp5'] = buildMP5;
 | Look | Mouse | Right touchpad |
 | Fire | Left Mouse Button | Fire button (right) |
 | ADS (Aim Down Sight) | Right Mouse Button | ADS toggle button |
-| Reload | R | Reload button |
-| Crouch | Ctrl / C | Crouch toggle |
+| Reload | R (Tap: Speed / Hold: Tactical QTE) | Reload button |
+| Crouch | C (hold) | Crouch toggle |
 | Sprint | Shift | Auto at >75% joystick |
 | Lean Left / Right | Q / E | — |
-| Switch Weapon | 1, 2, Scroll, Tab | Weapon button |
-| Throw Smoke | G | Smoke button |
+| Switch Weapon | 1, 2 | Weapon button |
+| Fire Mode | B | Fire mode button |
 | Interact | F | Interact button |
-| Toggle Perspective | V | — |
-| Inventory | I | Inventory button |
+| Tactical Inventory | I | Inventory button |
+| Throw Smoke | U | Smoke button |
+| Toggle Perspective | `whoami` cheat (`window.whoami()`) | — |
 | Pause / Menu | Esc | Pause button |
 
 ---
@@ -331,7 +337,7 @@ weaponBuilders['mp5'] = buildMP5;
 ```
 requestAnimationFrame
   └─ Engine.frame(nowMs)
-       ├─ fixedUpdate × N  (1/120s steps, physics deterministic)
+       ├─ fixedUpdate × N  (1/60s steps, physics deterministic)
        │    ├─ Player.update(dt, input)
        │    ├─ Bot[i].update(dt, player)
        │    ├─ WeaponSystem.fixedUpdate(dt)

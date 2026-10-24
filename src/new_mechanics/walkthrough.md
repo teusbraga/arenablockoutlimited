@@ -1,5 +1,8 @@
 # 🎯 Walkthrough Completo: Overhaul de Miras, Balística 3D & Aim Assist Refinado
 
+> [!WARNING]
+> **Documento de Referência Histórica:** Este documento contém anotações conceituais da fase exploratória (ex.: menção a códigos de compartilhamento CSGO-xxxx, seletores RGB e porte Godot que não fazem parte do runtime atual). Para a fonte canônica da verdade do projeto, consulte [`PROJECT_MAP.md`](../../PROJECT_MAP.md) e [`AGENTS.md`](../../AGENTS.md).
+
 Este documento consolida todas as mecânicas implementadas no **Overhaul de Miras e Balística**, projetadas com separação estrita entre a **Física 3D Real do Cano** e a **Representação Visual no HUD**, além de documentação pronta para o porte **Godot 4.x** em [`src/new_mechanics/`](file:///c:/Users/Mateus/Desktop/Projetos/FPS%20BROWSER/deepseek/fps%20blocky/src/new_mechanics/index.js).
 
 ---

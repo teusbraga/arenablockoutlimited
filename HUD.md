@@ -1,5 +1,8 @@
 # 🖥️ Arquitetura de HUD, Responsividade & Controle de Estados de Input (`HUD.md`)
 
+> [!NOTE]
+> **Documento de Referência Histórica de Interface:** Para o mapa canônico completo de arquitetura, eventos e schemas de dados, consulte [`PROJECT_MAP.md`](./PROJECT_MAP.md) e [`AGENTS.md`](./AGENTS.md).
+
 Este documento detalha o funcionamento completo da camada de interface (**HUD In-Game**, **Modais**, **Indicador Direcional de Disparos**, **Responsividade PC/Mobile** e **Máquina de Estados de Pointer Lock/Input**) do **Arena Blockout Limited**.
 
 ---
