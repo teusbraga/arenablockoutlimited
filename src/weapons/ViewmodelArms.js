@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { createTacticalArm, createCharacterMaterials } from '../view/models/TacticalManContinuous.js';
+import { createTacticalArm, createCharacterMaterials, applyPaletteToMaterials } from '../view/models/TacticalManContinuous.js';
 
 /**
  * Socket offsets para empunhadura tática em 1ª pessoa calibrados por arma (estilo CS / Tactical FPS).
@@ -51,7 +51,7 @@ const WEAPON_HAND_SOCKETS = {
   },
   m12: {
     right: { wrist: [0.01, -0.11, 0.09], fingers: [0.00, -0.75, -0.65], palm: [-0.20, 0.40, -0.90] },
-    left:  { wrist: [-0.04, -0.07, -0.26], fingers: [0.15, 0.20, -0.96], palm: [0.40, 0.90, -0.15] },
+    left:  { wrist: [-0.024, -0.038, -0.245], fingers: [0.12, 0.18, -0.97], palm: [0.35, 0.92, -0.15] },
     oneHand: false
   },
   uzi: {
@@ -90,8 +90,8 @@ export class ViewmodelArms {
 
     this.mats = createCharacterMaterials(THREE);
 
-    this.leftArm = createTacticalArm(THREE, 'left', this.mats);
-    this.rightArm = createTacticalArm(THREE, 'right', this.mats);
+    this.leftArm = createTacticalArm(THREE, 'left', this.mats, { grip: true });
+    this.rightArm = createTacticalArm(THREE, 'right', this.mats, { grip: true });
 
     // Oculta os bulbos de ombro/deltoide para que NUNCA clipeem nas bordas da tela em 1ª pessoa
     const bulbL = this.leftArm.shoulder.getObjectByName('shoulder_bulb_Left');
@@ -124,6 +124,9 @@ export class ViewmodelArms {
     this._targetHandQ = new THREE.Quaternion();
     this._wristMountQ = new THREE.Quaternion();
     this._invUpperQ = new THREE.Quaternion();
+    this._vPumpLocal = new THREE.Vector3();
+    this._vPumpWorld = new THREE.Vector3();
+    this._invMountMatrix = new THREE.Matrix4();
 
     this.setWeapon('ar15');
   }
@@ -211,7 +214,7 @@ export class ViewmodelArms {
     arm.hand.quaternion.copy(wristMountQ.invert().multiply(targetHandMountQ));
   }
 
-  _solvePose(weaponId, { isADS = false, reloadProgress = 0, isSprinting = false } = {}) {
+  _solvePose(weaponId, { isADS = false, reloadProgress = 0, isSprinting = false, pumpHandle = null } = {}) {
     const socket = WEAPON_HAND_SOCKETS[weaponId] || DEFAULT_SOCKET;
     const isOneHand = socket.oneHand === true;
 
@@ -260,16 +263,39 @@ export class ViewmodelArms {
 
       // Base do ombro esquerdo: entra diagonalmente do canto inferior esquerdo da tela
       let shoulderY = -0.28;
-      if (reloadProgress > 0) {
-        // Animação tática de recarga: mão esquerda sai do cano e desce para trocar o carregador
-        const dip = Math.sin(reloadProgress * Math.PI);
-        shoulderY -= dip * 0.14;
-        lWrist.y -= dip * 0.16;
-        lWrist.z += dip * 0.14;
-        lPalm.x += dip * 0.30;
-      } else if (isSprinting) {
-        lWrist.y -= 0.04;
-        lWrist.z += 0.03;
+      if (weaponId === 'm12' && pumpHandle) {
+        // IK acoplado diretamente à calha móvel (pump forend)
+        pumpHandle.updateWorldMatrix(true, false);
+        this.mount.updateMatrixWorld(true);
+        this._invMountMatrix.copy(this.mount.matrixWorld).invert();
+
+        // Posiciona o pulso no socket da calha e converte para Mount Space
+        this._vPumpLocal.set(-0.026, -0.038, 0.038);
+        this._vPumpWorld.copy(this._vPumpLocal).applyMatrix4(pumpHandle.matrixWorld);
+        lWrist.copy(this._vPumpWorld).applyMatrix4(this._invMountMatrix);
+
+        // Orientações ortonormais relativas à calha (giram com cano/recoil/sprint)
+        this._vPumpLocal.set(0.04, 0.14, -0.99);
+        lFingers.copy(this._vPumpLocal)
+          .transformDirection(pumpHandle.matrixWorld)
+          .transformDirection(this._invMountMatrix);
+
+        this._vPumpLocal.set(0.38, 0.92, 0.08);
+        lPalm.copy(this._vPumpLocal)
+          .transformDirection(pumpHandle.matrixWorld)
+          .transformDirection(this._invMountMatrix);
+      } else {
+        if (reloadProgress > 0) {
+          // Animação tática de recarga: mão esquerda sai do cano e desce para trocar o carregador
+          const dip = Math.sin(reloadProgress * Math.PI);
+          shoulderY -= dip * 0.14;
+          lWrist.y -= dip * 0.16;
+          lWrist.z += dip * 0.14;
+          lPalm.x += dip * 0.30;
+        } else if (isSprinting) {
+          lWrist.y -= 0.04;
+          lWrist.z += 0.03;
+        }
       }
 
       const sL = this._vShoulder.set(-0.22, shoulderY, 0.20);
@@ -280,12 +306,18 @@ export class ViewmodelArms {
     }
   }
 
-  update(weaponId, { isADS = false, isSprinting = false, reloadProgress = 0 } = {}) {
-    this._solvePose(weaponId || this.activeWeaponId, { isADS, isSprinting, reloadProgress });
+  update(weaponId, { isADS = false, isSprinting = false, reloadProgress = 0, pumpHandle = null } = {}) {
+    this._solvePose(weaponId || this.activeWeaponId, { isADS, isSprinting, reloadProgress, pumpHandle });
   }
 
   setVisible(visible) {
     this.root.visible = visible;
+  }
+
+  applySkin(skinConfig) {
+    if (this.mats && skinConfig) {
+      applyPaletteToMaterials(this.mats, skinConfig);
+    }
   }
 
   destroy() {

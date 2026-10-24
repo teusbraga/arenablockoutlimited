@@ -68,6 +68,51 @@ describe('Tactic Man Continuous & Viewmodel Arms Integration', () => {
     arms.destroy();
   });
 
+  it('Winchester Model 1912: mão esquerda tem IK travado na calha e acompanha ciclo de recarga e disparo', () => {
+    const mount = new THREE.Group();
+    const gunGroup = new THREE.Group();
+    mount.add(gunGroup);
+
+    const pumpHandle = new THREE.Group();
+    pumpHandle.position.set(0, 0.005, -0.240);
+    gunGroup.add(pumpHandle);
+
+    const arms = new ViewmodelArms(mount);
+    arms.setWeapon('m12');
+
+    // 1. Em repouso (calha em posição inicial)
+    arms.update('m12', { isADS: false, isSprinting: false, reloadProgress: 0, pumpHandle });
+    
+    // Obtém a posição do pulso calculada no espaço do mount
+    const initialWristZ = arms.leftArm.hand.parent.getWorldPosition(new THREE.Vector3());
+    mount.worldToLocal(initialWristZ);
+
+    assert.ok(initialWristZ.z < -0.18 && initialWristZ.z > -0.22, `Pulso deve estar na base da calha (esperado ~ -0.202, obteve ${initialWristZ.z})`);
+
+    // 2. Ciclo de Bombeamento / Recarga: calha recua 8cm (+0.08 along Z)
+    pumpHandle.position.z = -0.240 + 0.08;
+    arms.update('m12', { isADS: false, isSprinting: false, reloadProgress: 0.5, pumpHandle });
+
+    const pumpedWristZ = arms.leftArm.hand.parent.getWorldPosition(new THREE.Vector3());
+    mount.worldToLocal(pumpedWristZ);
+
+    const deltaZ = pumpedWristZ.z - initialWristZ.z;
+    assert.ok(Math.abs(deltaZ - 0.08) < 0.005, `Pulso deve recuar exatamente com a calha (+0.08m, obteve delta de ${deltaZ.toFixed(4)}m)`);
+
+    // 3. Durante reloadProgress com calha, a mão não faz dip no ar; o pulso permanece acoplado à calha
+    assert.ok(pumpedWristZ.y > -0.10, `Mão deve permanecer na calha durante reload e não despencar para o colete (y=${pumpedWristZ.y})`);
+
+    // 4. Retorno da calha (Forward)
+    pumpHandle.position.z = -0.240;
+    arms.update('m12', { isADS: false, isSprinting: false, reloadProgress: 1.0, pumpHandle });
+
+    const restoredWristZ = arms.leftArm.hand.parent.getWorldPosition(new THREE.Vector3());
+    mount.worldToLocal(restoredWristZ);
+    assert.ok(Math.abs(restoredWristZ.z - initialWristZ.z) < 0.001, 'Pulso deve retornar exatamente à posição inicial com a calha fechada');
+
+    arms.destroy();
+  });
+
   it('CharacterView instancia soldado tático contínuo, fuzil em mãos e expõe head e body para hittables()', () => {
     const mockScene = new THREE.Scene();
     const mockBots = [];

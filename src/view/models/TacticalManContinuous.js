@@ -826,10 +826,18 @@ export const TACTICAL_PALETTES = [
 ];
 
 export function createCharacterMaterials(THREE, options = {}) {
-  const pIdx = typeof options.paletteIndex === 'number'
-    ? Math.max(0, Math.min(options.paletteIndex, TACTICAL_PALETTES.length - 1))
-    : 0;
-  const pal = TACTICAL_PALETTES[pIdx];
+  let pal = null;
+  if (options.palette && typeof options.palette === 'object') {
+    const pIdx = typeof options.paletteIndex === 'number'
+      ? Math.max(0, Math.min(options.paletteIndex, TACTICAL_PALETTES.length - 1))
+      : 0;
+    pal = { ...TACTICAL_PALETTES[pIdx], ...options.palette };
+  } else {
+    const pIdx = typeof options.paletteIndex === 'number'
+      ? Math.max(0, Math.min(options.paletteIndex, TACTICAL_PALETTES.length - 1))
+      : 0;
+    pal = TACTICAL_PALETTES[pIdx];
+  }
 
   const faceTexture = createProceduralFaceTexture(THREE);
   const hairTextures = createHairCardTextures(THREE);
@@ -844,8 +852,9 @@ export function createCharacterMaterials(THREE, options = {}) {
     side: THREE.DoubleSide
   });
 
+  const skinColor = options.skinTone != null ? options.skinTone : (pal.skinTone || pal.skinColor || 0xc4987e);
   const skinMat = new THREE.MeshStandardMaterial({
-    color: 0xc4987e,
+    color: skinColor,
     roughness: 0.60,
     metalness: 0.0,
     side: THREE.DoubleSide
@@ -873,13 +882,15 @@ export function createCharacterMaterials(THREE, options = {}) {
   });
 
   // 3. Uniforme Tático de Combate (Verde Oliva Militar & Cinza Tático / Paleta Personalizada)
+  const uniformColor = pal.uniform;
+  const sheenCol = pal.sheenColor || new THREE.Color(uniformColor).offsetHSL(0, 0, 0.12).getHex();
   const oliveCombatMat = new THREE.MeshPhysicalMaterial({
-    color: pal.uniform,
+    color: uniformColor,
     roughness: 0.80,
     metalness: 0.04,
     sheen: 0.48,
     sheenRoughness: 0.65,
-    sheenColor: new THREE.Color(pal.sheenColor),
+    sheenColor: new THREE.Color(sheenCol),
     side: THREE.DoubleSide
   });
 
@@ -891,13 +902,18 @@ export function createCharacterMaterials(THREE, options = {}) {
   });
 
   const darkTacticalGreyMat = new THREE.MeshStandardMaterial({
-    color: pal.greyPanel,
+    color: pal.greyPanel != null ? pal.greyPanel : 0x484f56,
     roughness: 0.75,
     metalness: 0.08,
     side: THREE.DoubleSide
   });
 
   // 4. Colete Balístico 3D (Ranger Green Escuro / Preto Tático / Paleta)
+  const vestCol = new THREE.Color(pal.vest);
+  const vestBorderCol = pal.vestBorder != null ? pal.vestBorder : vestCol.clone().multiplyScalar(0.72).getHex();
+  const vestStrapCol = pal.vestStrap != null ? pal.vestStrap : vestCol.clone().multiplyScalar(0.52).getHex();
+  const magPouchCol = pal.magPouch != null ? pal.magPouch : vestCol.clone().offsetHSL(0, 0, 0.05).getHex();
+
   const vestMainMat = new THREE.MeshStandardMaterial({
     color: pal.vest,
     roughness: 0.72,
@@ -906,36 +922,37 @@ export function createCharacterMaterials(THREE, options = {}) {
   });
 
   const vestBorderMat = new THREE.MeshStandardMaterial({
-    color: pal.vestBorder,
+    color: vestBorderCol,
     roughness: 0.65,
     metalness: 0.10,
     side: THREE.DoubleSide
   });
 
   const vestStrapMat = new THREE.MeshStandardMaterial({
-    color: pal.vestStrap,
+    color: vestStrapCol,
     roughness: 0.68,
     metalness: 0.12,
     side: THREE.DoubleSide
   });
 
   const magPouchMat = new THREE.MeshStandardMaterial({
-    color: pal.magPouch,
+    color: magPouchCol,
     roughness: 0.74,
     metalness: 0.06,
     side: THREE.DoubleSide
   });
 
   const patchVelcroMat = new THREE.MeshStandardMaterial({
-    color: pal.greyPanel,
+    color: pal.greyPanel != null ? pal.greyPanel : 0x484f56,
     roughness: 0.90,
     metalness: 0.02,
     side: THREE.DoubleSide
   });
 
   // 5. Proteções Rígidas (Joelheiras & Cotoveleiras de Polímero)
+  const padsCol = pal.pads != null ? pal.pads : 0x161816;
   const polymerHardPadMat = new THREE.MeshStandardMaterial({
-    color: pal.pads,
+    color: padsCol,
     roughness: 0.45,
     metalness: 0.18,
     side: THREE.DoubleSide
@@ -949,8 +966,9 @@ export function createCharacterMaterials(THREE, options = {}) {
   });
 
   // 6. Bota Militar de Combate (Couro Tático & Solado Vulcanizado Tratorado)
+  const bootsCol = pal.boots != null ? pal.boots : padsCol;
   const tacticalBootLeatherMat = new THREE.MeshPhysicalMaterial({
-    color: pal.boots,
+    color: bootsCol,
     roughness: 0.50,
     metalness: 0.10,
     clearcoat: 0.22,
@@ -983,6 +1001,77 @@ export function createCharacterMaterials(THREE, options = {}) {
     tacticalBootLeatherMat,
     tacticalBootSoleMat
   };
+}
+
+export function applyPaletteToMaterials(mats, palette = {}) {
+  if (!mats || !palette) return;
+
+  if (palette.uniform != null && mats.oliveCombatMat) {
+    mats.oliveCombatMat.color.set(palette.uniform);
+    if (mats.oliveCombatMat.sheenColor) {
+      if (palette.sheenColor != null) {
+        mats.oliveCombatMat.sheenColor.set(palette.sheenColor);
+      } else {
+        const c = new THREE.Color(palette.uniform).offsetHSL(0, 0, 0.12);
+        mats.oliveCombatMat.sheenColor.copy(c);
+      }
+    }
+  }
+
+  if (palette.vest != null && mats.vestMainMat) {
+    mats.vestMainMat.color.set(palette.vest);
+    const vestCol = new THREE.Color(palette.vest);
+    if (mats.vestBorderMat) {
+      if (palette.vestBorder != null) {
+        mats.vestBorderMat.color.set(palette.vestBorder);
+      } else {
+        mats.vestBorderMat.color.copy(vestCol.clone().multiplyScalar(0.72));
+      }
+    }
+    if (mats.vestStrapMat) {
+      if (palette.vestStrap != null) {
+        mats.vestStrapMat.color.set(palette.vestStrap);
+      } else {
+        mats.vestStrapMat.color.copy(vestCol.clone().multiplyScalar(0.52));
+      }
+    }
+    if (mats.magPouchMat) {
+      if (palette.magPouch != null) {
+        mats.magPouchMat.color.set(palette.magPouch);
+      } else {
+        mats.magPouchMat.color.copy(vestCol.clone().offsetHSL(0, 0, 0.05));
+      }
+    }
+  }
+
+  if (palette.pads != null && mats.polymerHardPadMat) {
+    mats.polymerHardPadMat.color.set(palette.pads);
+    if (mats.tacticalBootLeatherMat) {
+      if (palette.boots != null) {
+        mats.tacticalBootLeatherMat.color.set(palette.boots);
+      } else {
+        mats.tacticalBootLeatherMat.color.set(palette.pads);
+      }
+    }
+  } else if (palette.boots != null && mats.tacticalBootLeatherMat) {
+    mats.tacticalBootLeatherMat.color.set(palette.boots);
+  }
+
+  if ((palette.skinTone != null || palette.skinColor != null) && mats.skinMat) {
+    mats.skinMat.color.set(palette.skinTone || palette.skinColor);
+  }
+
+  if (palette.greyPanel != null && mats.darkTacticalGreyMat) {
+    mats.darkTacticalGreyMat.color.set(palette.greyPanel);
+  }
+}
+
+export function applyPaletteToCharacter(characterRoot, palette = {}) {
+  if (!characterRoot) return;
+  const mats = characterRoot.userData?.mats;
+  if (mats) {
+    applyPaletteToMaterials(mats, palette);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1432,12 +1521,13 @@ function createTorsoAndTacticalVest(THREE, mats) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// ETAPA 3: MÃOS ANATÔMICAS ORGÂNICAS EM CASCATA RELAXADA (SUPER-ELIPSES)
+// ETAPA 3: MÃOS ANATÔMICAS ORGÂNICAS EM CASCATA RELAXADA OU PREENSÃO TÁTICA
 // ═══════════════════════════════════════════════════════════════════════════
-function createTacticalHand(THREE, side, wristPos, armDir, mats) {
+function createTacticalHand(THREE, side, wristPos, armDir, mats, options = {}) {
   const handGroup = new THREE.Group();
   const sgn = side === 'left' ? 1 : -1;
   handGroup.name = `tactical_hand_${side}`;
+  const grip = options.grip === true;
 
   // Base Ortonormal Biomecânica
   const d = norm(armDir);
@@ -1516,15 +1606,15 @@ function createTacticalHand(THREE, side, wristPos, armDir, mats) {
   hypoMesh.castShadow = true;
   handGroup.add(hypoMesh);
 
-  // 2. Dedos em Cascata Relaxada (12°, 16°, 24°, 32°) com Nós PIP/DIP
+  // 2. Dedos: Cascata Relaxada (12°-32°) ou Preensão Tangencial Firme (72°-84°) com Nós PIP/DIP
   const palmEndCenter = add(wristPos, mul(d, palmLen));
   const midLen = 0.45 * handLen; // ~0.085m
 
   const fingerDefs = [
-    { name: 'index',  transOffset:  0.025, archOffset:  0.001, len: midLen * 0.90, curlDeg: 12, w: 0.0088 },
-    { name: 'middle', transOffset:  0.008, archOffset:  0.004, len: midLen * 1.00, curlDeg: 16, w: 0.0092 },
-    { name: 'ring',   transOffset: -0.009, archOffset:  0.000, len: midLen * 0.93, curlDeg: 24, w: 0.0086 },
-    { name: 'pinky',  transOffset: -0.025, archOffset: -0.004, len: midLen * 0.72, curlDeg: 32, w: 0.0076 }
+    { name: 'index',  transOffset:  0.025, archOffset:  0.001, len: midLen * 0.90, curlDeg: grip ? 78 : 12, w: 0.0088 },
+    { name: 'middle', transOffset:  0.008, archOffset:  0.004, len: midLen * 1.00, curlDeg: grip ? 84 : 16, w: 0.0092 },
+    { name: 'ring',   transOffset: -0.009, archOffset:  0.000, len: midLen * 0.93, curlDeg: grip ? 80 : 24, w: 0.0086 },
+    { name: 'pinky',  transOffset: -0.025, archOffset: -0.004, len: midLen * 0.72, curlDeg: grip ? 72 : 32, w: 0.0076 }
   ];
 
   fingerDefs.forEach((fDef) => {
@@ -1576,15 +1666,15 @@ function createTacticalHand(THREE, side, wristPos, armDir, mats) {
     handGroup.add(fMesh);
   });
 
-  // 3. Polegar em Oposição Medial (32° de oposição, 18° encurvamento)
+  // 3. Polegar: Oposição Medial e Flexão (Relaxada 18° ou Grip Firme 45°)
   const thumbLen = midLen * 0.80; // ~0.068m
   const thumbBase = add(
     add(wristPos, mul(d, palmLen * 0.34)),
     add(mul(rTrans, 0.026), mul(uPalm, 0.008))
   );
 
-  const thumbOppDeg = (32 * Math.PI) / 180;
-  const thumbCurlDeg = (18 * Math.PI) / 180;
+  const thumbOppDeg = ((grip ? 42 : 32) * Math.PI) / 180;
+  const thumbCurlDeg = ((grip ? 45 : 18) * Math.PI) / 180;
   const thumbMainDir = norm(
     add(
       add(mul(d, 0.58), mul(rTrans, 0.52)),
@@ -1642,7 +1732,7 @@ function createTacticalHand(THREE, side, wristPos, armDir, mats) {
 // ═══════════════════════════════════════════════════════════════════════════
 // MEMBROS SUPERIORES: BRAÇOS TÁTICOS COM MANGAS VERDE OLIVA & COTOVELEIRAS
 // ═══════════════════════════════════════════════════════════════════════════
-export function createTacticalArm(THREE, side, mats) {
+export function createTacticalArm(THREE, side, mats, options = {}) {
   const isLeft = side === 'left';
   const sgn = isLeft ? 1 : -1;
   const sideStr = isLeft ? 'Left' : 'Right';
@@ -1775,7 +1865,7 @@ export function createTacticalArm(THREE, side, mats) {
   handGroup.name = `hand${sideStr}`;
   wristGroup.add(handGroup);
 
-  const organicHand = createTacticalHand(THREE, side, [0, 0, 0], [0, -1, 0], mats);
+  const organicHand = createTacticalHand(THREE, side, [0, 0, 0], [0, -1, 0], mats, options);
   handGroup.add(organicHand);
 
   return {
@@ -2227,10 +2317,10 @@ export function createCharacter(THREEInstance = THREE, options = {}) {
   neck.add(head);
 
   // 4. Membros Superiores (montados no Tórax)
-  const leftArm = createTacticalArm(T, 'left', mats);
+  const leftArm = createTacticalArm(T, 'left', mats, options);
   chest.add(leftArm.shoulder);
 
-  const rightArm = createTacticalArm(T, 'right', mats);
+  const rightArm = createTacticalArm(T, 'right', mats, options);
   chest.add(rightArm.shoulder);
 
   // 5. Membros Inferiores (montados na Pelve)
@@ -2246,6 +2336,7 @@ export function createCharacter(THREEInstance = THREE, options = {}) {
     hasRig: true,
     isStaticSculpture: false,
     height: H,
+    mats,
     joints: {
       pelvis,
       hipLeft: leftLeg.hip,
