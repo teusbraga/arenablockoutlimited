@@ -39,10 +39,13 @@ export class Input {
       'leanRight': 'leanRight',
       'throw_smoke': 'throwSmoke',
       'throwSmoke': 'throwSmoke',
-      'toggle_perspective': 'togglePerspective',
-      'togglePerspective': 'togglePerspective',
       'toggle_inventory': 'toggleInventory',
-      'toggleInventory': 'toggleInventory'
+      'toggleInventory': 'toggleInventory',
+      'reload_speed': 'reload_speed',
+      'reload_tactical': 'reload_tactical',
+      'reload_tap': 'reload_speed',
+      'reload_hold': 'reload_tactical',
+      'qte_interact': 'qte_interact'
     };
 
     // Mapeamento de botões físicos para ações canônicas
@@ -64,7 +67,6 @@ export class Input {
       'Digit2': 'slot_2',
       'KeyF': 'interact',
       'KeyB': 'toggle_fire_mode',
-      'KeyV': 'toggle_perspective',
       'KeyU': 'throw_smoke',
       'KeyI': 'toggle_inventory'
     };
@@ -75,7 +77,7 @@ export class Input {
       jump: false, sprint: false, crouch: false,
       fire: false, ads: false, reload: false, nextWeapon: false,
       slot1: false, slot2: false, interact: false, toggleFireMode: false,
-      leanLeft: false, leanRight: false, throwSmoke: false, togglePerspective: false,
+      leanLeft: false, leanRight: false, throwSmoke: false,
       toggleInventory: false
     };
 
@@ -95,11 +97,68 @@ export class Input {
     // Fila de intenções (ações discretas - one shot click)
     this._actionQueue = new Set();
     this._cheatBuffer = '';
+    this._qteActive = false;
+    this._ignoreNextReloadRelease = false;
 
     this._bind();
 
     // Inicializa suporte tátil para Mobile
     this.touch = new TouchInput(this);
+
+    if (typeof window !== 'undefined') {
+      window.cheat = (name) => this.triggerCheat(name);
+      window.whoami = () => this.triggerCheat('whoami');
+    }
+  }
+
+  triggerCheat(cheatName) {
+    const code = (cheatName || '').toLowerCase().trim();
+    if (code === 'whoami') {
+      emit('cheat:activated', { cheat: 'whoami' });
+    } else if (code === 'gettherefast') {
+      const isBoosted = CONFIG.PLAYER.walkSpeed > 10.0;
+      if (!isBoosted) {
+        CONFIG.PLAYER.walkSpeed = 52.0;
+        CONFIG.PLAYER.accel = 150.0;
+        CONFIG.PLAYER.airAccel = 25.0;
+        emit('hud:popup', {
+          text: '⚡ CHEAT ACTIVATED: GETTHEREFAST (10x Speed)',
+          color: '#06d6a0',
+          duration: 2200
+        });
+        emit('cheat:activated', { cheat: 'gettherefast', active: true });
+      } else {
+        CONFIG.PLAYER.walkSpeed = 5.2;
+        CONFIG.PLAYER.accel = 40.0;
+        CONFIG.PLAYER.airAccel = 6.0;
+        emit('hud:popup', {
+          text: 'CHEAT DEACTIVATED (Velocidade Normal)',
+          color: '#f77f00',
+          duration: 1800
+        });
+        emit('cheat:activated', { cheat: 'gettherefast', active: false });
+      }
+    } else if (code === 'professionalkiller') {
+      CONFIG.CHEATS = CONFIG.CHEATS || {};
+      CONFIG.CHEATS.infiniteAmmo = !CONFIG.CHEATS.infiniteAmmo;
+      const active = CONFIG.CHEATS.infiniteAmmo;
+      emit('hud:popup', {
+        text: active ? '⚡ CHEAT ACTIVATED: PROFESSIONALKILLER (Munição Infinita)' : 'CHEAT DEACTIVATED (Munição Normal)',
+        color: active ? '#06d6a0' : '#f77f00',
+        duration: active ? 2200 : 1800
+      });
+      emit('cheat:activated', { cheat: 'professionalkiller', active });
+    } else if (code === 'baguvix') {
+      CONFIG.CHEATS = CONFIG.CHEATS || {};
+      CONFIG.CHEATS.godMode = !CONFIG.CHEATS.godMode;
+      const active = CONFIG.CHEATS.godMode;
+      emit('hud:popup', {
+        text: active ? '⚡ CHEAT ACTIVATED: BAGUVIX (Modo Deus / Imortal)' : 'CHEAT DEACTIVATED (Modo Normal)',
+        color: active ? '#06d6a0' : '#f77f00',
+        duration: active ? 2200 : 1800
+      });
+      emit('cheat:activated', { cheat: 'baguvix', active });
+    }
   }
 
   get isMobile() {
@@ -137,6 +196,33 @@ export class Input {
    */
   pressAction(actionName) {
     const key = this._toInternalKey(actionName);
+    if (key === 'reload') {
+      this._actionsRaw.reload = true;
+      if (this._qteActive) {
+        // Durante o minigame QTE, o toque em R aciona estritamente a agulha de timing
+        this._actionQueue.add('qte_interact');
+        this._ignoreNextReloadRelease = true;
+        if (this._rHoldTimer) {
+          clearTimeout(this._rHoldTimer);
+          this._rHoldTimer = null;
+        }
+        return;
+      }
+
+      this._actionQueue.add('qte_interact');
+      if (!this._rHoldTimer && !this._rHoldFired) {
+        this._rHoldTimer = setTimeout(() => {
+          this._rHoldTimer = null;
+          if (this._actionsRaw.reload) {
+            this._rHoldFired = true;
+            this._actionQueue.add('reload_tactical');
+            this._actionQueue.add('reload_hold');
+          }
+        }, 250);
+      }
+      return;
+    }
+
     if (!this._actionsRaw[key]) {
       this._actionQueue.add(key);
     }
@@ -149,8 +235,47 @@ export class Input {
    */
   releaseAction(actionName) {
     const key = this._toInternalKey(actionName);
+    if (key === 'reload') {
+      this._actionsRaw.reload = false;
+      this._actionQueue.delete('reload');
+      if (this._rHoldTimer) {
+        clearTimeout(this._rHoldTimer);
+        this._rHoldTimer = null;
+      }
+      if (this._ignoreNextReloadRelease) {
+        this._ignoreNextReloadRelease = false;
+        this._rHoldFired = false;
+        return;
+      }
+      if (!this._rHoldFired) {
+        this._actionQueue.add('reload_speed');
+        this._actionQueue.add('reload_tap');
+        this._actionQueue.add('reload');
+      }
+      this._rHoldFired = false;
+      return;
+    }
+
     this._actionsRaw[key] = false;
     this._actionQueue.delete(key);
+  }
+
+  /**
+   * Limpa ações de recarga pendentes para evitar múltiplos disparos ou loops
+   */
+  clearReloadQueue() {
+    this._actionQueue.delete('reload');
+    this._actionQueue.delete('reload_speed');
+    this._actionQueue.delete('reload_tap');
+    this._actionQueue.delete('reload_tactical');
+    this._actionQueue.delete('reload_hold');
+    this._actionQueue.delete('qte_interact');
+    if (this._rHoldTimer) {
+      clearTimeout(this._rHoldTimer);
+      this._rHoldTimer = null;
+    }
+    this._rHoldFired = false;
+    this._ignoreNextReloadRelease = false;
   }
 
   /**
@@ -159,16 +284,34 @@ export class Input {
   clearState() {
     this.mouse.dx = 0;
     this.mouse.dy = 0;
+    this.clearReloadQueue();
     for (const key in this._actionsRaw) this._actionsRaw[key] = false;
     this._actionQueue.clear();
   }
 
   _bind() {
+    on('weapon:qte:start', () => {
+      this._qteActive = true;
+    });
+
+    on('weapon:qte:result', () => {
+      this._qteActive = false;
+    });
+
+    on('weapon:qte:stop', () => {
+      this._qteActive = false;
+    });
+
+    on('weapon:reload:end', () => {
+      this._qteActive = false;
+      this.clearReloadQueue();
+    });
+
     on('round:over', () => {
       this.roundOver = true;
       this.locked = false;
       this.clearState();
-      if (document.pointerLockElement) document.exitPointerLock?.();
+      if (typeof document !== 'undefined' && document.pointerLockElement) document.exitPointerLock?.();
       emit('input:lock', false);
     });
 
@@ -181,7 +324,7 @@ export class Input {
       this.inventoryOpen = true;
       this.locked = false;
       this.clearState();
-      if (document.pointerLockElement) document.exitPointerLock?.();
+      if (typeof document !== 'undefined' && document.pointerLockElement) document.exitPointerLock?.();
       emit('input:lock', false);
     });
 
@@ -190,56 +333,27 @@ export class Input {
       this.clearState();
     });
 
+    if (typeof addEventListener !== 'function') return;
+
     addEventListener('keydown', e => {
-      // Cheat code detection (ex: GETTHEREFAST)
+      // Cheat code detection (ex: GETTHEREFAST, PROFESSIONALKILLER, BAGUVIX, WHOAMI)
       if (e.key && e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
         this._cheatBuffer = ((this._cheatBuffer || '') + e.key.toLowerCase()).slice(-20);
         if (this._cheatBuffer.endsWith('gettherefast')) {
           this._cheatBuffer = '';
-          const isBoosted = CONFIG.PLAYER.walkSpeed > 10.0;
-          if (!isBoosted) {
-            CONFIG.PLAYER.walkSpeed = 52.0;
-            CONFIG.PLAYER.accel = 150.0;
-            CONFIG.PLAYER.airAccel = 25.0;
-            emit('hud:popup', {
-              text: '⚡ CHEAT ACTIVATED: GETTHEREFAST (10x Speed)',
-              color: '#06d6a0',
-              duration: 2200
-            });
-            emit('cheat:activated', { cheat: 'gettherefast', active: true });
-          } else {
-            CONFIG.PLAYER.walkSpeed = 5.2;
-            CONFIG.PLAYER.accel = 40.0;
-            CONFIG.PLAYER.airAccel = 6.0;
-            emit('hud:popup', {
-              text: 'CHEAT DEACTIVATED (Velocidade Normal)',
-              color: '#f77f00',
-              duration: 1800
-            });
-            emit('cheat:activated', { cheat: 'gettherefast', active: false });
-          }
+          this.triggerCheat('gettherefast');
         } else if (this._cheatBuffer.endsWith('professionalkiller')) {
           this._cheatBuffer = '';
-          CONFIG.CHEATS = CONFIG.CHEATS || {};
-          CONFIG.CHEATS.infiniteAmmo = !CONFIG.CHEATS.infiniteAmmo;
-          const active = CONFIG.CHEATS.infiniteAmmo;
-          emit('hud:popup', {
-            text: active ? '⚡ CHEAT ACTIVATED: PROFESSIONALKILLER (Munição Infinita)' : 'CHEAT DEACTIVATED (Munição Normal)',
-            color: active ? '#06d6a0' : '#f77f00',
-            duration: active ? 2200 : 1800
-          });
-          emit('cheat:activated', { cheat: 'professionalkiller', active });
+          this.triggerCheat('professionalkiller');
         } else if (this._cheatBuffer.endsWith('baguvix')) {
           this._cheatBuffer = '';
-          CONFIG.CHEATS = CONFIG.CHEATS || {};
-          CONFIG.CHEATS.godMode = !CONFIG.CHEATS.godMode;
-          const active = CONFIG.CHEATS.godMode;
-          emit('hud:popup', {
-            text: active ? '⚡ CHEAT ACTIVATED: BAGUVIX (Modo Deus / Imortal)' : 'CHEAT DEACTIVATED (Modo Normal)',
-            color: active ? '#06d6a0' : '#f77f00',
-            duration: active ? 2200 : 1800
-          });
-          emit('cheat:activated', { cheat: 'baguvix', active });
+          this.triggerCheat('baguvix');
+        } else if (this._cheatBuffer.endsWith('whoami')) {
+          this._cheatBuffer = '';
+          this.triggerCheat('whoami');
+          // Ao completar o cheat 'whoami', previne a tecla 'I' de acionar o inventário tático
+          e.preventDefault();
+          return;
         }
       }
 
@@ -254,6 +368,10 @@ export class Input {
 
       const rawAction = this.bindings[e.code];
       if (rawAction) {
+        if (e.repeat && e.code === 'KeyR') {
+          e.preventDefault();
+          return;
+        }
         const isInventoryKey = e.code === 'KeyI';
         if ((this.locked && !this.roundOver && !this.inventoryOpen) || (isInventoryKey && !this.roundOver)) {
           this.pressAction(rawAction);
@@ -310,15 +428,17 @@ export class Input {
       }
     });
 
-    this.canvas.addEventListener('contextmenu', e => e.preventDefault());
+    this.canvas?.addEventListener?.('contextmenu', e => e.preventDefault());
 
-    document.addEventListener('pointerlockchange', () => {
-      this.locked = (document.pointerLockElement === this.canvas) && !this.roundOver && !this.inventoryOpen;
-      if (!this.locked) {
-        this.clearState();
-      }
-      emit('input:lock', this.locked);
-    });
+    if (typeof document !== 'undefined') {
+      document.addEventListener('pointerlockchange', () => {
+        this.locked = (document.pointerLockElement === this.canvas) && !this.roundOver && !this.inventoryOpen;
+        if (!this.locked) {
+          this.clearState();
+        }
+        emit('input:lock', this.locked);
+      });
+    }
   }
 
   async requestLock() { 

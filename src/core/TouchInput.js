@@ -172,8 +172,7 @@ export class TouchInput {
           this.input.actions[action] = !this.input.actions[action];
           el.classList.toggle('active', this.input.actions[action]);
         } else {
-          this.input.actions[action] = true;
-          this.input._actionQueue.add(action);
+          this.input.pressAction(action);
           el.classList.add('active');
         }
       };
@@ -181,7 +180,7 @@ export class TouchInput {
       const release = e => {
         e.preventDefault();
         if (!isToggle) {
-          this.input.actions[action] = false;
+          this.input.releaseAction(action);
           el.classList.remove('active');
         }
       };
@@ -364,7 +363,6 @@ export class TouchInput {
     bindBtn('btn-touch-crouch', 'crouch', true); // Toggle agachar
     bindBtn('btn-touch-reload', 'reload');
     bindBtn('btn-touch-smoke', 'throwSmoke');
-    bindBtn('btn-touch-perspective', 'togglePerspective');
     bindBtn('btn-touch-cycle', 'nextWeapon');
     bindBtn('btn-touch-firemode', 'toggleFireMode');
     bindBtn('btn-touch-interact', 'interact');

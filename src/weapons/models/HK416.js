@@ -209,20 +209,27 @@ export function buildHK416() {
   /* =========================================================
      5. CARREGADOR P-MAG / HK MARITIME (MAGAZINE)
      ========================================================= */
+  const magGroup = new THREE.Group();
+  magGroup.name = 'magazine';
+
   const mag = new THREE.Mesh(new THREE.BoxGeometry(0.029, 0.155, 0.060), M_HK_MAG);
   mag.position.set(0, -0.118, -0.030);
   mag.rotation.x = -0.16;
+  magGroup.add(mag);
 
   for (let my = -0.07; my >= -0.16; my -= 0.018) {
     const rib = new THREE.Mesh(new THREE.BoxGeometry(0.031, 0.005, 0.056), M_HK_POLYMER);
     rib.position.set(0, my, -0.030 + (my * 0.16));
     rib.rotation.x = -0.16;
-    g.add(rib);
+    magGroup.add(rib);
   }
 
   const magBase = new THREE.Mesh(new THREE.BoxGeometry(0.033, 0.018, 0.066), M_HK_POLYMER);
   magBase.position.set(0, -0.198, -0.042);
   magBase.rotation.x = -0.16;
+  magGroup.add(magBase);
+
+  g.add(magGroup);
 
   /* =========================================================
      6. PUNHO PISTOL GRIP ERGONÔMICO (HK BATTLE GRIP V2)
@@ -393,7 +400,7 @@ export function buildHK416() {
     fwdAssistHousing, fwdAssistButton, chargingHandle, latchL,
     handguard, hkHexBolt, topRail, sideRailL, sideRailR, bottomRail,
     gasBlock, gasRegulator, barrel, crushWasher, flashHider, muzzleTip,
-    mag, magBase, grip, fingerRidge, beavertail, gripCap,
+    grip, fingerRidge, beavertail, gripCap,
     bufferTube, castleNut, stockBody, stockCheek, stockLever, buttpad, qdL, qdR,
     rearSightBase, rearClampPlate, rearClampBolt, rearTower,
     rearWingL, rearWingL_bevel, rearWingR, rearWingR_bevel,
@@ -403,6 +410,34 @@ export function buildHK416() {
     frontWingL, frontWingL_bevel, frontWingR, frontWingR_bevel,
     frontPostBase, frontPost, frontTrit
   );
+
+  g.traverse(o => {
+    if (o.isMesh) {
+      o.castShadow = true;
+      o.receiveShadow = true;
+    }
+  });
+
+  return g;
+}
+
+export function createHK416MagazineMesh() {
+  const g = new THREE.Group();
+  g.name = 'magazine_drop';
+
+  const mag = new THREE.Mesh(new THREE.BoxGeometry(0.029, 0.155, 0.060), M_HK_MAG);
+  mag.position.set(0, 0.077, 0);
+  g.add(mag);
+
+  for (let my = 0.035; my <= 0.125; my += 0.018) {
+    const rib = new THREE.Mesh(new THREE.BoxGeometry(0.031, 0.005, 0.056), M_HK_POLYMER);
+    rib.position.set(0, my, 0);
+    g.add(rib);
+  }
+
+  const magBase = new THREE.Mesh(new THREE.BoxGeometry(0.033, 0.018, 0.066), M_HK_POLYMER);
+  magBase.position.set(0, 0.009, 0);
+  g.add(magBase);
 
   g.traverse(o => {
     if (o.isMesh) {

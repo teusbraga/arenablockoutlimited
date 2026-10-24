@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Bot } from '../entities/Bot.js';
 import { ItemDrop } from '../world/ItemDrop.js';
+import { MagazineDrop } from '../weapons/MagazineDrop.js';
 import { CONFIG } from './ConfigLoader.js';
 import { emit, on } from './EventBus.js';
 import { WEAPONS } from '../weapons/WeaponDefs.js';
@@ -18,6 +19,7 @@ export class GameManager {
     this.bots = [];
     this.doors = [];
     this.itemDrops = [];
+    this.magazineDrops = [];
     this.hasStarted = false;
     this.roundOver = false;
     this.roundDuration = 210; // Padrão 3m 30s
@@ -92,6 +94,9 @@ export class GameManager {
           }, 0);
         }
       }),
+      on('weapon:magazine_dropped', e => {
+        this.spawnMagazineDrop(e.pos, e.weaponId, e.ammoCount, e.maxAmmo);
+      }),
     ];
   }
 
@@ -115,6 +120,26 @@ export class GameManager {
     return drop;
   }
 
+  spawnMagazineDrop(pos, weaponId = 'ar15', ammoCount = 0, maxAmmo = 30) {
+    const drop = new MagazineDrop({
+      scene: this.scene,
+      world: this.world,
+      weaponId,
+      ammoCount,
+      maxAmmo,
+      pos,
+    });
+    this.magazineDrops.push(drop);
+
+    const MAX_MAGS = 16;
+    while (this.magazineDrops.length > MAX_MAGS) {
+      const oldest = this.magazineDrops.shift();
+      if (oldest) oldest.destroy();
+    }
+
+    return drop;
+  }
+
   destroy() {
     if (this._unsubs) {
       for (const unsub of this._unsubs) unsub();
@@ -123,6 +148,10 @@ export class GameManager {
     while (this.itemDrops.length > 0) {
       const d = this.itemDrops.pop();
       d.destroy();
+    }
+    while (this.magazineDrops.length > 0) {
+      const m = this.magazineDrops.pop();
+      m.destroy();
     }
     while (this.bots.length > 0) {
       const b = this.bots.pop();
@@ -415,13 +444,36 @@ export class GameManager {
       }
     }
 
-    // Alvo contextual de interação (porta ou drop de arma no chão)
-    const interactTarget = nearDoor || nearDrop;
+    // Atualiza Carregadores descartados no mapa
+    let nearMag = null;
+    for (let i = this.magazineDrops.length - 1; i >= 0; i--) {
+      const mag = this.magazineDrops[i];
+      if (mag.collected) {
+        this.magazineDrops.splice(i, 1);
+        continue;
+      }
+      mag.update(dt);
+      if (mag.checkPickup(this.player)) {
+        nearMag = mag;
+      }
+    }
+
+    // Alvo contextual de interação (porta, carregador ou drop de arma no chão)
+    const interactTarget = nearDoor || nearMag || nearDrop;
     emit('interact:target', interactTarget);
 
     if (this.player.alive && this.weapons?.input?.consumeAction('interact')) {
       if (nearDoor) {
         nearDoor.toggle();
+      } else if (nearMag) {
+        const wepName = WEAPONS[nearMag.weaponId]?.name || nearMag.weaponId.toUpperCase();
+        emit('notification', { message: `+Carregador ${wepName} (${nearMag.ammoCount} balas)` });
+        if (this.weapons) {
+          this.weapons.addReserveMag(nearMag.weaponId, nearMag.ammoCount);
+        }
+        nearMag.destroy();
+        const dropIdx = this.magazineDrops.indexOf(nearMag);
+        if (dropIdx !== -1) this.magazineDrops.splice(dropIdx, 1);
       } else if (nearDrop) {
         // Substitui a arma do slot atual ativo e dropa a anterior
         const oldWeapon = this.weapons.pickupWeapon(nearDrop.weaponId);

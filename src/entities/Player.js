@@ -55,6 +55,8 @@ export class Player extends Character {
       if (e.cheat === 'baguvix' && e.active) {
         this.hp = this.maxHp;
         emit('player:hp', { hp: this.hp, max: this.maxHp });
+      } else if (e.cheat === 'whoami') {
+        this.togglePerspective();
       }
     });
   }
@@ -221,11 +223,6 @@ export class Player extends Character {
 
     // ---- Atualização do subsistema de armas acoplado ----
     this.updateWeapons(dt);
-
-    // ---- Alternância de Perspectiva (Tecla V ou ação toggle_perspective) ----
-    if (this.alive && input?.consumeAction && input.consumeAction('toggle_perspective')) {
-      this.togglePerspective();
-    }
   }
 
   setAimAssist(aimAssist) {
@@ -239,11 +236,12 @@ export class Player extends Character {
   togglePerspective() {
     if (!this.rig) return;
     const mode = this.rig.togglePerspective();
-    emit('player:perspective_changed', { mode, isThirdPerson: mode === 'third' });
+    const isThird = (mode === 'third');
+    emit('player:perspective_changed', { mode, isThirdPerson: isThird });
     emit('hud:popup', {
-      text: mode === 'third' ? '3ª PESSOA ATIVADA' : '1ª PESSOA ATIVADA',
-      color: mode === 'third' ? '#e8933a' : '#88c0d0',
-      duration: 1000
+      text: isThird ? '⚡ CHEAT ACTIVATED: WHOAMI (3ª Pessoa)' : 'CHEAT DEACTIVATED (1ª Pessoa)',
+      color: isThird ? '#06d6a0' : '#f77f00',
+      duration: isThird ? 2200 : 1800
     });
     return mode;
   }

@@ -191,6 +191,11 @@ export class Viewmodel {
       entry.mesh.visible = true;
       this.activeModel = entry.mesh;
       this.activePhysics = entry.physics ?? null;
+      const mag = entry.mesh.getObjectByName('magazine');
+      if (mag) {
+        mag.visible = true;
+        mag.position.y = 0;
+      }
 
       // Inicia transição suave de saque
       this.drawAmount = 1.0;
@@ -427,6 +432,31 @@ export class Viewmodel {
       const dip = Math.sin(reloadProgress * Math.PI);
       mount.position.y -= dip * 0.12;
       mount.rotation.x += dip * 0.40;
+    }
+    if (this.activeModel) {
+      const mag = this.activeModel.getObjectByName('magazine');
+      if (mag) {
+        if (reloadProgress > 0) {
+          if (reloadProgress < 0.35) {
+            const t = reloadProgress / 0.35;
+            mag.visible = true;
+            mag.position.y = -t * 0.16;
+          } else if (reloadProgress < 0.65) {
+            mag.visible = false;
+            mag.position.y = -0.16;
+          } else if (reloadProgress < 0.85) {
+            const t = (reloadProgress - 0.65) / 0.20;
+            mag.visible = true;
+            mag.position.y = -0.16 * (1.0 - t);
+          } else {
+            mag.visible = true;
+            mag.position.y = 0;
+          }
+        } else {
+          mag.visible = true;
+          mag.position.y = 0;
+        }
+      }
     }
 
     // Transição suave de saque (Draw animation)

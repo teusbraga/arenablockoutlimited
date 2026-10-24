@@ -25,13 +25,13 @@ export const SOUND_PRESETS = {
     airDamping: 2800
   },
   ak47_762x39: {
-    supersonicCrack: 0.95,
-    muzzleBarkFreq: 180,
-    blastDecay: 150, // ms
-    boltPistonMech: 0.75,
-    receiverSteelRing: 1050,
-    dramaticEcho: 0.82,
-    airAbsorption: 2600
+    supersonicCrack: 1.00,
+    muzzleBarkFreq: 240,
+    blastDecay: 85, // ms (seco e contundente)
+    boltPistonMech: 0.85,
+    receiverSteelRing: 1650,
+    dramaticEcho: 0.25, // curto e seco, sem eco distante
+    airAbsorption: 9000 // aberto e estridente, zero abafamento
   },
   gunshot_9mm: {
     muzzleCrack: 0.90,
@@ -63,13 +63,13 @@ export const SOUND_PRESETS = {
     muffledAirCut: 1600
   },
   sw500_magnum: {
-    supersonicCrack: 0.98,
-    subBassThumpFreq: 135,
-    blastDecay: 220, // ms
-    cylinderGapBlast: 0.85,
-    xframeRingFreq: 720,
-    dramaticTail: 0.88,
-    airAbsorption: 2200
+    supersonicCrack: 1.00,
+    subBassThumpFreq: 180,
+    blastDecay: 90, // ms (seco e sem ressonancia lenta de bumbo)
+    cylinderGapBlast: 0.95,
+    xframeRingFreq: 1850,
+    dramaticTail: 0.25, // seco e focado
+    airAbsorption: 9500 // estridente e cortante
   },
   shotgun_blast_12g: {
     muzzleUncork: 0.95,

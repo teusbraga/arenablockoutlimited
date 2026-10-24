@@ -46,6 +46,7 @@
   body:not(.in-gameplay) #prompt,
   body:not(.in-gameplay) #kill-popup,
   body:not(.in-gameplay) #damage-indicator,
+  body:not(.in-gameplay) #reload-qte,
   body:not(.in-gameplay) #mobile-controls {
     opacity: 0 !important;
     visibility: hidden !important;
@@ -597,6 +598,36 @@
     transition:opacity 0.18s ease, transform 0.18s ease; white-space:nowrap; z-index: 110;}
 
   #screen-flash{position:absolute; inset:0; pointer-events:none; background:rgba(224,87,74,0); z-index: 90;}
+
+  /* Quick Time Event (QTE) de Recarga Tática */
+  #reload-qte {
+    position: fixed; left: 50%; top: 58%; transform: translate(-50%, -50%);
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    pointer-events: none; z-index: 110; transition: opacity 0.15s ease, transform 0.15s ease;
+  }
+  #reload-qte.hidden {
+    opacity: 0; visibility: hidden; transform: translate(-50%, -46%) scale(0.95);
+  }
+  .qte-track {
+    position: relative; width: 220px; height: 12px;
+    background: rgba(14, 17, 21, 0.88); border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 3px; box-shadow: 0 0 10px rgba(0, 0, 0, 0.8); overflow: hidden;
+  }
+  .qte-sweet-spot {
+    position: absolute; top: 0; bottom: 0; left: 45%; width: 25%;
+    background: rgba(123, 198, 126, 0.55); border-left: 1px solid #7bc67e; border-right: 1px solid #7bc67e;
+    box-shadow: 0 0 8px rgba(123, 198, 126, 0.6);
+  }
+  .qte-needle {
+    position: absolute; top: 0; bottom: 0; left: 0%; width: 4px;
+    background: #ffffff; box-shadow: 0 0 6px #ffffff;
+  }
+  .qte-label {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.08em;
+    color: rgba(235, 240, 250, 0.90); text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+  }
+  .qte-success { color: #7bc67e !important; text-shadow: 0 0 8px rgba(123, 198, 126, 0.8) !important; }
+  .qte-fail { color: #e0574a !important; text-shadow: 0 0 8px rgba(224, 87, 74, 0.8) !important; }
   #suppression-overlay{
     position:fixed; inset:0; pointer-events:none; z-index: 92;
     opacity: 0;
@@ -834,13 +865,8 @@
     bottom: calc(14px + env(safe-area-inset-bottom, 0px));
     width: 54px; height: 38px; font-size: 10px; border-radius: 6px;
   }
-  #btn-touch-perspective {
-    left: calc(50% + 56px);
-    bottom: calc(14px + env(safe-area-inset-bottom, 0px));
-    width: 52px; height: 38px; font-size: 10px; border-radius: 6px;
-  }
   #btn-touch-smoke {
-    left: calc(50% + 116px);
+    left: calc(50% + 56px);
     bottom: calc(14px + env(safe-area-inset-bottom, 0px));
     width: 58px; height: 38px; font-size: 10px; border-radius: 6px;
     background: rgba(45, 60, 50, 0.72); border-color: rgba(123, 198, 126, 0.45);
@@ -981,13 +1007,8 @@
       bottom: calc(10px + env(safe-area-inset-bottom, 0px));
       width: 46px; height: 34px; font-size: 9px; border-radius: 5px;
     }
-    #btn-touch-perspective {
-      left: calc(50% + 48px);
-      bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-      width: 44px; height: 34px; font-size: 9px; border-radius: 5px;
-    }
     #btn-touch-smoke {
-      left: calc(50% + 98px);
+      left: calc(50% + 48px);
       bottom: calc(10px + env(safe-area-inset-bottom, 0px));
       width: 50px; height: 34px; font-size: 9px; border-radius: 5px;
     }
@@ -1384,6 +1405,14 @@
 </div>
 
 <div id="hud">
+  <!-- Quick Time Event (QTE) para Recarga Tática -->
+  <div id="reload-qte" class="hidden">
+    <div class="qte-track">
+      <div id="qte-sweet-spot" class="qte-sweet-spot"></div>
+      <div id="qte-needle" class="qte-needle"></div>
+    </div>
+    <div id="qte-status" class="qte-label"><span class="k">R</span> GUARDAR NO BOLSO</div>
+  </div>
   <!-- Topo Central: Cronômetro da Rodada -->
   <div id="round-timer-hud" class="hud-minimal">
     <div id="round-timer">3:30</div>
@@ -1471,7 +1500,6 @@
   <button id="btn-touch-crouch" class="touch-btn">AGACHA</button>
   <button id="btn-touch-reload" class="touch-btn">RELOAD</button>
   <button id="btn-touch-smoke" class="touch-btn">SMOKE</button>
-  <button id="btn-touch-perspective" class="touch-btn">3ªP</button>
   <button id="btn-touch-cycle" class="touch-btn">ARMA</button>
   <button id="btn-touch-firemode" class="touch-btn">MODO</button>
   <button id="btn-touch-interact" class="touch-btn">INTERAGIR</button>
@@ -1492,7 +1520,7 @@
     </div>
     <div class="menu-instructions">
       WASD mover · Shift correr · C agachar · Space pular<br>
-      LMB atirar · RMB mirar · R reload · B modo tiro · V 3ª pessoa · Q/E inclinar · U smoke · F interagir<br>
+      LMB atirar · RMB mirar · R reload · B modo tiro · Q/E inclinar · U smoke · F interagir<br>
       ESC pausa
     </div>
 

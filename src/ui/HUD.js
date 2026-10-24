@@ -37,6 +37,10 @@ export class HUD {
       invSlotSec: document.getElementById('inv-slot-sec'),
       invGrid: document.getElementById('inv-grid-container'),
       invCloseBtn: document.getElementById('inv-btn-close'),
+      reloadQte: document.getElementById('reload-qte'),
+      qteSweetSpot: document.getElementById('qte-sweet-spot'),
+      qteNeedle: document.getElementById('qte-needle'),
+      qteStatus: document.getElementById('qte-status'),
     };
     
     this.diCtx = this.el.diCanvas.getContext('2d');
@@ -150,6 +154,46 @@ export class HUD {
           this.triggerFlash(this.el.fireMode);
         }
       }),
+      on('weapon:qte:start', ({ sweetStart, sweetEnd }) => {
+        if (this.el.reloadQte) {
+          this.el.reloadQte.classList.remove('hidden');
+          if (this.el.qteSweetSpot) {
+            this.el.qteSweetSpot.style.left = (sweetStart * 100) + '%';
+            this.el.qteSweetSpot.style.width = ((sweetEnd - sweetStart) * 100) + '%';
+          }
+          if (this.el.qteNeedle) this.el.qteNeedle.style.left = '0%';
+          if (this.el.qteStatus) {
+            this.el.qteStatus.className = 'qte-label';
+            this.el.qteStatus.innerHTML = '<span class="k">R</span> GUARDAR NO BOLSO';
+          }
+        }
+      }),
+      on('weapon:qte:update', ({ progress }) => {
+        if (this.el.qteNeedle) {
+          const pct = Math.max(0, Math.min(100, progress * 100));
+          this.el.qteNeedle.style.left = pct + '%';
+        }
+      }),
+      on('weapon:qte:result', ({ success }) => {
+        if (this.el.qteStatus) {
+          if (success) {
+            this.el.qteStatus.className = 'qte-label qte-success';
+            this.el.qteStatus.textContent = 'PERFEITO! +RECARGA RÁPIDA';
+          } else {
+            this.el.qteStatus.className = 'qte-label qte-fail';
+            this.el.qteStatus.textContent = 'FALHA! RECARGA LENTA';
+          }
+        }
+        setTimeout(() => {
+          if (this.el.reloadQte) this.el.reloadQte.classList.add('hidden');
+        }, 350);
+      }),
+      on('weapon:qte:stop', () => {
+        if (this.el.reloadQte) this.el.reloadQte.classList.add('hidden');
+      }),
+      on('weapon:reload:end', () => {
+        if (this.el.reloadQte) this.el.reloadQte.classList.add('hidden');
+      }),
       on('weapon:firemode', e => {
         if (this.el.fireMode && e.fireMode) {
           this.el.fireMode.textContent = e.fireMode.toUpperCase();
@@ -241,7 +285,20 @@ export class HUD {
           this.el.prompt.style.opacity = '0';
           return;
         }
-        this.el.prompt.style.opacity = target ? '1' : '0';
+        if (target) {
+          this.el.prompt.style.opacity = '1';
+          if (target.ammoCount !== undefined) {
+            const wepName = WEAPONS[target.weaponId]?.name || target.weaponId?.toUpperCase() || 'ARMA';
+            this.el.prompt.textContent = `[F] PEGAR CARREGADOR (${wepName} - ${target.ammoCount} balas)`;
+          } else if (target.weaponId) {
+            const wepName = WEAPONS[target.weaponId]?.name || target.weaponId.toUpperCase();
+            this.el.prompt.textContent = `[F] PEGAR ARMA (${wepName})`;
+          } else {
+            this.el.prompt.textContent = '[F] INTERAGIR';
+          }
+        } else {
+          this.el.prompt.style.opacity = '0';
+        }
       }),
     ];
 

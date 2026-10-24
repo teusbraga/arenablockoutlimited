@@ -72,6 +72,17 @@ export class WeaponSystem {
     this.ammo = 0;
     this.ammoByWeapon = {};
     this.reloading = false;
+    this.reloadType = 'speed';
+    this.reloadDuration = 2.0;
+    this.magDropped = false;
+    this.ammoRestored = false;
+    this.reserveMagsByWeapon = {};
+    this.qteActive = false;
+    this.qteProgress = 0;
+    this.qteSweetSpotStart = 0.45;
+    this.qteSweetSpotEnd = 0.70;
+    this.qteDuration = 1.8;
+    this.qteSuccess = null;
     this.reloadT = 0;
     this.fireCooldown = 0;
     this.adsAmount = 0;
@@ -135,17 +146,23 @@ export class WeaponSystem {
       this.fireModeByWeapon[id] = modes[0];
     }
     this.ammo = this.ammoByWeapon[id];
+    if (!this.reserveMagsByWeapon) this.reserveMagsByWeapon = {};
+    if (this.reserveMagsByWeapon[id] === undefined) {
+      this.reserveMagsByWeapon[id] = 3;
+    }
     this.reloading = false;
     this.reloadT = 0;
+    this.qteActive = false;
+    emit('weapon:qte:stop');
+    this.input?.clearReloadQueue?.();
     this.sustainedFireDuration = 0;
     this.sustainedFireStartTime = 0;
     this.smokeCooldownRemaining = 0;
     this.smokeCooldownTotal = 0;
     this.smokeCooldownInterval = 0;
-    this.input?.consumeAction('fire');
     this.viewmodel.equip(id);
     emit('weapon:equipped', { id, name: WEAPONS[id].name, fireMode: this.fireModeByWeapon[id] });
-    emit('weapon:ammo', { ammo: this.ammo, max: WEAPONS[id].magSize });
+    emit('weapon:ammo', { ammo: this.ammo, max: WEAPONS[id].magSize, reserve: this.getReserveMags(id) });
     emit('weapon:firemode', { fireMode: this.fireModeByWeapon[id], canToggle: (WEAPONS[id].fireModes?.length || 1) > 1 });
     emit('weapon:slots', { slots: this.slots, currentSlot: this.currentSlot });
   }
@@ -210,15 +227,65 @@ export class WeaponSystem {
     return oldWeapon;
   }
 
-  reload() {
-    if (this.reloading || this.ammo === this.def.magSize) return;
-    this.reloading = true;
-    this.reloadT = 0;
-    this.input?.consumeAction('fire');
-    this.viewmodel.triggerReload();
-    emit('weapon:reload:start');
+  getReserveMags(wepId = this.current) {
+    return this.reserveMagsByWeapon?.[wepId] ?? 3;
   }
 
+  addReserveMag(wepId, ammoCount) {
+    if (!wepId) return;
+    if (!this.reserveMagsByWeapon) this.reserveMagsByWeapon = {};
+    this.reserveMagsByWeapon[wepId] = (this.reserveMagsByWeapon[wepId] ?? 0) + 1;
+    if (wepId === this.current && this.def) {
+      emit('weapon:ammo', { ammo: this.ammo, max: this.def.magSize, reserve: this.getReserveMags() });
+    }
+  }
+
+  startReload(type = 'speed') {
+    if (this.reloading || !this.def) return;
+    if (this.ammo === this.def.magSize) return;
+
+    const reserves = this.getReserveMags();
+    if (reserves <= 0) {
+      emit('notification', { message: 'Sem carregadores sobressalentes!' });
+      emit('weapon:empty');
+      return;
+    }
+
+    this.reloading = true;
+    this.reloadType = type;
+    this.reloadT = 0;
+    this.magDropped = false;
+    this.ammoRestored = false;
+    this.input?.consumeAction('fire');
+    this.input?.clearReloadQueue?.();
+    this.viewmodel.triggerReload();
+
+    if (type === 'speed') {
+      // Recarga simples rápida: menos de 1s (0.85s) com descarte do carregador
+      this.reloadDuration = 0.85;
+      this.qteActive = false;
+      emit('notification', { message: 'Recarga Rápida (Carregador descartado)' });
+    } else {
+      // Recarga com retenção e QTE: 4s de duração caso erre ou não acerte o timing
+      this.reloadDuration = 4.0;
+      this.qteActive = true;
+      this.qteProgress = 0;
+      this.qteSuccess = null;
+      this.qteDuration = 1.8;
+      emit('weapon:qte:start', {
+        duration: this.qteDuration,
+        sweetStart: this.qteSweetSpotStart,
+        sweetEnd: this.qteSweetSpotEnd
+      });
+    }
+
+    emit('weapon:reload:start', { type: this.reloadType, weaponId: this.current });
+  }
+
+  reload() {
+    this.startReload('speed');
+    return;
+  }
   update(dt) {
     const def = this.def;
 
@@ -259,30 +326,108 @@ export class WeaponSystem {
       this.toggleFireMode();
     }
 
-    // 2. Recarga manual (tecla R ou botão mobile RELOAD)
-    if (this.input.consumeAction('reload')) {
-      this.reload();
+    // 2. Recarga manual (Tap R = Speed / Drop Mag; Hold R = Tactical com Retenção & QTE)
+    if (this.input.consumeAction('reload_tactical') || this.input.consumeAction('reload_hold')) {
+      if (!this.reloading) this.startReload('tactical');
+    } else if (this.input.consumeAction('reload_speed') || this.input.consumeAction('reload_tap') || this.input.consumeAction('reload')) {
+      if (!this.reloading) this.startReload('speed');
+    }
+
+    // 2.1. Processamento dinâmico do QTE na Recarga Tática
+    if (this.qteActive) {
+      this.qteProgress += dt / Math.max(0.01, this.qteDuration);
+      emit('weapon:qte:update', { progress: this.qteProgress });
+
+      if (this.input.consumeAction('qte_interact') || this.input.consumeAction('reload_tap') || this.input.consumeAction('reload_speed')) {
+        if (this.qteProgress >= this.qteSweetSpotStart && this.qteProgress <= this.qteSweetSpotEnd) {
+          // ACERTOU O TEMPO: Termina imediatamente!
+          this.qteActive = false;
+          this.qteSuccess = true;
+          emit('weapon:qte:result', { success: true });
+          emit('notification', { message: '⚡ Recarga Tática Perfeita!' });
+
+          // Restaura munição completa do novo carregador
+          this.ammoRestored = true;
+          this.ammo = def.magSize;
+          this.ammoByWeapon[this.current] = this.ammo;
+
+          // Encerra imediatamente a recarga
+          this.reloading = false;
+          this.reloadT = 0;
+          emit('weapon:ammo', { ammo: this.ammo, max: def.magSize, reserve: this.getReserveMags() });
+          emit('weapon:reload:end', { weaponId: this.current, type: this.reloadType });
+          this.input?.clearReloadQueue?.();
+        } else {
+          // Errou o tempo: penalidade com recarga lenta de 4s
+          this.qteActive = false;
+          this.qteSuccess = false;
+          emit('weapon:qte:result', { success: false });
+          emit('notification', { message: 'Falhou o timing! Recarga lenta (4s)...' });
+          this.input?.clearReloadQueue?.();
+        }
+      } else if (this.qteProgress >= 1.0) {
+        // Agulha esgotou sem acertar: penalidade com recarga de 4s
+        this.qteActive = false;
+        this.qteSuccess = false;
+        emit('weapon:qte:result', { success: false });
+        this.input?.clearReloadQueue?.();
+      }
     }
 
     // 3. ADS (Mira com botão direito, bloqueada se o cano estiver colado na parede)
     this.ads = this.input.actions.ads && !this.player.sprinting && this.player.alive && (this.wallCompression < 0.45);
-    this.player.ads = this.ads; // Sincroniza diretamente com o jogador
-    emit('player:ads', { ads: this.ads }); // Emite evento para todo o jogo
+    this.player.ads = this.ads;
+    emit('player:ads', { ads: this.ads });
     const adsTime = def.ballistics?.internal?.adsTime || 0.22;
     const adsSpeed = 1.0 / Math.max(0.04, adsTime);
     const targetAds = this.ads ? 1 : 0;
     this.adsAmount += (targetAds - this.adsAmount) * Math.min(dt * adsSpeed * 2.2, 1);
 
-    // 4. Progresso de Recarga
+    // 4. Progresso de Recarga Determinística
     if (this.reloading) {
       this.reloadT += dt;
-      const p = this.reloadT / def.reloadTime;
-      if (p >= 1) {
-        this.reloading = false;
+      const curDur = Math.max(0.01, this.reloadDuration || def.reloadTime);
+      const p = Math.min(this.reloadT / curDur, 1.0);
+
+      // Ponto de ejeção do carregador (35% do ciclo)
+      if (p >= 0.35 && !this.magDropped) {
+        this.magDropped = true;
+        if (this.reloadType === 'speed') {
+          const dropPos = new THREE.Vector3(0, -0.06, -0.04);
+          if (this.viewmodel?.mount) {
+            this.viewmodel.mount.localToWorld(dropPos);
+          } else if (this.camera) {
+            dropPos.copy(this.camera.position);
+          }
+          emit('weapon:magazine_dropped', {
+            weaponId: this.current,
+            ammoCount: this.ammo,
+            maxAmmo: def.magSize,
+            pos: dropPos
+          });
+          this.reserveMagsByWeapon[this.current] = Math.max(0, (this.reserveMagsByWeapon[this.current] ?? 3) - 1);
+          this.ammo = 0;
+          emit('weapon:ammo', { ammo: this.ammo, max: def.magSize, reserve: this.getReserveMags() });
+        } else {
+          emit('notification', { message: 'Guardou carregador no bolso (' + this.ammo + ' balas)' });
+        }
+      }
+
+      // Ponto de inserção do novo carregador (78% do ciclo) -> Balas restauradas
+      if (p >= 0.78 && !this.ammoRestored) {
+        this.ammoRestored = true;
         this.ammo = def.magSize;
         this.ammoByWeapon[this.current] = this.ammo;
-        emit('weapon:ammo', { ammo: this.ammo, max: def.magSize });
-        emit('weapon:reload:end');
+        emit('weapon:ammo', { ammo: this.ammo, max: def.magSize, reserve: this.getReserveMags() });
+      }
+
+      // Conclusão total da recarga
+      if (p >= 1.0) {
+        this.reloading = false;
+        this.reloadT = 0;
+        emit('weapon:ammo', { ammo: this.ammo, max: def.magSize, reserve: this.getReserveMags() });
+        emit('weapon:reload:end', { weaponId: this.current, type: this.reloadType });
+        this.input?.clearReloadQueue?.();
       }
     }
 
@@ -330,7 +475,9 @@ export class WeaponSystem {
       emit('weapon:empty');
     }
 
-    if (this.ammo === 0 && !this.reloading && !isInfiniteAmmo) this.reload();
+    if (this.ammo === 0 && !this.reloading && !isInfiniteAmmo && this.getReserveMags() > 0) {
+      this.reload();
+    }
 
     // ── Detecção de Término de Fogo Sustentado (Smoke Cooldown Exponencial) ─────────────
     const smokeCeaseDelay = Math.max(def.fireInterval * 1.5, 0.16);
@@ -387,7 +534,7 @@ export class WeaponSystem {
 
   get reloadProgress() {
     if (!this.reloading) return 0;
-    return Math.min(this.reloadT / this.def.reloadTime, 1);
+    return Math.min(this.reloadT / Math.max(0.01, this.reloadDuration || this.def?.reloadTime || 2.0), 1);
   }
 
   _currentSpread() {

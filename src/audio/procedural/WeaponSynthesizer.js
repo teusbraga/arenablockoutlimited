@@ -316,176 +316,194 @@ export class WeaponSynthesizer {
   }
 
   /* ========================================================================
-     FUZIL AK-47 7.62x39mm (DISPARO DRAMÁTICO + PISTÃO 500g + CARCAÇA DE AÇO)
+     FUZIL AK-47 7.62x39mm (DISPARO SECO, ESTRIDENTE E PRESENTE)
      ======================================================================== */
   synthesizeAK47(params, ctx, destination, startTime = null, humanize = false) {
     const t0 = startTime !== null ? startTime : ctx.currentTime;
     const j = humanize ? (1 + (Math.random() - 0.5) * 0.04) : 1.0;
 
-    const crackVal = getVal(params?.supersonicCrack, 0.95);
-    const barkFreq = getVal(params?.muzzleBarkFreq, 180) * j;
-    const blastDur = (getVal(params?.blastDecay, 150) / 1000) * j;
-    const mechVal  = getVal(params?.boltPistonMech, 0.75);
-    const recFreq  = getVal(params?.receiverSteelRing, 1050);
-    const echoVal  = getVal(params?.dramaticEcho, 0.82);
-    const airCut   = getVal(params?.airAbsorption, 2600);
+    const crackVal = getVal(params?.supersonicCrack, 1.00);
+    const barkFreq = getVal(params?.muzzleBarkFreq, 240) * j;
+    const blastDur = (getVal(params?.blastDecay, 85) / 1000) * j;
+    const mechVal  = getVal(params?.boltPistonMech, 0.85);
+    const recFreq  = getVal(params?.receiverSteelRing, 1650);
+    const echoVal  = getVal(params?.dramaticEcho, 0.25);
+    const airCut   = getVal(params?.airAbsorption, 9000);
 
-    // Filtro mestre de absorção atmosférica
+    // Filtro mestre de saída (aberto e presente, sem abafamento)
     const masterFilter = ctx.createBiquadFilter();
     masterFilter.type = 'lowpass';
     masterFilter.frequency.setValueAtTime(airCut, t0);
     masterFilter.connect(destination);
 
-    // 1. Crack supersônico Mach 2.1 (ogiva M43 123gr rompendo a barreira do som)
+    // 1. Crack supersônico Mach 2.1 (ogiva M43 123gr rompendo a barreira do som - estridente e cortante)
     if (crackVal > 0.01) {
       const whipOsc = ctx.createOscillator();
       const whipGain = ctx.createGain();
       whipOsc.type = 'sawtooth';
-      whipOsc.frequency.setValueAtTime(3400, t0);
-      whipOsc.frequency.exponentialRampToValueAtTime(700, t0 + 0.015);
+      whipOsc.frequency.setValueAtTime(4600, t0);
+      whipOsc.frequency.exponentialRampToValueAtTime(1100, t0 + 0.012);
 
       whipGain.gain.setValueAtTime(0.0001, t0);
-      whipGain.gain.exponentialRampToValueAtTime(crackVal * 0.95, t0 + 0.0004);
-      whipGain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.018);
+      whipGain.gain.exponentialRampToValueAtTime(crackVal * 1.0, t0 + 0.0003);
+      whipGain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.014);
 
       whipOsc.connect(whipGain);
       whipGain.connect(masterFilter);
       whipOsc.start(t0);
-      whipOsc.stop(t0 + 0.022);
+      whipOsc.stop(t0 + 0.016);
 
       if (this.noiseBuffers?.white) {
+        // Estalo de alta frequência passa-banda
         const crackNoise = this.noiseBuffers.createSource('white', false);
         const bp = ctx.createBiquadFilter();
         bp.type = 'bandpass';
-        bp.frequency.setValueAtTime(4200, t0);
-        bp.Q.setValueAtTime(3.0, t0);
+        bp.frequency.setValueAtTime(5200, t0);
+        bp.Q.setValueAtTime(3.5, t0);
 
         const env = ctx.createGain();
         env.gain.setValueAtTime(0.0001, t0);
-        env.gain.exponentialRampToValueAtTime(crackVal * 0.85, t0 + 0.0005);
-        env.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.015);
+        env.gain.exponentialRampToValueAtTime(crackVal * 1.05, t0 + 0.0004);
+        env.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.012);
 
         crackNoise.connect(bp);
         bp.connect(env);
         env.connect(masterFilter);
         crackNoise.start(t0);
-        crackNoise.stop(t0 + 0.020);
+        crackNoise.stop(t0 + 0.015);
+
+        // Mordida estridente passa-altas imediata
+        const snapNoise = this.noiseBuffers.createSource('white', false);
+        const hp = ctx.createBiquadFilter();
+        hp.type = 'highpass';
+        hp.frequency.setValueAtTime(4200, t0);
+
+        const snapEnv = ctx.createGain();
+        snapEnv.gain.setValueAtTime(0.0001, t0);
+        snapEnv.gain.linearRampToValueAtTime(crackVal * 0.70, t0 + 0.0003);
+        snapEnv.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.008);
+
+        snapNoise.connect(hp);
+        hp.connect(snapEnv);
+        snapEnv.connect(masterFilter);
+        snapNoise.start(t0);
+        snapNoise.stop(t0 + 0.010);
       }
     }
 
-    // 2. Muzzle blast concussivo e rouco do 7.62x39mm (180Hz -> 34Hz)
+    // 2. Muzzle blast concussivo do 7.62x39mm (Seco, rouco e presente: 240Hz -> 50Hz)
     const blastOsc = ctx.createOscillator();
     const blastGain = ctx.createGain();
     blastOsc.type = 'triangle';
     blastOsc.frequency.setValueAtTime(barkFreq, t0);
-    blastOsc.frequency.exponentialRampToValueAtTime(34, t0 + blastDur);
+    blastOsc.frequency.exponentialRampToValueAtTime(50, t0 + blastDur);
 
     blastGain.gain.setValueAtTime(0.0001, t0);
-    blastGain.gain.exponentialRampToValueAtTime(1.20, t0 + 0.002);
+    blastGain.gain.exponentialRampToValueAtTime(1.35, t0 + 0.001);
     blastGain.gain.exponentialRampToValueAtTime(0.0001, t0 + blastDur);
 
     blastOsc.connect(blastGain);
     blastGain.connect(masterFilter);
     blastOsc.start(t0);
-    blastOsc.stop(t0 + blastDur + 0.03);
+    blastOsc.stop(t0 + blastDur + 0.02);
 
-    // Subgrave visceral da detonação dos 24gr de pólvora russa (80Hz -> 28Hz)
+    // Subgrave seco e compacto (90Hz -> 35Hz em 80ms)
     const subOsc = ctx.createOscillator();
     const subGain = ctx.createGain();
     subOsc.type = 'sine';
-    subOsc.frequency.setValueAtTime(80, t0);
-    subOsc.frequency.exponentialRampToValueAtTime(28, t0 + blastDur * 1.05);
+    subOsc.frequency.setValueAtTime(90, t0);
+    subOsc.frequency.exponentialRampToValueAtTime(35, t0 + blastDur * 0.95);
 
     subGain.gain.setValueAtTime(0.0001, t0);
-    subGain.gain.exponentialRampToValueAtTime(0.95, t0 + 0.005);
-    subGain.gain.exponentialRampToValueAtTime(0.0001, t0 + blastDur * 1.05);
+    subGain.gain.exponentialRampToValueAtTime(0.80, t0 + 0.003);
+    subGain.gain.exponentialRampToValueAtTime(0.0001, t0 + blastDur * 0.95);
 
     subOsc.connect(subGain);
     subGain.connect(masterFilter);
     subOsc.start(t0);
-    subOsc.stop(t0 + blastDur * 1.1);
+    subOsc.stop(t0 + blastDur + 0.02);
 
-    // 3. Sopro de alta pressão no bloco de gás / compensador (2.2kHz)
+    // 3. Sopro rasgado de alta pressão no compensador de cano chanfrado (3.6kHz)
     if (this.noiseBuffers?.pink) {
       const gasNoise = this.noiseBuffers.createSource('pink', false);
       const gasFilter = ctx.createBiquadFilter();
       gasFilter.type = 'bandpass';
-      gasFilter.frequency.setValueAtTime(2200, t0);
-      gasFilter.Q.setValueAtTime(1.8, t0);
+      gasFilter.frequency.setValueAtTime(3600, t0);
+      gasFilter.Q.setValueAtTime(2.2, t0);
 
       const gasEnv = ctx.createGain();
       gasEnv.gain.setValueAtTime(0.0001, t0);
-      gasEnv.gain.linearRampToValueAtTime(0.80, t0 + 0.001);
-      gasEnv.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.045);
+      gasEnv.gain.linearRampToValueAtTime(0.85, t0 + 0.0008);
+      gasEnv.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.032);
 
       gasNoise.connect(gasFilter);
       gasFilter.connect(gasEnv);
       gasEnv.connect(masterFilter);
       gasNoise.start(t0);
-      gasNoise.stop(t0 + 0.050);
+      gasNoise.stop(t0 + 0.035);
     }
 
-    // 4. Mecânica violenta do pistão de curso longo e ferrolho de 500g (45ms recuo / 95ms trancamento)
+    // 4. Mecânica do pistão de 500g e caixa de culatra de aço estampado (Seco e cortante)
     if (mechVal > 0.01 && this.noiseBuffers?.white) {
-      // Impacto traseiro do transportador de culatra (t = 45ms)
-      const tBack = t0 + 0.045;
+      // Recuo traseiro do conjunto ferrolho (t = 38ms)
+      const tBack = t0 + 0.038;
       const mechBack = this.noiseBuffers.createSource('white', false);
       const bpBack = ctx.createBiquadFilter();
       bpBack.type = 'bandpass';
-      bpBack.frequency.setValueAtTime(recFreq * 0.85, tBack);
+      bpBack.frequency.setValueAtTime(recFreq, tBack);
       bpBack.Q.setValueAtTime(3.0, tBack);
 
       const envBack = ctx.createGain();
       envBack.gain.setValueAtTime(0.0001, t0);
       envBack.gain.setValueAtTime(0.0001, tBack);
-      envBack.gain.linearRampToValueAtTime(mechVal * 0.65, tBack + 0.001);
-      envBack.gain.exponentialRampToValueAtTime(0.0001, tBack + 0.035);
+      envBack.gain.linearRampToValueAtTime(mechVal * 0.85, tBack + 0.0008);
+      envBack.gain.exponentialRampToValueAtTime(0.0001, tBack + 0.025);
 
       mechBack.connect(bpBack);
       bpBack.connect(envBack);
       envBack.connect(masterFilter);
       mechBack.start(tBack);
-      mechBack.stop(tBack + 0.040);
+      mechBack.stop(tBack + 0.028);
 
-      // Trancamento rotativo do ferrolho na câmara (t = 95ms)
-      const tLock = t0 + 0.095;
+      // Trancamento rotativo na câmara (t = 82ms)
+      const tLock = t0 + 0.082;
       const mechLock = this.noiseBuffers.createSource('white', false);
       const bpLock = ctx.createBiquadFilter();
       bpLock.type = 'bandpass';
-      bpLock.frequency.setValueAtTime(recFreq * 1.25, tLock);
-      bpLock.Q.setValueAtTime(3.5, tLock);
+      bpLock.frequency.setValueAtTime(recFreq * 1.45, tLock);
+      bpLock.Q.setValueAtTime(3.8, tLock);
 
       const envLock = ctx.createGain();
       envLock.gain.setValueAtTime(0.0001, t0);
       envLock.gain.setValueAtTime(0.0001, tLock);
-      envLock.gain.linearRampToValueAtTime(mechVal * 0.70, tLock + 0.001);
-      envLock.gain.exponentialRampToValueAtTime(0.0001, tLock + 0.038);
+      envLock.gain.linearRampToValueAtTime(mechVal * 0.90, tLock + 0.0008);
+      envLock.gain.exponentialRampToValueAtTime(0.0001, tLock + 0.028);
 
       mechLock.connect(bpLock);
       bpLock.connect(envLock);
       envLock.connect(masterFilter);
       mechLock.start(tLock);
-      mechLock.stop(tLock + 0.042);
+      mechLock.stop(tLock + 0.032);
     }
 
-    // 5. Cauda dramática de reverberação (>2.2s)
+    // 5. Cauda acústica curta e seca (sem eco distante de vale)
     if (echoVal > 0.01 && this.noiseBuffers?.brown) {
       const tailNoise = this.noiseBuffers.createSource('brown', false);
       const tailFilter = ctx.createBiquadFilter();
       tailFilter.type = 'lowpass';
-      tailFilter.frequency.setValueAtTime(360, t0);
-      tailFilter.frequency.exponentialRampToValueAtTime(80, t0 + 2.0);
+      tailFilter.frequency.setValueAtTime(650, t0);
+      tailFilter.frequency.exponentialRampToValueAtTime(120, t0 + 0.40);
 
       const tailEnv = ctx.createGain();
       tailEnv.gain.setValueAtTime(0.0001, t0);
-      tailEnv.gain.linearRampToValueAtTime(echoVal * 0.85, t0 + 0.04);
-      tailEnv.gain.exponentialRampToValueAtTime(0.0001, t0 + 2.2);
+      tailEnv.gain.linearRampToValueAtTime(echoVal * 0.35, t0 + 0.02);
+      tailEnv.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.42);
 
       tailNoise.connect(tailFilter);
       tailFilter.connect(tailEnv);
       tailEnv.connect(masterFilter);
-      tailNoise.start(t0 + 0.015);
-      tailNoise.stop(t0 + 2.3);
+      tailNoise.start(t0 + 0.010);
+      tailNoise.stop(t0 + 0.45);
     }
   }
 
@@ -797,138 +815,176 @@ export class WeaponSynthesizer {
   }
 
   /* ========================================================================
-     6. REVÓLVER S&W .500 MAGNUM (CANHÃO DE MÃO)
+     6. REVÓLVER S&W .500 MAGNUM (DISPARO SECO, ESTRIDENTE E METÁLICO)
      ======================================================================== */
   synthesizeSW500Magnum(params, ctx, destination, startTime = null, humanize = false) {
     const t0 = startTime !== null ? startTime : ctx.currentTime;
     const j = humanize ? (1 + (Math.random() - 0.5) * 0.04) : 1.0;
 
-    const crackVal     = getVal(params.supersonicCrack, 0.98);
-    const thumpFreq    = getVal(params.subBassThumpFreq, 135) * j;
-    const blastDur     = (getVal(params.blastDecay, 220) / 1000) * j;
-    const gapVal       = getVal(params.cylinderGapBlast, 0.85);
-    const steelFreq    = getVal(params.xframeRingFreq, 720);
-    const tailVal      = getVal(params.dramaticTail, 0.88);
-    const airCut       = getVal(params.airAbsorption, 2200);
+    const crackVal     = getVal(params.supersonicCrack, 1.00);
+    const thumpFreq    = getVal(params.subBassThumpFreq, 180) * j;
+    const blastDur     = (getVal(params.blastDecay, 90) / 1000) * j;
+    const gapVal       = getVal(params.cylinderGapBlast, 0.95);
+    const steelFreq    = getVal(params.xframeRingFreq, 1850);
+    const tailVal      = getVal(params.dramaticTail, 0.25);
+    const airCut       = getVal(params.airAbsorption, 9500);
 
     const masterFilter = ctx.createBiquadFilter();
     masterFilter.type = 'lowpass';
     masterFilter.frequency.setValueAtTime(airCut, t0);
     masterFilter.connect(destination);
 
-    // 1. Martelo Pesado de Aço no Percussor
+    // 1. Martelo Pesado de Aço no Percussor (Impacto seco e imediato)
     if (this.noiseBuffers?.white) {
       const hSrc = this.noiseBuffers.createSource('white', false);
       const hFilt = ctx.createBiquadFilter();
       hFilt.type = 'highpass';
-      hFilt.frequency.setValueAtTime(2600, t0);
+      hFilt.frequency.setValueAtTime(3800, t0);
       const hEnv = ctx.createGain();
       hEnv.gain.setValueAtTime(0.0001, t0);
-      hEnv.gain.linearRampToValueAtTime(0.50, t0 + 0.0003);
-      hEnv.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.006);
+      hEnv.gain.linearRampToValueAtTime(0.60, t0 + 0.0002);
+      hEnv.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.005);
       hSrc.connect(hFilt);
       hFilt.connect(hEnv);
       hEnv.connect(masterFilter);
       hSrc.start(t0);
-      hSrc.stop(t0 + 0.008);
+      hSrc.stop(t0 + 0.007);
     }
 
-    // 2. Chicote Supersônico .50
+    // 2. Chicote Supersônico .50 (Estridente e cortante)
     if (crackVal > 0.01) {
       const whipOsc = ctx.createOscillator();
       const whipGain = ctx.createGain();
       whipOsc.type = 'sawtooth';
-      whipOsc.frequency.setValueAtTime(3800, t0);
-      whipOsc.frequency.exponentialRampToValueAtTime(800, t0 + 0.014);
+      whipOsc.frequency.setValueAtTime(4800, t0);
+      whipOsc.frequency.exponentialRampToValueAtTime(1400, t0 + 0.010);
       whipGain.gain.setValueAtTime(0.0001, t0);
-      whipGain.gain.exponentialRampToValueAtTime(crackVal * 1.0, t0 + 0.0004);
-      whipGain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.018);
+      whipGain.gain.exponentialRampToValueAtTime(crackVal * 1.10, t0 + 0.0003);
+      whipGain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.012);
       whipOsc.connect(whipGain);
       whipGain.connect(masterFilter);
       whipOsc.start(t0);
-      whipOsc.stop(t0 + 0.022);
+      whipOsc.stop(t0 + 0.015);
+
+      if (this.noiseBuffers?.white) {
+        const crackNoise = this.noiseBuffers.createSource('white', false);
+        const bpCrack = ctx.createBiquadFilter();
+        bpCrack.type = 'bandpass';
+        bpCrack.frequency.setValueAtTime(6200, t0);
+        bpCrack.Q.setValueAtTime(4.0, t0);
+
+        const crackEnv = ctx.createGain();
+        crackEnv.gain.setValueAtTime(0.0001, t0);
+        crackEnv.gain.exponentialRampToValueAtTime(crackVal * 1.00, t0 + 0.0003);
+        crackEnv.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.010);
+
+        crackNoise.connect(bpCrack);
+        bpCrack.connect(crackEnv);
+        crackEnv.connect(masterFilter);
+        crackNoise.start(t0);
+        crackNoise.stop(t0 + 0.012);
+      }
     }
 
-    // 3. Cylinder Gap Blast (Jato lateral 60k PSI)
+    // 3. Cylinder Gap Blast (Jato lateral violento de 60k PSI - Estridente e ensurdecedor)
     if (gapVal > 0.01 && this.noiseBuffers?.pink) {
       const gapSrc = this.noiseBuffers.createSource('pink', false);
       const gapFilter = ctx.createBiquadFilter();
       gapFilter.type = 'bandpass';
-      gapFilter.frequency.setValueAtTime(2400, t0);
-      gapFilter.Q.setValueAtTime(2.2, t0);
+      gapFilter.frequency.setValueAtTime(4800, t0);
+      gapFilter.Q.setValueAtTime(2.5, t0);
       const gapEnv = ctx.createGain();
       gapEnv.gain.setValueAtTime(0.0001, t0);
-      gapEnv.gain.exponentialRampToValueAtTime(gapVal * 0.85, t0 + 0.001);
-      gapEnv.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.045);
+      gapEnv.gain.linearRampToValueAtTime(gapVal * 1.10, t0 + 0.0005);
+      gapEnv.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.028);
       gapSrc.connect(gapFilter);
       gapFilter.connect(gapEnv);
       gapEnv.connect(masterFilter);
       gapSrc.start(t0);
-      gapSrc.stop(t0 + 0.050);
+      gapSrc.stop(t0 + 0.032);
+
+      // Mordida extra de alta pressão
+      if (this.noiseBuffers?.white) {
+        const gapSnap = this.noiseBuffers.createSource('white', false);
+        const hpGap = ctx.createBiquadFilter();
+        hpGap.type = 'highpass';
+        hpGap.frequency.setValueAtTime(3200, t0);
+
+        const gapSnapEnv = ctx.createGain();
+        gapSnapEnv.gain.setValueAtTime(0.0001, t0);
+        gapSnapEnv.gain.linearRampToValueAtTime(gapVal * 0.65, t0 + 0.0004);
+        gapSnapEnv.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.015);
+
+        gapSnap.connect(hpGap);
+        hpGap.connect(gapSnapEnv);
+        gapSnapEnv.connect(masterFilter);
+        gapSnap.start(t0);
+        gapSnap.stop(t0 + 0.018);
+      }
     }
 
-    // 4. Soco Sísmico Subgrave Monstruoso (135Hz -> 28Hz)
+    // 4. Soco de Pólvora Seco e Encorpado (180Hz -> 48Hz em 90ms)
     const blastOsc = ctx.createOscillator();
     const blastGain = ctx.createGain();
     blastOsc.type = 'triangle';
     blastOsc.frequency.setValueAtTime(thumpFreq, t0);
-    blastOsc.frequency.exponentialRampToValueAtTime(28, t0 + blastDur);
+    blastOsc.frequency.exponentialRampToValueAtTime(48, t0 + blastDur);
     blastGain.gain.setValueAtTime(0.0001, t0);
-    blastGain.gain.exponentialRampToValueAtTime(1.25, t0 + 0.002);
+    blastGain.gain.exponentialRampToValueAtTime(1.40, t0 + 0.001);
     blastGain.gain.exponentialRampToValueAtTime(0.0001, t0 + blastDur);
     blastOsc.connect(blastGain);
     blastGain.connect(masterFilter);
     blastOsc.start(t0);
-    blastOsc.stop(t0 + blastDur + 0.04);
+    blastOsc.stop(t0 + blastDur + 0.02);
 
-    // Sub-baixo adicional puro de pressão de ar (75Hz -> 24Hz)
+    // Subgrave seco de pressão de ar (85Hz -> 32Hz em 85ms)
     const subOsc = ctx.createOscillator();
     const subGain = ctx.createGain();
     subOsc.type = 'sine';
-    subOsc.frequency.setValueAtTime(75, t0);
-    subOsc.frequency.exponentialRampToValueAtTime(24, t0 + blastDur * 1.1);
+    subOsc.frequency.setValueAtTime(85, t0);
+    subOsc.frequency.exponentialRampToValueAtTime(32, t0 + blastDur * 0.95);
     subGain.gain.setValueAtTime(0.0001, t0);
-    subGain.gain.exponentialRampToValueAtTime(1.0, t0 + 0.006);
-    subGain.gain.exponentialRampToValueAtTime(0.0001, t0 + blastDur * 1.1);
+    subGain.gain.exponentialRampToValueAtTime(0.85, t0 + 0.003);
+    subGain.gain.exponentialRampToValueAtTime(0.0001, t0 + blastDur * 0.95);
     subOsc.connect(subGain);
     subGain.connect(masterFilter);
     subOsc.start(t0);
-    subOsc.stop(t0 + blastDur * 1.15);
+    subOsc.stop(t0 + blastDur + 0.02);
 
-    // 5. Vibração Estrutural da Armação X-Frame (Aço forjado)
+    // 5. Vibração Metálica Estrutural da Armação X-Frame (Aço forjado em 1850Hz)
     if (this.noiseBuffers?.white) {
       const steelSrc = this.noiseBuffers.createSource('white', false);
       const bpSteel = ctx.createBiquadFilter();
       bpSteel.type = 'bandpass';
       bpSteel.frequency.setValueAtTime(steelFreq, t0);
-      bpSteel.Q.setValueAtTime(3.5, t0);
+      bpSteel.Q.setValueAtTime(4.5, t0);
       const steelEnv = ctx.createGain();
       steelEnv.gain.setValueAtTime(0.0001, t0);
-      steelEnv.gain.linearRampToValueAtTime(0.35, t0 + 0.0005);
-      steelEnv.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.035);
+      steelEnv.gain.linearRampToValueAtTime(0.55, t0 + 0.0004);
+      steelEnv.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.025);
       steelSrc.connect(bpSteel);
       bpSteel.connect(steelEnv);
       steelEnv.connect(masterFilter);
       steelSrc.start(t0);
-      steelSrc.stop(t0 + 0.040);
+      steelSrc.stop(t0 + 0.028);
     }
 
-    // 6. Cauda Dramática de Trovão (> 2.4s)
+    // 6. Cauda Curta e Seca (sem eco distante / sem bumbo mole)
     if (tailVal > 0.01 && this.noiseBuffers?.brown) {
       const tailSrc = this.noiseBuffers.createSource('brown', false);
       const tailFilter = ctx.createBiquadFilter();
       tailFilter.type = 'lowpass';
-      tailFilter.frequency.setValueAtTime(380, t0);
-      tailFilter.frequency.exponentialRampToValueAtTime(90, t0 + 2.2);
+      tailFilter.frequency.setValueAtTime(500, t0);
+      tailFilter.frequency.exponentialRampToValueAtTime(100, t0 + 0.35);
       const tailEnv = ctx.createGain();
       tailEnv.gain.setValueAtTime(0.0001, t0);
-      tailEnv.gain.linearRampToValueAtTime(tailVal * 0.85, t0 + 0.05);
-      tailEnv.gain.exponentialRampToValueAtTime(0.0001, t0 + 2.4);
+      tailEnv.gain.linearRampToValueAtTime(tailVal * 0.30, t0 + 0.02);
+      tailEnv.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.38);
       tailSrc.connect(tailFilter);
       tailFilter.connect(tailEnv);
       tailEnv.connect(masterFilter);
-      tailSrc.start(t0 + 0.02);
-      tailSrc.stop(t0 + 2.5);
+      tailSrc.start(t0 + 0.01);
+      tailSrc.stop(t0 + 0.40);
     }
   }
 

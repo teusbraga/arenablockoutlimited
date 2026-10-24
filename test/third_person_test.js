@@ -4,6 +4,11 @@ import { Player } from '../src/entities/Player.js';
 import { CameraRig } from '../src/core/CameraRig.js';
 import { CollisionWorld } from '../src/physics/CollisionWorld.js';
 
+if (!globalThis.window) globalThis.window = globalThis;
+if (!globalThis.navigator) globalThis.navigator = { userAgent: '', maxTouchPoints: 0 };
+if (!globalThis.document) globalThis.document = { getElementById: () => null, addEventListener: () => {} };
+if (!globalThis.addEventListener) globalThis.addEventListener = () => {};
+
 describe('Player Third Person Perspective & Blocky Soldier Integration', () => {
   const world = new CollisionWorld();
   world.addBox(0, 0, 0, 100, 1, 100, { material: 'floor' });
@@ -82,5 +87,31 @@ describe('Player Third Person Perspective & Blocky Soldier Integration', () => {
     assert.ok(player.rig.tpSmoothDist < 1.3, `Spring arm deve limitar distância (atual: ${player.rig.tpSmoothDist})`);
     
     player.destroy();
+  });
+
+  it('Cheat whoami ativa e desativa 3ª pessoa via evento cheat:activated', async () => {
+    const { emit } = await import('../src/core/EventBus.js');
+    const player = new Player(world, [-50, 50, -50, 50], [0, 1, 0]);
+    assert.strictEqual(player.isThirdPerson(), false);
+
+    // Dispara cheat whoami
+    emit('cheat:activated', { cheat: 'whoami' });
+    assert.strictEqual(player.isThirdPerson(), true, 'Cheat whoami deve ativar 3ª pessoa');
+
+    // Dispara novamente cheat whoami
+    emit('cheat:activated', { cheat: 'whoami' });
+    assert.strictEqual(player.isThirdPerson(), false, 'Cheat whoami repetido deve desativar 3ª pessoa');
+
+    player.destroy();
+  });
+
+  it('KeyV está desativada e botões convencionais não alteram perspectiva no Input', async () => {
+    const { Input } = await import('../src/core/Input.js');
+    const mockCanvas = { addEventListener: () => {} };
+    const input = new Input(mockCanvas);
+
+    assert.strictEqual(input.bindings['KeyV'], undefined, 'KeyV não deve estar associada a toggle_perspective');
+    assert.strictEqual(input.actions.togglePerspective, false);
+    assert.strictEqual(typeof input.triggerCheat, 'function', 'Deve expor triggerCheat');
   });
 });
