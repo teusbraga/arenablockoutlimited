@@ -113,7 +113,8 @@
           "bulletSpeed": 880
         }
       },
-      "ammo": "5.56_nato"
+      "ammo": "5.56_nato",
+      "type": "rifle"
     },
     "ak47": {
       "id": "ak47",
@@ -175,7 +176,7 @@
         -0.035
       ],
       "kickbackZ": 0.009,
-      "smokeConeOpacity": 0.30,
+      "smokeConeOpacity": 0.3,
       "smokeConeScale": 1.25,
       "smokeResidualMax": 5,
       "smokeResidualColor": "#d5dadf",
@@ -226,7 +227,8 @@
           "bulletSpeed": 715
         }
       },
-      "ammo": "7.62_soviet"
+      "ammo": "7.62_soviet",
+      "type": "rifle"
     },
     "rifle_proto": {
       "id": "rifle_proto",
@@ -340,7 +342,8 @@
           "bulletSpeed": 950
         }
       },
-      "ammo": "energy_cell"
+      "ammo": "energy_cell",
+      "type": "sniper"
     },
     "scar_h": {
       "id": "scar_h",
@@ -349,7 +352,7 @@
       "weight": 3.7,
       "damageBody": 38,
       "damageHead": 84,
-      "fireInterval": 0.10,
+      "fireInterval": 0.1,
       "magSize": 20,
       "reloadTime": 1.85,
       "spreadHip": 0.022,
@@ -401,7 +404,7 @@
         0.024,
         0.035
       ],
-      "kickbackZ": 0.010,
+      "kickbackZ": 0.01,
       "kickRotFactor": 1.6,
       "smokeConeOpacity": 0.34,
       "smokeConeScale": 1.4,
@@ -414,7 +417,7 @@
       "mods": [],
       "ballistics": {
         "internal": {
-          "fireInterval": 0.10,
+          "fireInterval": 0.1,
           "adsTime": 0.22,
           "reloadTime": 1.85
         },
@@ -437,7 +440,7 @@
             "dynamicLoss": {
               "strafe": 0.022,
               "walk": 0.015,
-              "run": 0.040
+              "run": 0.04
             },
             "recoveryTime": 0.28
           }
@@ -454,7 +457,8 @@
           "bulletSpeed": 715
         }
       },
-      "ammo": "7.62_soviet"
+      "ammo": "7.62_soviet",
+      "type": "rifle"
     },
     "uzi": {
       "id": "uzi",
@@ -568,7 +572,8 @@
           "bulletSpeed": 400
         }
       },
-      "ammo": "9mm_para"
+      "ammo": "9mm_para",
+      "type": "smg"
     },
     "m249": {
       "id": "m249",
@@ -630,7 +635,7 @@
         -0.06
       ],
       "kickbackZ": 0.01,
-      "smokeConeOpacity": 0.40,
+      "smokeConeOpacity": 0.4,
       "smokeConeScale": 1.85,
       "smokeResidualMax": 6,
       "smokeResidualColor": "#e0e4eb",
@@ -683,7 +688,8 @@
           "bulletSpeed": 850
         }
       },
-      "ammo": "5.56_linked"
+      "ammo": "5.56_linked",
+      "type": "heavy"
     },
     "p9": {
       "id": "p9",
@@ -795,7 +801,8 @@
           "bulletSpeed": 380
         }
       },
-      "ammo": "5.7_fn"
+      "ammo": "5.7_fn",
+      "type": "pistol"
     },
     "sw500": {
       "id": "sw500",
@@ -904,7 +911,8 @@
           "bulletSpeed": 500
         }
       },
-      "ammo": "500_magnum"
+      "ammo": "500_magnum",
+      "type": "pistol"
     },
     "m12": {
       "id": "m12",
@@ -971,7 +979,7 @@
       "kickbackZ": 0.014,
       "kickRotFactor": 1.8,
       "smokeConeOpacity": 0.42,
-      "smokeConeScale": 2.0,
+      "smokeConeScale": 2,
       "smokeResidualMax": 6,
       "smokeResidualColor": "#d8dde2",
       "fireModes": [
@@ -1020,7 +1028,8 @@
           "bulletSpeed": 360
         }
       },
-      "ammo": "12_gauge"
+      "ammo": "12_gauge",
+      "type": "shotgun"
     },
     "vss": {
       "id": "vss",
@@ -1085,7 +1094,7 @@
       "kickbackZ": 0.006,
       "kickRotFactor": 1.2,
       "smokeConeOpacity": 0.24,
-      "smokeConeScale": 1.0,
+      "smokeConeScale": 1,
       "smokeResidualMax": 2,
       "smokeResidualColor": "#aaaaaa",
       "fireModes": [
@@ -1135,7 +1144,8 @@
           "bulletSpeed": 290
         }
       },
-      "ammo": "9x39_sp5"
+      "ammo": "9x39_sp5",
+      "type": "sniper"
     }
   },
   "mods": {

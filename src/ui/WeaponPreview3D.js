@@ -178,16 +178,16 @@ export class WeaponPreview3D {
     const def = WEAPONS[weaponId];
     let glowColor = 0xffcc00;
     if (def) {
-      if (def.type === 'sniper' || weaponId === 'vss' || weaponId === 'rifle_proto' || weaponId === 'scar_h') {
+      if (def.type === 'sniper' || weaponId === 'scar_h') {
         glowColor = 0x00f0ff;
-      } else if (def.type === 'heavy' || weaponId === 'm249') {
+      } else if (def.type === 'heavy') {
         glowColor = 0xff6600;
-      } else if (def.type === 'shotgun' || weaponId === 'm12') {
+      } else if (def.type === 'shotgun') {
         glowColor = 0xff3344;
-      } else if (def.type === 'smg' || weaponId === 'uzi' || weaponId === 'p9') {
+      } else if (def.type === 'smg') {
         glowColor = 0x33ff66;
-      } else if (weaponId === 'sw500') {
-        glowColor = 0xff00bb;
+      } else if (def.type === 'pistol') {
+        glowColor = weaponId === 'sw500' ? 0xff00bb : 0x33ff66;
       }
     }
     return glowColor;

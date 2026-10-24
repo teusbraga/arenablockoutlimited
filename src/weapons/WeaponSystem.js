@@ -110,7 +110,7 @@ export class WeaponSystem {
 
     this._unsubEvents = [
       on('weapon:select_slot', idx => this.selectSlot(idx)),
-      on('weapon:cycle_action', () => this.cycle()),
+
       on('cheat:activated', e => {
         if (e.cheat === 'professionalkiller' && e.active) {
           if (this.def) {
@@ -294,7 +294,7 @@ export class WeaponSystem {
 
     // 0.1. Weapon Wall Press (Cano da arma colide/aproxima-se de paredes)
     // O cano só deve recolher se a ponta do cano estiver prestes a penetrar ou colidir na parede (< 0.15m de folga)
-    const barrelLength = def?.barrelLength || (def?.type === 'pistol' || this.current === 'p9' ? 0.32 : (this.current === 'uzi' || this.current === 'sw500' ? 0.38 : 0.55));
+    const barrelLength = def?.barrelLength || (def?.type === 'pistol' ? 0.32 : (def?.type === 'smg' ? 0.38 : 0.55));
     const safetyBuffer = 0.18; // Inicia compressão apenas a 18cm de encostar no obstáculo físico
     const maxDetectionDist = barrelLength + safetyBuffer;
     let targetCompression = 0.0;
@@ -509,9 +509,9 @@ export class WeaponSystem {
         emit('weapon:smoke:residual', {
           muzzleWorld: _smokeMuzzleWorld,
           weapon: def,
-          count: 1,
+          count: def?.smokeResidualMax ? Math.min(2, def.smokeResidualMax) : 1,
           ratio,
-          color: '#ffffff'
+          color: def?.smokeResidualColor || '#ffffff'
         });
       }
     }

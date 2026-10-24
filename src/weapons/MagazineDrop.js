@@ -36,8 +36,8 @@ export class MagazineDrop {
     } else {
       // Procedural magazine tailored to weapon type
       const def = WEAPONS[this.weaponId];
-      const isPistol = def?.type === 'pistol' || this.weaponId === 'p9' || this.weaponId === 'sw500';
-      const isSMG = def?.type === 'smg' || this.weaponId === 'uzi';
+      const isPistol = def?.type === 'pistol';
+      const isSMG = def?.type === 'smg';
       const isDrum = this.weaponId === 'm249';
 
       const width = isDrum ? 0.08 : (isPistol ? 0.022 : 0.028);

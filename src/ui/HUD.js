@@ -263,6 +263,9 @@ export class HUD {
       on('hud:popup', ({ text, color, duration }) => {
         this._showKillPopup(text, color || '#06d6a0', duration || 1600);
       }),
+      on('notification', ({ message }) => {
+        if (message) this._showKillPopup(message, '#ffaa00', 1800);
+      }),
       on('round:over', () => {
         this.isRoundOver = true;
         this.el.overlay?.classList.add('hidden');

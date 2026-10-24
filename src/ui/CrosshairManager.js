@@ -51,18 +51,11 @@ export class CrosshairManager {
       }
     } catch (_) {}
     this.applyConfig();
-    emit('crosshair:updated', this.config);
+
   }
 
   _bindEvents() {
-    this._unsubs = [
-      on('crosshair:change', cfg => {
-        this.saveConfig(cfg);
-      }),
-      on('crosshair:reset', () => {
-        this.saveConfig(DEFAULT_CROSSHAIR_CONFIG);
-      })
-    ];
+    this._unsubs = [];
   }
 
   destroy() {
