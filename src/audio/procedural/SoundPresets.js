@@ -24,7 +24,7 @@ export const SOUND_PRESETS = {
     valleyEcho: 0.75,
     airDamping: 2800
   },
-  ak47_762x39: {
+  ak_suppressed: {
     supersonicCrack: 1.00,
     muzzleBarkFreq: 240,
     blastDecay: 85, // ms (seco e contundente)
@@ -33,6 +33,8 @@ export const SOUND_PRESETS = {
     dramaticEcho: 0.25, // curto e seco, sem eco distante
     airAbsorption: 9000 // aberto e estridente, zero abafamento
   },
+  get ak_supressed() { return this.ak_suppressed; },
+  get ak47_762x39() { return this.ak_suppressed; },
   gunshot_9mm: {
     muzzleCrack: 0.90,
     powderPunch: 230,

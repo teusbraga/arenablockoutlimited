@@ -316,9 +316,9 @@ export class WeaponSynthesizer {
   }
 
   /* ========================================================================
-     FUZIL AK-47 7.62x39mm (DISPARO SECO, ESTRIDENTE E PRESENTE)
+     FUZIL AK SUPPRESSED / AK-47 7.62x39mm (DISPARO SECO, ESTRIDENTE E PRESENTE)
      ======================================================================== */
-  synthesizeAK47(params, ctx, destination, startTime = null, humanize = false) {
+  synthesizeAKSuppressed(params, ctx, destination, startTime = null, humanize = false) {
     const t0 = startTime !== null ? startTime : ctx.currentTime;
     const j = humanize ? (1 + (Math.random() - 0.5) * 0.04) : 1.0;
 
@@ -505,6 +505,14 @@ export class WeaponSynthesizer {
       tailNoise.start(t0 + 0.010);
       tailNoise.stop(t0 + 0.45);
     }
+  }
+
+  synthesizeAKSupressed(params, ctx, destination, startTime = null, humanize = false) {
+    return this.synthesizeAKSuppressed(params, ctx, destination, startTime, humanize);
+  }
+
+  synthesizeAK47(params, ctx, destination, startTime = null, humanize = false) {
+    return this.synthesizeAKSuppressed(params, ctx, destination, startTime, humanize);
   }
 
   /* ========================================================================

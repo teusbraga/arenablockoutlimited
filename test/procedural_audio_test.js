@@ -139,14 +139,16 @@ class MockAudioContext {
   assert.strictEqual(SOUND_PRESETS.shotgun_load_shell.springScrape, 0.75, 'Raspagem na mola deve ser 0.75');
   assert.strictEqual(SOUND_PRESETS.shotgun_load_shell.brassRimRing, 2450, 'Ressonância do culote de latão deve ser 2450 Hz');
   assert.strictEqual(SOUND_PRESETS.shotgun_load_shell.tubeCavityFreq, 420, 'Ressonância oca do tubo deve ser 420 Hz');
-  assert.strictEqual(SOUND_PRESETS.ak47_762x39.muzzleBarkFreq, 240, 'Frequência do soco e rouquidão do 7.62x39mm deve ser 240 Hz');
-  assert.strictEqual(SOUND_PRESETS.ak47_762x39.receiverSteelRing, 1650, 'Ressonância da caixa de culatra de aço deve ser 1650 Hz');
-  assert.strictEqual(SOUND_PRESETS.ak47_762x39.boltPistonMech, 0.85, 'Ciclo do pistão a gás e ferrolho de 500g deve ser 0.85');
-  assert.strictEqual(SOUND_PRESETS.ak47_762x39.airAbsorption, 9000, 'Absorção atmosférica deve ser 9000 Hz (aberto e presente)');
-  assert.strictEqual(SOUND_PRESETS.ak47_762x39.blastDecay, 85, 'Duração do soco deve ser 85ms (seco)');
+  assert.strictEqual(SOUND_PRESETS.ak_suppressed.muzzleBarkFreq, 240, 'Frequência do soco e rouquidão do 7.62x39mm deve ser 240 Hz');
+  assert.strictEqual(SOUND_PRESETS.ak_suppressed.receiverSteelRing, 1650, 'Ressonância da caixa de culatra de aço deve ser 1650 Hz');
+  assert.strictEqual(SOUND_PRESETS.ak_suppressed.boltPistonMech, 0.85, 'Ciclo do pistão a gás e ferrolho de 500g deve ser 0.85');
+  assert.strictEqual(SOUND_PRESETS.ak_suppressed.airAbsorption, 9000, 'Absorção atmosférica deve ser 9000 Hz (aberto e presente)');
+  assert.strictEqual(SOUND_PRESETS.ak_suppressed.blastDecay, 85, 'Duração do soco deve ser 85ms (seco)');
+  assert.strictEqual(SOUND_PRESETS.ak_supressed.blastDecay, 85, 'Alias ak_supressed deve apontar para ak_suppressed');
+  assert.strictEqual(SOUND_PRESETS.ak47_762x39.blastDecay, 85, 'Alias ak47_762x39 deve apontar para ak_suppressed');
   assert.strictEqual(SOUND_PRESETS.sw500_magnum.blastDecay, 90, 'Duração do soco do SW500 deve ser 90ms (seco)');
   assert.strictEqual(SOUND_PRESETS.sw500_magnum.airAbsorption, 9500, 'Absorção atmosférica do SW500 deve ser 9500 Hz (estridente)');
-  console.log('✓ Presets da Shell da 12, AK-47 (seco e estridente) e SW500 (seco e estridente) validados com precisão.');
+  console.log('✓ Presets da Shell da 12, AK Suppressed (seco e estridente) e SW500 (seco e estridente) validados com precisão.');
 }
 
 // 2. Validação da Inicialização dos Sintetizadores e Barramento
@@ -244,14 +246,17 @@ class MockAudioContext {
   emit('weapon:fired', { weaponId: 'ak47' });
   assert.strictEqual(lastFired, 'ak47', 'Disparo de AK47 deve despachar para sintetizador 7.62mm');
 
-  // Validação do método real de síntese da AK-47 7.62x39mm
+  // Validação do método real de síntese da AK Suppressed (7.62x39mm)
   const realAudio = new AudioSystem();
   realAudio.ctx = new MockAudioContext();
   realAudio._initAudioGraph();
-  let ak47SynthCalled = false;
-  realAudio.weaponSynth.synthesizeAK47 = () => { ak47SynthCalled = true; };
+  let akSynthCalled = false;
+  realAudio.weaponSynth.synthesizeAKSuppressed = () => { akSynthCalled = true; };
   realAudio.playProceduralShot('ak47');
-  assert.strictEqual(ak47SynthCalled, true, 'Disparo de AK-47 deve chamar especificamente synthesizeAK47 (7.62x39mm)');
+  assert.strictEqual(akSynthCalled, true, 'Disparo de AK-47 deve chamar especificamente synthesizeAKSuppressed');
+  akSynthCalled = false;
+  realAudio.playProceduralShot('ak_suppressed');
+  assert.strictEqual(akSynthCalled, true, 'Disparo de ak_suppressed deve chamar especificamente synthesizeAKSuppressed');
   realAudio.destroy();
 
   // Superfícies

@@ -613,9 +613,10 @@ export class AudioSystem {
       return;
     }
 
-    // 4. Fuzil Soviético AK-47 7.62x39mm (Disparo Dramático + Pistão de 500g)
-    if (id === 'ak47') {
-      this.weaponSynth.synthesizeAK47(this.presets.ak47_762x39, ctx, dest, null, true);
+    // 4. Fuzil AK Suppressed / AK-47 7.62x39mm
+    if (id === 'ak47' || id === 'ak_suppressed' || id === 'ak_supressed') {
+      const preset = this.presets.ak_suppressed || this.presets.ak_supressed || this.presets.ak47_762x39;
+      this.weaponSynth.synthesizeAKSuppressed(preset, ctx, dest, null, true);
       return;
     }
 
