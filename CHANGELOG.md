@@ -1,7 +1,7 @@
 # 📜 Log de Versões e Histórico de Desenvolvimento (CHANGELOG)
 **Projeto:** Arena Blockout (FPS Browser 3D Three.js)  
 **Repositório:** [teusbraga/arenablockoutlimited](https://github.com/teusbraga/arenablockoutlimited)  
-**Data da última atualização:** 15 de Outubro de 2026  
+**Data da última atualização:** 25 de Outubro de 2026  
 
 ---
 
@@ -9,7 +9,7 @@
 
 | Identificador | Tipo | Commit | Descrição / Propósito |
 | :--- | :--- | :--- | :--- |
-| **`main`** *(HEAD atual)* | Branch Principal | [`68138c1`](https://github.com/teusbraga/arenablockoutlimited/commit/68138c176f4c3113ba09535427d5adf7f74410c3) | **Versão estável atual online.** Inclui amostragem dinâmica de poeira de impacto (`SurfaceEyedropper`), desacoplamento de SFX, cooldown de fumaça de cano, muzzle flashes padronizados e suavização de locomoção. |
+| **`main`** *(HEAD atual)* | Branch Principal | [`ef5e473`](https://github.com/teusbraga/arenablockoutlimited/commit/ef5e473) | **Milestone 1 — Normalização Canônica e Quitação de Dívida Técnica.** 82/82 testes aprovados. Desoneração do spatial hash (251k células a menos), unificação Three.js 0.186.1, SchemaValidator no boot, WeaponRegistry, isolamento de sombras em lunetas e estabilização de combate. |
 | **`backup/headbob-odometria`** | Branch de Backup | [`5e5dcea`](https://github.com/teusbraga/arenablockoutlimited/commit/5e5dcea) | **Versão experimental preservada.** Contém odometria real de passos no solo, curvas convexa parabólica (andar) e lemniscata (correr), sincronização sonora 1:1 de passos e configuração `LOCOMOTION`. |
 | **`backup-headbob-odometria`** | Tag Fixa | [`5e5dcea`](https://github.com/teusbraga/arenablockoutlimited/commit/5e5dcea) | Tag imutável apontando para o commit da versão experimental de odometria e passos. |
 
@@ -18,6 +18,34 @@
 ## 🚀 Histórico Cronológico de Versões e Commits
 
 ### 🔹 Outubro de 2026
+
+#### [ef5e473] — 25/10/2026 *(HEAD atual da branch `main`)*
+* **fix(physics):** Correção do clipping e afundamento de entidades no chão em `CollisionWorld.getNearbyBoxes()`, garantindo que caixas globais de grande porte (`globalBoxes`) sejam sempre consideradas em consultas de célula única.
+* **fix(render):** Atualização do tipo de shadow map para `THREE.PCFShadowMap` em `SceneSetup.js`, removendo aviso de depreciação do Three.js 0.186.1.
+* **docs(issues):** Registro formal da Issue #9 (Recoil/climbing recovery) e Issue #10 (Crosshair gap flicker) em `docs/GITHUB_ISSUES_DRAFT.md`.
+
+#### [477dc8a] — 25/10/2026
+* **feat(debt-payoff):** Conclusão das Fases 3, 4 e 5 do Roadmap de Engenharia.
+* **feat(gameplay):** Recuperação suave de pitch após recuo em `CameraRig.js`; trava estrita de troca de armas e saque em estado de morte em `WeaponSystem.js`; restrição de alcance vertical ($\Delta Y < 1.2\text{m}$) e estabilização de seleção para coleta de carregadores em `MagazineDrop.js`.
+* **feat(ai):** Cone de visão angular (110°) e dispersão de balins para espingardas de bots em `AIController.js`.
+* **perf(render):** Cache estático de canvas e texturas procedurais em `TacticalManContinuous.js`; desativação de sombras no passe de render de lunetas em `ScopeSystem.js`.
+* **refactor(weapons):** Centralização de modelos, miras e drops de chão no `src/weapons/WeaponRegistry.js`.
+* **feat(ui):** Bloqueio de troca de loadout durante a partida no menu.
+
+#### [cd7b4a7] — 25/10/2026
+* **feat(debt-payoff):** Conclusão da Fase 2 do Roadmap de Engenharia (Observabilidade e Fail-Fast).
+* **feat(core):** Validação estrita de schemas de configuração e armas no boot em `src/core/SchemaValidator.js`.
+* **feat(core):** Error boundary no loop de renderização com tela de fallback em `src/core/Engine.js`.
+* **feat(fx):** Avisos de depuração em `MaterialFactory.js` para materiais ausentes.
+* **feat(core):** Catálogo `CANONICAL_EVENTS` em `EventBus.js` com avisos em tempo de execução para eventos não registrados ou sem ouvintes.
+
+#### [2b5c99d] — 25/10/2026
+* **feat(debt-payoff):** Conclusão da Fase 1 do Roadmap de Engenharia (Normalização de Contratos).
+* **refactor(events):** Padronização universal de payloads do `EventBus` para objetos `{ ... }` em 100% dos emissores e consumidores.
+* **refactor(config):** Unificação de nomenclatura de variáveis de movimento (`sprintMul`, `adsMul`, `crouchMul`, `sens`).
+* **test:** Adição de testes de integridade para schemas e eventos.
+
+---
 
 #### [5e5dcea] — 15/10/2026 *(Salvo na branch `backup/headbob-odometria` e tag `backup-headbob-odometria`)*
 * **feat(locomotion):** Implementação de avanço de fase odimétrico (`dPhase = (Math.PI * distFrame) / stepDist`).

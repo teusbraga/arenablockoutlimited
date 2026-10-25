@@ -34,7 +34,7 @@
 - **Produto:** FPS tático de navegador, visual blocky/low-poly, PWA, com bots, balística física, áudio 100% sintetizado e mapas data-driven.
 - **Engine:** Three.js puro, sem engine de física externa. Colisão própria por AABB + spatial hash.
 - **Linguagem:** JavaScript ES Modules (`.js`, `"type": "module"`). **Não há build step.** O navegador carrega `src/main.js` diretamente.
-- **Three.js:** importmap do navegador aponta para `https://unpkg.com/three@0.160.0` (`index.html:1990-1996`); `package.json` declara `^0.186.1` para os testes Node. **Há divergência de versão entre navegador e testes** (§13.2).
+- **Three.js:** unificado em `three@0.186.1` no importmap do navegador (`index.html`) e no `package.json` para os testes Node (resolvido no Milestone 1).
 - **Servidor:** obrigatório servir por HTTP (ES modules + `fetch`). `python -m http.server 8000` é o caminho documentado.
 - **PWA:** `manifest.json` (landscape/standalone) + `sw.js` (network-first com fallback de cache).
 - **Entry point:** `index.html` → `<script type="module" src="./src/main.js">` (`index.html:1997`).
@@ -1089,8 +1089,8 @@ Incluídas em `npm test`:
 ### 13.1 Loop a 60 Hz, não 120 Hz
 `Engine.js:6` default `1/60`; `main.js:219` não passa `fixedDt`; `CONFIG.PHYSICS.fixedDt=1/120` não é lido. README/QA e alguns comentários dizem 120 Hz. Impacto: cadência de física, projectiles e IA é 60 Hz.
 
-### 13.2 Three.js divergente
-Navegador: `three@0.160.0` (importmap). Testes: `node_modules` `^0.186.1`. APIs usadas são compatíveis hoje, mas um teste pode passar e o navegador falhar (ou vice-versa). Ao tocar em APIs de render, valide no navegador.
+### 13.2 Three.js divergente [RESOLVIDO]
+Navegador e testes unificados em `three@0.186.1` no importmap de `index.html` e `package.json`. Shadow maps atualizados para `PCFShadowMap` (`PCFSoftShadowMap` descontinuado no Three moderno).
 
 ### 13.3 `notification` não tem listener [RESOLVIDO]
 `HUD.js` agora implementa listener de `notification` direcionando o texto para `_showKillPopup(message, '#ffaa00', 1800)`, ativando feedback visual de munição, carregadores, modo de disparo e avisos de inventário.

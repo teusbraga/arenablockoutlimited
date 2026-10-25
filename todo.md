@@ -105,7 +105,9 @@ Esses pontos não devem ser reescritos. O trabalho é consolidar em volta deles.
 - [x] Manter `PROJECT_MAP.md` §13 como registro vivo de divergências.
 
 ### P5 — Issues e Defeitos do Estado Atual (Com Issues GitHub Abertas)
-- [x] **[BUG]** Corrigir o climbing da câmera on recoil ([Issue #1](https://github.com/teusbraga/arenablockoutlimited/issues/1)) — `CameraRig.js` acumula `climbPitch` sem compensação/recoil recovery. (CONCLUÍDO na Fase 3)
+- [ ] **[BUG/REGRESSÃO]** Recoil e Climbing neutralizados por auto-recuperação precoce de 80ms ([Issue #9](https://github.com/teusbraga/arenablockoutlimited/issues/9)) — `recoilRecoveryDelay = 0.08s` em `CameraRig.js` é menor que o `fireInterval` da maioria das armas (88–105ms), forçando a mira para baixo entre tiros e anulando a elevação acumulativa do recuo (climbing).
+- [ ] **[BUG/VISUAL]** Mira dinâmica piscando e abrindo/fechando espasmoticamente em ~35ms ([Issue #10](https://github.com/teusbraga/arenablockoutlimited/issues/10)) — salto em degrau de `isResting` (0.0015 -> 0.025 rad), decaimento ultrarrápido da penalidade em 2 frames e ausência de amortecimento (`lerp`) no `--gap` geram efeito estroboscópico indesejado.
+- [x] **[BUG]** Corrigir o climbing da câmera on recoil ([Issue #1](https://github.com/teusbraga/arenablockoutlimited/issues/1)) — `CameraRig.js` acumula `climbPitch` sem compensação/recoil recovery. (CONCLUÍDO na Fase 3; gerou regressão descrita acima)
 - [x] **[BUG]** Corrigir bug de trocar armas depois que morrer ([Issue #2](https://github.com/teusbraga/arenablockoutlimited/issues/2)) — `WeaponSystem.js` sem checagem de `player.alive`. (CONCLUÍDO na Fase 3)
 - [x] **[BUG]** Corrigir bug dos carregadores no chão ([Issue #3](https://github.com/teusbraga/arenablockoutlimited/issues/3)) — `MagazineDrop.js` com raycast limitado, falta de checagem Y em pickup e seleção instável. (CONCLUÍDO na Fase 3)
 - [ ] **[BUG]** Corrigir a crosshair dinâmica ([Issue #4](https://github.com/teusbraga/arenablockoutlimited/issues/4)) — `BarrelCrosshairAlignment.js` projeta ponto com spray em vez do eixo mecânico puro. *(Protegido por GEMINI.md/AGENTS.md pitfall #11)*

@@ -11,7 +11,8 @@
 1. Este `AGENTS.md` (regras).
 2. `PROJECT_MAP.md` §0 (índice por tarefa) e a seção específica do subsistema.
 3. `GEMINI.md` **se** a tarefa tocar armas, modelos, muzzle/sight/eject, tracers, `Effects.js` ou `ammo.json`.
-4. Os arquivos indicados no mapa. Não abra o restante “por garantia”.
+4. `docs/MILESTONE_NORMALIZACAO_E_ROBUSTEZ.md` (Dicionário Canônico e Protocolo Anti-Débito).
+5. Os arquivos indicados no mapa. Não abra o restante “por garantia”.
 
 **Não faça:** `Get-ChildItem -Recurse` no projeto inteiro, ler todos os arquivos de `src/`, recompilar o mapa, ou reescrever `PROJECT_MAP.md` sem necessidade. O mapa existe para evitar isso.
 
@@ -31,9 +32,9 @@ Linhas citadas no mapa podem ter deslocado; **nomes de funções e contratos sã
 
 - FPS browser em **Three.js puro**, **ES Modules**, **sem build step**.
 - O navegador carrega `index.html` → `src/main.js`; é obrigatório servir por HTTP (`python -m http.server 8000`), nunca abrir via `file://`.
-- **Three.js divergente:** navegador usa `three@0.160.0` (importmap em `index.html`); testes usam `^0.186.1` (`package.json`). Mudanças de API de render precisam de validação manual no navegador.
+- **Three.js unificado:** navegador e testes usam `three@0.186.1` (importmap em `index.html` e `package.json`).
 - **Loop real é 60 Hz** (`Engine.fixedDt = 1/60`), apesar de README/comentários citarem 120 Hz. Não “conserte” para 120 sem solicitação explícita; isso altera gunplay/IA/projéteis.
-- **Working tree parcial:** reload tático, `MagazineDrop`, QTE, ajustes de áudio/HUD e cheat `whoami` estão **não commitados**. Nunca rode `git checkout -- .`, `git restore .`, `git clean -fd` ou equivalente.
+- **Working tree limpo e consolidado:** O Milestone 1 quitou dívidas acumuladas e consolidou recarga tática, MagazineDrop, QTE e HUD nos commits `2b5c99d`, `cd7b4a7`, `477dc8a` e `ef5e473`.
 - **Reset do jogo = reload da página.** Não existe teardown global de cena; classes individuais têm `destroy()`.
 - **Sem linter/formatter/typecheck.** O gate é `npm test` + testes extras + validação manual no navegador.
 
@@ -268,22 +269,22 @@ node --test test/muzzle_flash_smoke_test.js test/soldier_skin_test.js test/surfa
 | # | Fato | Evidência |
 |---|---|---|
 | 1 | Loop é 60 Hz, não 120 | `Engine.js:6`, `main.js:219` |
-| 2 | Navegador/testes usam Three diferente | `index.html` importmap vs `package.json` |
+| 2 | Navegador/testes usam Three diferente [RESOLVIDO] | Unificado em `three@0.186.1` no `index.html` e `package.json` |
 | 3 | `notification` não tem listener | `PROJECT_MAP.md` §9.2 |
 | 4 | Tiro de bot [RESOLVIDO] | Emite estritamente `bot:fired`; `weapon:fired` foi removido no commit `80fd818` |
 | 5 | Medkit emite `player:heal` sem listener | `TacticalInventorySystem.js:175` |
 | 6 | Inventário pode iniciar com gear nulo | `main.js` cria inventory depois de `weapon:slots` |
 | 7 | Recarga tática não consome reserva | `WeaponSystem.js:395-412` |
 | 8 | `ESC` não fecha inventário | `Input.js` sem Escape |
-| 9 | `def.type` não existe nos JSONs | `weapons.json` sem `type` |
+| 9 | `def.type` não existe nos JSONs [RESOLVIDO] | Normalizado em `weapons.json` e `WeaponRegistry.js` |
 | 10 | Materiais de Lisbon caem em `wall` | `caution_yellow`, `steel_girder` ausentes |
 | 11 | `dynamicAlignment` usa ponto com spray, não “puro” | `BarrelCrosshairAlignment.js:154-155` |
 | 12 | Fumaça não bloqueia tiro/IA/LOS | Granada é visual |
-| 13 | Bots veem 360° (FOV ignorado) | `AIController._hasLOS` |
+| 13 | Bots veem 360° (FOV ignorado) [RESOLVIDO] | `AIController._hasLOS` agora valida cone angular de visão (110°) |
 | 14 | `player:perspective_changed` não tem listener | §9.2 |
 | 15 | Documentação histórica diverge do código | README/walkthrough/HUD.md |
 | 16 | `tools/test_suite.py` falha | `audio.json` vazio |
-| 17 | Trabalho não commitado no working tree | `git status` |
+| 17 | Trabalho não commitado no working tree [RESOLVIDO] | Limpo e consolidado no Milestone 1 |
 
 **Regra:** se a tarefa for “corrigir” um destes itens, confirme com o usuário e registre o impacto. Vários são intencionais ou estão em área congelada.
 
@@ -294,12 +295,14 @@ node --test test/muzzle_flash_smoke_test.js test/soldier_skin_test.js test/surfa
 - [ ] Li a seção do mapa e os arquivos indicados; não varri o projeto inteiro.
 - [ ] A mudança é a menor possível e não refatora áreas vizinhas.
 - [ ] `fixedUpdate`/`renderUpdate` respeitados.
-- [ ] Nenhum listener novo sem unsubscribe.
+- [ ] Protocolo Anti-Débito seguido ([`docs/MILESTONE_NORMALIZACAO_E_ROBUSTEZ.md`](./docs/MILESTONE_NORMALIZACAO_E_ROBUSTEZ.md)).
+- [ ] Nenhum listener novo sem unsubscribe; eventos usam payload objeto `{ ... }` e constam em `CANONICAL_EVENTS`.
 - [ ] Nenhuma alocação nova em caminho quente.
 - [ ] Dados de balanceamento em JSON (ou justificativa).
+- [ ] Novas armas registradas exclusivamente via `src/weapons/WeaponRegistry.js`.
 - [ ] Contratos de arma/mapa/evento preservados.
 - [ ] `GEMINI.md` respeitado.
-- [ ] `npm test` verde; testes extras relevantes verdes.
+- [ ] `npm test` verde (82/82 testes); testes extras relevantes verdes.
 - [ ] Teste manual no navegador (se visual/UI/áudio/render).
 - [ ] `PROJECT_MAP.md` atualizado se arquitetura/schema/evento mudou.
 - [ ] Nenhum commit/push sem pedido explícito.
