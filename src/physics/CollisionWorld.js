@@ -97,9 +97,10 @@ export class CollisionWorld {
     const maxCz = Math.floor(maxZ / this.cellSize);
 
     // Se tocar apenas em uma célula, evita criar Set
+    let list = [];
     if (minCx === maxCx && minCz === maxCz) {
       const cell = this.grid.get(this._hash(minCx, minCz));
-      return cell ? Array.from(cell) : [];
+      if (cell) list = Array.from(cell);
     }
 
     const candidates = new Set();
@@ -113,7 +114,7 @@ export class CollisionWorld {
         }
       }
     }
-    const list = Array.from(candidates);
+    if (minCx !== maxCx || minCz !== maxCz) { list = Array.from(candidates); }
     if (this.globalBoxes && this.globalBoxes.length > 0) {
       for (let i = 0; i < this.globalBoxes.length; i++) {
         const gb = this.globalBoxes[i];
@@ -217,33 +218,26 @@ export class CollisionWorld {
       return false;
     }
 
-    // Otimização analítica do degrau sem laço de 2cm/frame (Nemotron DT-04)
-    let highestY = -Infinity;
-    let groundMat = 'floor';
-    let found = false;
+    // desce até achar chão sólido
+    let drop = stepHeight + 0.05;
+    const minX = pos.x - size.x/2, maxX = pos.x + size.x/2;
+    const minZ = pos.z - size.z/2, maxZ = pos.z + size.z/2;
+    const nearby = this.getNearbyBoxes(minX, maxX, minZ, maxZ);
 
-    for (let i = 0; i < nearby.length; i++) {
-      const b = nearby[i];
-      if (!b.solid) continue;
-      if (maxX > b.min.x && minX < b.max.x && maxZ > b.min.z && minZ < b.max.z) {
-        if (b.max.y <= oldY + stepHeight + 0.05 && b.max.y >= oldY - 0.1) {
-          if (b.max.y > highestY) {
-            highestY = b.max.y;
-            groundMat = b.meta?.material || 'floor';
-            found = true;
-          }
+    while (drop > 0) {
+      pos.y -= 0.02; drop -= 0.02;
+      let landed = false;
+      for (let i = 0; i < nearby.length; i++) {
+        const b = nearby[i];
+        if (!b.solid) continue;
+        if (this.overlaps(pos, size, b)) {
+          pos.y = b.max.y; landed = true; 
+          if (res) res.groundMaterial = b.meta?.material || 'floor';
+          break;
         }
       }
+      if (landed) return true;
     }
-
-    if (found) {
-      pos.y = highestY;
-      if (res) res.groundMaterial = groundMat;
-      if (!this._anyOverlap(pos, size)) {
-        return true;
-      }
-    }
-
     pos.x = oldX; pos.y = oldY; pos.z = oldZ;
     return false;
   }

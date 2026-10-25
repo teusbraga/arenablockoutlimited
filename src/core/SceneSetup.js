@@ -19,7 +19,7 @@ export class SceneSetup {
     // Em mobile (high-dpi nativo), travar o pixel ratio perto de 1.0 ou 1.2 destrava o FPS.
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isTouch ? 1.2 : 2));
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.15;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;

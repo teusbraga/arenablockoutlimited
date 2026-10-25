@@ -16,6 +16,7 @@
 | 6 | [#6](https://github.com/teusbraga/arenablockoutlimited/issues/6) | `fix(mobile): implementar integração com navigator.vibrate para disparo, recarga e dano` | Mobile / Acessibilidade | Média | `bug`, `accessibility` |
 | 7 | [#7](https://github.com/teusbraga/arenablockoutlimited/issues/7) | `feat(gameplay): bloquear alteração de armas no menu durante a partida em andamento` | UI / Regras de Partida | Média | `enhancement` |
 | 8 | [#8](https://github.com/teusbraga/arenablockoutlimited/issues/8) | `refactor(core): isolar atalhos de depuração e cheats na aba de Desenvolvedor do Menu` | Core / Menu / Dev | Média | `enhancement` |
+| 9 | [#9](https://github.com/teusbraga/arenablockoutlimited/issues/9) | `fix(physics): corrigir perda de colisão (clipping) e afundamento em globalBoxes e degraus` | Física / Colisão / Spatial Hash | Crítica | `bug`, `physics` |
 
 ---
 
@@ -191,3 +192,69 @@ Os atalhos de cheat estão ouvindo diretamente eventos globais do teclado em `In
 #### Comportamento Esperado
 - Partidas comuns devem ter atalhos de cheat desativados;
 - Comandos de inspeção e depuração devem residir exclusivamente dentro de uma aba dedicada de "Desenvolvedor" no `MenuController`, ativável apenas por flag explícita.
+
+---
+
+### Issue 9: [BUG] Perda de colisão vertical (clipping) e afundamento em globalBoxes e degraus
+
+**Título:**
+`fix(physics): corrigir perda de colisão (clipping) e afundamento em globalBoxes e degraus`
+
+**Labels:** `bug`, `physics`, `collision`, `critical`
+
+#### Descrição
+Ao andar ou tomar o segundo passo em qualquer mapa, o jogador e os bots atravessam a superfície do chão e caem no vazio infinito. Ao mesmo tempo, em degraus e blocos baixos, a movimentação perde a ancoragem de solo e afunda nas caixas estáticas.
+
+Além disso, o console do navegador registra o aviso de renderização:
+`THREE.WebGLShadowMap: PCFSoftShadowMap has been removed. Using PCFShadowMap instead.`
+
+#### Causa Raiz
+1. **Early Return em `CollisionWorld.getNearbyBoxes` (`src/physics/CollisionWorld.js:100-103`):**
+   A otimização de spatial hash introduziu `globalBoxes` para caixas com mais de 64 células (ex: o chão plano do mapa). Contudo, em consultas que cabem dentro de uma única célula de 4 metros (`minCx === maxCx && minCz === maxCz`), a função executa um `return cell ? Array.from(cell) : [];` prematuro antes de iterar e anexar `this.globalBoxes`. Como resultado, quase todo passo normal do jogador dentro de uma célula local não recebe o chão no array de caixas relevantes de `moveAndSlide`, fazendo a gravidade derrubar o personagem através do solo.
+2. **Cálculo analítico de altura em `_tryStepUp` (`src/physics/CollisionWorld.js:220-246`):**
+   A rotina analítica não realizava o teste de intersecção tridimensional completo com as caixas vizinhas, selecionando caixas inferiores ou o próprio chão e alterando `pos.y` para coordenadas inadequadas.
+3. **Depreciação de ShadowMap no Three.js 0.186 (`src/core/SceneSetup.js:21`):**
+   `THREE.PCFSoftShadowMap` foi removido na versão 0.186 do Three.js em favor de `THREE.PCFShadowMap`.
+
+#### Passos para Reproduzir
+1. Iniciar qualquer mapa (ex: `cargo` ou `vice`) e dar 2 passos para frente.
+2. Observar que a colisão de solo deixa de ser avaliada e o personagem afunda no vazio.
+3. Abrir o DevTools (F12) e observar o aviso de remoção do `PCFSoftShadowMap`.
+
+#### Comportamento Esperado
+- O jogador e os bots devem caminhar de forma contínua e estável sobre o chão sem qualquer afundamento ou travamento de gravidade;
+- As caixas massivas em `globalBoxes` devem ser retornadas em todas as chamadas de `getNearbyBoxes()`, mesmo nas consultas de célula única;
+- O mapa de sombras deve utilizar `THREE.PCFShadowMap` sem disparar warnings no console.
+
+#### Proposta de Correção
+1. Em `CollisionWorld.js:100-103`, unificar a adição de `globalBoxes` antes de retornar o resultado:
+```javascript
+let candidatesList = [];
+if (minCx === maxCx && minCz === maxCz) {
+  const cell = this.grid.get(this._hash(minCx, minCz));
+  if (cell) candidatesList = Array.from(cell);
+} else {
+  const candidates = new Set();
+  for (let cx = minCx; cx <= maxCx; cx++) {
+    for (let cz = minCz; cz <= maxCz; cz++) {
+      const cell = this.grid.get(this._hash(cx, cz));
+      if (cell) {
+        for (const box of cell) candidates.add(box);
+      }
+    }
+  }
+  candidatesList = Array.from(candidates);
+}
+
+if (this.globalBoxes && this.globalBoxes.length > 0) {
+  for (let i = 0; i < this.globalBoxes.length; i++) {
+    const gb = this.globalBoxes[i];
+    if (maxX >= gb.min.x && minX <= gb.max.x && maxZ >= gb.min.z && minZ <= gb.max.z) {
+      candidatesList.push(gb);
+    }
+  }
+}
+return candidatesList;
+```
+2. Restaurar a rotina comprovada de descida em `_tryStepUp` com teste rigoroso de `this.overlaps(pos, size, b)`.
+3. Em `src/core/SceneSetup.js:21`, substituir `THREE.PCFSoftShadowMap` por `THREE.PCFShadowMap`.
