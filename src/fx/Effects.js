@@ -810,14 +810,6 @@ export class Effects {
     this.ghostSmokePool = [];
   }
 
-  setWorld(world) {
-    this.world = world;
-  }
-
-  setGameManager(gm) {
-    this.gameManager = gm;
-  }
-
   setSurfaceImpacts(data) {
     this.surfaceImpacts = data?.materials || data || null;
   }

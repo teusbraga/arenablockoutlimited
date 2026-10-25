@@ -9,7 +9,8 @@ export class CollisionWorld {
   constructor(cellSize = 4.0) {
     this.cellSize = cellSize;
     this.boxes = [];
-    this.grid = new Map(); // key: "x,z" -> Set<box>
+    this.grid = new Map();
+    this.globalBoxes = []; // key: "x,z" -> Set<box>
   }
 
   _hash(cx, cz) {
@@ -26,6 +27,11 @@ export class CollisionWorld {
 
   _insertIntoGrid(box) {
     const { minCx, maxCx, minCz, maxCz } = this._getBoxCoords(box);
+    const cellCount = (maxCx - minCx + 1) * (maxCz - minCz + 1);
+    if (cellCount > 64) {
+      this.globalBoxes.push(box);
+      return;
+    }
     for (let cx = minCx; cx <= maxCx; cx++) {
       for (let cz = minCz; cz <= maxCz; cz++) {
         const key = this._hash(cx, cz);
@@ -40,6 +46,11 @@ export class CollisionWorld {
   }
 
   _removeFromGrid(box) {
+    const gIdx = this.globalBoxes.indexOf(box);
+    if (gIdx >= 0) {
+      this.globalBoxes.splice(gIdx, 1);
+      return;
+    }
     const { minCx, maxCx, minCz, maxCz } = this._getBoxCoords(box);
     for (let cx = minCx; cx <= maxCx; cx++) {
       for (let cz = minCz; cz <= maxCz; cz++) {
@@ -102,7 +113,16 @@ export class CollisionWorld {
         }
       }
     }
-    return Array.from(candidates);
+    const list = Array.from(candidates);
+    if (this.globalBoxes && this.globalBoxes.length > 0) {
+      for (let i = 0; i < this.globalBoxes.length; i++) {
+        const gb = this.globalBoxes[i];
+        if (maxX >= gb.min.x && minX <= gb.max.x && maxZ >= gb.min.z && minZ <= gb.max.z) {
+          list.push(gb);
+        }
+      }
+    }
+    return list;
   }
 
   overlaps(pos, size, b) {
@@ -197,26 +217,33 @@ export class CollisionWorld {
       return false;
     }
 
-    // desce até achar chão
-    let drop = stepHeight + 0.05;
-    const minX = pos.x - size.x/2, maxX = pos.x + size.x/2;
-    const minZ = pos.z - size.z/2, maxZ = pos.z + size.z/2;
-    const nearby = this.getNearbyBoxes(minX, maxX, minZ, maxZ);
+    // Otimização analítica do degrau sem laço de 2cm/frame (Nemotron DT-04)
+    let highestY = -Infinity;
+    let groundMat = 'floor';
+    let found = false;
 
-    while (drop > 0) {
-      pos.y -= 0.02; drop -= 0.02;
-      let landed = false;
-      for (let i = 0; i < nearby.length; i++) {
-        const b = nearby[i];
-        if (!b.solid) continue;
-        if (this.overlaps(pos, size, b)) {
-          pos.y = b.max.y; landed = true; 
-          if (res) res.groundMaterial = b.meta?.material || 'floor';
-          break;
+    for (let i = 0; i < nearby.length; i++) {
+      const b = nearby[i];
+      if (!b.solid) continue;
+      if (maxX > b.min.x && minX < b.max.x && maxZ > b.min.z && minZ < b.max.z) {
+        if (b.max.y <= oldY + stepHeight + 0.05 && b.max.y >= oldY - 0.1) {
+          if (b.max.y > highestY) {
+            highestY = b.max.y;
+            groundMat = b.meta?.material || 'floor';
+            found = true;
+          }
         }
       }
-      if (landed) return true;
     }
+
+    if (found) {
+      pos.y = highestY;
+      if (res) res.groundMaterial = groundMat;
+      if (!this._anyOverlap(pos, size)) {
+        return true;
+      }
+    }
+
     pos.x = oldX; pos.y = oldY; pos.z = oldZ;
     return false;
   }

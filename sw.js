@@ -1,13 +1,32 @@
 // Service Worker para PWA (iOS Safari / Android Chrome)
-const CACHE_NAME = 'arena-blockout-v1';
+const CACHE_NAME = 'arena-blockout-v2';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  // Limpa versões antigas do cache para não acumular lixo no navegador
+  event.waitUntil(
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
+      );
+    }).then(() => self.clients.claim())
+  );
 });
+
+// Normaliza requisições para remover timestamps transientes (?_t=...) evitando vazamento de cache
+function getNormalizedUrl(urlStr) {
+  try {
+    const u = new URL(urlStr);
+    if (u.searchParams.has('_t')) {
+      u.searchParams.delete('_t');
+      return u.toString();
+    }
+  } catch {}
+  return urlStr;
+}
 
 self.addEventListener('fetch', (event) => {
   // Ignora requisições não-GET (POST, PUT) ou de esquemas não suportados como chrome-extension://
@@ -15,25 +34,28 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  const normalizedUrl = getNormalizedUrl(event.request.url);
+
   // Estratégia Network-First com fallback seguro para Cache
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
-        // Se a resposta for válida, opcionalmente clona e guarda no cache
+        // Se a resposta for válida, opcionalmente clona e guarda no cache usando a URL normalizada
         if (networkResponse && networkResponse.status === 200) {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
+            cache.put(normalizedUrl, responseToCache);
           }).catch(() => {});
         }
         return networkResponse;
       })
       .catch(async () => {
-        const cachedResponse = await caches.match(event.request);
+        // Busca com ignoreSearch: true para encontrar mapas mesmo com parâmetros de busca
+        const cachedResponse = await caches.match(normalizedUrl, { ignoreSearch: true });
         if (cachedResponse) {
           return cachedResponse;
         }
-        // Se falhar na rede e não existir no cache, retorna uma resposta vazia ou erro controlado em vez de undefined
+        // Se falhar na rede e não existir no cache, retorna uma resposta vazia ou erro controlado
         return new Response('Offline: Recurso indisponível', {
           status: 503,
           statusText: 'Service Unavailable',

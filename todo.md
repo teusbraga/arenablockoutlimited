@@ -79,8 +79,10 @@ Esses pontos não devem ser reescritos. O trabalho é consolidar em volta deles.
 - [x] Corrigir ou aposentar `tools/test_suite.py` (ele não representa o estado atual). (Atualizado para validar áudio procedural e SoundPresets)
 - [x] Implementar listener de `notification` na HUD **ou** substituir todos os usos por `hud:popup` e remover o evento. (Listener ativado em HUD.js)
 - [x] Remover eventos e campos mortos, ou implementar os consumidores. (`def.type` formalizado nas 10 armas, listeners órfãos podados)
-- [ ] Unificar a versão de Three.js entre navegador e testes.
-- [ ] Adicionar lint/format/typecheck mínimos (sem build step).
+- [x] Unificar a versão de Three.js entre navegador e testes. (Unificado para 0.186.1 via importmap no index.html e package.json)
+- [x] Otimizar spatial hash do piso e degrau em CollisionWorld (251k células eliminadas, _tryStepUp em O(1))
+- [x] Corrigir Service Worker (sw.js v2 com limpeza e normalização de URLs sem inchaço de _t=Date.now())
+- [x] Limpar duplicação de métodos setWorld/setGameManager em Effects.js (Claude Sonnet Ponto 4)
 
 ### P2 — Redução de arquivos-Deus
 - [x] Extrair CSS e HUD de `index.html` para arquivos próprios, mantendo o importmap. (1294 linhas extraídas para `assets/css/main.css`, index.html caiu para 701 linhas)

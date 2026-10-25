@@ -38,10 +38,10 @@ Este documento atua como um rastreador de dívida técnica, bugs ocultos, vazame
   - *Ação:* Substituído por `THREE.InstancedMesh` agrupando blocos por material com geometria unitária compartilhada e instanciamento por matrizes. Redução maciça de draw calls na GPU.
 
 ## 4. Gerenciamento Global do Barramento de Eventos e Tear-Down
-- [ ] **Limpeza Centralizada via `clearBus`**
-  - *Arquivo Alvo:* `src/core/EventBus.js` / `src/core/GameManager.js` / `src/main.js`
-  - *Problema:* A função `clearBus(type = null)` foi criada no `EventBus.js`, porém ainda não está conectada ao ciclo de reset/troca de mapas ou reinicialização de partidas. Em transições dinâmicas de mapas ou reinicialização sem reload total de página (`location.reload()`), listeners residuais globais podem acumular no barramento.
-  - *Ação:* Integrar chamadas a `clearBus()` nos fluxos de desmontagem/reset do `GameManager` e ciclo de vida de cenas para garantir zeramento completo de ouvintes por tópico ou globalmente.
+- [x] **Limpeza Centralizada de Entidades e Tear-Down no GameManager** (CONCLUÍDO na Fase 5)
+  - *Arquivo Alvo:* `src/core/GameManager.js` / `src/entities/Bot.js`
+  - *Problema:* Em reinicializações de partidas ou trocas de mapa sem reload de página (`location.reload()`), bots, projéteis, portas e drops de carregador podiam permanecer ativos na memória.
+  - *Ação:* Implementado teardown completo em `GameManager.destroy()` e `startMatch()` que limpa e descarta bots, entidades, geometrias e portas sem vazamentos, preservando a diretiva arquitetural do EventBus sem clearBus global destrutivo (AGENTS.md §3.6).
 
 ## 5. Falhas de Integridade de Gameplay e Armas do Estado Atual
 - [x] **Troca de Armas Durante Estado de Morte** (CONCLUÍDO)

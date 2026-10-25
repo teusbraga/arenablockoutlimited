@@ -76,7 +76,7 @@ const MATERIALS = {
 };
 
 export async function loadMap(url, scene) {
-  const fetchUrl = (typeof url === 'string' && url.includes('?')) ? `${url}&_t=${Date.now()}` : `${url}?_t=${Date.now()}`;
+  const fetchUrl = url;
   const res = await fetch(fetchUrl, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Falha ao carregar mapa: ${url}`);
   const data = await res.json();
