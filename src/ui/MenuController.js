@@ -531,7 +531,8 @@ export class MenuController {
       this._syncPreviewActiveState();
     });
 
-    this._unsubLock = on('input:lock', locked => {
+    this._unsubLock = on('input:lock', e => {
+      const locked = typeof e === 'object' && e !== null ? !!e.locked : !!e;
       if (locked) {
         if (!this.gameManager.hasStarted) {
           this.gameManager.hasStarted = true;
@@ -778,7 +779,7 @@ export class MenuController {
         this._updatePillsActiveState('custom');
         MenuController.saveSoldierSkin(this.currentSoldierSkin);
         this.weaponPreview?.updateSoldierSkin(this.currentSoldierSkin);
-        emit('player:skinChanged', this.currentSoldierSkin);
+        emit('player:skinChanged', { skin: this.currentSoldierSkin });
       });
     };
 
@@ -849,7 +850,7 @@ export class MenuController {
     }
 
     this.weaponPreview?.updateSoldierSkin(this.currentSoldierSkin);
-    emit('player:skinChanged', this.currentSoldierSkin);
+    emit('player:skinChanged', { skin: this.currentSoldierSkin });
   }
 
   _bindAudioUI(audio) {

@@ -108,7 +108,7 @@ Contratos de modelo:
 - Áudio é **100% procedural**; `assets/config/audio.json` está vazio e não é banco de sons.
 - Use os buses existentes (`weaponsGain`, `foleyGain`, `footstepsGain`, `impactsGain`, `traumaGain`) e `createSpatialDestination` para fontes 3D.
 - O `AudioContext` só nasce após gesto do usuário (`_ensure`); não force no boot.
-- `AIController._fire` emite `weapon:fired` além de `bot:fired`, causando áudio duplicado e fumaça extra. Não replique esse padrão em código novo; correção exige cuidado por tocar em VFX congelado.
+- Bots emitem estritamente `bot:fired` para áudio espacial 3D e muzzle flash local (resolvido no commit `80fd818`). O evento `weapon:fired` é reservado com exclusividade ao jogador em primeira pessoa.
 
 ### 3.10 Git e escopo
 - **Não faça commit, amend, push ou PR** sem pedido explícito.
@@ -270,7 +270,7 @@ node --test test/muzzle_flash_smoke_test.js test/soldier_skin_test.js test/surfa
 | 1 | Loop é 60 Hz, não 120 | `Engine.js:6`, `main.js:219` |
 | 2 | Navegador/testes usam Three diferente | `index.html` importmap vs `package.json` |
 | 3 | `notification` não tem listener | `PROJECT_MAP.md` §9.2 |
-| 4 | Tiro de bot toca áudio de player e cria fumaça extra | `AIController` emite `weapon:fired` |
+| 4 | Tiro de bot [RESOLVIDO] | Emite estritamente `bot:fired`; `weapon:fired` foi removido no commit `80fd818` |
 | 5 | Medkit emite `player:heal` sem listener | `TacticalInventorySystem.js:175` |
 | 6 | Inventário pode iniciar com gear nulo | `main.js` cria inventory depois de `weapon:slots` |
 | 7 | Recarga tática não consome reserva | `WeaponSystem.js:395-412` |

@@ -233,7 +233,8 @@ export class HUD {
         this.el.deathScreen.classList.remove('show');
         this.syncGameplayUIVisibility();
       }),
-      on('player:respawn_tick', t => {
+      on('player:respawn_tick', e => {
+        const t = typeof e === 'object' && e !== null ? (e.seconds ?? e.count) : e;
         this.setRespawnText(t);
       }),
       on('game:reset', () => {
@@ -257,7 +258,8 @@ export class HUD {
         
         if (text) this._showKillPopup(text, color);
       }),
-      on('round:timer', t => {
+      on('round:timer', e => {
+        const t = typeof e === 'object' && e !== null ? (e.seconds ?? e.timeLeft) : e;
         this.setTimer(t);
       }),
       on('hud:popup', ({ text, color, duration }) => {
@@ -276,14 +278,16 @@ export class HUD {
         screen.style.pointerEvents = 'auto';
         this.syncGameplayUIVisibility();
       }),
-      on('input:lock', locked => {
+      on('input:lock', e => {
+        const locked = typeof e === 'object' && e !== null ? !!e.locked : !!e;
         this.isLocked = !!locked;
         if (!this.isInventoryOpen && !this.isRoundOver) {
           this.el.overlay?.classList.toggle('hidden', !!locked);
         }
         this.syncGameplayUIVisibility();
       }),
-      on('interact:target', target => {
+      on('interact:target', e => {
+        const target = (e && typeof e === 'object' && 'target' in e) ? e.target : e;
         if (!this.isLocked || this.isInventoryOpen) {
           this.el.prompt.style.opacity = '0';
           return;
@@ -311,7 +315,7 @@ export class HUD {
       const select = e => {
         e.preventDefault();
         e.stopPropagation();
-        emit('weapon:select_slot', slotIdx);
+        emit('weapon:select_slot', { slotIdx, slot: slotIdx });
       };
       el.addEventListener('click', select);
       el.addEventListener('touchstart', select, { passive: false });
@@ -344,7 +348,7 @@ export class HUD {
     );
 
     this.el.invCloseBtn?.addEventListener('click', () => {
-      emit('inventory:toggle');
+      emit('inventory:toggle', {});
     });
   }
 
@@ -377,7 +381,7 @@ export class HUD {
 
           cell.title = `Clique para usar ${item.name}`;
           cell.addEventListener('click', () => {
-            emit('inventory:use_item', idx);
+            emit('inventory:use_item', { slotIdx: idx, idx });
           });
         } else {
           cell.innerHTML = '<span style="opacity:0.25;font-size:8px;">[VAZIO]</span>';

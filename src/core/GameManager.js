@@ -42,7 +42,7 @@ export class GameManager {
     if (!this.hasStarted) {
       this.roundTimeLeft = seconds;
       this._lastEmittedTimerSec = Math.floor(this.roundTimeLeft);
-      emit('round:timer', this.roundTimeLeft);
+      emit('round:timer', { timeLeft: this.roundTimeLeft, seconds: this.roundTimeLeft });
     }
   }
 
@@ -364,7 +364,7 @@ export class GameManager {
     this.lastKillTime = -999;
     
     // Reset da HUD via EventBus
-    emit('game:reset');
+    emit('game:reset', {});
 
     // Respawna Player
     this.player.hp = this.player.maxHp;
@@ -409,7 +409,7 @@ export class GameManager {
     const newSec = Math.floor(this.roundTimeLeft);
     if (newSec !== this._lastEmittedTimerSec) {
       this._lastEmittedTimerSec = newSec;
-      emit('round:timer', this.roundTimeLeft);
+      emit('round:timer', { timeLeft: this.roundTimeLeft, seconds: this.roundTimeLeft });
     }
     
     // Atualiza portas e interação
@@ -460,7 +460,7 @@ export class GameManager {
 
     // Alvo contextual de interação (porta, carregador ou drop de arma no chão)
     const interactTarget = nearDoor || nearMag || nearDrop;
-    emit('interact:target', interactTarget);
+    emit('interact:target', { target: interactTarget });
 
     if (this.player.alive && this.weapons?.input?.consumeAction('interact')) {
       if (nearDoor) {
@@ -534,6 +534,6 @@ export class GameManager {
   endRound() {
     this.roundOver = true;
     if (document.pointerLockElement) document.exitPointerLock();
-    emit('round:over');
+    emit('round:over', {});
   }
 }

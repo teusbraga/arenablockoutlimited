@@ -42,3 +42,21 @@ Este documento atua como um rastreador de dívida técnica, bugs ocultos, vazame
   - *Arquivo Alvo:* `src/core/EventBus.js` / `src/core/GameManager.js` / `src/main.js`
   - *Problema:* A função `clearBus(type = null)` foi criada no `EventBus.js`, porém ainda não está conectada ao ciclo de reset/troca de mapas ou reinicialização de partidas. Em transições dinâmicas de mapas ou reinicialização sem reload total de página (`location.reload()`), listeners residuais globais podem acumular no barramento.
   - *Ação:* Integrar chamadas a `clearBus()` nos fluxos de desmontagem/reset do `GameManager` e ciclo de vida de cenas para garantir zeramento completo de ouvintes por tópico ou globalmente.
+
+## 5. Falhas de Integridade de Gameplay e Armas do Estado Atual
+- [ ] **Troca de Armas Durante Estado de Morte**
+  - *Arquivo Alvo:* `src/weapons/WeaponSystem.js` (`selectSlot`, `setSlot`), `src/core/Input.js`
+  - *Problema:* `WeaponSystem` não valida `this.player.alive`, permitindo que o jogador ciclar armas, emitir sons e atualizar poses de primeira pessoa mesmo durante o estado de morte e contagem de respawn.
+  - *Ação:* Adicionar trava `if (!this.player || !this.player.alive) return;` nos métodos de seleção e suprimir atalhos de armas na tela de morte.
+- [ ] **Acúmulo Descontrolado de Recoil na Câmera (Climbing)**
+  - *Arquivo Alvo:* `src/core/CameraRig.js` (`addRecoilImpulse`, `update`)
+  - *Problema:* `targetPitch += climbPitch` acumula elevação permanente sem decaimento ou compensação elástica de recuo quando o disparo cessa, forçando a câmera ao teto.
+  - *Ação:* Implementar amortecimento/recuperação angular gradual (*recoil recovery*) ao cessar o disparo.
+- [ ] **Instabilidade e Coleta Ilegal de Carregadores no Chão**
+  - *Arquivo Alvo:* `src/weapons/MagazineDrop.js`, `src/core/GameManager.js`
+  - *Problema:* Raycast limitado de 1.5m em chão estático causa atravessamento ou flutuação; `checkPickup` ignora o eixo Y e permite coletar itens de outros andares; `GameManager` seleciona apenas o último item do array.
+  - *Ação:* Validar distância 3D (`dx, dy, dz`), refinar colisão e ordenar coletas pela menor distância.
+- [ ] **Configuração Fantasma de Vibração Mobile**
+  - *Arquivo Alvo:* `src/core/ConfigLoader.js`, `src/core/TouchInput.js`, `src/weapons/WeaponSystem.js`
+  - *Problema:* O parâmetro `vibrationEnabled` existe no menu e no JSON, porém `navigator.vibrate` nunca é disparado no código.
+  - *Ação:* Implementar chamadas à API `navigator.vibrate` atreladas aos eventos de tiro, dano e recarga no mobile.

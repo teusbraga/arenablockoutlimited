@@ -42,8 +42,6 @@
         -0.45,
         0.2
       ],
-      "model": "ar15",
-      "audioKey": "shot_hk416",
       "sightLocal": [
         0,
         0.076,
@@ -158,8 +156,6 @@
         -0.42,
         0.18
       ],
-      "model": "ak47",
-      "audioKey": "shot_ak47",
       "sightLocal": [
         0,
         0.063,
@@ -272,8 +268,6 @@
         -0.45,
         0.2
       ],
-      "model": "rifle_proto",
-      "audioKey": "shot_proto",
       "sightLocal": [
         0,
         0.108,
@@ -387,8 +381,6 @@
         -0.45,
         0.2
       ],
-      "model": "scar_h",
-      "audioKey": "shot_ak47",
       "sightLocal": [
         0,
         0.108,
@@ -502,8 +494,6 @@
         -0.4,
         0.16
       ],
-      "model": "uzi",
-      "audioKey": "shot_uzi",
       "sightLocal": [
         0,
         0.054,
@@ -617,8 +607,6 @@
         -0.48,
         0.22
       ],
-      "model": "m249",
-      "audioKey": "shot_m249",
       "sightLocal": [
         0,
         0.082,
@@ -733,8 +721,6 @@
         -0.36,
         0.14
       ],
-      "model": "p9",
-      "audioKey": "shot_p9",
       "sightLocal": [
         0,
         0.038,
@@ -846,8 +832,6 @@
         -0.35,
         0.15
       ],
-      "model": "sw500",
-      "audioKey": "shot_sw500",
       "sightLocal": [
         0,
         0.051,
@@ -912,7 +896,12 @@
         }
       },
       "ammo": "500_magnum",
-      "type": "pistol"
+      "type": "pistol",
+      "ejectLocal": [
+        0,
+        0,
+        0
+      ]
     },
     "m12": {
       "id": "m12",
@@ -958,8 +947,6 @@
         -0.4,
         0.16
       ],
-      "model": "m12",
-      "audioKey": "shot_m12",
       "casingType": "shotgun",
       "sightLocal": [
         0,
@@ -1073,8 +1060,6 @@
         -0.4,
         0.16
       ],
-      "model": "vss",
-      "audioKey": "shot_proto",
       "casingType": "brass",
       "sightLocal": [
         -0.015,

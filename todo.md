@@ -38,10 +38,10 @@ Esses pontos não devem ser reescritos. O trabalho é consolidar em volta deles.
 - Documentação aspiracional é pior que ausência de documentação: induz o agente ao erro.
 
 ### 3. Código e contratos fantasmas
-- Eventos sem listener: `notification`, `player:heal`, `bot:damaged`, `player:perspective_changed`, `shot:tracer`, `weapon:cycle_action` e outros (`PROJECT_MAP.md` §9.2).
-- `notification` é o mais grave: mensagens de “sem carregador”, “slot vazio” e “modo de disparo” nunca aparecem.
-- `def.type` é testado em `WeaponSystem`, `ItemDrop`, `WeaponPreview3D` e `MagazineDrop`, mas não existe em `weapons.json`.
-- Campos não consumidos: `model`, `audioKey`, `smokeResidualMax/Color`, boa parte de `CONFIG.SWAY`, `PLAYER.crouchMul/adsMul`, `BOTS.fov/damage*`, `PHYSICS.fixedDt`.
+- **Fase 1 Concluída:** EventBus padronizado com regra de ouro (100% payloads em objetos) e catálogo canônico (`CANONICAL_EVENTS`). `notification` e `player:heal` ativados com listeners.
+- **Higienização de Dados:** `weapons.json` higienizado (campos fantasmas `model` e `audioKey` removidos; `ejectLocal` adicionado em todas as 10 armas; `type` presente em todas; defaults de `casingType` e `smokeResidualMax/Color` formalizados no loader `WeaponDefs.js`).
+- `gameplay.json` e `CONFIG` normalizados (aliases unificados para `sprintMul`/`sprintMultiplier`, `sens`/`sensitivity`, e `PHYSICS.fixedDt: 0.016667` alinhado a 60 Hz).
+- Eventos órfãos e campos inertes remanescentes: `shot:tracer`, `weapon:cycle_action`, `crosshair:change`, `crosshair:reset`, `BOTS.fov`, maior parte de `SWAY`.
 
 ### 4. Sistemas paralelos sem dono único
 - **Mira:** `CameraRig`, `WeaponSystem`, `BarrelCrosshairAlignment`, `CrosshairManager` e `AimAssistSystem` influenciam o mesmo resultado.
@@ -97,6 +97,52 @@ Esses pontos não devem ser reescritos. O trabalho é consolidar em volta deles.
 - [x] Corrigir `HUD.md` e `walkthrough.md` ou marcá-los como históricos.
 - [x] Atualizar `#controls` no `index.html`.
 - [x] Manter `PROJECT_MAP.md` §13 como registro vivo de divergências.
+
+### P5 — Issues e Defeitos do Estado Atual (Com Issues GitHub Abertas)
+- [ ] **[BUG]** Corrigir o climbing da câmera on recoil ([Issue #1](https://github.com/teusbraga/arenablockoutlimited/issues/1)) — `CameraRig.js` acumula `climbPitch` sem compensação/recoil recovery.
+- [ ] **[BUG]** Corrigir bug de trocar armas depois que morrer ([Issue #2](https://github.com/teusbraga/arenablockoutlimited/issues/2)) — `WeaponSystem.js` sem checagem de `player.alive`.
+- [ ] **[BUG]** Corrigir bug dos carregadores no chão ([Issue #3](https://github.com/teusbraga/arenablockoutlimited/issues/3)) — `MagazineDrop.js` com raycast limitado, falta de checagem Y em pickup e seleção instável.
+- [ ] **[BUG]** Corrigir a crosshair dinâmica ([Issue #4](https://github.com/teusbraga/arenablockoutlimited/issues/4)) — `BarrelCrosshairAlignment.js` projeta ponto com spray em vez do eixo mecânico puro.
+- [ ] **[BUG]** Corrigir os dedos esquerdos de cada viewmodel ([Issue #5](https://github.com/teusbraga/arenablockoutlimited/issues/5)) — `ViewmodelArms.js` com distorção de rotação de juntas no IK.
+- [ ] **[BUG]** Corrigir falta de vibração em mobile ([Issue #6](https://github.com/teusbraga/arenablockoutlimited/issues/6)) — `CONFIG.ACCESSIBILITY.vibrationEnabled` existe mas `navigator.vibrate` nunca é invocado.
+- [ ] **[DEFEITO]** Criar mecanismo para impedir jogador de trocar de arma depois de iniciar a partida ([Issue #7](https://github.com/teusbraga/arenablockoutlimited/issues/7)) — trava de loadout pós-spawn no `WeaponSystem`/`MenuController`.
+- [ ] **[DEFEITO/SEGURANÇA]** Limitar acesso via atalho e cheats dentro da gameplay e colocar apenas em opções de dev no menu ([Issue #8](https://github.com/teusbraga/arenablockoutlimited/issues/8)) — restringir `whoami` e comandos de depuração.
+
+### P6 — Arsenal, Balística, Animações e Viewmodels
+- [ ] Melhorar a fumaça do cano e usar ribbon 3D do protótipo importado *(⚠️ Atenção GEMINI.md: verificar congelamento de VFX de Effects.js e muzzle pipeline antes de integrar)*.
+- [ ] Criar rotina própria de carregamento da M12 (pump-action recarregando cartucho por cartucho, com interrupção por disparo).
+- [ ] Configuração personalizada de cada arma (acessórios, miras e mods individuais data-driven).
+- [ ] Melhorar balística efetiva da gameplay (penetração realística, queda parabólica refinada e dissipação de energia).
+- [ ] Melhorar animação dos modelos (transições mais fluidas de poses e ações mecânicas).
+- [ ] Melhorar animação de morte dos bots e player (transição suave de ragdoll/colapso cinemático).
+- [ ] Melhorar os modelos segurando arma em 3rd person (sockets de mão e empunhadura alinhados no `CharacterView`).
+- [ ] Melhorar geometria dos modelos 3D com descontinuidade (ajuste de quinas, vértices e bevels procedurais).
+- [ ] Criar viewmodel com visão dos pés (renderização de corpo inferior em 1ª pessoa ao olhar para baixo).
+- [ ] Melhorar headbob e camera rig (suavização de oscilação ao andar/correr sem enjoo de movimento).
+- [ ] Melhorar suavização de movimento dos modelos de soldado (`LocomotionSmoothingSystem` aplicado à interpolação de terceiros).
+- [ ] Revisão de áudios adicionados (balanceamento de volumes nos buses e refinamento de transientes procedurais).
+
+### P7 — Gameplay, Modos de Jogo, Campanha Solo & Roguelike
+- [ ] Criar campanha solo com save e dinheiro em `localStorage`.
+- [ ] Criar loja de equipamentos na campanha solo (compra/venda de armas, munições e utilitários).
+- [ ] Criar sistema de salas rogue like (geração modular de setores com progressão e recompensas).
+- [ ] Criar novos mapas death match (layouts competitivos com zonas de cobertura e rotas simétricas).
+- [ ] Criar uso efetivo de inventário (gestão em tempo real de itens táticos, coletes, munição e consumíveis).
+- [ ] Criar missões diárias e notificações (desafios periódicos com feedback na HUD via `hud:popup`).
+
+### P8 — Menus, UI, Level Design e PWA Mobile
+- [ ] Melhorar o layout do menu inicial (organização visual moderna, abas táticas e fluidez no loadout).
+- [ ] Limitar mapas para jogadores comuns no menu e liberar todos apenas para devs (sistema de permissão/flag).
+- [ ] Introduzir novas texturas criadas no showroom (`TextureGenerator.js` e materiais PBR ampliados).
+- [ ] Melhorar árvores e props de plantas (`ItalyProps.js` com vegetação refinada e colisores precisos).
+- [ ] Explorar opções de novas funcionalidades no PWA para mobile (instalação offline aprimorada, orientação de tela, fullscreen lock).
+
+### P9 — Otimização Low-End, Infraestrutura, Backend Local & Tooling
+- [ ] Criar estratégias de otimização agressiva para ambiente low-end (LOD adaptativo, limitação de draw calls e corte de resolução dinâmica).
+- [ ] Planejar diminuição do tamanho do projeto no Vercel (limpeza de assets pesados e otimização de deploy estático).
+- [ ] Planejar introdução de novas tecnologias com post-processing e Three Mesh BVH (`three-mesh-bvh` para aceleração espacial de raycasts).
+- [ ] Criar API para back-end local para criar servidor particular de partidas online (servidor Node/WebSocket headless dedicado).
+- [ ] Colocar skill de Playwright CLI (automação de testes e2e de interface e validação visual de browser).
 
 ---
 

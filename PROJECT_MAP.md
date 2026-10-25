@@ -343,7 +343,7 @@ Cada linha: responsabilidade, exports principais, dependências e consumidores.
 - **FSM:** `patrol`, `engage`, `search`, `flee` (`:60-67`).
 - **Métodos:** `clearPath` (`:73`), `navigateTo` (repath 550–900 ms; waypoints <0.72 m; anti-stuck) (`:84`), `_updateStuckDetector` (`:141`), `applySuppression` (`:183`), `_bindPlayerDied` (`:193`), `changeState` (`:203`), `_bindAudioSensory` (ouve tiros <35 m e vai para search) (`:214`), `update` (`:240`), `_hasLOS` (`:285`), `_faceTowards` (`:296`), `_fire` (`:303`).
 - **LOS:** só a cada ~100 ms + jitter; **ignora FOV** (`CONFIG.BOTS.fov` não é usado), então bots veem 360° dentro do range.
-- **Tiro:** calcula `hitChance` por distância e supressão; acerto mira no peito; erro desvia 0.6–2.3 m; emite `bot:fired` (projétil) **e** `weapon:fired` (flash/áudio/efeitos) (`:340-352`).
+- **Tiro:** calcula `hitChance` por distância e supressão; acerto mira no peito; erro desvia 0.6–2.3 m; emite estritamente `bot:fired` (projétil, áudio espacial 3D e flash local) (`:340-353`).
 
 #### `NavGrid.js` (397 linhas)
 - **Responsabilidade:** grid esparso 1 m, A* 8 direções, string pulling, cache.
@@ -698,7 +698,7 @@ Input contínuo → `Player.update`:
    - search: último ponto;
    - flee: ponto oposto.
 4. `navigateTo` → A* + waypoints + anti-stuck.
-5. `_fire` → `bot:fired` → GameManager spawna projétil com `bot.weaponId`; `weapon:fired` → flash/áudio/efeitos.
+5. `_fire` → `bot:fired` → GameManager spawna projétil com `bot.weaponId`, toca áudio espacial 3D e flash local.
 6. Projétil atinge player → dano terminal → `player:takeDamage` → HUD/áudio/flinch.
 7. Supressão near-miss → `player:suppression`/`bot:suppressed`.
 
@@ -723,7 +723,7 @@ Input contínuo → `Player.update`:
 - `player:damaged` → kevlar/trauma.
 - `player:footstep` → passo por material.
 - `smoke:detonate/stop` → loop espacial com oclusão.
-- **Problema conhecido:** `AIController._fire` também emite `weapon:fired`; o AudioSystem trata como tiro do player e toca 5.56 não espacial (§13.4).
+- **Tiro de bot:** tratado exclusivamente via `bot:fired`, com áudio posicional 3D (`AudioSystem.js:700`) desacoplado do áudio 2D do jogador (§13.4).
 
 ### 8.10 Inventário
 - `I` → `inventorySystem.toggle()` (main) → `inventory:opened/closed` → Input destrava, HUD mostra modal, MenuController esconde overlay.
@@ -771,9 +771,9 @@ Input contínuo → `Player.update`:
 
 | Evento | Emitido por | Consumido por | Payload relevante |
 |---|---|---|---|
-| `input:lock` | Input, TouchInput | HUD, MenuController | `boolean` |
+| `input:lock` | Input, TouchInput | HUD, MenuController | `{ locked }` (boolean) |
 | `input:zoom-toggle` | TouchInput | ScopeSystem | — |
-| `weapon:fired` | WeaponSystem, AIController | AudioSystem, Effects, SceneSetup, Player, ScopeSystem | `weapon/weaponId, muzzleWorld, ejectWorld, forward/right/up, ads, streak` |
+| `weapon:fired` | WeaponSystem | AudioSystem, Effects, SceneSetup, Player, ScopeSystem | `weapon/weaponId, muzzleWorld, ejectWorld, forward/right/up, ads, streak` |
 | `bot:fired` | AIController | GameManager, AudioSystem, Bot | `bot, player, dist, hit, muzzleWorld, endPos, dir` |
 | `weapon:empty` | WeaponSystem, SmokeManager | AudioSystem | — |
 | `weapon:pump` | Winchester1912 | AudioSystem | `stage` |
@@ -787,7 +787,7 @@ Input contínuo → `Player.update`:
 | `weapon:magazine_dropped` | WeaponSystem | GameManager | `weaponId, ammoCount, maxAmmo, pos` |
 | `weapon:smoke:residual` | WeaponSystem | Effects | `muzzleWorld, weapon, count, ratio, color` |
 | `weapon:manual_eject_fx` | Winchester1912 | Effects | `ejectWorld, right, up, forward, isShotgun` |
-| `weapon:select_slot` | HUD | WeaponSystem | índice |
+| `weapon:select_slot` | HUD | WeaponSystem | `{ slotIdx, slot }` |
 | `weapon:cycle_action` | (ninguém) | WeaponSystem | — |
 | `projectile:spawned` | ProjectileManager | Effects | `projectile` |
 | `tracer:fire` | ProjectileManager | Effects | origem/fim/velocidade/cor/perfil |
@@ -801,10 +801,10 @@ Input contínuo → `Player.update`:
 | `player:suppression` | ProjectileManager | HUD | `pos, source, sourcePos, playerPos, intensity` |
 | `player:died` | Player | AIController, HUD | — |
 | `player:respawn` | Player | HUD | — |
-| `player:respawn_tick` | Player | HUD | segundos |
+| `player:respawn_tick` | Player | HUD | `{ seconds, count }` |
 | `player:footstep` | Player | AudioSystem | `pos, material` |
 | `player:ads` | WeaponSystem | Player | `ads` |
-| `player:skinChanged` | MenuController | main | skin |
+| `player:skinChanged` | MenuController | main | `{ skin }` |
 | `player:perspective_changed` | Player | (ninguém) | `mode, isThirdPerson` |
 | `player:heal` | TacticalInventorySystem | (ninguém) | `amount` |
 | `bot:alerted` | AIController | (ninguém) | `bot` |
@@ -812,15 +812,15 @@ Input contínuo → `Player.update`:
 | `bot:died` | Bot | GameManager, Effects, HUD | `bot, headshot` |
 | `bot:suppressed` | ProjectileManager | (ninguém) | `bot, intensity, distance` |
 | `game:reset` | GameManager | HUD, Input | — |
-| `round:timer` | GameManager | HUD | segundos |
+| `round:timer` | GameManager | HUD | `{ seconds, timeLeft }` |
 | `round:over` | GameManager | HUD, Input | — |
 | `kill:combo` | GameManager | HUD | `combo, headshot` |
 | `notification` | WeaponSystem, GameManager, TacticalInventorySystem | (ninguém) | `message` |
 | `hud:popup` | Input, MenuController, Player, WeaponSystem, SmokeManager | HUD | `text, color, duration` |
-| `interact:target` | GameManager | HUD, TouchInput | objeto ou `null` |
+| `interact:target` | GameManager | HUD, TouchInput | `{ target }` (objeto ou `null`) |
 | `inventory:opened/closed/changed` | TacticalInventorySystem | HUD, Input, MenuController | gear/storage |
 | `inventory:toggle` | HUD | TacticalInventorySystem | — |
-| `inventory:use_item` | HUD | TacticalInventorySystem | índice |
+| `inventory:use_item` | HUD | TacticalInventorySystem | `{ slotIdx, idx }` |
 | `inventory:item_dropped` | TacticalInventorySystem | (ninguém) | `item, slotIdx` |
 | `crosshair:change/reset` | (MenuController chama direto) | CrosshairManager | config |
 | `crosshair:updated` | CrosshairManager | (ninguém) | config |
@@ -832,9 +832,9 @@ Input contínuo → `Player.update`:
 ### 9.2 Eventos mortos / sem emissor
 
 Confirmados por cruzamento de `emit`/`on`:
-- Sem **listener**: `notification`, `bot:alerted`, `bot:damaged`, `bot:suppressed`, `player:heal`, `player:perspective_changed`, `crosshair:updated`, `inventory:item_dropped`, `smoke:bounce`, `smoke:thrown`, `weapon:cycle`.
+- Sem **listener**: `bot:alerted`, `bot:damaged`, `bot:suppressed`, `player:perspective_changed`, `crosshair:updated`, `inventory:item_dropped`, `smoke:bounce`, `smoke:thrown`, `weapon:cycle`. (`notification` e `player:heal` foram ativados no commit `80fd818`).
 - Sem **emissor** (listener órfão): `shot:tracer`, `weapon:cycle_action`, `crosshair:change`, `crosshair:reset`.
-- `notification` é o mais grave: mensagens de “sem carregador”, “slot vazio”, “modo de disparo” etc. nunca aparecem.
+- **Padronização Fase 1 Concluída:** Todo evento do EventBus transporta estritamente um objeto `{ ... }`, com catálogo canônico em `EventBus.js` (`CANONICAL_EVENTS`).
 
 ---
 
@@ -864,7 +864,9 @@ Campos por arma e quem consome:
 | `mods` | compileWeapons | aplica multiplicadores |
 | `ballistics.internal/external/terminal` | Ballistics, Projectile, WeaponSystem | núcleo do gunplay |
 | `ammo` | compileWeapons | chave em `ammo.json` |
-| `model`, `audioKey`, `type`, `smokeResidualMax/Color`, `barrelLength` | **não consumidos** (exceto `barrelLength` opcional) | `type` não existe em nenhuma arma |
+| `type` | HUD, UI, Drops | presente em todas as 10 armas (`rifle`, `sniper`, `smg`, `heavy`, `pistol`, `shotgun`) |
+| `smokeResidualMax/Color` | WeaponSystem | formalizado com defaults em `WeaponDefs.js` |
+| `model`, `audioKey` | **removidos** | eliminados na Fase 1 por serem fantasmas históricos |
 
 Armas atuais (10):
 
@@ -961,13 +963,14 @@ Mapas atuais:
 - `bots.json` → `CONFIG.BOTS` (merge direto).
 - `audio.json` → `{sounds:{}}` (vazio; o áudio é procedural, o banco não é usado).
 
-Chaves de CONFIG realmente lidas:
-- Player: `height`, `crouchHeight`, `eyeHeight`, `eyeCrouch`, `walkSpeed`, `sprintMul`, `accel`, `airAccel`, `friction`, `jumpSpeed`, `gravity`, `stepHeight`, `regenDelay`, `regenRate`.
-- Camera: `hipFov`, `adsFov`, `sens`, `sensMultiplier`, `adsSensMul`, `pitchLimit`, `smoothTime`, `adsSmoothTime`, `maxTurningRate`.
+Chaves de CONFIG padronizadas na Fase 1:
+- Player: `height`, `crouchHeight`, `eyeHeight`, `eyeCrouch`, `walkSpeed`, `sprintMul` (alias `sprintMultiplier`), `crouchMul` (alias `crouchMultiplier`), `adsMul` (alias `adsMultiplier`), `accel`, `airAccel`, `friction`, `jumpSpeed`, `gravity`, `stepHeight`, `regenDelay`, `regenRate`.
+- Camera: `hipFov`, `adsFov`, `sens` (alias `sensitivity`), `sensMultiplier`, `adsSensMul` (alias `adsSensitivityMultiplier`), `pitchLimit`, `smoothTime`, `adsSmoothTime`, `maxTurningRate`.
+- Physics: `fixedDt` (padronizado para `1/60` = 0.016667s, alinhado ao loop real da Engine), `maxFrame`.
 - Bots: `walkSpeed`, `sprintSpeed`, `viewRange`, `reactionTime`, `losMemory`, `searchTime`, `fireInterval`, `respawnTime`; `hitAccuracy*` no fallback antigo.
 - Accessibility: `headbobScale`, `shakeScale`, `vibrationEnabled`, `suppressionEnabled`.
 - Cheats: `godMode`, `infiniteAmmo`.
-- **Não lidas:** `PHYSICS.*`, `PLAYER.radius`, `PLAYER.crouchMul`, `PLAYER.adsMul` (Player usa 0.5 fixo), a maior parte de `SWAY` (Locomotion usa só `walkBobFrequency/sprintBobFrequency` com optional chaining), `BOTS.fov`, `BOTS.damageBody/Head`, `BOTS.maxHp`.
+- **Não lidas:** `PLAYER.radius`, maior parte de `SWAY` (Locomotion usa só `walkBobFrequency/sprintBobFrequency`), `BOTS.fov`, `BOTS.damageBody/Head`, `BOTS.maxHp`.
 
 ---
 
@@ -1137,6 +1140,24 @@ Ver §9.2. Ao adicionar UI/feedback, prefira `hud:popup` (funciona) ou implement
 
 ### 13.17 Working tree parcial [RESOLVIDO]
 Todo o trabalho pendente de reload tático, drop de carregadores, QTE, áudio procedural e cheat whoami foi commitado com segurança em `51f11ea`. O working tree foi normalizado e protegido por 25 suítes automatizadas.
+
+### 13.18 Troca de armas permitida após a morte do jogador
+`WeaponSystem.js:192-220` e `Input.js` não validam `this.player.alive`. Se o jogador morrer, comandos de troca de arma (`1`, `2`, scroll) continuam disparando `selectSlot`, trocando a arma visual e reproduzindo sons de equipar durante a tela de morte.
+
+### 13.19 Acúmulo descontrolado de climbing no recuo da câmera
+`CameraRig.js:124-128` injeta `this.targetPitch += climbPitch` diretamente no pitch de orientação. Não há rotina de retorno ou compensação elástica (recoil recovery) ao parar de atirar; rajadas longas forçam a câmera para o teto até travar no `pitchLimit`.
+
+### 13.20 Instabilidade de física e coleta em `MagazineDrop`
+`MagazineDrop.js:100-114` usa raycast com alcance de apenas 1.5m, o que pode falhar em rampas ou quedas rápidas. `checkPickup` (`:121-127`) só verifica distância horizontal (`hypot(x, z) < 1.4`), permitindo coletar carregadores através de pisos/tetos. `GameManager.js:449-476` só foca no último carregador avaliado em vez do mais próximo.
+
+### 13.21 Configuração fantasma de vibração em mobile
+`assets/config/gameplay.json:51` define `"vibrationEnabled": true` e `MenuController.js:346` provê toggle no menu, mas `navigator.vibrate` nunca é invocado em nenhum lugar de `TouchInput.js` ou `WeaponSystem.js`.
+
+### 13.22 Deformação de rotação de juntas nos dedos esquerdos do Viewmodel
+`ViewmodelArms.js:183-191` inverte os eixos do IK da mão esquerda em relação aos ossos de `TacticalManContinuous.js`, resultando em rotação anatômica distorcida dos dedos ao redor dos guarda-mãos das armas primárias.
+
+### 13.23 Falta de trava de loadout com partida em andamento
+`MenuController.js` e `WeaponSystem.js:204-220` permitem invocar `setSlot()` a qualquer momento via UI, possibilitando que o jogador altere suas armas primárias/secundárias no meio do combate com munição cheia, sem restrição de partida iniciada.
 
 ---
 

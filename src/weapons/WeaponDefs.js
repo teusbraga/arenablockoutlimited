@@ -192,6 +192,11 @@ export function compileWeapons(baseList = BASE_WEAPONS, modsList = MODS, ammoLis
       impactDustOverride: { ...DEFAULT_SFX.impactDustOverride, ...(rawSfx.impactDustOverride || {}) }
     };
 
+    // Formalização de atributos de contrato (casingType e fumaça residual)
+    finalWep.casingType = base.casingType || (base.type === 'shotgun' ? 'shotgun' : 'standard');
+    finalWep.smokeResidualMax = base.smokeResidualMax ?? 2;
+    finalWep.smokeResidualColor = base.smokeResidualColor ?? '#ffffff';
+
     compiled[key] = finalWep;
   }
   return compiled;

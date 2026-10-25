@@ -6,8 +6,11 @@
     "eyeCrouch": 1.05,
     "radius": 0.35,
     "walkSpeed": 5.2,
+    "sprintMul": 1.75,
     "sprintMultiplier": 1.75,
+    "crouchMul": 0.5,
     "crouchMultiplier": 0.5,
+    "adsMul": 0.42,
     "adsMultiplier": 0.42,
     "accel": 40.0,
     "airAccel": 6.0,
@@ -21,12 +24,14 @@
   "camera": {
     "hipFov": 78.0,
     "adsFov": 55.0,
+    "sens": 0.0022,
     "sensitivity": 0.0022,
+    "adsSensMul": 0.55,
     "adsSensitivityMultiplier": 0.55,
     "pitchLimit": 1.52
   },
   "physics": {
-    "fixedDt": 0.008333,
+    "fixedDt": 0.016667,
     "maxFrame": 0.1
   },
   "sway": {

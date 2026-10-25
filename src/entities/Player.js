@@ -105,7 +105,7 @@ export class Player extends Character {
       this.respawnTimer -= dt;
       const currentSecond = Math.ceil(this.respawnTimer);
       if (currentSecond > 0 && currentSecond !== prevSecond) {
-        emit('player:respawn_tick', currentSecond);
+        emit('player:respawn_tick', { seconds: currentSecond, count: currentSecond });
       }
       if (this.respawnTimer <= 0) {
         this.respawnTimer = 0;
@@ -293,11 +293,11 @@ export class Player extends Character {
     if (this.view?.root) {
       this.view.root.visible = false;
     }
-    emit('player:died');
+    emit('player:died', {});
     
     // Morte dura 3 segundos antes do respawn, controlada no loop update(dt)
     this.respawnTimer = 3.0;
-    emit('player:respawn_tick', 3);
+    emit('player:respawn_tick', { seconds: 3, count: 3 });
   }
 
   respawn() {
@@ -315,7 +315,7 @@ export class Player extends Character {
       this.view.root.visible = this.isThirdPerson();
     }
     emit('player:hp', { hp: this.hp, max: this.maxHp });
-    emit('player:respawn');
+    emit('player:respawn', {});
   }
 
   setSoldierSkin(skinConfig) {

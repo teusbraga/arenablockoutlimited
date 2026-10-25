@@ -97,7 +97,8 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
     player.setSoldierSkin(savedSoldierSkin);
     viewmodel.arms?.applySkin(savedSoldierSkin);
 
-    on('player:skinChanged', (skin) => {
+    on('player:skinChanged', (e) => {
+      const skin = (e && typeof e === 'object' && 'skin' in e) ? e.skin : e;
       player.setSoldierSkin(skin);
       viewmodel.arms?.applySkin(skin);
     });

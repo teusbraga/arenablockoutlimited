@@ -109,7 +109,7 @@ export class WeaponSystem {
     this._equip(this.slots[0], true);
 
     this._unsubEvents = [
-      on('weapon:select_slot', idx => this.selectSlot(idx)),
+      on('weapon:select_slot', e => this.selectSlot(typeof e === 'object' && e !== null ? (e.slotIdx ?? e.slot) : e)),
 
       on('cheat:activated', e => {
         if (e.cheat === 'professionalkiller' && e.active) {
@@ -153,7 +153,7 @@ export class WeaponSystem {
     this.reloading = false;
     this.reloadT = 0;
     this.qteActive = false;
-    emit('weapon:qte:stop');
+    emit('weapon:qte:stop', {});
     this.input?.clearReloadQueue?.();
     this.sustainedFireDuration = 0;
     this.sustainedFireStartTime = 0;
@@ -198,7 +198,7 @@ export class WeaponSystem {
     }
     this.currentSlot = idx;
     this._equip(this.slots[idx]);
-    emit('weapon:cycle');
+    emit('weapon:cycle', {});
   }
 
   setSlot(slotIdx, weaponId) {
@@ -247,7 +247,7 @@ export class WeaponSystem {
     const reserves = this.getReserveMags();
     if (reserves <= 0) {
       emit('notification', { message: 'Sem carregadores sobressalentes!' });
-      emit('weapon:empty');
+      emit('weapon:empty', {});
       return;
     }
 
@@ -476,7 +476,7 @@ export class WeaponSystem {
       this.ammoByWeapon[this.current] = this.ammo;
     } else if (wantsFire && this.ammo <= 0 && this.fireCooldown <= 0 && !this.reloading) {
       this.fireCooldown = 0.22;
-      emit('weapon:empty');
+      emit('weapon:empty', {});
     }
 
     if (this.ammo === 0 && !this.reloading && !isInfiniteAmmo && this.getReserveMags() > 0) {
@@ -565,7 +565,7 @@ export class WeaponSystem {
       : true;
     const isBlockedByWall = noFireWarningEnabled && (this.wallCompression > 0.45 || this.hud?.crosshairManager?.isBlocked);
     if (isBlockedByWall) {
-      emit('weapon:empty');
+      emit('weapon:empty', {});
       emit('hud:popup', { text: 'CANO OBSTRUÍDO PELA PAREDE', color: '#e0574a', duration: 700 });
       this.fireCooldown = 0.20;
       return;

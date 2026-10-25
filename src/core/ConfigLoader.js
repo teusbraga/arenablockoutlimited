@@ -23,7 +23,7 @@ export const DEFAULT_CONFIG = {
     adsSmoothTime: 0.024,
     maxTurningRate: 50.0
   },
-  PHYSICS: { fixedDt: 1 / 120, maxFrame: 0.1 },
+  PHYSICS: { fixedDt: 1 / 60, maxFrame: 0.1 },
   BOTS: {
     walkSpeed: 3.2, sprintSpeed: 5.5,
     viewRange: 28.0, fov: 2.45,
@@ -92,9 +92,12 @@ export class ConfigLoader {
         const gp = gameplayRes.value;
         if (gp.player) {
           CONFIG.PLAYER.walkSpeed = gp.player.walkSpeed ?? CONFIG.PLAYER.walkSpeed;
-          CONFIG.PLAYER.sprintMul = gp.player.sprintMultiplier ?? CONFIG.PLAYER.sprintMul;
-          CONFIG.PLAYER.crouchMul = gp.player.crouchMultiplier ?? CONFIG.PLAYER.crouchMul;
-          CONFIG.PLAYER.adsMul = gp.player.adsMultiplier ?? CONFIG.PLAYER.adsMul;
+          CONFIG.PLAYER.sprintMul = gp.player.sprintMul ?? gp.player.sprintMultiplier ?? CONFIG.PLAYER.sprintMul;
+          CONFIG.PLAYER.sprintMultiplier = CONFIG.PLAYER.sprintMul;
+          CONFIG.PLAYER.crouchMul = gp.player.crouchMul ?? gp.player.crouchMultiplier ?? CONFIG.PLAYER.crouchMul;
+          CONFIG.PLAYER.crouchMultiplier = CONFIG.PLAYER.crouchMul;
+          CONFIG.PLAYER.adsMul = gp.player.adsMul ?? gp.player.adsMultiplier ?? CONFIG.PLAYER.adsMul;
+          CONFIG.PLAYER.adsMultiplier = CONFIG.PLAYER.adsMul;
           CONFIG.PLAYER.accel = gp.player.accel ?? CONFIG.PLAYER.accel;
           CONFIG.PLAYER.airAccel = gp.player.airAccel ?? CONFIG.PLAYER.airAccel;
           CONFIG.PLAYER.jumpSpeed = gp.player.jumpSpeed ?? CONFIG.PLAYER.jumpSpeed;
@@ -106,8 +109,10 @@ export class ConfigLoader {
         if (gp.camera) {
           CONFIG.CAMERA.hipFov = gp.camera.hipFov ?? CONFIG.CAMERA.hipFov;
           CONFIG.CAMERA.adsFov = gp.camera.adsFov ?? CONFIG.CAMERA.adsFov;
-          CONFIG.CAMERA.sens = gp.camera.sensitivity ?? CONFIG.CAMERA.sens;
-          CONFIG.CAMERA.adsSensMul = gp.camera.adsSensitivityMultiplier ?? CONFIG.CAMERA.adsSensMul;
+          CONFIG.CAMERA.sens = gp.camera.sens ?? gp.camera.sensitivity ?? CONFIG.CAMERA.sens;
+          CONFIG.CAMERA.sensitivity = CONFIG.CAMERA.sens;
+          CONFIG.CAMERA.adsSensMul = gp.camera.adsSensMul ?? gp.camera.adsSensitivityMultiplier ?? CONFIG.CAMERA.adsSensMul;
+          CONFIG.CAMERA.adsSensitivityMultiplier = CONFIG.CAMERA.adsSensMul;
         }
         if (gp.sway) {
           deepMerge(CONFIG.SWAY, gp.sway);
@@ -117,6 +122,9 @@ export class ConfigLoader {
         }
         if (gp.accessibility) {
           deepMerge(CONFIG.ACCESSIBILITY, gp.accessibility);
+        }
+        if (gp.physics) {
+          deepMerge(CONFIG.PHYSICS, gp.physics);
         }
       }
 

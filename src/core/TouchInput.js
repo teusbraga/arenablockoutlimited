@@ -339,7 +339,7 @@ export class TouchInput {
         e.preventDefault();
         e.stopPropagation();
         this.input.locked = false;
-        emit('input:lock', false);
+        emit('input:lock', { locked: false });
       };
       pauseBtn.addEventListener('touchstart', triggerPause, { passive: false });
       pauseBtn.addEventListener('click', triggerPause);
@@ -351,7 +351,7 @@ export class TouchInput {
       const triggerZoom = e => {
         e.preventDefault();
         e.stopPropagation();
-        emit('input:zoom-toggle');
+        emit('input:zoom-toggle', {});
       };
       zoomBtn.addEventListener('touchstart', triggerZoom, { passive: false });
       zoomBtn.addEventListener('click', triggerZoom);
@@ -371,7 +371,8 @@ export class TouchInput {
     const interactBtn = document.getElementById('btn-touch-interact');
     if (interactBtn) {
       interactBtn.style.display = 'none';
-      on('interact:target', target => {
+      on('interact:target', e => {
+        const target = (e && typeof e === 'object' && 'target' in e) ? e.target : e;
         interactBtn.style.display = target ? 'flex' : 'none';
       });
     }

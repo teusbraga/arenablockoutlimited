@@ -46,7 +46,7 @@ export class SmokeGrenadeManager {
         color: '#e0a14a',
         duration: 900
       });
-      emit('weapon:empty');
+      emit('weapon:empty', {});
       return false;
     }
 

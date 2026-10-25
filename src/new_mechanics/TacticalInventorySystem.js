@@ -85,7 +85,8 @@ export class TacticalInventorySystem {
       on('inventory:toggle', () => {
         this.toggle();
       }),
-      on('inventory:use_item', idx => {
+      on('inventory:use_item', e => {
+        const idx = typeof e === 'object' && e !== null ? (e.slotIdx ?? e.idx ?? e.slot) : e;
         this.useItem(idx);
       })
     ];
@@ -106,7 +107,7 @@ export class TacticalInventorySystem {
     if (this.isOpen) {
       emit('inventory:opened', { gear: this.gear, storage: this.storage });
     } else {
-      emit('inventory:closed');
+      emit('inventory:closed', {});
     }
     return this.isOpen;
   }

@@ -312,7 +312,7 @@ export class Input {
       this.locked = false;
       this.clearState();
       if (typeof document !== 'undefined' && document.pointerLockElement) document.exitPointerLock?.();
-      emit('input:lock', false);
+      emit('input:lock', { locked: false });
     });
 
     on('game:reset', () => {
@@ -325,7 +325,7 @@ export class Input {
       this.locked = false;
       this.clearState();
       if (typeof document !== 'undefined' && document.pointerLockElement) document.exitPointerLock?.();
-      emit('input:lock', false);
+      emit('input:lock', { locked: false });
     });
 
     on('inventory:closed', () => {
@@ -436,7 +436,7 @@ export class Input {
         if (!this.locked) {
           this.clearState();
         }
-        emit('input:lock', this.locked);
+        emit('input:lock', { locked: this.locked });
       });
     }
   }
@@ -445,12 +445,12 @@ export class Input {
     if (this.roundOver || this.inventoryOpen) return;
     if (this.isMobile) {
       this.locked = true;
-      emit('input:lock', true);
+      emit('input:lock', { locked: true });
       return;
     }
     if (document.pointerLockElement === this.canvas) {
       this.locked = true;
-      emit('input:lock', true);
+      emit('input:lock', { locked: true });
       return;
     }
     try {
@@ -463,7 +463,7 @@ export class Input {
       console.warn('Pointer lock falhou (possível cooldown de ESC):', err);
       this.locked = false;
       this.clearState();
-      emit('input:lock', false);
+      emit('input:lock', { locked: false });
     }
   }
 
