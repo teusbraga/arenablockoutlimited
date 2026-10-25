@@ -825,6 +825,31 @@ export const TACTICAL_PALETTES = [
   }
 ];
 
+let _cachedFaceTexture = null;
+let _cachedHairCardTextures = null;
+let _cachedShirtTexture = null;
+
+export function getSharedFaceTexture(THREE) {
+  if (!_cachedFaceTexture) {
+    _cachedFaceTexture = createProceduralFaceTexture(THREE);
+  }
+  return _cachedFaceTexture;
+}
+
+export function getSharedHairCardTextures(THREE) {
+  if (!_cachedHairCardTextures) {
+    _cachedHairCardTextures = createHairCardTextures(THREE);
+  }
+  return _cachedHairCardTextures;
+}
+
+export function getSharedShirtTexture(THREE) {
+  if (!_cachedShirtTexture) {
+    _cachedShirtTexture = createTacticalCombatShirtTexture(THREE);
+  }
+  return _cachedShirtTexture;
+}
+
 export function createCharacterMaterials(THREE, options = {}) {
   let pal = null;
   if (options.palette && typeof options.palette === 'object') {
@@ -839,9 +864,9 @@ export function createCharacterMaterials(THREE, options = {}) {
     pal = TACTICAL_PALETTES[pIdx];
   }
 
-  const faceTexture = createProceduralFaceTexture(THREE);
-  const hairTextures = createHairCardTextures(THREE);
-  const shirtTexture = createTacticalCombatShirtTexture(THREE);
+  const faceTexture = options.useCache === false ? createProceduralFaceTexture(THREE) : getSharedFaceTexture(THREE);
+  const hairTextures = options.useCache === false ? createHairCardTextures(THREE) : getSharedHairCardTextures(THREE);
+  const shirtTexture = options.useCache === false ? createTacticalCombatShirtTexture(THREE) : getSharedShirtTexture(THREE);
 
   // 1. Cabeça & Pele Anatômica
   const faceMat = new THREE.MeshStandardMaterial({

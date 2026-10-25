@@ -153,6 +153,12 @@ export class MenuController {
     this.shakeSliderVal = document.getElementById('shake-val');
     this.vibrationToggle = document.getElementById('vibration-toggle');
     this.suppressionToggle = document.getElementById('suppression-toggle');
+    this.devModeToggle = document.getElementById('dev-mode-toggle');
+    this.devCheatsPanel = document.getElementById('dev-cheats-panel');
+    this.btnCheatWhoami = document.getElementById('btn-cheat-whoami');
+    this.btnCheatSpeed = document.getElementById('btn-cheat-speed');
+    this.btnCheatAmmo = document.getElementById('btn-cheat-ammo');
+    this.btnCheatGod = document.getElementById('btn-cheat-god');
 
     // Controles de Textura (Aba Texturas)
     this.texModeSelect = document.getElementById('texture-mode-select');
@@ -370,6 +376,45 @@ export class MenuController {
       });
     }
 
+    // Modo Desenvolvedor & Cheats
+    const savedDev = localStorage.getItem('blocky_dev_mode');
+    if (this.devModeToggle) {
+      if (savedDev !== null) {
+        this.devModeToggle.value = savedDev === 'on' ? 'on' : 'off';
+      }
+      CONFIG.DEV_MODE = this.devModeToggle.value === 'on';
+      if (this.devCheatsPanel) {
+        this.devCheatsPanel.style.display = CONFIG.DEV_MODE ? 'flex' : 'none';
+      }
+
+      this.devModeToggle.addEventListener('change', () => {
+        const enabled = this.devModeToggle.value === 'on';
+        CONFIG.DEV_MODE = enabled;
+        localStorage.setItem('blocky_dev_mode', enabled ? 'on' : 'off');
+        if (this.devCheatsPanel) {
+          this.devCheatsPanel.style.display = enabled ? 'flex' : 'none';
+        }
+        emit('hud:popup', {
+          text: enabled ? '🛠️ MODO DEV & CHEATS ATIVADO' : 'MODO DEV DESATIVADO',
+          color: enabled ? '#06d6a0' : '#f77f00',
+          duration: 1800
+        });
+      });
+    }
+
+    this.btnCheatWhoami?.addEventListener('click', () => {
+      this.input?.triggerCheat?.('whoami');
+    });
+    this.btnCheatSpeed?.addEventListener('click', () => {
+      this.input?.triggerCheat?.('gettherefast');
+    });
+    this.btnCheatAmmo?.addEventListener('click', () => {
+      this.input?.triggerCheat?.('professionalkiller');
+    });
+    this.btnCheatGod?.addEventListener('click', () => {
+      this.input?.triggerCheat?.('baguvix');
+    });
+
     this.btnResume?.addEventListener('click', async () => {
       await this.input.requestLock();
     });
@@ -535,7 +580,12 @@ export class MenuController {
       const locked = typeof e === 'object' && e !== null ? !!e.locked : !!e;
       if (locked) {
         if (!this.gameManager.hasStarted) {
-          this.gameManager.hasStarted = true;
+          if (typeof this.gameManager.startMatch === 'function') {
+            this.gameManager.startMatch();
+          } else {
+            this.gameManager.hasStarted = true;
+            this.weapons?.setLoadoutLocked?.(true);
+          }
           const count = this.botSlider ? parseInt(this.botSlider.value, 10) : 4;
           this.gameManager.setBotCount(count);
         }

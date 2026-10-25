@@ -44,19 +44,27 @@ Este documento atua como um rastreador de dívida técnica, bugs ocultos, vazame
   - *Ação:* Integrar chamadas a `clearBus()` nos fluxos de desmontagem/reset do `GameManager` e ciclo de vida de cenas para garantir zeramento completo de ouvintes por tópico ou globalmente.
 
 ## 5. Falhas de Integridade de Gameplay e Armas do Estado Atual
-- [ ] **Troca de Armas Durante Estado de Morte**
+- [x] **Troca de Armas Durante Estado de Morte** (CONCLUÍDO)
   - *Arquivo Alvo:* `src/weapons/WeaponSystem.js` (`selectSlot`, `setSlot`), `src/core/Input.js`
   - *Problema:* `WeaponSystem` não valida `this.player.alive`, permitindo que o jogador ciclar armas, emitir sons e atualizar poses de primeira pessoa mesmo durante o estado de morte e contagem de respawn.
   - *Ação:* Adicionar trava `if (!this.player || !this.player.alive) return;` nos métodos de seleção e suprimir atalhos de armas na tela de morte.
-- [ ] **Acúmulo Descontrolado de Recoil na Câmera (Climbing)**
+- [x] **Acúmulo Descontrolado de Recoil na Câmera (Climbing)** (CONCLUÍDO)
   - *Arquivo Alvo:* `src/core/CameraRig.js` (`addRecoilImpulse`, `update`)
   - *Problema:* `targetPitch += climbPitch` acumula elevação permanente sem decaimento ou compensação elástica de recuo quando o disparo cessa, forçando a câmera ao teto.
   - *Ação:* Implementar amortecimento/recuperação angular gradual (*recoil recovery*) ao cessar o disparo.
-- [ ] **Instabilidade e Coleta Ilegal de Carregadores no Chão**
+- [x] **Instabilidade e Coleta Ilegal de Carregadores no Chão** (CONCLUÍDO)
   - *Arquivo Alvo:* `src/weapons/MagazineDrop.js`, `src/core/GameManager.js`
   - *Problema:* Raycast limitado de 1.5m em chão estático causa atravessamento ou flutuação; `checkPickup` ignora o eixo Y e permite coletar itens de outros andares; `GameManager` seleciona apenas o último item do array.
   - *Ação:* Validar distância 3D (`dx, dy, dz`), refinar colisão e ordenar coletas pela menor distância.
-- [ ] **Configuração Fantasma de Vibração Mobile**
+- [x] **Configuração Fantasma de Vibração Mobile** (CONCLUÍDO)
   - *Arquivo Alvo:* `src/core/ConfigLoader.js`, `src/core/TouchInput.js`, `src/weapons/WeaponSystem.js`
   - *Problema:* O parâmetro `vibrationEnabled` existe no menu e no JSON, porém `navigator.vibrate` nunca é disparado no código.
   - *Ação:* Implementar chamadas à API `navigator.vibrate` atreladas aos eventos de tiro, dano e recarga no mobile.
+- [x] **Exploit de Troca de Loadout e Recarga Gratuita com Partida em Andamento** (CONCLUÍDO)
+  - *Arquivo Alvo:* `src/weapons/WeaponSystem.js` (`setSlot`, `applyPendingSlots`), `src/ui/MenuController.js`, `src/core/GameManager.js`
+  - *Problema:* Jogador podia pausar o jogo a qualquer momento em combate e selecionar uma arma diferente no menu dropdown, recarregando a munição instantaneamente e alterando o slot ativo sem restrições.
+  - *Ação:* Implementada trava `loadoutLocked` ativada por `startMatch()`, enfileiramento seguro em `pendingSlots` com notificação via popup na HUD, e aplicação automática das armas pendentes apenas no reinício da partida (`resetGame()`).
+- [x] **Cheats e Comandos de Depuração Expostos no Buffer de Teclas de Gameplay** (CONCLUÍDO)
+  - *Arquivo Alvo:* `src/core/Input.js`, `src/ui/MenuController.js`, `index.html`
+  - *Problema:* A digitação de sequências literais durante a movimentação e combate podia disparar trapaças (`whoami`, `gettherefast`, `professionalkiller`, `baguvix`) sem controle explícito de modo de depuração.
+  - *Ação:* Restringido o buffer de teclas a `CONFIG.DEV_MODE === true`, criado Painel de Desenvolvedor e Cheats integrado à UI do menu (`index.html` e `MenuController.js`) com botões dedicados e persistência via `localStorage`.

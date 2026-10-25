@@ -6,6 +6,8 @@ import { CONFIG } from './ConfigLoader.js';
 import { emit, on } from './EventBus.js';
 import { WEAPONS } from '../weapons/WeaponDefs.js';
 
+const _tempPelletDir = new THREE.Vector3();
+
 export class GameManager {
   constructor({ scene, world, player, weapons, botSpawns = [], playerSpawn = null, bounds = [-24, 24, -24, 24] }) {
     this.scene = scene;
@@ -29,6 +31,13 @@ export class GameManager {
     this.lastKillTime = -999;
 
     this._setupEvents();
+  }
+
+  startMatch() {
+    this.hasStarted = true;
+    if (this.weapons && typeof this.weapons.setLoadoutLocked === 'function') {
+      this.weapons.setLoadoutLocked(true);
+    }
   }
 
   _getRandomWeaponId() {
@@ -55,13 +64,28 @@ export class GameManager {
         const def = bot?.weaponId ? WEAPONS[bot.weaponId] : null;
 
         if (this.weapons?.projectileManager && def && e.muzzleWorld && e.dir) {
-          this.weapons.projectileManager.spawn({
-            origin: e.muzzleWorld,
-            direction: e.dir,
-            weaponDef: def,
-            owner: 'bot',
-            ownerEntity: bot
-          });
+          const pelletCount = def.pellets || 1;
+          for (let i = 0; i < pelletCount; i++) {
+            let pelletDir = e.dir;
+            if (pelletCount > 1) {
+              const spread = def.spreadHip || 0.035;
+              const angle = Math.random() * Math.PI * 2;
+              const radius = Math.random() * spread;
+              _tempPelletDir.copy(e.dir);
+              _tempPelletDir.x += Math.cos(angle) * radius;
+              _tempPelletDir.y += Math.sin(angle) * radius;
+              _tempPelletDir.normalize();
+              pelletDir = _tempPelletDir;
+            }
+            this.weapons.projectileManager.spawn({
+              origin: e.muzzleWorld,
+              direction: pelletDir,
+              weaponDef: def,
+              owner: 'bot',
+              ownerEntity: bot,
+              isPellet: pelletCount > 1
+            });
+          }
         } else if (p && p.alive) {
           // Fallback caso não haja projectileManager instanciado
           const isHit = typeof e.hit === 'boolean' ? e.hit : (() => {
@@ -141,21 +165,32 @@ export class GameManager {
   }
 
   destroy() {
+    this.hasStarted = false;
+    this.roundOver = false;
+    if (this.weapons && typeof this.weapons.setLoadoutLocked === 'function') {
+      this.weapons.setLoadoutLocked(false);
+    }
     if (this._unsubs) {
       for (const unsub of this._unsubs) unsub();
       this._unsubs = [];
     }
     while (this.itemDrops.length > 0) {
       const d = this.itemDrops.pop();
-      d.destroy();
+      if (d && typeof d.destroy === 'function') d.destroy();
     }
     while (this.magazineDrops.length > 0) {
       const m = this.magazineDrops.pop();
-      m.destroy();
+      if (m && typeof m.destroy === 'function') m.destroy();
     }
     while (this.bots.length > 0) {
       const b = this.bots.pop();
-      b.destroy();
+      if (b && typeof b.destroy === 'function') b.destroy();
+    }
+    if (this.doors) {
+      for (const d of this.doors) {
+        if (d && typeof d.destroy === 'function') d.destroy();
+      }
+      this.doors = [];
     }
   }
 
@@ -382,8 +417,11 @@ export class GameManager {
       this.finalizeBotRespawn(b);
     }
 
-    // Recarrega Arma
+    // Aplica loadout pendente e recarrega arma
     if (this.weapons) {
+      if (typeof this.weapons.applyPendingSlots === 'function') {
+        this.weapons.applyPendingSlots();
+      }
       this.weapons.ammo = this.weapons.def.magSize;
       this.weapons.reloading = false;
       emit('weapon:ammo', { ammo: this.weapons.ammo, max: this.weapons.def.magSize });
@@ -414,22 +452,30 @@ export class GameManager {
     
     // Atualiza portas e interação
     let nearDoor = null;
+    let minDoorDist = Infinity;
     for (const d of this.doors) {
       d.update(dt);
       const dist = this.player.pos.distanceTo(d.pivot.position);
-      if (dist < d.interactRange) {
+      if (dist < d.interactRange && dist < minDoorDist) {
+        minDoorDist = dist;
         nearDoor = d;
       }
     }
 
     // Atualiza Drops e Coleta de Itens
     let nearDrop = null;
+    let minDropDist = Infinity;
     for (let i = this.itemDrops.length - 1; i >= 0; i--) {
       const drop = this.itemDrops[i];
       drop.update(dt);
 
       if (drop.checkPickup(this.player)) {
-        nearDrop = drop;
+        const dropPos = drop.mesh?.position || this.player.pos;
+        const d = this.player.pos.distanceTo(dropPos);
+        if (d < minDropDist) {
+          minDropDist = d;
+          nearDrop = drop;
+        }
         if (this.weapons) {
           // Se tiver a mesma arma equipada e precisar de munição, reabastece ao passar
           if (this.weapons.current === drop.weaponId && this.weapons.ammo < this.weapons.def.magSize) {
@@ -446,6 +492,7 @@ export class GameManager {
 
     // Atualiza Carregadores descartados no mapa
     let nearMag = null;
+    let minMagDist = Infinity;
     for (let i = this.magazineDrops.length - 1; i >= 0; i--) {
       const mag = this.magazineDrops[i];
       if (mag.collected) {
@@ -454,7 +501,11 @@ export class GameManager {
       }
       mag.update(dt);
       if (mag.checkPickup(this.player)) {
-        nearMag = mag;
+        const d = this.player.pos.distanceTo(mag.pos);
+        if (d < minMagDist) {
+          minMagDist = d;
+          nearMag = mag;
+        }
       }
     }
 

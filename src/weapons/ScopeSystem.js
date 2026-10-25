@@ -594,9 +594,13 @@ export class ScopeSystem {
     // Oculta a arma apenas para a scopeCamera não enxergar o próprio cano à frente
     if (protoModel) protoModel.visible = false;
 
+    const prevShadows = this.renderer?.shadowMap ? this.renderer.shadowMap.enabled : false;
+    if (this.renderer?.shadowMap) this.renderer.shadowMap.enabled = false;
+
     this.renderer.setRenderTarget(this.scopeRT);
     this.renderer.render(this.scene, this.scopeCamera);
     this.renderer.setRenderTarget(null);
+    if (this.renderer?.shadowMap) this.renderer.shadowMap.enabled = prevShadows;
 
     if (protoModel) protoModel.visible = true;
   }

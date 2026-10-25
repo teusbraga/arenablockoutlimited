@@ -106,6 +106,10 @@ export class WeaponSystem {
     this.wallCompression = 0;
     this.sprayRecoil = { pitch: 0, yaw: 0 };
 
+    // Trava de Loadout (Anti-Exploit de troca de armas no meio da partida)
+    this.loadoutLocked = false;
+    this.pendingSlots = { 0: null, 1: null };
+
     this._equip(this.slots[0], true);
 
     this._unsubEvents = [
@@ -168,6 +172,7 @@ export class WeaponSystem {
   }
 
   toggleFireMode() {
+    if (this.player && !this.player.alive) return;
     const def = this.def;
     const modes = def.fireModes || (def.auto ? ['auto'] : ['semi']);
     if (modes.length <= 1) return; // Arma não possui modo seletivo
@@ -181,6 +186,7 @@ export class WeaponSystem {
   }
 
   cycle() {
+    if (this.player && !this.player.alive) return;
     const targetSlot = 1 - this.currentSlot;
     if (this.slots[targetSlot]) {
       this.selectSlot(targetSlot);
@@ -190,6 +196,7 @@ export class WeaponSystem {
   }
 
   selectSlot(idx) {
+    if (this.player && !this.player.alive) return;
     if (idx !== 0 && idx !== 1) return;
     if (idx === this.currentSlot) return;
     if (!this.slots[idx]) {
@@ -201,8 +208,41 @@ export class WeaponSystem {
     emit('weapon:cycle', {});
   }
 
-  setSlot(slotIdx, weaponId) {
-    if (slotIdx !== 0 && slotIdx !== 1) return;
+  setLoadoutLocked(locked) {
+    this.loadoutLocked = !!locked;
+  }
+
+  hasPendingLoadout() {
+    return this.pendingSlots[0] !== null || this.pendingSlots[1] !== null;
+  }
+
+  applyPendingSlots() {
+    let changed = false;
+    if (this.pendingSlots[0] !== null) {
+      this.setSlot(0, this.pendingSlots[0], true);
+      this.pendingSlots[0] = null;
+      changed = true;
+    }
+    if (this.pendingSlots[1] !== null) {
+      this.setSlot(1, this.pendingSlots[1], true);
+      this.pendingSlots[1] = null;
+      changed = true;
+    }
+    return changed;
+  }
+
+  setSlot(slotIdx, weaponId, force = false) {
+    if (this.player && !this.player.alive) return false;
+    if (slotIdx !== 0 && slotIdx !== 1) return false;
+    if (this.loadoutLocked && !force) {
+      this.pendingSlots[slotIdx] = weaponId;
+      emit('hud:popup', {
+        text: 'LOADOUT TRAVADO: Arma selecionada entrará em vigor no próximo reinício',
+        color: '#f77f00',
+        duration: 2500
+      });
+      return false;
+    }
     const validId = (weaponId && weaponId !== 'none' && WEAPONS[weaponId]) ? weaponId : null;
     this.slots[slotIdx] = validId;
     if (this.currentSlot === slotIdx) {
@@ -217,9 +257,11 @@ export class WeaponSystem {
       }
     }
     emit('weapon:slots', { slots: this.slots, currentSlot: this.currentSlot });
+    return true;
   }
 
   pickupWeapon(newWeaponId) {
+    if (this.player && !this.player.alive) return null;
     if (!newWeaponId || !WEAPONS[newWeaponId]) return null;
     const oldWeapon = this.slots[this.currentSlot];
     this.slots[this.currentSlot] = newWeaponId;
@@ -241,6 +283,7 @@ export class WeaponSystem {
   }
 
   startReload(type = 'speed') {
+    if (this.player && !this.player.alive) return;
     if (this.reloading || !this.def) return;
     if (this.ammo === this.def.magSize) return;
 
@@ -311,25 +354,26 @@ export class WeaponSystem {
     this.wallCompression += (targetCompression - this.wallCompression) * Math.min(dt * 14, 1.0);
 
     // 1. Troca de arma (tecla Q, slots 1/2 ou botão mobile ARMA)
-    if (this.input.consumeAction('next_weapon')) {
+    const playerAlive = !this.player || this.player.alive;
+    if (playerAlive && this.input.consumeAction('next_weapon')) {
       this.cycle();
     }
-    if (this.input.consumeAction('slot_1')) {
+    if (playerAlive && this.input.consumeAction('slot_1')) {
       this.selectSlot(0);
     }
-    if (this.input.consumeAction('slot_2')) {
+    if (playerAlive && this.input.consumeAction('slot_2')) {
       this.selectSlot(1);
     }
 
     // Modo de disparo seletivo (tecla B / V)
-    if (this.input.consumeAction('toggle_fire_mode')) {
+    if (playerAlive && this.input.consumeAction('toggle_fire_mode')) {
       this.toggleFireMode();
     }
 
     // 2. Recarga manual (Tap R = Speed / Drop Mag; Hold R = Tactical com Retenção & QTE)
-    if (this.input.consumeAction('reload_tactical') || this.input.consumeAction('reload_hold')) {
+    if (playerAlive && (this.input.consumeAction('reload_tactical') || this.input.consumeAction('reload_hold'))) {
       if (!this.reloading) this.startReload('tactical');
-    } else if (this.input.consumeAction('reload_speed') || this.input.consumeAction('reload_tap') || this.input.consumeAction('reload')) {
+    } else if (playerAlive && (this.input.consumeAction('reload_speed') || this.input.consumeAction('reload_tap') || this.input.consumeAction('reload'))) {
       if (!this.reloading) this.startReload('speed');
     }
 

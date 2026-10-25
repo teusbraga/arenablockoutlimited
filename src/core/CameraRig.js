@@ -91,6 +91,13 @@ export class CameraRig {
     this.tpOffsetRight = 0.45; // Leve over-the-shoulder tático para a direita
     this.tpOffsetY = 0.22; // Elevação acima dos olhos
     this.tpSmoothDist = 2.4;
+
+    // ---- Recoil Climb & Recovery (Recuperação elástica gradual de subida de mira) ----
+    this.recoilClimbPitch = 0;
+    this.recoilClimbYaw = 0;
+    this.recoilRecoverySpeed = 4.0;
+    this.recoilRecoveryDelay = 0.08;
+    this.timeSinceLastRecoil = 0;
   }
 
   /**
@@ -98,7 +105,12 @@ export class CameraRig {
    */
   addMouseInput(dx, dy, sens) {
     this.targetYaw -= dx * sens;
-    this.targetPitch -= dy * sens;
+    const pitchDelta = dy * sens;
+    this.targetPitch -= pitchDelta;
+
+    if (pitchDelta > 0 && this.recoilClimbPitch > 0) {
+      this.recoilClimbPitch = Math.max(0, this.recoilClimbPitch - pitchDelta * 0.9);
+    }
 
     const pitchLimit = CONFIG.CAMERA.pitchLimit || 1.52;
     this.targetPitch = Math.max(-pitchLimit, Math.min(pitchLimit, this.targetPitch));
@@ -126,6 +138,9 @@ export class CameraRig {
     const pitchLimit = CONFIG.CAMERA.pitchLimit || 1.52;
     this.targetPitch = Math.max(-pitchLimit, Math.min(pitchLimit, this.targetPitch));
     this.targetYaw += climbYaw;
+    this.recoilClimbPitch += climbPitch;
+    this.recoilClimbYaw += climbYaw;
+    this.timeSinceLastRecoil = 0;
 
     // 2. Punch elástico angular (chacoalha e retorna com mola rápida)
     this.recoilRotVel.x += punchPitch * 48.0;
@@ -157,6 +172,8 @@ export class CameraRig {
     this.pitchVelocity = 0;
     this.angularVelocity.x = 0;
     this.angularVelocity.y = 0;
+    this.recoilClimbPitch = 0;
+    this.recoilClimbYaw = 0;
   }
 
   setYaw(y) {
@@ -170,6 +187,7 @@ export class CameraRig {
     const clamped = Math.max(-pitchLimit, Math.min(pitchLimit, p));
     this.targetPitch = clamped;
     this.currentPitch = clamped;
+    this.recoilClimbPitch = 0;
   }
 
   addYaw(delta) {
@@ -209,6 +227,8 @@ export class CameraRig {
     this.pitchVelocity = 0;
     this.angularVelocity.x = 0;
     this.angularVelocity.y = 0;
+    this.recoilClimbPitch = 0;
+    this.recoilClimbYaw = 0;
     this.targetPitch = 0;
     this.currentPitch = 0;
     this.recoilRot.set(0, 0, 0);
@@ -256,6 +276,12 @@ export class CameraRig {
     this.yawVelocity = resYaw.velocity;
 
     // Pitch
+    this.timeSinceLastRecoil += dt;
+    if (this.timeSinceLastRecoil > this.recoilRecoveryDelay && this.recoilClimbPitch > 0.0001) {
+      const rec = Math.min(this.recoilClimbPitch, this.recoilClimbPitch * this.recoilRecoverySpeed * dt);
+      this.targetPitch -= rec;
+      this.recoilClimbPitch -= rec;
+    }
     const pitchLimit = CONFIG.CAMERA.pitchLimit || 1.52;
     this.targetPitch = Math.max(-pitchLimit, Math.min(pitchLimit, this.targetPitch));
     const resPitch = smoothDamp(

@@ -7,7 +7,8 @@ import { SceneSetup } from './core/SceneSetup.js';
 
 import { loadMap } from './world/MapLoader.js';
 import { Player } from './entities/Player.js';
-import { Viewmodel, buildHK416, buildP9, buildUZI, buildM249, buildRiflePrototype, buildAK47, buildSW500, buildM12, buildVSS, buildSCARH } from './weapons/Viewmodel.js';
+import { Viewmodel } from './weapons/Viewmodel.js';
+import { WeaponRegistry } from './weapons/WeaponRegistry.js';
 import { ItemDrop } from './world/ItemDrop.js';
 import { WeaponSystem } from './weapons/WeaponSystem.js';
 import { initWeaponsFromData } from './weapons/WeaponDefs.js';
@@ -63,30 +64,8 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
 
     // 3. Viewmodel e Armas
     const viewmodel = new Viewmodel(camera);
-    viewmodel.registerModel('ar15', buildHK416);
-    viewmodel.registerModel('ak47', buildAK47);
-    viewmodel.registerModel('p9', buildP9);
-    viewmodel.registerModel('sw500', buildSW500);
-    viewmodel.registerModel('m12', buildM12);
-    viewmodel.registerModel('uzi', buildUZI);
-    viewmodel.registerModel('m249', buildM249);
-    viewmodel.registerModel('rifle_proto', buildRiflePrototype);
-    viewmodel.registerModel('vss', buildVSS);
-    viewmodel.registerModel('scar_h', buildSCARH);
-
-    // Registra construtores 3D para drops de armas no chão
-    ItemDrop.setBuilders({
-      ar15: buildHK416,
-      ak47: buildAK47,
-      p9: buildP9,
-      sw500: buildSW500,
-      m12: buildM12,
-      uzi: buildUZI,
-      m249: buildM249,
-      rifle_proto: buildRiflePrototype,
-      vss: buildVSS,
-      scar_h: buildSCARH,
-    });
+    WeaponRegistry.populateViewmodel(viewmodel);
+    WeaponRegistry.populateItemDrops(ItemDrop);
 
     const initialWeapon = MenuController.getSavedWeapon('ar15');
     const secondaryWeapon = MenuController.getSavedSecondaryWeapon('p9');
@@ -155,15 +134,7 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
 
     // 4. Scope System Unificado (Rifle Prototype, VSS Vintorez & SCAR-H)
     const scopeSystem = new ScopeSystem(renderer, scene);
-    if (viewmodel.models['rifle_proto']?.details) {
-      scopeSystem.attachWeaponModel('rifle_proto', viewmodel.models['rifle_proto'].details);
-    }
-    if (viewmodel.models['vss']?.details) {
-      scopeSystem.attachWeaponModel('vss', viewmodel.models['vss'].details);
-    }
-    if (viewmodel.models['scar_h']?.details) {
-      scopeSystem.attachWeaponModel('scar_h', viewmodel.models['scar_h'].details);
-    }
+    WeaponRegistry.attachScopes(scopeSystem, viewmodel);
 
     // ---------------------------------------------------------
     // SHADER PRE-LOAD WARMUP (Elimina stutter de compilacao)

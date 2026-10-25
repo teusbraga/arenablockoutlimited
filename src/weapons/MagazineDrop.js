@@ -100,7 +100,7 @@ export class MagazineDrop {
       // Verificação de chão
       let floorY = 0.05;
       if (this.world && typeof this.world.raycast === 'function') {
-        const hit = this.world.raycast(this.pos, { x: 0, y: -1, z: 0 }, 1.5);
+        const hit = this.world.raycast(this.pos, { x: 0, y: -1, z: 0 }, 15.0);
         if (hit && hit.point) {
           floorY = hit.point.y + 0.04;
         }
@@ -121,7 +121,11 @@ export class MagazineDrop {
   checkPickup(character) {
     if (this.collected || !character || !character.alive) return false;
     const px = character.pos?.x ?? character.position?.x ?? 0;
+    const py = character.pos?.y ?? character.position?.y ?? 0;
     const pz = character.pos?.z ?? character.position?.z ?? 0;
+
+    const dy = this.pos.y - py;
+    if (dy < -0.6 || dy > 1.8) return false;
     const dist = Math.hypot(px - this.pos.x, pz - this.pos.z);
     return dist < 1.4;
   }

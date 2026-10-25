@@ -27,6 +27,13 @@ export class TouchInput {
     this.touchZoneLeft = document.getElementById('touch-zone-left');
     this.touchZoneRight = document.getElementById('touch-zone-right');
 
+    this._unsubs = [
+      on('weapon:fired', () => this.vibrate(18)),
+      on('player:damaged', () => this.vibrate([40, 30, 40])),
+      on('weapon:empty', () => this.vibrate(35)),
+      on('weapon:reload', () => this.vibrate(25))
+    ];
+
     if (this.isMobile && this.container) {
       this._init();
     }
@@ -371,10 +378,27 @@ export class TouchInput {
     const interactBtn = document.getElementById('btn-touch-interact');
     if (interactBtn) {
       interactBtn.style.display = 'none';
-      on('interact:target', e => {
+      const unsubInteract = on('interact:target', e => {
         const target = (e && typeof e === 'object' && 'target' in e) ? e.target : e;
         interactBtn.style.display = target ? 'flex' : 'none';
       });
+      this._unsubs.push(unsubInteract);
+    }
+  }
+
+  vibrate(pattern) {
+    if (!CONFIG.ACCESSIBILITY?.vibrationEnabled) return;
+    if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+      try {
+        navigator.vibrate(pattern);
+      } catch (_) {}
+    }
+  }
+
+  destroy() {
+    if (this._unsubs) {
+      this._unsubs.forEach(unsub => typeof unsub === 'function' && unsub());
+      this._unsubs = [];
     }
   }
 }

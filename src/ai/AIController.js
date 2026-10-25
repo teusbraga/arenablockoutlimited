@@ -284,6 +284,25 @@ export class AIController {
 
   _hasLOS(player, dist) {
     if (dist > CONFIG.BOTS.viewRange) return false;
+
+    // Cone de visão (FOV): Em patrulha ou busca, bots só detectam jogadores dentro do arco frontal
+    // a menos que o jogador esteja muito próximo (<= 3.0m), onde ruído de passos permite percepção tática
+    if (this.state === 'patrol' || this.state === 'search') {
+      if (dist > 3.0) {
+        const toX = player.pos.x - this.bot.pos.x;
+        const toZ = player.pos.z - this.bot.pos.z;
+        const horizontalDist = Math.hypot(toX, toZ);
+        if (horizontalDist > 0.001) {
+          const forwardX = Math.sin(this.bot.yaw);
+          const forwardZ = Math.cos(this.bot.yaw);
+          const dot = (forwardX * toX + forwardZ * toZ) / horizontalDist;
+          const halfFov = (CONFIG.BOTS.fov ?? 2.45) * 0.5;
+          if (dot < Math.cos(halfFov)) {
+            return false;
+          }
+        }
+      }
+    }
     _from.set(this.bot.pos.x, this.bot.pos.y + 1.4, this.bot.pos.z);
     _dir.set(player.pos.x - _from.x, (player.pos.y + 1.4) - _from.y, player.pos.z - _from.z);
     const d = _dir.length();

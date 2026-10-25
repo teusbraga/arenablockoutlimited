@@ -1145,23 +1145,26 @@ Ver §9.2. Ao adicionar UI/feedback, prefira `hud:popup` (funciona) ou implement
 ### 13.17 Working tree parcial [RESOLVIDO]
 Todo o trabalho pendente de reload tático, drop de carregadores, QTE, áudio procedural e cheat whoami foi commitado com segurança em `51f11ea`. O working tree foi normalizado e protegido por 25 suítes automatizadas.
 
-### 13.18 Troca de armas permitida após a morte do jogador
-`WeaponSystem.js:192-220` e `Input.js` não validam `this.player.alive`. Se o jogador morrer, comandos de troca de arma (`1`, `2`, scroll) continuam disparando `selectSlot`, trocando a arma visual e reproduzindo sons de equipar durante a tela de morte.
+### 13.18 Troca de armas permitida após a morte do jogador [RESOLVIDO]
+`WeaponSystem.js` agora valida `this.player.alive` em `selectSlot`, `cycle`, `setSlot`, `pickupWeapon`, `toggleFireMode` e `startReload`, além de esvaziar a fila de ações pendentes durante o estado de morte para evitar trocas acidentais e sons de equipar na tela de respawn.
 
-### 13.19 Acúmulo descontrolado de climbing no recuo da câmera
-`CameraRig.js:124-128` injeta `this.targetPitch += climbPitch` diretamente no pitch de orientação. Não há rotina de retorno ou compensação elástica (recoil recovery) ao parar de atirar; rajadas longas forçam a câmera para o teto até travar no `pitchLimit`.
+### 13.19 Acúmulo descontrolado de climbing no recuo da câmera [RESOLVIDO]
+`CameraRig.js` agora rastreia o recuo de subida em `recoilClimbPitch` e executa recuperação angular suave (recoil recovery) gradual após o término da rajada, além de deduzir proporcionalmente o recuo quando o jogador compensa ativamente puxando o mouse para baixo.
 
-### 13.20 Instabilidade de física e coleta em `MagazineDrop`
-`MagazineDrop.js:100-114` usa raycast com alcance de apenas 1.5m, o que pode falhar em rampas ou quedas rápidas. `checkPickup` (`:121-127`) só verifica distância horizontal (`hypot(x, z) < 1.4`), permitindo coletar carregadores através de pisos/tetos. `GameManager.js:449-476` só foca no último carregador avaliado em vez do mais próximo.
+### 13.20 Instabilidade de física e coleta em `MagazineDrop` [RESOLVIDO]
+`MagazineDrop.js` agora verifica a diferença vertical ($\Delta Y$) impedindo coletas através de andares/tetos diferentes, amplia a sondagem de solo para 15m e `GameManager.js` seleciona estritamente o carregador e drop mais próximos do jogador via `distanceTo`.
 
-### 13.21 Configuração fantasma de vibração em mobile
-`assets/config/gameplay.json:51` define `"vibrationEnabled": true` e `MenuController.js:346` provê toggle no menu, mas `navigator.vibrate` nunca é invocado em nenhum lugar de `TouchInput.js` ou `WeaponSystem.js`.
+### 13.21 Configuração fantasma de vibração em mobile [RESOLVIDO]
+`TouchInput.js` agora consome `CONFIG.ACCESSIBILITY.vibrationEnabled` e aciona `navigator.vibrate` com pulsos hápticos dedicados para disparo de arma, dano recebido pelo jogador, clique de munição esgotada e recarga, com cleanup em `destroy()`.
 
 ### 13.22 Deformação de rotação de juntas nos dedos esquerdos do Viewmodel
 `ViewmodelArms.js:183-191` inverte os eixos do IK da mão esquerda em relação aos ossos de `TacticalManContinuous.js`, resultando em rotação anatômica distorcida dos dedos ao redor dos guarda-mãos das armas primárias.
 
-### 13.23 Falta de trava de loadout com partida em andamento
-`MenuController.js` e `WeaponSystem.js:204-220` permitem invocar `setSlot()` a qualquer momento via UI, possibilitando que o jogador altere suas armas primárias/secundárias no meio do combate com munição cheia, sem restrição de partida iniciada.
+### 13.23 Falta de trava de loadout com partida em andamento [RESOLVIDO]
+`WeaponSystem.js` agora possui `loadoutLocked` ativado automaticamente quando `GameManager.startMatch()` inicia a partida. Chamadas a `setSlot()` durante o combate enfileiram a alteração em `pendingSlots` com notificação visual na HUD, aplicando a nova arma apenas no reinício da rodada/partida (`resetGame()`).
+
+### 13.24 Cheats e depuração expostos durante gameplay [RESOLVIDO]
+`Input.js` agora restringe a detecção de cheats no buffer de digitação de teclas a `CONFIG.DEV_MODE === true`. Foi integrado um Painel Dev & Cheats interativo na aba Ajustes do menu (`index.html` e `MenuController.js`) com botões dedicados e persistência via `localStorage`.
 
 ---
 
@@ -1172,7 +1175,7 @@ Todo o trabalho pendente de reload tático, drop de carregadores, QTE, áudio pr
 2. `assets/weapons/ammo.json`: reutilize uma munição existente ou crie uma; se criar, defina `tracerProfile`.
 3. `assets/weapons/sfx/<id>_sfx.json`: copie `default_sfx.json`; **adicione o id em `ConfigLoader.js:133`** (`sfxIds`) senão o perfil não carrega.
 4. `src/weapons/models/<Nome>.js`: builder retornando `Group` ou `{group, physics, ...}`; exporte.
-5. `src/weapons/Viewmodel.js`: import + reexport; `src/main.js`: `registerModel('<id>', build...)` e `ItemDrop.setBuilders`.
+5. `src/weapons/WeaponRegistry.js`: registre a arma com `{ builder, hasScope }` (povoa automaticamente `Viewmodel`, `ItemDrop` e `ScopeSystem`).
 6. `src/weapons/ViewmodelArms.js`: socket `WEAPON_HAND_SOCKETS['<id>']` ou aceite o default.
 7. `src/ui/WeaponPreview3D.js` / `ItemDrop` glow: se quiser cor por classe, ajuste (não há `type`).
 8. `index.html`: opção no `#weapon-select` / `#weapon-secondary-select`.

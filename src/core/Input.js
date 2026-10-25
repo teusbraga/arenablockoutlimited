@@ -11,6 +11,7 @@ export class Input {
     
     // Estado raw do mouse para cálculos de câmera
     this.mouse = { dx: 0, dy: 0 };
+    this._unsubs = [];
     
     // Mapeamento canônico (Godot style) e compatibilidade legada
     this.ACTION_ALIASES = {
@@ -289,55 +290,61 @@ export class Input {
     this._actionQueue.clear();
   }
 
+  destroy() {
+    if (this._unsubs) {
+      for (const unsub of this._unsubs) unsub();
+      this._unsubs = [];
+    }
+    if (this.touch && typeof this.touch.destroy === 'function') {
+      this.touch.destroy();
+    }
+  }
+
   _bind() {
-    on('weapon:qte:start', () => {
-      this._qteActive = true;
-    });
-
-    on('weapon:qte:result', () => {
-      this._qteActive = false;
-    });
-
-    on('weapon:qte:stop', () => {
-      this._qteActive = false;
-    });
-
-    on('weapon:reload:end', () => {
-      this._qteActive = false;
-      this.clearReloadQueue();
-    });
-
-    on('round:over', () => {
-      this.roundOver = true;
-      this.locked = false;
-      this.clearState();
-      if (typeof document !== 'undefined' && document.pointerLockElement) document.exitPointerLock?.();
-      emit('input:lock', { locked: false });
-    });
-
-    on('game:reset', () => {
-      this.roundOver = false;
-      this.clearState();
-    });
-
-    on('inventory:opened', () => {
-      this.inventoryOpen = true;
-      this.locked = false;
-      this.clearState();
-      if (typeof document !== 'undefined' && document.pointerLockElement) document.exitPointerLock?.();
-      emit('input:lock', { locked: false });
-    });
-
-    on('inventory:closed', () => {
-      this.inventoryOpen = false;
-      this.clearState();
-    });
+    this._unsubs.push(
+      on('weapon:qte:start', () => {
+        this._qteActive = true;
+      }),
+      on('weapon:qte:result', () => {
+        this._qteActive = false;
+      }),
+      on('weapon:qte:stop', () => {
+        this._qteActive = false;
+      }),
+      on('weapon:reload:end', () => {
+        this._qteActive = false;
+        this.clearReloadQueue();
+      }),
+      on('round:over', () => {
+        this.roundOver = true;
+        this.locked = false;
+        this.clearState();
+        if (typeof document !== 'undefined' && document.pointerLockElement) document.exitPointerLock?.();
+        emit('input:lock', { locked: false });
+      }),
+      on('game:reset', () => {
+        this.roundOver = false;
+        this.clearState();
+      }),
+      on('inventory:opened', () => {
+        this.inventoryOpen = true;
+        this.locked = false;
+        this.clearState();
+        if (typeof document !== 'undefined' && document.pointerLockElement) document.exitPointerLock?.();
+        emit('input:lock', { locked: false });
+      }),
+      on('inventory:closed', () => {
+        this.inventoryOpen = false;
+        this.clearState();
+      })
+    );
 
     if (typeof addEventListener !== 'function') return;
 
     addEventListener('keydown', e => {
       // Cheat code detection (ex: GETTHEREFAST, PROFESSIONALKILLER, BAGUVIX, WHOAMI)
-      if (e.key && e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      // Restrito ao buffer de teclas somente quando CONFIG.DEV_MODE estiver ativo
+      if (CONFIG.DEV_MODE && e.key && e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
         this._cheatBuffer = ((this._cheatBuffer || '') + e.key.toLowerCase()).slice(-20);
         if (this._cheatBuffer.endsWith('gettherefast')) {
           this._cheatBuffer = '';
