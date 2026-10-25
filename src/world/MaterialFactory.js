@@ -674,6 +674,7 @@ export class MaterialFactory {
       surfaceEyedropper.registerMaterial(name, mat);
       return mat;
     }
+    console.warn(`[MaterialFactory] Material '${name}' não registrado; usando fallback 'wall'.`);
     const fallbackMat = this.materials.get('wall') || new THREE.MeshStandardMaterial({ color: 0x888888 });
     surfaceEyedropper.registerMaterial(name, fallbackMat);
     return fallbackMat;

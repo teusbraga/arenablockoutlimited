@@ -41,6 +41,7 @@ Esses pontos não devem ser reescritos. O trabalho é consolidar em volta deles.
 - **Fase 1 Concluída:** EventBus padronizado com regra de ouro (100% payloads em objetos) e catálogo canônico (`CANONICAL_EVENTS`). `notification` e `player:heal` ativados com listeners.
 - **Higienização de Dados:** `weapons.json` higienizado (campos fantasmas `model` e `audioKey` removidos; `ejectLocal` adicionado em todas as 10 armas; `type` presente em todas; defaults de `casingType` e `smokeResidualMax/Color` formalizados no loader `WeaponDefs.js`).
 - `gameplay.json` e `CONFIG` normalizados (aliases unificados para `sprintMul`/`sprintMultiplier`, `sens`/`sensitivity`, e `PHYSICS.fixedDt: 0.016667` alinhado a 60 Hz).
+- **Fase 2 Concluída:** Mecanismos de Diagnóstico & Modo Dev: `SchemaValidator` no boot (validação de 21 atributos de armas, ammo e gameplay), `EventBus` com Dev Diagnostics (warnings para tópicos não canônicos e disparos no vácuo), `MaterialFactory` com alerta de fallback 'wall', e Error Boundary com Crash Screen no loop principal (`Engine.js`).
 - Eventos órfãos e campos inertes remanescentes: `shot:tracer`, `weapon:cycle_action`, `crosshair:change`, `crosshair:reset`, `BOTS.fov`, maior parte de `SWAY`.
 
 ### 4. Sistemas paralelos sem dono único

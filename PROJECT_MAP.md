@@ -225,24 +225,28 @@ Cada linha: responsabilidade, exports principais, dependências e consumidores.
 
 ### 7.1 `src/core/`
 
-#### `Engine.js` (38 linhas)
-- **Responsabilidade:** loop de timestep fixo com interpolação (`alpha`).
-- **Exporta:** `startEngine`.
+#### `Engine.js`
+- **Responsabilidade:** loop de timestep fixo com interpolação (`alpha`) e Error Boundary com overlay de crash screen.
+- **Exporta:** `startEngine`, `showCrashScreen`.
 - **Depende:** nada.
-- **Consumido por:** `main.js:219`.
-- **Chaves:** `fixedDt` default 1/60 (`:6`), clamp `maxFrame` (`:24`), 5 subpassos (`:28`), `alpha` (`:34`).
+- **Consumido por:** `main.js`.
+- **Chaves:** `fixedDt` default 1/60, clamp `maxFrame`, 5 subpassos, captura exceções no loop e exibe crash overlay no navegador.
 
-#### `EventBus.js` (18 linhas)
-- **Responsabilidade:** pub/sub global síncrono.
-- **Exporta:** `on(type, fn) → unsubscribe`, `off`, `emit`.
-- **Comportamento:** `emit` engole exceções de listener com `console.error` (`:16`); `clearBus` foi removido de propósito (`:11`).
+#### `EventBus.js`
+- **Responsabilidade:** pub/sub global síncrono com catálogo canônico e diagnósticos de dev mode.
+- **Exporta:** `on(type, fn) → unsubscribe`, `off`, `emit`, `CANONICAL_EVENTS`, `isCanonicalEvent`, `setDevMode`, `isDevMode`.
+- **Comportamento:** `emit` normaliza payload para objeto; em dev mode (`CONFIG.DEV_MODE = true`), emite warnings para eventos disparados no vácuo (0 ouvintes) ou tópicos não canônicos.
 - **Consumido por:** praticamente todos os sistemas.
-- **Regra:** todo `on` deve ser guardado e desfeito em `destroy()`.
 
-#### `ConfigLoader.js` (163 linhas)
-- **Responsabilidade:** defaults + merge dos JSONs de gameplay/bots; carrega armas, munição, SFX e impactos.
-- **Exporta:** `DEFAULT_CONFIG`, `CONFIG` (singleton mutável), `ConfigLoader`.
-- **Depende:** `fetch` de:
+#### `SchemaValidator.js`
+- **Responsabilidade:** validador leve em JS puro executado no boot e em testes.
+- **Exporta:** `SchemaValidator` (`validateWeapons`, `validateAmmo`, `validateAll`).
+- **Comportamento:** verifica obrigatoriedade e integridade de todos os 21 atributos de armas e campos de balística (internal, external, terminal).
+
+#### `ConfigLoader.js`
+- **Responsabilidade:** defaults + merge dos JSONs de gameplay/bots/armas e acionamento do SchemaValidator no boot.
+- **Exporta:** `DEFAULT_CONFIG`, `CONFIG` (singleton mutável), `ConfigLoader`, `SchemaValidator`.
+- **Depende:** `SchemaValidator` e `fetch` de JSONs.
   - `assets/config/gameplay.json`
   - `assets/characters/bots.json`
   - `assets/weapons/weapons.json`
@@ -1068,7 +1072,7 @@ Incluídas em `npm test`:
 | `tactical_reload_test.js` | speed/tactical QTE, MagazineDrop, tap/hold |
 
 **Fora do `npm test` (rodam e passam, mas não são gate):**
-`alignment_test.js`, `bot_gps_pathfinding_test.js`, `locomotion_smoothing_test.js`, `muzzle_flash_smoke_test.js`, `soldier_skin_test.js`, `surface_eyedropper_test.js`, `tracer_test.js`, `weapon_sfx_data_driven_test.js`.
+`alignment_test.js`, `bot_gps_pathfinding_test.js`, `locomotion_smoothing_test.js`, `muzzle_flash_smoke_test.js`, `soldier_skin_test.js`, `surface_eyedropper_test.js`, `tracer_test.js`, `weapon_sfx_data_driven_test.js`, `phase2_diagnostics_test.js`.
 
 ### 12.3 Ferramentas
 - `tools/test_suite.py`: valida JSONs e imports ES; espera ≥10 sons em `audio.json`, o que **não** corresponde ao estado atual (procedural).

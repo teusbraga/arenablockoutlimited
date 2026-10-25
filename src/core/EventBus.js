@@ -89,6 +89,24 @@ export const CANONICAL_EVENTS = Object.freeze([
 
 const canonicalSet = new Set(CANONICAL_EVENTS);
 
+let _devMode = false;
+
+/**
+ * Ativa ou desativa o modo de diagnóstico do EventBus.
+ * @param {boolean} enabled
+ */
+export function setDevMode(enabled) {
+  _devMode = !!enabled;
+}
+
+/**
+ * Retorna se o modo Dev está ativo (via setDevMode ou CONFIG.DEV_MODE).
+ * @returns {boolean}
+ */
+export function isDevMode() {
+  return _devMode || !!(globalThis.CONFIG?.DEV_MODE);
+}
+
 export function isCanonicalEvent(type) {
   return canonicalSet.has(type);
 }
@@ -105,10 +123,20 @@ export function off(type, fn) {
 
 // Removido clearBus para evitar apocalipse global de eventos. Use unsub() e destroy() no lugar.
 export function emit(type, detail = {}) {
+  const isDev = isDevMode();
+  if (isDev && !canonicalSet.has(type)) {
+    console.warn(`[EventBus] Tópico desconhecido / não canônico: '${type}'`);
+  }
+
   // Regra de Ouro: todo evento transporta um objeto
   const payload = (typeof detail === 'object' && detail !== null) ? detail : { value: detail };
   const set = listeners.get(type);
-  if (!set) return;
+  if (!set || set.size === 0) {
+    if (isDev) {
+      console.warn(`[EventBus] Disparado no vácuo (0 listeners): ${type}`);
+    }
+    return;
+  }
   for (const fn of set) {
     try {
       fn(payload);

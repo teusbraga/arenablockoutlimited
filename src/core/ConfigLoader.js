@@ -4,6 +4,8 @@
  * cometa erros de digitação ou apague propriedades em arquivos JSON.
  */
 
+import { SchemaValidator } from './SchemaValidator.js';
+
 // Fallbacks de segurança garantidos (caso os arquivos JSON não carreguem)
 export const DEFAULT_CONFIG = {
   PLAYER: {
@@ -57,7 +59,8 @@ export const DEFAULT_CONFIG = {
   CHEATS: {
     godMode: false,
     infiniteAmmo: false
-  }
+  },
+  DEV_MODE: false
 };
 
 // Objeto singleton vivo exportado para o resto do motor
@@ -155,6 +158,13 @@ export class ConfigLoader {
         .then(r => r.ok ? r.json() : null)
         .catch(() => null);
 
+      // 5. Validação defensiva dos contratos de dados no boot
+      SchemaValidator.validateAll({
+        weapons: weaponsData?.weapons,
+        ammo: ammoData,
+        gameplay: (gameplayRes.status === 'fulfilled' && gameplayRes.value) ? gameplayRes.value : null
+      });
+
       return {
         config: CONFIG,
         weapons: weaponsData,
@@ -169,3 +179,5 @@ export class ConfigLoader {
     }
   }
 }
+
+export { SchemaValidator };
