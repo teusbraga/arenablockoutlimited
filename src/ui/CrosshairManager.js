@@ -174,7 +174,7 @@ export class CrosshairManager {
 
     // 2. EIXO 1 — Comportamento de Dispersão: Estático vs Dinâmico (Abrir/Fechar das hastes com spread)
     if (cfg.mode === 'dynamic') {
-      const dynamicSpreadOffset = Math.max(0, (spread - 0.010) * 480);
+      const dynamicSpreadOffset = Math.max(0, (spread - 0.002) * 380.0);
       const targetGap = cfg.gap + dynamicSpreadOffset;
       if (this.currentGap === undefined) this.currentGap = targetGap;
       // Expansão rápida e responsiva por disparo (24.0); recuperação orgânica e suave no cessar-fogo (7.0)

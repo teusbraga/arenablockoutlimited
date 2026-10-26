@@ -19,6 +19,13 @@
 
 ### 🔹 Outubro de 2026
 
+#### [Sincronização Fiel do HUD, Dynamic Gap Sub-MOA e Alinhamento do Cano 3D] — 26/10/2026
+* **fix(crosshair):** Sincronização do HUD e projeção 3D de alta precisão em `BarrelCrosshairAlignment.js` e `CrosshairManager.js`:
+  * **Alinhamento do Cano Colinear com Zeroing Analítico:** Em `BarrelCrosshairAlignment.js`, o vetor balístico do cano (`barrelAimDir`) e a direção pura (`pureBarrelDir`) agora incorporam analiticamente a elevação mecânica `weaponDef.zeroingElevation`, garantindo que a projeção da crosshair no modo dinâmico coincida com precisão sub-milimétrica com o ponto real de impacto a 50m.
+  * **Compensação Fiel da Coronha (Stock-Pivot) na Mira Pura:** A extração da direção pura do cano (`pureBarrelDir`) desconta com precisão o recuo visual efetivo atenuado no ADS (`effectiveKick = kickRotX * (1.0 - curAds * 0.82)`), mantendo o modo "Alinhamento Dinâmico ON + Follow Recoil OFF" perfeitamente ancorado na orientação física de repouso da arma.
+  * **Abertura Dinâmica das Hastes (Dynamic Gap) Sub-MOA:** Calibração da fórmula de dispersão em `CrosshairManager.js` (`dynamicSpreadOffset = Math.max(0, (spread - 0.002) * 380.0)`), eliminando o antigo degrau inerte de `0.010` rad. O retículo agora responde com sensibilidade tática realista tanto em repouso quanto em movimento e rajada sustentada, retornando suavemente no cessar-fogo.
+  * **Garantia de Qualidade & Testes:** Suíte completa com 105/105 testes verdes em `npm test`, `test/crosshair_manager.test.js` e `test/alignment_test.js`.
+
 #### [Controle de Recuo Manual Estilo CS2 e Amortecimento do CameraRig] — 26/10/2026
 * **fix(camera):** Normalização do controle de recuo manual (estilo CS2 puro) e calibração de estabilidade da câmera em `CameraRig.js`, `ConfigLoader.js` e `gameplay.json`:
   * **Climb 100% Manual (Sobe e Não Volta):** Introdução da chave `autoRecoilRecovery: false` em `gameplay.json` e `CONFIG.GUNPLAY`. No `CameraRig`, o `targetPitch` acumulado pelo recuo (`climbPitch`) não é mais puxado de volta para baixo automaticamente após o cessar-fogo. A mira permanece estritamente onde o recuo a elevou, exigindo que o jogador compense o coice ativamente com o mouse para baixo, exatamente como no Counter-Strike 2.

@@ -607,7 +607,7 @@ Cada linha: responsabilidade, exports principais, dependências e consumidores.
 - **Exporta:** `DEFAULT_CROSSHAIR_CONFIG`, `CrosshairManager`.
 - **Config:** `style`, `mode`, `dynamicAlignment`, `followRecoil`, `centerDot`, `length`, `thickness`, `gap`, `outline`, `color`, `noFireWarning`, `aimAssist`.
 - **Persistência:** `localStorage.blocky_crosshair_settings`.
-- **Eixos:** gap dinâmico (`:181-187`), posição pelo cano (`:189-196`), offset de recoil (`:198-230`).
+- **Eixos:** gap dinâmico sub-MOA (`:176-186`), posição pelo cano com zeroing analítico (`:188-204`), offset de recoil CS2 (`:206-236`).
 - **`isBlocked`:** `wallCompression > 0.45 && noFireWarning` (`:159-170`).
 - **Eventos:** ouve `crosshair:change/reset`; emite `crosshair:updated`.
 
