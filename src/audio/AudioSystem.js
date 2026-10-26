@@ -668,7 +668,9 @@ export class AudioSystem {
       const dest = node || this.impactsGain || this.foleyGain || ctx.destination;
       const mat = (material || '').toLowerCase();
 
-      if (mat.includes('wood') || mat.includes('crate') || mat.includes('board') || mat.includes('door')) {
+      if (mat.includes('plinker') || mat.includes('gong') || mat.includes('steel_plate')) {
+        this.terminalBallistics.synthesizeBulletHitPlinker(this.presets.bullet_hit_plinker, ctx, dest, null, true);
+      } else if (mat.includes('wood') || mat.includes('crate') || mat.includes('board') || mat.includes('door') || mat.includes('target')) {
         this.terminalBallistics.synthesizeBulletHitWood(this.presets.bullet_hit_wood, ctx, dest, null, true);
       } else if (mat.includes('metal') || mat.includes('steel') || mat.includes('scaffold') || mat.includes('barrel')) {
         this.terminalBallistics.synthesizeBulletHitMetal(this.presets.bullet_hit_metal, ctx, dest, null, true);
@@ -680,6 +682,21 @@ export class AudioSystem {
       }
     };
 
+    if (soundDelay && soundDelay > 0.035) {
+      setTimeout(execute, Math.round(soundDelay * 1000));
+    } else {
+      execute();
+    }
+  }
+
+  playProceduralPlinkerHit(pos, soundDelay = 0) {
+    const ctx = this._ensure();
+    if (!ctx || !this.terminalBallistics) return;
+    const execute = () => {
+      const { node } = this.createSpatialDestination(pos, 'impacts');
+      const dest = node || this.impactsGain || this.foleyGain || ctx.destination;
+      this.terminalBallistics.synthesizeBulletHitPlinker(this.presets.bullet_hit_plinker, ctx, dest, null, true);
+    };
     if (soundDelay && soundDelay > 0.035) {
       setTimeout(execute, Math.round(soundDelay * 1000));
     } else {
@@ -753,6 +770,10 @@ export class AudioSystem {
       // 4. Balística Terminal de Superfície (Impactos, Penetração e Ricochete Procedurais)
       on('shot:world', e => {
         const hitPos = e?.point || e?.pos;
+        if (e?.material === 'plinker' || e?.box?.meta?.isPlinker) {
+          this.playProceduralPlinkerHit(hitPos, e?.soundDelay || 0);
+          return;
+        }
         this.playProceduralSurfaceHit(e?.material, hitPos, e?.soundDelay || 0);
       }),
 

@@ -12,18 +12,18 @@
     "crouchMultiplier": 0.5,
     "adsMul": 0.42,
     "adsMultiplier": 0.42,
-    "accel": 40.0,
-    "airAccel": 6.0,
-    "friction": 22.0,
-    "jumpSpeed": 7.0,
-    "gravity": 20.0,
+    "accel": 40,
+    "airAccel": 6,
+    "friction": 22,
+    "jumpSpeed": 7,
+    "gravity": 20,
     "stepHeight": 0.55,
-    "regenDelay": 5.0,
-    "regenRate": 12.0
+    "regenDelay": 5,
+    "regenRate": 12
   },
   "camera": {
-    "hipFov": 78.0,
-    "adsFov": 55.0,
+    "hipFov": 78,
+    "adsFov": 55,
     "sens": 0.0022,
     "sensitivity": 0.0022,
     "adsSensMul": 0.55,
@@ -35,25 +35,35 @@
     "maxFrame": 0.1
   },
   "sway": {
-    "springStiffness": 25.0,
-    "springDamping": 8.0,
-    "swaySensitivity": 15.0,
-    "walkBobFrequency": 8.0,
-    "sprintBobFrequency": 12.0,
+    "springStiffness": 25,
+    "springDamping": 8,
+    "swaySensitivity": 15,
+    "walkBobFrequency": 8,
+    "sprintBobFrequency": 12,
     "walkBobAmplitude": 0.015,
-    "sprintBobAmplitude": 0.030,
+    "sprintBobAmplitude": 0.03,
     "idleBreathingSpeed": 1.5
   },
   "gunplay": {
-    "recoilRecoverySpeed": 14.0,
+    "recoilRecoverySpeed": 14,
     "fireStreakDecayDelay": 0.22,
-    "fireStreakMultiplier": 0.16,
+    "fireStreakMultiplier": 0.06,
     "maxFireStreak": 6
   },
   "accessibility": {
-    "headbobScale": 1.0,
-    "shakeScale": 1.0,
+    "headbobScale": 1,
+    "shakeScale": 1,
     "vibrationEnabled": true,
     "suppressionEnabled": true
+  },
+  "decals": {
+    "maxDecals": 128,
+    "lifetime": 40,
+    "fadeDuration": 5,
+    "normalOffset": 0.0015
+  },
+  "zeroing": {
+    "defaultZeroDistance": 50,
+    "zeroingMode": false
   }
 }

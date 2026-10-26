@@ -4,14 +4,20 @@
  * Totalmente stateless e defensivo: opera com fallbacks seguros caso propriedades sejam omitidas.
  */
 
+import { MasterWeapon } from './MasterWeapon.js';
+
 export class BallisticsCalculator {
   /**
    * Calcula a dispersão atual (spread) considerando estado do jogador, movimento e sway.
    * @param {Object} def - Definição compilada da arma
-   * @param {Object} state - Estado do jogador { isAds, speedRatio, isStrafing, isSprinting, precisionPenalty, swayAmount }
+   * @param {Object} state - Estado do jogador { isAds, speedRatio, isStrafing, isSprinting, precisionPenalty, swayAmount, zeroingMode, mapName }
    * @returns {number} Ângulo de dispersão em radianos
    */
   static calculateCurrentSpread(def, state = {}) {
+    if (state.zeroingMode || MasterWeapon.isZeroingMode(state.mapName)) {
+      return 0.0;
+    }
+
     const ext = def?.ballistics?.external ?? {};
     const prec = ext.precision ?? {};
     const dyn = prec.dynamicLoss ?? {};
@@ -26,16 +32,12 @@ export class BallisticsCalculator {
     // Precisão base do cano
     let baseSpread = prec.baseSpread ?? (isAds ? (def?.spreadAds ?? 0.0015) : (def?.spreadHip ?? 0.02));
     if (!isAds) {
-      // Se em repouso (primeiro tiro sem movimento e sem penalidade de rajada),
-      // concede 100% da precisão intrínseca da arma (prec.baseSpread).
-      // Se a arma for 100% precisa em repouso (baseSpread = 0), atira com 100% de precisão!
-      const isResting = speedRatio < 0.08 && precisionPenalty <= 0.0001;
-      if (isResting) {
-        baseSpread = prec.baseSpread ?? (def?.spreadAds ?? 0.0015);
-      } else {
-        // Em movimento ou durante a rajada contínua, abre a dispersão para spreadHip
-        baseSpread = Math.max(baseSpread, def?.spreadHip ?? 0.02);
-      }
+      // Interpolação suave contínua em vez de corte degrau rígido (Elimina espasmos de 35ms):
+      // Concede 100% da precisão em repouso e transiciona organicamente com velocidade e rajada
+      const restFactor = Math.max(0, 1.0 - (speedRatio / 0.12) - (precisionPenalty / 0.012));
+      const hipSpread = Math.max(def?.spreadHip ?? 0.02, prec.baseSpread ?? 0.02);
+      const restingSpread = prec.baseSpread ?? (def?.spreadAds ?? 0.0015);
+      baseSpread = hipSpread - (hipSpread - restingSpread) * restFactor;
     }
 
     // Impacto do sway sobre a precisão
@@ -69,7 +71,11 @@ export class BallisticsCalculator {
    * @param {boolean} isAds - Se o jogador está mirando
    * @returns {{ pitch: number, yaw: number, kickbackZ: number }}
    */
-  static calculateRecoilImpulse(def, consecutiveShots = 0, isAds = false) {
+  static calculateRecoilImpulse(def, consecutiveShots = 0, isAds = false, isZeroingMode = false) {
+    if (isZeroingMode || MasterWeapon.isZeroingMode()) {
+      return { pitch: 0, yaw: 0, kickbackZ: 0 };
+    }
+
     const ext = def?.ballistics?.external ?? {};
     const recoil = ext.recoil ?? {};
 
@@ -127,7 +133,11 @@ export class BallisticsCalculator {
    * @param {number} speedRatio - Razão de velocidade de locomoção
    * @returns {{ x: number, y: number, amplitude: number }}
    */
-  static calculateSway(def, time = 0, isAds = false, speedRatio = 0) {
+  static calculateSway(def, time = 0, isAds = false, speedRatio = 0, isZeroingMode = false) {
+    if (isZeroingMode || MasterWeapon.isZeroingMode()) {
+      return { x: 0, y: 0, amplitude: 0 };
+    }
+
     const ext = def?.ballistics?.external ?? {};
     const sway = ext.sway ?? {};
 

@@ -2550,6 +2550,224 @@ export class TextureGenerator {
   }
 
   // =========================================================================
+  // =========================================================================
+  // 40. ALVO MILITAR DE TIRO / PAPER SHOOTING TARGET (ESTANDE DE TIRO)
+  // =========================================================================
+  /**
+   * Gera textura procedural de alvo de papel com anéis concêntricos (1 a 10),
+   * zona negra de alta pontuação, centro bullseye vermelho e linhas de mira.
+   */
+  createShootingTarget(size = 512, options = {}) {
+    const cacheKey = `shooting_target_${size}`;
+    if (this._cache.has(cacheKey)) return this._cache.get(cacheKey);
+
+    const { canvas: diffCanvas, ctx: diffCtx } = TextureGenerator.createCanvas(size, size);
+    const { canvas: bumpCanvas, ctx: bumpCtx } = TextureGenerator.createCanvas(size, size);
+    const { canvas: roughCanvas, ctx: roughCtx } = TextureGenerator.createCanvas(size, size);
+
+    // 1. Papel cartão creme/marfim (alvo de estande de tiro clássico)
+    diffCtx.fillStyle = '#f5efe1';
+    diffCtx.fillRect(0, 0, size, size);
+
+    bumpCtx.fillStyle = '#808080';
+    bumpCtx.fillRect(0, 0, size, size);
+
+    roughCtx.fillStyle = '#e0e0e0'; // Papel fosco
+    roughCtx.fillRect(0, 0, size, size);
+
+    // Grãos de fibra e celulose do papel
+    const diffImg = diffCtx.getImageData(0, 0, size, size);
+    const bumpImg = bumpCtx.getImageData(0, 0, size, size);
+    if (diffImg && diffImg.data && diffImg.data.length > 0) {
+      for (let i = 0; i < diffImg.data.length; i += 4) {
+        const noise = (Math.random() - 0.5) * 14;
+        diffImg.data[i] = Math.max(0, Math.min(255, diffImg.data[i] + noise));
+        diffImg.data[i + 1] = Math.max(0, Math.min(255, diffImg.data[i + 1] + noise));
+        diffImg.data[i + 2] = Math.max(0, Math.min(255, diffImg.data[i + 2] + noise));
+        bumpImg.data[i] = Math.max(0, Math.min(255, 128 + noise * 1.5));
+      }
+      diffCtx.putImageData(diffImg, 0, 0);
+      bumpCtx.putImageData(bumpImg, 0, 0);
+    }
+
+    const cx = size * 0.5;
+    const cy = size * 0.5;
+
+    // 2. Moldura externa e marcas de alinhamento
+    diffCtx.strokeStyle = '#2b2a28';
+    diffCtx.lineWidth = 3;
+    diffCtx.strokeRect(24, 24, size - 48, size - 48);
+
+    diffCtx.lineWidth = 1.2;
+    diffCtx.strokeRect(32, 32, size - 64, size - 64);
+
+    // Texto técnico militar nos cantos
+    diffCtx.fillStyle = '#3a3835';
+    diffCtx.font = 'bold 12px monospace';
+    diffCtx.textAlign = 'left';
+    diffCtx.fillText('MOD. B-27 // 50M MIL-SPEC', 38, 48);
+    diffCtx.textAlign = 'right';
+    diffCtx.fillText('SERIES 10-RING', size - 38, 48);
+
+    // Linhas cruzadas finas de mira (Hairline Crosshair)
+    diffCtx.strokeStyle = 'rgba(50, 48, 45, 0.45)';
+    diffCtx.lineWidth = 1.5;
+    diffCtx.beginPath();
+    diffCtx.moveTo(32, cy);
+    diffCtx.lineTo(size - 32, cy);
+    diffCtx.moveTo(cx, 32);
+    diffCtx.lineTo(cx, size - 32);
+    diffCtx.stroke();
+
+    // 3. Anéis concêntricos (Anéis 4 a 10)
+    const rings = [
+      { r: size * 0.42, label: '4', stroke: '#2b2a28', width: 2.5 },
+      { r: size * 0.36, label: '5', stroke: '#2b2a28', width: 2.2 },
+      { r: size * 0.30, label: '6', stroke: '#2b2a28', width: 2.2 },
+      { r: size * 0.24, label: '7', stroke: '#2b2a28', width: 2.5 },
+    ];
+
+    diffCtx.font = 'bold 16px "Oswald", sans-serif';
+    diffCtx.textAlign = 'center';
+    diffCtx.textBaseline = 'middle';
+
+    for (const ring of rings) {
+      diffCtx.strokeStyle = ring.stroke;
+      diffCtx.lineWidth = ring.width;
+      diffCtx.beginPath();
+      diffCtx.arc(cx, cy, ring.r, 0, Math.PI * 2);
+      diffCtx.stroke();
+
+      // Números de pontuação nos eixos
+      diffCtx.fillStyle = ring.stroke;
+      const offset = ring.r - 12;
+      diffCtx.fillText(ring.label, cx, cy - offset);
+      diffCtx.fillText(ring.label, cx, cy + offset);
+      diffCtx.fillText(ring.label, cx - offset, cy);
+      diffCtx.fillText(ring.label, cx + offset, cy);
+    }
+
+    // 4. Zona Central Negra (Bullseye Black Zone - Anéis 8, 9 e 10)
+    const blackRadius = size * 0.18;
+    diffCtx.fillStyle = '#1c1b19';
+    diffCtx.beginPath();
+    diffCtx.arc(cx, cy, blackRadius, 0, Math.PI * 2);
+    diffCtx.fill();
+
+    // Relevo e aspereza na zona de tinta preta
+    bumpCtx.fillStyle = '#606060';
+    bumpCtx.beginPath();
+    bumpCtx.arc(cx, cy, blackRadius, 0, Math.PI * 2);
+    bumpCtx.fill();
+
+    roughCtx.fillStyle = '#b0b0b0';
+    roughCtx.beginPath();
+    roughCtx.arc(cx, cy, blackRadius, 0, Math.PI * 2);
+    roughCtx.fill();
+
+    // Anel 8 e 9 (traço branco fino sobre fundo preto)
+    const innerRings = [
+      { r: size * 0.18, label: '8' },
+      { r: size * 0.12, label: '9' }
+    ];
+
+    diffCtx.strokeStyle = '#f5efe1';
+    diffCtx.lineWidth = 1.8;
+    diffCtx.fillStyle = '#f5efe1';
+
+    for (const ir of innerRings) {
+      diffCtx.beginPath();
+      diffCtx.arc(cx, cy, ir.r, 0, Math.PI * 2);
+      diffCtx.stroke();
+
+      const offset = ir.r - 10;
+      diffCtx.fillText(ir.label, cx, cy - offset);
+      diffCtx.fillText(ir.label, cx, cy + offset);
+      diffCtx.fillText(ir.label, cx - offset, cy);
+      diffCtx.fillText(ir.label, cx + offset, cy);
+    }
+
+    // 5. Centro 10 e Mosca "X" (Coração do Alvo em Vermelho Escarlate)
+    const bullseyeRadius = size * 0.065;
+    diffCtx.fillStyle = '#d32f2f';
+    diffCtx.beginPath();
+    diffCtx.arc(cx, cy, bullseyeRadius, 0, Math.PI * 2);
+    diffCtx.fill();
+
+    // Mosca "X" com cruz branca no centro absoluto
+    diffCtx.strokeStyle = '#ffffff';
+    diffCtx.lineWidth = 2.2;
+    diffCtx.beginPath();
+    diffCtx.arc(cx, cy, bullseyeRadius * 0.45, 0, Math.PI * 2);
+    diffCtx.stroke();
+
+    diffCtx.beginPath();
+    diffCtx.moveTo(cx - 8, cy);
+    diffCtx.lineTo(cx + 8, cy);
+    diffCtx.moveTo(cx, cy - 8);
+    diffCtx.lineTo(cx, cy + 8);
+    diffCtx.stroke();
+
+    diffCtx.fillStyle = '#ffffff';
+    diffCtx.font = 'bold 11px sans-serif';
+    diffCtx.fillText('X', cx, cy - bullseyeRadius * 0.65);
+
+    const bundle = {
+      diffuse: TextureGenerator.toTexture(diffCanvas, true),
+      bump: TextureGenerator.toTexture(bumpCanvas, false),
+      roughness: TextureGenerator.toTexture(roughCanvas, false),
+    };
+    this._cache.set(cacheKey, bundle);
+    return bundle;
+  }
+
+  // =========================================================================
+  // 41. CONCRETO DE ESTANDE DE TIRO / PBR CONCRETE
+  // =========================================================================
+  /**
+   * Gera concreto liso de piso e muretas de estande militar com agregados sutis
+   */
+  createConcrete(size = 512) {
+    const cacheKey = `concrete_range_${size}`;
+    if (this._cache.has(cacheKey)) return this._cache.get(cacheKey);
+
+    const { canvas: diffCanvas, ctx: diffCtx } = TextureGenerator.createCanvas(size, size);
+    const { canvas: bumpCanvas, ctx: bumpCtx } = TextureGenerator.createCanvas(size, size);
+    const { canvas: roughCanvas, ctx: roughCtx } = TextureGenerator.createCanvas(size, size);
+
+    diffCtx.fillStyle = '#96999e';
+    diffCtx.fillRect(0, 0, size, size);
+
+    bumpCtx.fillStyle = '#808080';
+    bumpCtx.fillRect(0, 0, size, size);
+
+    roughCtx.fillStyle = '#d0d0d0';
+    roughCtx.fillRect(0, 0, size, size);
+
+    const diffImg = diffCtx.getImageData(0, 0, size, size);
+    const bumpImg = bumpCtx.getImageData(0, 0, size, size);
+    if (diffImg && diffImg.data && diffImg.data.length > 0) {
+      for (let i = 0; i < diffImg.data.length; i += 4) {
+        const noise = (Math.random() - 0.5) * 22;
+        diffImg.data[i] = Math.max(0, Math.min(255, diffImg.data[i] + noise));
+        diffImg.data[i + 1] = Math.max(0, Math.min(255, diffImg.data[i + 1] + noise));
+        diffImg.data[i + 2] = Math.max(0, Math.min(255, diffImg.data[i + 2] + noise));
+        bumpImg.data[i] = Math.max(0, Math.min(255, 128 + noise * 1.8));
+      }
+      diffCtx.putImageData(diffImg, 0, 0);
+      bumpCtx.putImageData(bumpImg, 0, 0);
+    }
+
+    const bundle = {
+      diffuse: TextureGenerator.toTexture(diffCanvas, true),
+      bump: TextureGenerator.toTexture(bumpCanvas, false),
+      roughness: TextureGenerator.toTexture(roughCanvas, false),
+    };
+    this._cache.set(cacheKey, bundle);
+    return bundle;
+  }
+
+  // =========================================================================
   // CARREGADOR DE TEXTURAS DE IMAGEM EXTERNA (PNG / JPG / BITMAP)
   // =========================================================================
   /**

@@ -13,6 +13,7 @@ import { ItemDrop } from './world/ItemDrop.js';
 import { WeaponSystem } from './weapons/WeaponSystem.js';
 import { initWeaponsFromData } from './weapons/WeaponDefs.js';
 import { Effects } from './fx/Effects.js';
+import { DecalSystem } from './fx/DecalSystem.js';
 import { AudioSystem } from './audio/AudioSystem.js';
 import { HUD } from './ui/HUD.js';
 import { MenuController } from './ui/MenuController.js';
@@ -47,6 +48,11 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
     }
     if (assets.audio) audio.setSoundBank(assets.audio);
     if (assets.surfaceImpacts) effects.setSurfaceImpacts(assets.surfaceImpacts);
+
+    const decalSystem = new DecalSystem(scene, {
+      config: assets.config?.decals,
+      surfaceImpacts: assets.surfaceImpacts
+    });
 
     // 2. Mapa e Jogador
     const mapUrl = MenuController.getSavedMap();
@@ -92,6 +98,7 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
       botsProvider: () => (gameManager ? gameManager.bots : []),
       inventory: [initialWeapon, secondaryWeapon === 'none' ? null : secondaryWeapon],
       hud,
+      mapName: mapUrl
     });
     weapons._equip(initialWeapon);
     player.setWeaponManager(weapons);
@@ -127,6 +134,7 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
       bounds: map.bounds,
     });
     gameManager.setDoors(map.doors);
+    gameManager.setPlinkers(map.plinkers);
     effects.setGameManager(gameManager);
 
     const savedBotSkin = MenuController.getSavedBotSkin();
@@ -241,6 +249,7 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
             player.rig.applyToCamera(camera);
           }
           effects.update(dt, camera);
+          decalSystem.update(dt);
         } else {
           // Atualização cinemática da câmera (1ª vs 3ª pessoa)
           player.activeWeaponWeight = weapons.def?.weight || 3.5;
@@ -279,6 +288,7 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
 
           // Efeitos visuais e partículas
           effects.update(dt, camera);
+          decalSystem.update(dt);
 
           // FOV Dinâmico (Proporcional ao peso contínuo de sprint para transição aveludada)
           const sprintW = viewmodel.locomotion?.sprintWeight ?? (player.sprinting ? 1.0 : 0.0);
@@ -318,7 +328,8 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
               cameraFov: camera.fov,
               wallCompression: weapons.wallCompression || 0,
               sprayRecoil: currentSprayRecoil,
-              barrelScreenPos: barrelCrosshair ? barrelCrosshair.screenPos : null
+              barrelScreenPos: barrelCrosshair ? barrelCrosshair.screenPos : null,
+              pureBarrelScreenPos: barrelCrosshair ? barrelCrosshair.pureScreenPos : null
             }
           );
           hud.update(dt, player.yaw);

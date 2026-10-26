@@ -136,7 +136,8 @@ export class CrosshairManager {
     cameraFov = 78,
     wallCompression = 0,
     sprayRecoil = null,
-    barrelScreenPos = null
+    barrelScreenPos = null,
+    pureBarrelScreenPos = null
   } = {}) {
     if (!this.el) return;
 
@@ -172,54 +173,67 @@ export class CrosshairManager {
     this.el.style.opacity = String(Math.max(0, (1 - adsAmount * 1.2) * baseOpacity));
 
     // 2. EIXO 1 — Comportamento de Dispersão: Estático vs Dinâmico (Abrir/Fechar das hastes com spread)
-    let currentGap = cfg.gap;
     if (cfg.mode === 'dynamic') {
       const dynamicSpreadOffset = Math.max(0, (spread - 0.010) * 480);
-      currentGap = cfg.gap + dynamicSpreadOffset;
-    }
-    this.el.style.setProperty('--gap', `${currentGap.toFixed(1)}px`);
-
-    // 3. EIXO 2 — Alinhamento Dinâmico do Cano 3D (ON vs OFF)
-    if (cfg.dynamicAlignment && barrelScreenPos && typeof barrelScreenPos.x === 'number' && typeof barrelScreenPos.y === 'number') {
-      this.el.style.left = `${barrelScreenPos.x.toFixed(1)}px`;
-      this.el.style.top = `${barrelScreenPos.y.toFixed(1)}px`;
+      const targetGap = cfg.gap + dynamicSpreadOffset;
+      if (this.currentGap === undefined) this.currentGap = targetGap;
+      // Expansão rápida e responsiva por disparo (24.0); recuperação orgânica e suave no cessar-fogo (7.0)
+      const lerpSpeed = Math.min(1.0, dt * (targetGap > this.currentGap ? 24.0 : 7.0));
+      this.currentGap += (targetGap - this.currentGap) * lerpSpeed;
     } else {
-      this.el.style.left = '50%';
-      this.el.style.top = '50%';
+      this.currentGap = cfg.gap;
     }
+    this.el.style.setProperty('--gap', this.currentGap.toFixed(1) + 'px');
 
-    // 4. EIXO 3 — Seguir Recuo / Follow Recoil (ON vs OFF)
-    if (cfg.followRecoil) {
-      const screenH = typeof window !== 'undefined' ? window.innerHeight : 1080;
-      const fovRad = (cameraFov * Math.PI) / 180;
-      const pixelsPerRad = screenH / (2 * Math.tan(fovRad / 2));
+    // 3. EIXO 2 & 3 — Alinhamento Dinâmico do Cano 3D e Seguir Recuo (Follow Recoil)
+    const hasBarrelPos = barrelScreenPos && typeof barrelScreenPos.x === 'number' && typeof barrelScreenPos.y === 'number';
+    const hasPurePos = pureBarrelScreenPos && typeof pureBarrelScreenPos.x === 'number' && typeof pureBarrelScreenPos.y === 'number';
 
-      // Combina o recuo acumulado da rajada (spray) com o punch elástico instantâneo da câmera
-      const sPitch = (sprayRecoil?.pitch || 0);
-      const sYaw = (sprayRecoil?.yaw || 0);
-      const rPitch = (cameraRig?.recoilRot?.x || 0) + (cameraRig?.flinchPitch || 0);
-      const rYaw = (cameraRig?.recoilRot?.y || 0) + (cameraRig?.flinchYaw || 0);
+    if (cfg.dynamicAlignment && (hasBarrelPos || hasPurePos)) {
+      // Alinhamento Dinâmico ATIVO:
+      // Se followRecoil estiver ATIVO: usa a posição balística real onde as balas vão bater (barrelScreenPos)
+      // Se followRecoil estiver DESATIVADO: usa a posição pura do cano sem a subida de spray (pureBarrelScreenPos)
+      const targetPos = (cfg.followRecoil && hasBarrelPos) ? barrelScreenPos : (hasPurePos ? pureBarrelScreenPos : barrelScreenPos);
+      this.el.style.left = `${targetPos.x.toFixed(1)}px`;
+      this.el.style.top = `${targetPos.y.toFixed(1)}px`;
 
-      // sPitch dá a subida nítida do spray; rPitch dá o tranco vivo a cada tiro
-      const totalPitch = sPitch * 1.0 + rPitch * 3.5;
-      const totalYaw = sYaw * 1.0 + rYaw * 3.5;
-
-      const targetOffsetY = -totalPitch * pixelsPerRad;
-      const targetOffsetX = -totalYaw * pixelsPerRad;
-
-      // Interpolação suave e responsiva (snappy)
-      const lerpSpeed = Math.min(1.0, dt * 35.0);
-      this.currentRecoilOffset.x += (targetOffsetX - this.currentRecoilOffset.x) * lerpSpeed;
-      this.currentRecoilOffset.y += (targetOffsetY - this.currentRecoilOffset.y) * lerpSpeed;
-
-      const rx = this.currentRecoilOffset.x.toFixed(1);
-      const ry = this.currentRecoilOffset.y.toFixed(1);
-      this.el.style.transform = `translate(calc(-50% + ${rx}px), calc(-50% + ${ry}px))`;
-    } else {
-      // Follow Recoil OFF: Sem deslocamento de recuo no transform
+      // Como targetPos já aponta diretamente para o ponto de impacto balístico no mundo 3D (98%+ match),
+      // zeramos o deslocamento extra no transform para evitar contagem duplicada (double-dipping)
       this.currentRecoilOffset.x = 0;
       this.currentRecoilOffset.y = 0;
       this.el.style.transform = 'translate(calc(-50% + 0.0px), calc(-50% + 0.0px))';
+    } else {
+      // Alinhamento Dinâmico DESATIVADO:
+      // Ancorado no centro da tela (50%, 50%)
+      this.el.style.left = '50%';
+      this.el.style.top = '50%';
+
+      if (cfg.followRecoil) {
+        // Estilo CS2 (cl_crosshair_recoil true):
+        // Desloca a crosshair a partir do centro da tela para acompanhar o recuo/spray
+        const screenH = typeof window !== 'undefined' ? window.innerHeight : 1080;
+        const fovRad = (cameraFov * Math.PI) / 180;
+        const pixelsPerRad = screenH / (2 * Math.tan(fovRad / 2));
+
+        const sPitch = (sprayRecoil?.pitch || 0);
+        const sYaw = (sprayRecoil?.yaw || 0);
+
+        const targetOffsetY = -sPitch * pixelsPerRad;
+        const targetOffsetX = -sYaw * pixelsPerRad;
+
+        const lerpSpeed = Math.min(1.0, dt * 35.0);
+        this.currentRecoilOffset.x += (targetOffsetX - this.currentRecoilOffset.x) * lerpSpeed;
+        this.currentRecoilOffset.y += (targetOffsetY - this.currentRecoilOffset.y) * lerpSpeed;
+
+        const rx = this.currentRecoilOffset.x.toFixed(1);
+        const ry = this.currentRecoilOffset.y.toFixed(1);
+        this.el.style.transform = `translate(calc(-50% + ${rx}px), calc(-50% + ${ry}px))`;
+      } else {
+        // Estático puro (OFF, OFF):
+        this.currentRecoilOffset.x = 0;
+        this.currentRecoilOffset.y = 0;
+        this.el.style.transform = 'translate(calc(-50% + 0.0px), calc(-50% + 0.0px))';
+      }
     }
   }
 }

@@ -12,7 +12,15 @@
       "buoyancy": 0.35,
       "maxLife": 0.55,
       "maxOpacity": 0.82,
-      "sparks": 4
+      "sparks": 4,
+      "decal": {
+        "atlasSlot": "concrete",
+        "baseScale": 1.0,
+        "roughness": 0.85,
+        "metalness": 0.05,
+        "bleedCracks": true,
+        "burnOpacity": 0.85
+      }
     },
     "stone": {
       "colors": ["#807c77", "#918b84", "#6e6a65", "#9e978f"],
@@ -25,7 +33,15 @@
       "buoyancy": 0.32,
       "maxLife": 0.50,
       "maxOpacity": 0.80,
-      "sparks": 6
+      "sparks": 6,
+      "decal": {
+        "atlasSlot": "concrete",
+        "baseScale": 1.05,
+        "roughness": 0.88,
+        "metalness": 0.05,
+        "bleedCracks": true,
+        "burnOpacity": 0.85
+      }
     },
     "wood": {
       "colors": ["#9c6f44", "#b0804e", "#7d5431", "#c4925e"],
@@ -38,7 +54,15 @@
       "buoyancy": 0.38,
       "maxLife": 0.55,
       "maxOpacity": 0.85,
-      "sparks": 3
+      "sparks": 3,
+      "decal": {
+        "atlasSlot": "wood",
+        "baseScale": 0.95,
+        "roughness": 0.90,
+        "metalness": 0.0,
+        "splinterDirectional": true,
+        "burnOpacity": 0.70
+      }
     },
     "dirt": {
       "colors": ["#7a5f45", "#8c6f52", "#664f3a", "#997b5d"],
@@ -51,7 +75,14 @@
       "buoyancy": 0.45,
       "maxLife": 0.70,
       "maxOpacity": 0.88,
-      "sparks": 3
+      "sparks": 3,
+      "decal": {
+        "atlasSlot": "dirt",
+        "baseScale": 1.25,
+        "roughness": 0.95,
+        "metalness": 0.0,
+        "burnOpacity": 0.35
+      }
     },
     "sand": {
       "colors": ["#c2a67a", "#b59869", "#d4b88c", "#a38658"],
@@ -64,7 +95,14 @@
       "buoyancy": 0.42,
       "maxLife": 0.72,
       "maxOpacity": 0.85,
-      "sparks": 2
+      "sparks": 2,
+      "decal": {
+        "atlasSlot": "dirt",
+        "baseScale": 1.30,
+        "roughness": 0.98,
+        "metalness": 0.0,
+        "burnOpacity": 0.20
+      }
     },
     "grass": {
       "colors": ["#5a6b48", "#6e8257", "#4b593c", "#7a6245"],
@@ -77,7 +115,55 @@
       "buoyancy": 0.38,
       "maxLife": 0.55,
       "maxOpacity": 0.80,
-      "sparks": 2
+      "sparks": 2,
+      "decal": {
+        "atlasSlot": "dirt",
+        "baseScale": 1.15,
+        "roughness": 0.95,
+        "metalness": 0.0,
+        "burnOpacity": 0.30
+      }
+    },
+    "plinker": {
+      "colors": ["#d4d8dd", "#eef0f2", "#858c94", "#ffffff"],
+      "particleCount": 3,
+      "scale": 0.70,
+      "speed": 4.5,
+      "spread": 0.9,
+      "growth": 2.5,
+      "drag": 6.8,
+      "buoyancy": 0.22,
+      "maxLife": 0.35,
+      "maxOpacity": 0.85,
+      "sparks": 12,
+      "decal": {
+        "atlasSlot": "metal",
+        "baseScale": 0.75,
+        "roughness": 0.30,
+        "metalness": 0.90,
+        "dentDepth": 0.85,
+        "burnOpacity": 0.92
+      }
+    },
+    "target": {
+      "colors": ["#f5efe1", "#ded7c8", "#b8b09f", "#9c9484"],
+      "particleCount": 4,
+      "scale": 0.75,
+      "speed": 3.0,
+      "spread": 1.1,
+      "growth": 2.6,
+      "drag": 5.2,
+      "buoyancy": 0.35,
+      "maxLife": 0.45,
+      "maxOpacity": 0.80,
+      "sparks": 2,
+      "decal": {
+        "atlasSlot": "wood",
+        "baseScale": 0.85,
+        "roughness": 0.85,
+        "metalness": 0.0,
+        "burnOpacity": 0.65
+      }
     },
     "metal": {
       "colors": ["#6e747a", "#858c94", "#505459", "#9ea5ad"],
@@ -90,7 +176,15 @@
       "buoyancy": 0.25,
       "maxLife": 0.38,
       "maxOpacity": 0.75,
-      "sparks": 8
+      "sparks": 8,
+      "decal": {
+        "atlasSlot": "metal",
+        "baseScale": 0.80,
+        "roughness": 0.35,
+        "metalness": 0.85,
+        "dentDepth": 0.80,
+        "burnOpacity": 0.90
+      }
     },
     "glass": {
       "colors": ["#d0e6ec", "#b8d5dc", "#eaf4f7", "#ffffff"],
@@ -103,7 +197,15 @@
       "buoyancy": 0.28,
       "maxLife": 0.42,
       "maxOpacity": 0.78,
-      "sparks": 5
+      "sparks": 5,
+      "decal": {
+        "atlasSlot": "glass",
+        "baseScale": 0.90,
+        "roughness": 0.20,
+        "metalness": 0.10,
+        "spiderWebCracks": true,
+        "burnOpacity": 0.40
+      }
     },
     "default": {
       "colors": ["#8c7d6b", "#968674", "#7d6f5e", "#a39280"],
@@ -116,7 +218,15 @@
       "buoyancy": 0.35,
       "maxLife": 0.55,
       "maxOpacity": 0.82,
-      "sparks": 4
+      "sparks": 4,
+      "decal": {
+        "atlasSlot": "concrete",
+        "baseScale": 1.0,
+        "roughness": 0.85,
+        "metalness": 0.05,
+        "bleedCracks": true,
+        "burnOpacity": 0.80
+      }
     }
   }
 }

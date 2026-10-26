@@ -131,8 +131,12 @@ export class CameraRig {
     punchRoll = 0,
     posKickZ = 0,
     posKickY = 0,
-    shake = 0
+    shake = 0,
+    recoveryDelay = null
   } = {}) {
+    if (recoveryDelay !== null) {
+      this.recoilRecoveryDelay = recoveryDelay;
+    }
     // 1. Subida permanente de mira
     this.targetPitch += climbPitch;
     const pitchLimit = CONFIG.CAMERA.pitchLimit || 1.52;

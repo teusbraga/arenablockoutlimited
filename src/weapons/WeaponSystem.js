@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { WEAPONS } from './WeaponDefs.js';
 import { BallisticsCalculator } from './BallisticsCalculator.js';
+import { MasterWeapon } from './MasterWeapon.js';
 import { ProjectileManager } from './ProjectileManager.js';
 import { CONFIG } from '../core/ConfigLoader.js';
 import { emit, on } from '../core/EventBus.js';
@@ -45,7 +46,7 @@ export function calculateSmokeCooldownDuration(sustainedSeconds) {
 }
 
 export class WeaponSystem {
-  constructor({ camera, viewmodel, input, player, world, botsProvider, inventory, hud = null }) {
+  constructor({ camera, viewmodel, input, player, world, botsProvider, inventory, hud = null, mapName = '' }) {
     this.camera = camera;
     this.viewmodel = viewmodel;
     this.input = input;
@@ -53,6 +54,7 @@ export class WeaponSystem {
     this.world = world;
     this.botsProvider = botsProvider;
     this.hud = hud;
+    this.mapName = mapName;
 
     this._boundMuzzleTracker = (outVec) => this.getMuzzlePosition(outVec);
 
@@ -92,6 +94,7 @@ export class WeaponSystem {
     this.raycaster = new THREE.Raycaster();
     this.sprayBullets = 0;
     this.lastShotTimestamp = 0;
+    this.timeSinceLastShot = 999;
 
     // Algoritmo de Fogo Sustentado e Cooldown de Fumaça
     this.sustainedFireDuration = 0;
@@ -114,6 +117,11 @@ export class WeaponSystem {
 
     this._unsubEvents = [
       on('weapon:select_slot', e => this.selectSlot(typeof e === 'object' && e !== null ? (e.slotIdx ?? e.slot) : e)),
+      on('map:loaded', e => {
+        if (e && (e.mapName || e.url || e.name)) {
+          this.mapName = e.mapName || e.url || e.name;
+        }
+      }),
 
       on('cheat:activated', e => {
         if (e.cheat === 'professionalkiller' && e.active) {
@@ -481,21 +489,24 @@ export class WeaponSystem {
 
     // 5. Disparo (considera modo de disparo selecionado: auto ou semi)
     this.fireCooldown -= dt;
+    this.timeSinceLastShot = (this.timeSinceLastShot ?? 999) + dt;
 
-    // Recuperação determinística de precisão por arma (tempo configurado no JSON)
-    const precRecoveryTime = def.ballistics?.external?.precision?.recoveryTime || 0.35;
-    const recoveryRate = 1.0 / Math.max(0.05, precRecoveryTime);
-    if (this.precisionPenalty > 0) {
-      this.precisionPenalty = Math.max(0, this.precisionPenalty - dt * recoveryRate * 0.05);
-    }
-
-    // Decaimento suave e imediato da dispersão de tiro (spray streak)
     const nowSec = performance.now() / 1000;
-    const timeSinceLastShot = nowSec - (this.lastShotTimestamp || 0);
-    const ceaseDelay = Math.max(def.fireInterval * 1.2, 0.12);
-    if (this.fireStreak > 0 && timeSinceLastShot > ceaseDelay) {
-      this.fireStreak += (0 - this.fireStreak) * Math.min(1, dt * 14);
-      if (this.fireStreak < 0.01) this.fireStreak = 0;
+    const ceaseDelay = Math.max(def.fireInterval * 1.5, 0.18);
+    const isBurstActive = this.timeSinceLastShot < ceaseDelay && !this.reloading && this.ammo > 0;
+
+    // Recuperação determinística de precisão e dispersão SOMENTE após o término da rajada (cease-fire)
+    // Durante a rajada contínua, o recuo e a dispersão acumulam cumulativamente (estilo CS2 / realismo),
+    // sem sofrer quedas espasmódicas entre tiros consecutivos.
+    if (!isBurstActive) {
+      const precRecoveryTime = def.ballistics?.external?.precision?.recoveryTime || 0.35;
+      const recoveryRate = 1.0 / Math.max(0.05, precRecoveryTime);
+      if (this.precisionPenalty > 0) {
+        this.precisionPenalty = Math.max(0, this.precisionPenalty - dt * recoveryRate * 0.08);
+      }
+      if (this.fireStreak > 0) {
+        this.fireStreak = Math.max(0, this.fireStreak - dt * recoveryRate * 6.0);
+      }
     }
 
     // Cálculo contínuo do sway orgânico
@@ -565,9 +576,10 @@ export class WeaponSystem {
     }
 
     // Decaimento suave do recuo acumulado de spray (Follow Recoil & Spray Tracking)
-    if (this.sprayRecoil) {
+    // Também condicionado ao cessar-fogo para não colapsar a mira entre tiros de uma mesma rajada
+    if (this.sprayRecoil && !isBurstActive) {
       const recTime = def?.ballistics?.external?.recoil?.recoveryTime || 0.28;
-      const sprayRecoverySpeed = (1.0 / recTime) * 3.2;
+      const sprayRecoverySpeed = (1.0 / recTime) * 3.5;
       const sprayDecay = Math.exp(-dt * sprayRecoverySpeed);
       this.sprayRecoil.pitch *= sprayDecay;
       this.sprayRecoil.yaw *= sprayDecay;
@@ -587,6 +599,9 @@ export class WeaponSystem {
 
   _currentSpread() {
     const def = this.def;
+    const zeroingMode = MasterWeapon.isZeroingMode(this.mapName);
+    if (zeroingMode) return 0;
+
     const walkSpd = CONFIG.PLAYER?.walkSpeed || 5.2;
     const speedRatio = Math.hypot(this.player.vel.x, this.player.vel.z) / walkSpd;
     const isStrafing = (this.input?.isActionPressed?.('move_left') || this.input?.isActionPressed?.('move_right')) && speedRatio > 0.1;
@@ -598,7 +613,8 @@ export class WeaponSystem {
       isStrafing,
       isSprinting,
       precisionPenalty: this.precisionPenalty,
-      swayAmount: this.currentSway?.amplitude ?? 0
+      swayAmount: this.currentSway?.amplitude ?? 0,
+      zeroingMode
     });
     return baseSpread + (this.wallCompression || 0) * 0.05;
   }
@@ -637,6 +653,7 @@ export class WeaponSystem {
       this.sustainedFireDuration = (now - this.sustainedFireStartTime) + def.fireInterval;
     }
     this.lastShotTimestamp = now;
+    this.timeSinceLastShot = 0;
 
     const streakDelay = CONFIG.GUNPLAY?.fireStreakDecayDelay ?? 0.20;
     const maxStreak   = CONFIG.GUNPLAY?.maxFireStreak ?? 8;
@@ -648,19 +665,20 @@ export class WeaponSystem {
       this.fireStreak = 1;
     }
     this.lastFireGapTime = now;
-    this.precisionPenalty = Math.min(this.precisionPenalty + 0.005, 0.04);
+    const isZeroing = MasterWeapon.isZeroingMode(this.mapName);
+    this.precisionPenalty = isZeroing ? 0 : Math.min(this.precisionPenalty + 0.005, 0.04);
 
-    const streakMul = 1 + this.fireStreak * streakFactor;
+    const streakMul = isZeroing ? 1.0 : (1 + this.fireStreak * streakFactor);
 
     // ── Recoil no CameraRig (Layer 2 via BallisticsCalculator) ───────────────────
     const isProto = def.id === 'rifle_proto';
-    const recoil = BallisticsCalculator.calculateRecoilImpulse(def, this.fireStreak, this.ads);
+    const recoil = BallisticsCalculator.calculateRecoilImpulse(def, this.fireStreak, this.ads, isZeroing);
     const pitchAdd = isProto ? recoil.pitch * 1.4 : recoil.pitch;
     const yawAdd = recoil.yaw;
     const kickbackZ = recoil.kickbackZ;
 
     // Acumula recuo contínuo da rajada para rastreio de spray (Follow Recoil estilo CS2)
-    if (this.sprayRecoil) {
+    if (this.sprayRecoil && !isZeroing) {
       const sprayGain = this.ads ? 0.85 : 1.45;
       this.sprayRecoil.pitch += pitchAdd * sprayGain;
       this.sprayRecoil.yaw += yawAdd * sprayGain;
@@ -669,38 +687,41 @@ export class WeaponSystem {
     }
 
     if (this.player.rig) {
-      const climbRatio = 0.30;
+      const climbRatio = 0.40;
+      const recoveryDelay = Math.max(0.24, (def.fireInterval || 0.1) * 2.2);
       if (isProto) {
         // Rifle Proto: aplica a subida contínua da mira/câmera no spray (climbPitch e climbYaw),
         // preservando as animações exclusivas do modelo 3D e do scope.
         this.player.rig.addRecoilImpulse({
-          climbPitch: pitchAdd * climbRatio,
-          climbYaw: yawAdd,
+          climbPitch: isZeroing ? 0 : pitchAdd * climbRatio,
+          climbYaw: isZeroing ? 0 : yawAdd,
           punchPitch: 0,
           punchYaw: 0,
           punchRoll: 0,
           posKickZ: 0,
           posKickY: 0,
-          shake: 0
+          shake: 0,
+          recoveryDelay
         });
       } else {
         // Armas clássicas: parte permanente (climb) e parte elástica (punch que retorna com mola)
         this.player.rig.addRecoilImpulse({
-          climbPitch: pitchAdd * climbRatio,
-          climbYaw: yawAdd,
-          punchPitch: this.ads ? pitchAdd * (1 - climbRatio) : pitchAdd * (1 - climbRatio) * 0.4,
-          punchRoll: (Math.random() - 0.5) * 0.004,
-          posKickZ: this.ads ? kickbackZ : kickbackZ * 0.4,
-          posKickY: kickbackZ * 0.2,
-          shake: (this.ads ? 0.18 : 0.08) * streakMul
+          climbPitch: isZeroing ? 0 : pitchAdd * climbRatio,
+          climbYaw: isZeroing ? 0 : yawAdd,
+          punchPitch: isZeroing ? 0 : (this.ads ? pitchAdd * (1 - climbRatio) : pitchAdd * (1 - climbRatio) * 0.4),
+          punchRoll: isZeroing ? 0 : (Math.random() - 0.5) * 0.004,
+          posKickZ: isZeroing ? 0 : (this.ads ? kickbackZ : kickbackZ * 0.4),
+          posKickY: isZeroing ? 0 : (kickbackZ * 0.2),
+          shake: isZeroing ? 0 : ((this.ads ? 0.18 : 0.08) * streakMul),
+          recoveryDelay
         });
       }
-    } else {
+    } else if (!isZeroing) {
       this.player.pitch += pitchAdd;
       this.player.yaw += yawAdd;
     }
     const kickRot = def.kickRotFactor ?? 1.5;
-    this.viewmodel.applyKick(def.recoilPitch * streakMul, 0, kickbackZ, kickRot, this.ads);
+    this.viewmodel.applyKick(isZeroing ? 0 : def.recoilPitch * streakMul, 0, isZeroing ? 0 : kickbackZ, kickRot, this.ads);
     this.viewmodel.flash(def);
     this.viewmodel.triggerFire(this.ammo);
 
@@ -709,7 +730,7 @@ export class WeaponSystem {
     this.camera.getWorldQuaternion(_quat);
 
     // Se o player se moveu no fixedUpdate atual, compensa a defasagem cinemática
-    // entre a física do player e a última renderização da câmera/viewmodel
+    // entre a física do player e a última renderização da câmera/viewmodel (GEMINI.md)
     if (this.player && this.player.pos && this.player.prevPos) {
       const dx = this.player.pos.x - this.player.prevPos.x;
       const dy = this.player.pos.y - this.player.prevPos.y;
@@ -723,11 +744,18 @@ export class WeaponSystem {
     _right.set(1, 0, 0).applyQuaternion(_quat).normalize();
     _up.set(0, 1, 0).applyQuaternion(_quat).normalize();
 
+    // Sincroniza matriz do mount do viewmodel no momento do disparo
+    if (this.viewmodel && this.viewmodel.mount) {
+      this.viewmodel.mount.updateWorldMatrix(true, true);
+    }
+
     // Calcula muzzle em coords de mundo a partir do mount do viewmodel
     const mz = def.muzzleLocal || [0, 0.02, -0.5];
     _tempMuzzle.set(mz[0], mz[1], mz[2]);
     _muzzleWorld.copy(_tempMuzzle);
-    this.viewmodel.mount.localToWorld(_muzzleWorld);
+    if (this.viewmodel && this.viewmodel.mount) {
+      this.viewmodel.mount.localToWorld(_muzzleWorld);
+    }
 
     if (this.player && this.player.pos && this.player.prevPos) {
       const dx = this.player.pos.x - this.player.prevPos.x;
@@ -742,29 +770,26 @@ export class WeaponSystem {
     const isDynamicAlignment = this.hud?.crosshairManager
       ? !!this.hud.crosshairManager.config.dynamicAlignment
       : false;
+    const isFollowRecoil = this.hud?.crosshairManager
+      ? !!this.hud.crosshairManager.config.followRecoil
+      : false;
 
     if (isDynamicAlignment && this.barrelAlignment && !this.ads) {
       this.barrelAlignment.update(def, this.ads, 0.016, this.sprayRecoil, _muzzleWorld);
       if (this.barrelAlignment.aimPointWorld) {
         _dir.copy(this.barrelAlignment.aimPointWorld).sub(_muzzleWorld).normalize();
       }
-    } else if (!this.ads) {
-      // Modo Estático (Zeroing de Convergência da Retícula Central):
-      // Elimina o erro crônico de paralaxe (14cm lateral / 15cm vertical).
-      // Raycast a partir do centro da câmera para encontrar o ponto focal de mira.
-      const zeroDist = 50.0;
-      let targetPoint = null;
-      if (this.world && typeof this.world.raycast === 'function') {
-        const hit = this.world.raycast(_camPos, _dir, 120.0);
-        if (hit && (hit.distance || hit.dist) > 0.5) {
-          targetPoint = hit.point;
-        }
+    } else {
+      // Convergência Focal Unificada (Zeroing a 50m / Obstáculos Próximos)
+      // Se followRecoil estiver ativo no modo fixo, adiciona a elevação de sprayRecoil ao vetor antes da convergência
+      if (isFollowRecoil && !this.ads && this.sprayRecoil) {
+        _dir.addScaledVector(_up, this.sprayRecoil.pitch)
+            .addScaledVector(_right, -this.sprayRecoil.yaw)
+            .normalize();
       }
-      if (!targetPoint) {
-        _targetPoint.copy(_camPos).addScaledVector(_dir, zeroDist);
-        targetPoint = _targetPoint;
-      }
-      _dir.copy(targetPoint).sub(_muzzleWorld).normalize();
+      const zeroDist = this.zeroDistance || (CONFIG?.ZEROING?.defaultZeroDistance ?? 50.0);
+      MasterWeapon.getConvergenceTarget(_camPos, _dir, zeroDist, this.world, _targetPoint);
+      MasterWeapon.computeShotDirection(_muzzleWorld, _targetPoint, _dir);
     }
 
     // Se o cano estiver obstruído/comprimido contra a parede (Wall Press) e o mount ainda não tiver
@@ -807,21 +832,23 @@ export class WeaponSystem {
     });
 
     const spread = this._currentSpread();
-    const a = Math.random() * Math.PI * 2;
-    const m = Math.random() * spread;
-    
-    // Dispersão natural de tiro
-    _dir.addScaledVector(_right, Math.cos(a) * m)
-        .addScaledVector(_up, Math.sin(a) * m)
-        .normalize();
+    if (spread > 0.00001) {
+      const a = Math.random() * Math.PI * 2;
+      const m = Math.random() * spread;
+      
+      // Dispersão natural de tiro
+      _dir.addScaledVector(_right, Math.cos(a) * m)
+          .addScaledVector(_up, Math.sin(a) * m)
+          .normalize();
+    }
 
     const pelletCount = def.pellets || 1;
     const maxPelletSpread = def.pelletSpread || 0.01333; // Raio de 0.80m a 60m
-    const originPoint = this.ads ? _camPos : _muzzleWorld;
+    const originPoint = _muzzleWorld;
 
     for (let p = 0; p < pelletCount; p++) {
       _pelletDir.copy(_dir);
-      if (pelletCount > 1) {
+      if (pelletCount > 1 && !isZeroing) {
         let rx, ry;
         if (p === 0) {
           // Pellet central com leve tremor concêntrico proporcional ao cone
@@ -851,15 +878,11 @@ export class WeaponSystem {
   }
 
   getMuzzlePosition(outVec) {
-    if (this.ads && this.player && this.player.camera) {
-      this.player.camera.getWorldPosition(outVec);
-    } else {
-      const def = this.def;
-      const mz = def.muzzleLocal || [0, 0.02, -0.5];
-      outVec.set(mz[0], mz[1], mz[2]);
-      if (this.viewmodel && this.viewmodel.mount) {
-        this.viewmodel.mount.localToWorld(outVec);
-      }
+    const def = this.def;
+    const mz = def?.muzzleLocal || [0, 0.02, -0.5];
+    outVec.set(mz[0], mz[1], mz[2]);
+    if (this.viewmodel && this.viewmodel.mount) {
+      this.viewmodel.mount.localToWorld(outVec);
     }
     return outVec;
   }

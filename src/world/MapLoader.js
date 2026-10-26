@@ -44,6 +44,10 @@ const PROP_MATERIAL_DEPS = {
   ancient_ruins: ['mossy_rock', 'jungle_fern'],
   camo_tent: ['camo_tarp', 'wood'],
   mossy_boulder: ['mossy_rock'],
+  paper_target: ['wood', 'target'],
+  plinker_target: ['scaffold', 'plinker'],
+  shooting_bench: ['wood', 'scaffold'],
+  distance_sign: ['wood'],
 };
 
 const MATERIALS = {
@@ -73,6 +77,9 @@ const MATERIALS = {
   blue_tarp:     () => new THREE.MeshStandardMaterial({ color: 0x24558a, roughness: 0.70 }),
   plywood:       () => new THREE.MeshStandardMaterial({ color: 0xb59263, roughness: 0.85 }),
   scaffold:      () => new THREE.MeshStandardMaterial({ color: 0xa0a8b0, roughness: 0.35, metalness: 0.85 }),
+  target:        () => materialFactory.get('target'),
+  target_paper:  () => materialFactory.get('target'),
+  plinker:       () => new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.35, metalness: 0.85 }),
 };
 
 export async function loadMap(url, scene) {
@@ -88,7 +95,7 @@ export async function loadMap(url, scene) {
   const doors = [];
 
   // Define se o mapa utiliza o ecossistema de texturas PBR procedurais (ex: Dust Mirage, CS Italy, Woods)
-  const isPbrMap = Boolean(data.pbr || (Array.isArray(data.props) && data.props.length > 0) || data.id === 'dust' || data.id === 'italy' || data.id === 'woods');
+  const isPbrMap = Boolean(data.pbr || (Array.isArray(data.props) && data.props.length > 0) || data.id === 'dust' || data.id === 'italy' || data.id === 'woods' || data.id === 'range');
 
   if (isPbrMap) {
     materialFactory.initMaterials();
@@ -123,6 +130,17 @@ export async function loadMap(url, scene) {
 
   // Configurações de iluminação / céu do mapa
   if (data.environment && scene) {
+    if (data.environment.sunIntensity || data.environment.ambientIntensity) {
+      scene.traverse(obj => {
+        if (obj.isDirectionalLight && data.environment.sunIntensity && obj.position.y > 15) {
+          obj.intensity = data.environment.sunIntensity;
+          if (data.environment.sunColor) obj.color.set(data.environment.sunColor);
+        } else if (obj.isAmbientLight && data.environment.ambientIntensity) {
+          obj.intensity = data.environment.ambientIntensity;
+          if (data.environment.ambientColor) obj.color.set(data.environment.ambientColor);
+        }
+      });
+    }
     if (data.environment.fogColor) {
       scene.background = new THREE.Color(data.environment.fogColor);
       scene.fog = new THREE.Fog(
@@ -202,10 +220,11 @@ export async function loadMap(url, scene) {
     }
   }
 
+  let italyProps = null;
   // Props especializados (somente para mapas PBR que possuem props definidos)
   if (isPbrMap && scene && Array.isArray(data.props)) {
     loadingScreen.setProgress(88, 'Instanciando elementos e props 3D...');
-    const italyProps = new ItalyProps(scene, world);
+    italyProps = new ItalyProps(scene, world);
     for (const p of data.props) {
       switch (p.type) {
         case 'archway':
@@ -301,6 +320,18 @@ export async function loadMap(url, scene) {
         case 'camo_tent':
           italyProps.addMilitaryCamoTent(p.pos[0], p.pos[1], p.pos[2], p.rotY || 0, p.width || 5.2, p.length || 7.0, p.height || 3.2);
           break;
+        case 'paper_target':
+          italyProps.addPaperTarget(p.pos[0], p.pos[1], p.pos[2], p.rotY || 0, p.scale || 1.0);
+          break;
+        case 'plinker_target':
+          italyProps.addPlinkerTarget(p.pos[0], p.pos[1], p.pos[2], p.rotY || 0, p.radius || 0.28, p.height || 1.75);
+          break;
+        case 'shooting_bench':
+          italyProps.addShootingBench(p.pos[0], p.pos[1], p.pos[2], p.rotY || 0, p.width || 2.4, p.depth || 0.9, p.height || 0.95);
+          break;
+        case 'distance_sign':
+          italyProps.addDistanceSign(p.pos[0], p.pos[1], p.pos[2], p.text || '25m', p.rotY || 0);
+          break;
         case 'mossy_boulder':
           italyProps.addMossyBoulder(p.pos[0], p.pos[1], p.pos[2], p.sx || 2.8, p.sy || 2.0, p.sz || 2.5, p.rotY || 0);
           break;
@@ -325,5 +356,6 @@ export async function loadMap(url, scene) {
     materialFactory,
     playerSpawns: data.playerSpawns || [[0, 1, 8]],
     botSpawns: data.botSpawns || [[-8, 0, -8], [8, 0, -8]],
+    plinkers: (italyProps && italyProps.plinkers) || []
   };
 }

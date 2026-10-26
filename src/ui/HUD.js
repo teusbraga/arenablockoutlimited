@@ -214,6 +214,11 @@ export class HUD {
         }
       }),
       on('shot:bot', e => this._hit(e)),
+      on('shot:world', e => {
+        if (e?.box?.meta?.isPlinker || e?.material === 'plinker' || e?.box?.meta?.material === 'target' || e?.box?.meta?.isTarget) {
+          this._hit({ headshot: false });
+        }
+      }),
       on('bot:died', e => {
         this.kills++; 
         this.el.kills.textContent = this.kills;
@@ -488,7 +493,8 @@ export class HUD {
       cameraFov: extra.cameraFov || 78,
       wallCompression: extra.wallCompression || 0,
       sprayRecoil: extra.sprayRecoil || null,
-      barrelScreenPos: extra.barrelScreenPos || null
+      barrelScreenPos: extra.barrelScreenPos || null,
+      pureBarrelScreenPos: extra.pureBarrelScreenPos || null
     });
   }
 

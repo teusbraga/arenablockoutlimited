@@ -143,18 +143,34 @@ test('CrosshairManager - 4 Combinations of Dynamic Alignment (ON/OFF) & Follow R
   assert.ok(cm.currentRecoilOffset.y < -30, `Combo (OFF, ON) deve elevar a crosshair pelo sprayRecoil (> 30px, got ${cm.currentRecoilOffset.y})`);
   assert.ok(cm.currentRecoilOffset.x !== 0, 'Combo (OFF, ON) deve aplicar desvio horizontal de yaw');
 
-  // 4. Combo (dynamicAlignment: ON, followRecoil: ON) -> Segue o cano (left/top = barrelScreenPos) E soma o sprayRecoil no transform
+  // 4. Combo (dynamicAlignment: ON, followRecoil: ON) -> Segue a projeção balística real do cano (left/top = barrelScreenPos) sem duplicar recuo no transform (elimina o bug de subir ao teto)
   cm.saveConfig({ dynamicAlignment: true, followRecoil: true });
   cm.update({
     dt: 0.016,
     sprayRecoil: { pitch: 0.07, yaw: -0.02 },
     cameraRig: { recoilRot: { x: 0.02, y: -0.01 }, flinchPitch: 0, flinchYaw: 0 },
     barrelScreenPos: { x: 945.2, y: 512.6 },
+    pureBarrelScreenPos: { x: 960.0, y: 540.0 },
     cameraFov: 75
   });
-  assert.equal(mockStyle.left, '945.2px', 'Combo (ON, ON) deve aplicar left do cano');
-  assert.equal(mockStyle.top, '512.6px', 'Combo (ON, ON) deve aplicar top do cano');
-  assert.ok(cm.currentRecoilOffset.y < -30, 'Combo (ON, ON) deve manter o deslocamento de sprayRecoil no transform');
+  assert.equal(mockStyle.left, '945.2px', 'Combo (ON, ON) deve aplicar left balístico do cano');
+  assert.equal(mockStyle.top, '512.6px', 'Combo (ON, ON) deve aplicar top balístico do cano');
+  assert.equal(mockStyle.transform, 'translate(calc(-50% + 0.0px), calc(-50% + 0.0px))', 'Combo (ON, ON) não deve duplicar sprayRecoil no transform');
+  assert.equal(cm.currentRecoilOffset.x, 0, 'Offset de transform deve ser 0 para evitar double-dipping');
+  assert.equal(cm.currentRecoilOffset.y, 0, 'Offset de transform deve ser 0 para evitar double-dipping');
+
+  // 4B. Combo (dynamicAlignment: ON, followRecoil: OFF) com pureBarrelScreenPos -> Usa posição pura do cano
+  cm.saveConfig({ dynamicAlignment: true, followRecoil: false });
+  cm.update({
+    dt: 0.016,
+    sprayRecoil: { pitch: 0.07, yaw: -0.02 },
+    barrelScreenPos: { x: 945.2, y: 512.6 },
+    pureBarrelScreenPos: { x: 960.0, y: 540.0 },
+    cameraFov: 75
+  });
+  assert.equal(mockStyle.left, '960.0px', 'Combo (ON, OFF) com pureBarrelScreenPos deve usar pureBarrelScreenPos.x');
+  assert.equal(mockStyle.top, '540.0px', 'Combo (ON, OFF) com pureBarrelScreenPos deve usar pureBarrelScreenPos.y');
+  assert.equal(mockStyle.transform, 'translate(calc(-50% + 0.0px), calc(-50% + 0.0px))');
 
   // Desligar ambos retorna imediatamente ao centro absoluto
   cm.saveConfig({ dynamicAlignment: false, followRecoil: false });

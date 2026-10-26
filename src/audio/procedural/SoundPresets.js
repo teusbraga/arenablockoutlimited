@@ -165,6 +165,14 @@ export const SOUND_PRESETS = {
     plateVibration: 0.80,
     plateFreq: 1800
   },
+  bullet_hit_plinker: {
+    leadSnap: 1.00,
+    steelThud: 0.80,
+    gongFreq: 1650,
+    gongRing: 0.95,
+    ringDecay: 1.25,
+    harmonics: 0.75
+  },
 
   // --- DANO NO JOGADOR (EXCLUSIVO PLACA BALÍSTICA / KEVLAR) ---
   bullet_hit_kevlar: {

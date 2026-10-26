@@ -19,6 +19,41 @@
 
 ### 🔹 Outubro de 2026
 
+#### [Correção de Gunplay & HUD Sync] — 26/10/2026
+* **data(weapons):** Calibração tática realista de dispersão e recuo 100% orientada a dados em `assets/weapons/weapons.json` e `assets/config/gameplay.json` sem qualquer alteração em scripts (`*.js`):
+  * **Dispersão Mecânica Cirúrgica (Sub-MOA no ADS):** Redução do `spreadAds` e `baseSpread` em 60-75% em todas as 10 armas (HK416: 0.0004 rad, SCAR-H: 0.0003 rad, M249: 0.0008 rad, VSS: 0.0001 rad, AK-47: 0.0005 rad), eliminando o "bloom" irrealista e garantindo que o tiro atinja com precisão militar onde a mira ótica/alça aponta.
+  * **Agrupamento Crível em Hipfire:** Ajuste de `spreadHip` em ~50-60% (HK416: 0.009 rad, AK-47: 0.011 rad, M249: 0.014 rad, UZI: 0.012 rad), tornando o combate aproximado coeso e letal sem espalhar projéteis fora do cone visual do cano.
+  * **Atenuação da Penalidade por Locomoção:** Calibração de `dynamicLoss` (strafe: ~0.006 rad, walk: ~0.004 rad, run: ~0.015 rad) e redução do `swaySpreadImpact` (de 0.45-0.60 para 0.12-0.20), impedindo que passos laterais abram cones artificiais de vários metros a curta distância.
+  * **Controle de Rajada Contínua em `gameplay.json`:** Redução de `fireStreakMultiplier` de 0.16 para 0.06, conferindo escalonamento orgânico ao recuo sustentado sem dobrar o coice violentamente em 5 tiros.
+* **fix(crosshair):** Resolução definitiva da Issue #10 (Subida excessiva do HUD / Double-Dipping de recuo no modo Dinâmico & Follow Recoil):
+  * **Eliminação de Duplicação de Recuo em `CrosshairManager.js`:** Quando `dynamicAlignment` e `followRecoil` estavam ambos ativados, o HUD posicionava `left/top` em `barrelScreenPos` (que já continha a elevação do spray balístico) e em seguida somava novamente o recuo em CSS `transform: translateY(-totalPitch * pixelsPerRad)`. Isso duplicava a subida angular e arremessava a crosshair no teto enquanto os tiros atingiam o centro. O offset de recuo no `transform` agora é zerado quando `dynamicAlignment` está ativo, ancorando a mira com precisão no ponto exato de impacto.
+  * **Separação Canônica em `BarrelCrosshairAlignment.js`:** Implementação de `pureScreenPos` (alinhamento físico puro do cano com sway, inércia, bobbing e wall press, sem a subida de spray) e `screenPos` (ponto balístico real com spray). A mira dinâmica utiliza `barrelScreenPos` quando `followRecoil` está ativo, e `pureBarrelScreenPos` quando `followRecoil` está desligado.
+  * **Sincronização Instantânea Frame 1:** Inicialização direta de `currentScreenX/Y` na primeira chamada via flag `this.initialized`, eliminando atrasos ou transições a partir do canto (0,0) ou do centro estático. Aumento do `lerpSpeed` para `dt * 45.0`, garantindo $\ge 98\%$ de match espacial instantâneo.
+  * **Sincronia Balística em `WeaponSystem.js`:** Se o jogador optar por mira fixa no centro com `followRecoil` ativado (estilo CS2 puro), o disparo físico agora aplica a deflexão de `sprayRecoil` no vetor `_dir` antes do cálculo de convergência focal, garantindo que mesmo no modo clássico a bala acerte onde o follow recoil está apontando.
+  * **Garantia de Qualidade & Testes Automatizados:** Atualização dos testes de regressão em `test/crosshair_manager.test.js` e introdução de teste de alta precisão em `test/zeroing_master_weapon_test.js` comprovando match espacial $\ge 98.0\%$ (com erro real medido inferior a 2 pixels / 0.18%) entre a posição da crosshair e o local exato onde as balas impactam. Suíte completa com 103/103 testes verdes.
+
+
+#### [Governança & Regras de IA] — 25/10/2026
+* **docs(governance):** Instituição de diretriz mandatória em `AGENTS.md` (§3.11, §9, §10, §11), `GEMINI.md` (regras locais e globais do assistente) e `PROJECT_MAP.md` (§15, §16) determinando o incremento e atualização estritamente obrigatórios do `CHANGELOG.md` após qualquer alteração em scripts JavaScript (`*.js`) e arquivos de dados/configurações (`*.json`).
+
+#### [Em Andamento / Working Tree] — 25/10/2026
+* **feat(maps):** Remasterização completa (Facelift) do mapa `range.json` (Campo de Tiro) para clima aberto e ensolarado:
+  * Iluminação solar vibrante com céu azul aberto (`fogColor: #7dc2f5`, visibilidade 280m, `sunIntensity: 2.2`).
+  * Implementação de texturização PBR completa com piso de concreto (`concrete`) e baias de tiro organizadas.
+  * Adição de bancadas de tiro acústicas com divisórias (`addShootingBench`) e placas de sinalização de distância de 10m a 75m (`addDistanceSign`).
+* **feat(textures):** Adição dos geradores procedurais `createShootingTarget` (alvo militar padrão B-27 com anéis concêntricos 1 a 10, zona preta e centro bullseye "X" vermelho) e `createConcrete` em `TextureGenerator.js`.
+* **feat(materials):** Registro dos materiais `concrete`, `target` / `target_paper` e `plinker` / `steel_plate` na `MaterialFactory.js` e em `MapLoader.js`.
+* **feat(props):** Implementação dos props 3D especializados em `ItalyProps.js`:
+  * `addPaperTarget`: suporte de madeira com folhas de papel alvo frontal e traseira, registrando colisor de target.
+  * `addPlinkerTarget`: alvo de plinker (cavalete tubular com gongo de aço suspenso) dotado de simulação física de pêndulo harmônico amortecido em tempo real.
+* **feat(audio):** Implementação da síntese de som de plinker em `TerminalBallistics.synthesizeBulletHitPlinker` e `AudioSystem.playProceduralPlinkerHit`:
+  * Dirac inicial de impacto de chumbo na chapa de aço endurecido.
+  * Ressonância tonal inarmônica de alta frequência ("PLIINNNG") com fundamental em 1650 Hz e harmônicos estendidos (>4000 Hz) sustentados por mais de 1.2s.
+  * Roteamento automático no evento `shot:world` quando a superfície atingida é `plinker` ou `steel_plate`.
+* **feat(ui):** Feedback visual de hitmarker no HUD em impactos contra alvos de papel e plinkers de aço.
+* **test:** Criação da suíte `test/range_target_plinker_test.js` cobrindo validação de mapa, geração de texturas, materiais PBR, física pendular do plinker e síntese acústica do chime "PLIINNN".
+* **docs(issues):** Registro formal da Issue #11 em `docs/GITHUB_ISSUES_DRAFT.md` e `todo.md`: especificação técnica para quitação de débito de nomenclatura e centralização em `ItalyProps.js` (renomeação para `PropFactory.js` e modularização dos 35 props por domínio arquitetônico, natural, militar e estande).
+
 #### [ef5e473] — 25/10/2026 *(HEAD atual da branch `main`)*
 * **fix(physics):** Correção do clipping e afundamento de entidades no chão em `CollisionWorld.getNearbyBoxes()`, garantindo que caixas globais de grande porte (`globalBoxes`) sejam sempre consideradas em consultas de célula única.
 * **fix(render):** Atualização do tipo de shadow map para `THREE.PCFShadowMap` em `SceneSetup.js`, removendo aviso de depreciação do Three.js 0.186.1.

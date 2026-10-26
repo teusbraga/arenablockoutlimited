@@ -26,7 +26,7 @@ Esses pontos não devem ser reescritos. O trabalho é consolidar em volta deles.
 | `src/fx/Effects.js` | 2.129 linhas | Muitos pools/eventos no mesmo módulo |
 | `src/world/TextureGenerator.js` | 2.591 linhas | 39 geradores sem divisão por domínio |
 | `src/view/models/TacticalManContinuous.js` | 2.381 linhas | Modelo + texturas + paletas + helpers |
-| `src/world/ItalyProps.js` | 1.397 linhas | 31 props + colisão no mesmo arquivo |
+| `src/world/ItalyProps.js` | 1.740 linhas | 35 props globais de todos os mapas no mesmo arquivo (Issue #11: renomear para `PropFactory`) |
 | `src/ui/MenuController.js` | 948 linhas | Loadout, mira, áudio, texturas e sistema juntos |
 
 **Impacto:** navegação cara, merges conflitantes, risco alto em qualquer edição local.
@@ -105,8 +105,8 @@ Esses pontos não devem ser reescritos. O trabalho é consolidar em volta deles.
 - [x] Manter `PROJECT_MAP.md` §13 como registro vivo de divergências.
 
 ### P5 — Issues e Defeitos do Estado Atual (Com Issues GitHub Abertas)
-- [ ] **[BUG/REGRESSÃO]** Recoil e Climbing neutralizados por auto-recuperação precoce de 80ms ([Issue #9](https://github.com/teusbraga/arenablockoutlimited/issues/9)) — `recoilRecoveryDelay = 0.08s` em `CameraRig.js` é menor que o `fireInterval` da maioria das armas (88–105ms), forçando a mira para baixo entre tiros e anulando a elevação acumulativa do recuo (climbing).
-- [ ] **[BUG/VISUAL]** Mira dinâmica piscando e abrindo/fechando espasmoticamente em ~35ms ([Issue #10](https://github.com/teusbraga/arenablockoutlimited/issues/10)) — salto em degrau de `isResting` (0.0015 -> 0.025 rad), decaimento ultrarrápido da penalidade em 2 frames e ausência de amortecimento (`lerp`) no `--gap` geram efeito estroboscópico indesejado.
+- [x] **[BUG/REGRESSÃO]** Recoil e Climbing neutralizados por auto-recuperação precoce de 80ms ([Issue #9](https://github.com/teusbraga/arenablockoutlimited/issues/9)) — `recoilRecoveryDelay = 0.08s` em `CameraRig.js` era menor que o `fireInterval` das armas, forçando a mira para baixo entre tiros e anulando o climbing. (CONCLUÍDO: `recoveryDelay` dinâmico baseado na cadência sustentada da arma mantém a mira no topo durante rajadas).
+- [x] **[BUG/VISUAL]** Mira dinâmica piscando e abrindo/fechando espasmoticamente em ~35ms ([Issue #10](https://github.com/teusbraga/arenablockoutlimited/issues/10)) — salto em degrau de `isResting` e falta de amortecimento no `--gap` geravam efeito estroboscópico. (CONCLUÍDO: interpolação contínua de repouso e lerp assimétrico inercial no `CrosshairManager.js` eliminam 100% dos espasmos).
 - [x] **[BUG]** Corrigir o climbing da câmera on recoil ([Issue #1](https://github.com/teusbraga/arenablockoutlimited/issues/1)) — `CameraRig.js` acumula `climbPitch` sem compensação/recoil recovery. (CONCLUÍDO na Fase 3; gerou regressão descrita acima)
 - [x] **[BUG]** Corrigir bug de trocar armas depois que morrer ([Issue #2](https://github.com/teusbraga/arenablockoutlimited/issues/2)) — `WeaponSystem.js` sem checagem de `player.alive`. (CONCLUÍDO na Fase 3)
 - [x] **[BUG]** Corrigir bug dos carregadores no chão ([Issue #3](https://github.com/teusbraga/arenablockoutlimited/issues/3)) — `MagazineDrop.js` com raycast limitado, falta de checagem Y em pickup e seleção instável. (CONCLUÍDO na Fase 3)
@@ -117,6 +117,7 @@ Esses pontos não devem ser reescritos. O trabalho é consolidar em volta deles.
 - [x] **[DEFEITO/SEGURANÇA]** Limitar acesso via atalho e cheats dentro da gameplay e colocar apenas em opções de dev no menu ([Issue #8](https://github.com/teusbraga/arenablockoutlimited/issues/8)) — restringir `whoami` e comandos de depuração. (CONCLUÍDO na Fase 5)
 
 ### P6 — Arsenal, Balística, Animações e Viewmodels
+- [x] **[BALÍSTICA & ZEROING]** Master Weapon & Modo Zeroing com convergência unificada a 50m — baseline canônica (`MasterWeapon.js`), calibração no mapa Range sem debuffs (zero spread, zero recoil, zero sway), convergência focal no centro da mira eliminando paralaxe em Hipfire e ADS, respeitando height-over-bore e diretiva blindada GEMINI.md. Testes integrados em `test/zeroing_master_weapon_test.js` (94/94 testes passando).
 - [ ] Melhorar a fumaça do cano e usar ribbon 3D do protótipo importado *(⚠️ Atenção GEMINI.md: verificar congelamento de VFX de Effects.js e muzzle pipeline antes de integrar)*.
 - [ ] Criar rotina própria de carregamento da M12 (pump-action recarregando cartucho por cartucho, com interrupção por disparo).
 - [ ] Configuração personalizada de cada arma (acessórios, miras e mods individuais data-driven).

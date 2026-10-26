@@ -120,6 +120,11 @@ Contratos de modelo:
 - Não altere `GEMINI.md` sem autorização.
 - Se precisar atualizar documentação, atualize a seção correspondente de `PROJECT_MAP.md` no mesmo trabalho.
 
+### 3.11 Incremento obrigatório do CHANGELOG
+- **Regra obrigatória:** Sempre que qualquer script JavaScript (`.js`) ou dado de configuração/balanceamento (`.json`) for modificado, adicionado ou refatorado, o agente **deve obrigatoriamente** incrementar e documentar a alteração no `CHANGELOG.md` no mesmo turno de trabalho.
+- O registro deve seguir o formato padronizado do projeto (`feat:`, `fix:`, `perf:`, `refactor:`, `data:`, etc.), discriminando os arquivos afetados e o impacto na mecânica, render, física, IA, áudio ou dados.
+- Nenhuma tarefa que envolva arquivos `.js` ou `.json` é dada como pronta (DoD) sem o devido registro no `CHANGELOG.md`.
+
 ---
 
 ## 4. Mapa de propriedade (quem manda em quê)
@@ -305,6 +310,7 @@ node --test test/muzzle_flash_smoke_test.js test/soldier_skin_test.js test/surfa
 - [ ] `npm test` verde (82/82 testes); testes extras relevantes verdes.
 - [ ] Teste manual no navegador (se visual/UI/áudio/render).
 - [ ] `PROJECT_MAP.md` atualizado se arquitetura/schema/evento mudou.
+- [ ] `CHANGELOG.md` incrementado e atualizado obrigatoriamente se scripts `.js` ou dados `.json` foram alterados.
 - [ ] Nenhum commit/push sem pedido explícito.
 - [ ] Resultado final informa: o que mudou, arquivos, validações e riscos.
 
@@ -317,6 +323,7 @@ node --test test/muzzle_flash_smoke_test.js test/soldier_skin_test.js test/surfa
 - Mudou evento? Atualize §9.
 - Descobriu divergência? Registre em §13 com `arquivo:linha`.
 - Mudou o fluxo de trabalho dos agentes? Atualize este `AGENTS.md`.
+- **Alterou scripts `.js` ou dados `.json`?** Incremente e registre obrigatoriamente a alteração no `CHANGELOG.md`.
 - **Não reescreva o mapa inteiro** para uma mudança local; edite a seção afetada.
 
 ---
@@ -329,4 +336,4 @@ node --test test/muzzle_flash_smoke_test.js test/soldier_skin_test.js test/surfa
 - Não adicione logs permanentes, debug visual ou cheats novos sem pedido.
 - Não altere o estilo global, nomes públicos ou estrutura de pastas sem pedido.
 - Se encontrar um bloqueio real, pare e explique com evidência; não contorne silenciosamente.
-- Ao concluir, entregue um resumo curto: arquivos alterados, validações executadas, pendências.
+- Ao concluir, entregue um resumo curto: arquivos alterados, validações executadas, pendências e confirme a atualização do `CHANGELOG.md`.

@@ -20,6 +20,7 @@ export class GameManager {
 
     this.bots = [];
     this.doors = [];
+    this.plinkers = [];
     this.itemDrops = [];
     this.magazineDrops = [];
     this.hasStarted = false;
@@ -192,10 +193,20 @@ export class GameManager {
       }
       this.doors = [];
     }
+    if (this.plinkers) {
+      for (const p of this.plinkers) {
+        if (p && typeof p.destroy === 'function') p.destroy();
+      }
+      this.plinkers = [];
+    }
   }
 
   setDoors(doors) {
     this.doors = doors;
+  }
+
+  setPlinkers(plinkers) {
+    this.plinkers = Array.isArray(plinkers) ? plinkers : [];
   }
 
   /**
@@ -429,6 +440,11 @@ export class GameManager {
   }
 
   renderUpdate(alpha, dt) {
+    if (this.plinkers) {
+      for (let i = 0; i < this.plinkers.length; i++) {
+        this.plinkers[i].update(dt);
+      }
+    }
     if (!this.hasStarted || this.roundOver) return;
     for (const b of this.bots) {
       if (b.renderUpdate) b.renderUpdate(alpha, dt);

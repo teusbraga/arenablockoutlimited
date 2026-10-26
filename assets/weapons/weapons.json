@@ -10,10 +10,10 @@
       "fireInterval": 0.09,
       "magSize": 30,
       "reloadTime": 1.65,
-      "spreadHip": 0.02,
-      "spreadAds": 0.0015,
-      "recoilPitch": 0.008,
-      "recoilYaw": 0.0025,
+      "spreadHip": 0.009,
+      "spreadAds": 0.0004,
+      "recoilPitch": 0.0065,
+      "recoilYaw": 0.002,
       "recoilYawBias": -0.4,
       "adsFov": 56,
       "adsSightDistance": 0.4,
@@ -77,11 +77,11 @@
         },
         "external": {
           "recoil": {
-            "vertical": 0.008,
-            "horizontal": 0.0025,
+            "vertical": 0.0065,
+            "horizontal": 0.002,
             "yawBias": -0.4,
             "pattern": "linear_left",
-            "recoveryTime": 0.26
+            "recoveryTime": 0.2
           },
           "sway": {
             "base": 0.0022,
@@ -89,14 +89,14 @@
             "speed": 1.4
           },
           "precision": {
-            "baseSpread": 0.0015,
-            "swaySpreadImpact": 0.45,
+            "baseSpread": 0.0004,
+            "swaySpreadImpact": 0.15,
             "dynamicLoss": {
-              "strafe": 0.022,
-              "walk": 0.015,
-              "run": 0.04
+              "strafe": 0.006,
+              "walk": 0.004,
+              "run": 0.015
             },
-            "recoveryTime": 0.28
+            "recoveryTime": 0.18
           }
         },
         "terminal": {
@@ -124,10 +124,10 @@
       "fireInterval": 0.1,
       "magSize": 30,
       "reloadTime": 1.8,
-      "spreadHip": 0.022,
-      "spreadAds": 0.001,
-      "recoilPitch": 0.0105,
-      "recoilYaw": 0.0032,
+      "spreadHip": 0.011,
+      "spreadAds": 0.0005,
+      "recoilPitch": 0.0085,
+      "recoilYaw": 0.0025,
       "recoilYawBias": 0.35,
       "adsFov": 58,
       "adsSightDistance": 0.65,
@@ -189,11 +189,11 @@
         },
         "external": {
           "recoil": {
-            "vertical": 0.0105,
-            "horizontal": 0.0032,
+            "vertical": 0.0085,
+            "horizontal": 0.0025,
             "yawBias": 0.35,
             "pattern": "kick_right",
-            "recoveryTime": 0.34
+            "recoveryTime": 0.22
           },
           "sway": {
             "base": 0.0028,
@@ -201,14 +201,14 @@
             "speed": 1.2
           },
           "precision": {
-            "baseSpread": 0.001,
-            "swaySpreadImpact": 0.55,
+            "baseSpread": 0.0005,
+            "swaySpreadImpact": 0.18,
             "dynamicLoss": {
-              "strafe": 0.026,
-              "walk": 0.018,
-              "run": 0.048
+              "strafe": 0.007,
+              "walk": 0.005,
+              "run": 0.018
             },
-            "recoveryTime": 0.35
+            "recoveryTime": 0.2
           }
         },
         "terminal": {
@@ -236,10 +236,10 @@
       "fireInterval": 0.085,
       "magSize": 30,
       "reloadTime": 1.65,
-      "spreadHip": 0.018,
-      "spreadAds": 0.0005,
-      "recoilPitch": 0.0075,
-      "recoilYaw": 0.002,
+      "spreadHip": 0.008,
+      "spreadAds": 0.0002,
+      "recoilPitch": 0.0055,
+      "recoilYaw": 0.0015,
       "recoilYawBias": 0.2,
       "adsFov": 60,
       "adsSightDistance": 0.16,
@@ -302,11 +302,11 @@
         },
         "external": {
           "recoil": {
-            "vertical": 0.0075,
-            "horizontal": 0.002,
+            "vertical": 0.0055,
+            "horizontal": 0.0015,
             "yawBias": 0.2,
             "pattern": "climb_smooth",
-            "recoveryTime": 0.24
+            "recoveryTime": 0.18
           },
           "sway": {
             "base": 0.0018,
@@ -314,14 +314,14 @@
             "speed": 1.6
           },
           "precision": {
-            "baseSpread": 0.0005,
-            "swaySpreadImpact": 0.35,
+            "baseSpread": 0.0002,
+            "swaySpreadImpact": 0.12,
             "dynamicLoss": {
-              "strafe": 0.02,
-              "walk": 0.014,
-              "run": 0.038
+              "strafe": 0.005,
+              "walk": 0.003,
+              "run": 0.012
             },
-            "recoveryTime": 0.25
+            "recoveryTime": 0.15
           }
         },
         "terminal": {
@@ -349,10 +349,10 @@
       "fireInterval": 0.1,
       "magSize": 20,
       "reloadTime": 1.85,
-      "spreadHip": 0.022,
-      "spreadAds": 0.0004,
-      "recoilPitch": 0.011,
-      "recoilYaw": 0.003,
+      "spreadHip": 0.01,
+      "spreadAds": 0.0003,
+      "recoilPitch": 0.008,
+      "recoilYaw": 0.0022,
       "recoilYawBias": 0.15,
       "adsFov": 56,
       "adsSightDistance": 0.16,
@@ -415,11 +415,11 @@
         },
         "external": {
           "recoil": {
-            "vertical": 0.011,
-            "horizontal": 0.003,
+            "vertical": 0.008,
+            "horizontal": 0.0022,
             "yawBias": 0.15,
             "pattern": "climb_smooth",
-            "recoveryTime": 0.26
+            "recoveryTime": 0.2
           },
           "sway": {
             "base": 0.0018,
@@ -427,14 +427,14 @@
             "speed": 1.6
           },
           "precision": {
-            "baseSpread": 0.0004,
-            "swaySpreadImpact": 0.35,
+            "baseSpread": 0.0003,
+            "swaySpreadImpact": 0.14,
             "dynamicLoss": {
-              "strafe": 0.022,
-              "walk": 0.015,
-              "run": 0.04
+              "strafe": 0.006,
+              "walk": 0.004,
+              "run": 0.015
             },
-            "recoveryTime": 0.28
+            "recoveryTime": 0.18
           }
         },
         "terminal": {
@@ -462,10 +462,10 @@
       "fireInterval": 0.065,
       "magSize": 32,
       "reloadTime": 1.3,
-      "spreadHip": 0.024,
-      "spreadAds": 0.002,
-      "recoilPitch": 0.006,
-      "recoilYaw": 0.003,
+      "spreadHip": 0.012,
+      "spreadAds": 0.0009,
+      "recoilPitch": 0.0045,
+      "recoilYaw": 0.002,
       "recoilYawBias": 0.5,
       "adsFov": 58,
       "adsSightDistance": 0.45,
@@ -528,11 +528,11 @@
         },
         "external": {
           "recoil": {
-            "vertical": 0.006,
-            "horizontal": 0.003,
+            "vertical": 0.0045,
+            "horizontal": 0.002,
             "yawBias": 0.5,
             "pattern": "spray_wide",
-            "recoveryTime": 0.2
+            "recoveryTime": 0.16
           },
           "sway": {
             "base": 0.0015,
@@ -540,14 +540,14 @@
             "speed": 2
           },
           "precision": {
-            "baseSpread": 0.002,
-            "swaySpreadImpact": 0.4,
+            "baseSpread": 0.0009,
+            "swaySpreadImpact": 0.15,
             "dynamicLoss": {
-              "strafe": 0.015,
-              "walk": 0.01,
-              "run": 0.03
+              "strafe": 0.005,
+              "walk": 0.003,
+              "run": 0.012
             },
-            "recoveryTime": 0.2
+            "recoveryTime": 0.15
           }
         },
         "terminal": {
@@ -575,10 +575,10 @@
       "fireInterval": 0.082,
       "magSize": 100,
       "reloadTime": 4.2,
-      "spreadHip": 0.032,
-      "spreadAds": 0.0022,
-      "recoilPitch": 0.011,
-      "recoilYaw": 0.0035,
+      "spreadHip": 0.014,
+      "spreadAds": 0.0008,
+      "recoilPitch": 0.0075,
+      "recoilYaw": 0.0025,
       "recoilYawBias": 0.4,
       "adsFov": 54,
       "adsSightDistance": 0.4,
@@ -642,11 +642,11 @@
         },
         "external": {
           "recoil": {
-            "vertical": 0.011,
-            "horizontal": 0.0035,
+            "vertical": 0.0075,
+            "horizontal": 0.0025,
             "yawBias": 0.4,
             "pattern": "heavy_churn",
-            "recoveryTime": 0.45
+            "recoveryTime": 0.25
           },
           "sway": {
             "base": 0.0035,
@@ -654,14 +654,14 @@
             "speed": 1
           },
           "precision": {
-            "baseSpread": 0.0022,
-            "swaySpreadImpact": 0.6,
+            "baseSpread": 0.0008,
+            "swaySpreadImpact": 0.2,
             "dynamicLoss": {
-              "strafe": 0.035,
-              "walk": 0.025,
-              "run": 0.06
+              "strafe": 0.009,
+              "walk": 0.006,
+              "run": 0.02
             },
-            "recoveryTime": 0.5
+            "recoveryTime": 0.25
           }
         },
         "terminal": {
@@ -689,10 +689,10 @@
       "fireInterval": 0.16,
       "magSize": 12,
       "reloadTime": 1.15,
-      "spreadHip": 0.016,
-      "spreadAds": 0.0012,
-      "recoilPitch": 0.012,
-      "recoilYaw": 0.002,
+      "spreadHip": 0.008,
+      "spreadAds": 0.0005,
+      "recoilPitch": 0.007,
+      "recoilYaw": 0.0015,
       "recoilYawBias": 0,
       "adsFov": 58,
       "adsSightDistance": 0.35,
@@ -753,11 +753,11 @@
         },
         "external": {
           "recoil": {
-            "vertical": 0.012,
-            "horizontal": 0.002,
+            "vertical": 0.007,
+            "horizontal": 0.0015,
             "yawBias": 0,
             "pattern": "vertical_snap",
-            "recoveryTime": 0.18
+            "recoveryTime": 0.14
           },
           "sway": {
             "base": 0.0018,
@@ -765,14 +765,14 @@
             "speed": 1.8
           },
           "precision": {
-            "baseSpread": 0.0012,
-            "swaySpreadImpact": 0.35,
+            "baseSpread": 0.0005,
+            "swaySpreadImpact": 0.12,
             "dynamicLoss": {
-              "strafe": 0.012,
-              "walk": 0.008,
-              "run": 0.025
+              "strafe": 0.004,
+              "walk": 0.003,
+              "run": 0.01
             },
-            "recoveryTime": 0.18
+            "recoveryTime": 0.14
           }
         },
         "terminal": {
@@ -800,10 +800,10 @@
       "fireInterval": 1.1,
       "magSize": 6,
       "reloadTime": 2.2,
-      "spreadHip": 0.022,
-      "spreadAds": 0.0003,
-      "recoilPitch": 0.034,
-      "recoilYaw": 0.003,
+      "spreadHip": 0.01,
+      "spreadAds": 0.0002,
+      "recoilPitch": 0.024,
+      "recoilYaw": 0.0022,
       "recoilYawBias": 0.1,
       "adsFov": 62,
       "adsSightDistance": 0.47,
@@ -861,11 +861,11 @@
         },
         "external": {
           "recoil": {
-            "vertical": 0.034,
-            "horizontal": 0.003,
+            "vertical": 0.024,
+            "horizontal": 0.0022,
             "yawBias": 0.1,
             "pattern": "massive_kick",
-            "recoveryTime": 0.65
+            "recoveryTime": 0.25
           },
           "sway": {
             "base": 0.0032,
@@ -873,14 +873,14 @@
             "speed": 1.2
           },
           "precision": {
-            "baseSpread": 0.0003,
-            "swaySpreadImpact": 0.7,
+            "baseSpread": 0.0002,
+            "swaySpreadImpact": 0.25,
             "dynamicLoss": {
-              "strafe": 0.03,
-              "walk": 0.02,
-              "run": 0.055
+              "strafe": 0.008,
+              "walk": 0.005,
+              "run": 0.02
             },
-            "recoveryTime": 0.6
+            "recoveryTime": 0.22
           }
         },
         "terminal": {
@@ -911,14 +911,14 @@
       "damageBody": 22,
       "damageHead": 51,
       "pellets": 7,
-      "pelletSpread": 0.01333,
+      "pelletSpread": 0.009,
       "fireInterval": 0.65,
       "magSize": 6,
       "reloadTime": 2.5,
-      "spreadHip": 0.01,
-      "spreadAds": 0.002,
-      "recoilPitch": 0.022,
-      "recoilYaw": 0.004,
+      "spreadHip": 0.006,
+      "spreadAds": 0.001,
+      "recoilPitch": 0.016,
+      "recoilYaw": 0.0028,
       "recoilYawBias": 0.2,
       "adsFov": 60,
       "adsSightDistance": 0.68,
@@ -981,11 +981,11 @@
         },
         "external": {
           "recoil": {
-            "vertical": 0.022,
-            "horizontal": 0.004,
+            "vertical": 0.016,
+            "horizontal": 0.0028,
             "yawBias": 0.2,
             "pattern": "pump_buck",
-            "recoveryTime": 0.5
+            "recoveryTime": 0.2
           },
           "sway": {
             "base": 0.0025,
@@ -993,14 +993,14 @@
             "speed": 1.3
           },
           "precision": {
-            "baseSpread": 0.002,
-            "swaySpreadImpact": 0.3,
+            "baseSpread": 0.001,
+            "swaySpreadImpact": 0.12,
             "dynamicLoss": {
-              "strafe": 0.015,
-              "walk": 0.01,
-              "run": 0.03
+              "strafe": 0.005,
+              "walk": 0.003,
+              "run": 0.012
             },
-            "recoveryTime": 0.35
+            "recoveryTime": 0.18
           }
         },
         "terminal": {
@@ -1028,10 +1028,10 @@
       "fireInterval": 0.085,
       "magSize": 20,
       "reloadTime": 1.9,
-      "spreadHip": 0.02,
+      "spreadHip": 0.008,
       "spreadAds": 0.0001,
-      "recoilPitch": 0.004,
-      "recoilYaw": 0.001,
+      "recoilPitch": 0.0032,
+      "recoilYaw": 0.0008,
       "recoilYawBias": 0.1,
       "adsFov": 60,
       "adsSightDistance": 0.065,
@@ -1095,11 +1095,11 @@
         },
         "external": {
           "recoil": {
-            "vertical": 0.004,
-            "horizontal": 0.001,
+            "vertical": 0.0032,
+            "horizontal": 0.0008,
             "yawBias": 0.1,
             "pattern": "smooth",
-            "recoveryTime": 0.2
+            "recoveryTime": 0.14
           },
           "sway": {
             "base": 0.0015,
@@ -1108,13 +1108,13 @@
           },
           "precision": {
             "baseSpread": 0.0001,
-            "swaySpreadImpact": 0.2,
+            "swaySpreadImpact": 0.1,
             "dynamicLoss": {
-              "strafe": 0.01,
-              "walk": 0.008,
-              "run": 0.02
+              "strafe": 0.004,
+              "walk": 0.002,
+              "run": 0.01
             },
-            "recoveryTime": 0.2
+            "recoveryTime": 0.14
           }
         },
         "terminal": {

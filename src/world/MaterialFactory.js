@@ -641,6 +641,45 @@ export class MaterialFactory {
     });
     this.factories.set('rusty_metal', () => this.get('corrugated_iron'));
 
+    // 35. Concreto PBR de Estande de Tiro
+    this.factories.set('concrete', () => {
+      const conc = textures.createConcrete(512);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        map: conc.diffuse,
+        bumpMap: conc.bump,
+        bumpScale: 0.04,
+        roughnessMap: conc.roughness,
+        roughness: 0.88,
+      });
+      MaterialFactory.applyWorldSpaceUV(mat, 0.4);
+      return mat;
+    });
+
+    // 36. Alvo de Tiro Militar / Paper Target
+    this.factories.set('target', () => {
+      const t = textures.createShootingTarget(512);
+      return new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        map: t.diffuse,
+        bumpMap: t.bump,
+        bumpScale: 0.025,
+        roughnessMap: t.roughness,
+        roughness: 0.85,
+      });
+    });
+    this.factories.set('target_paper', () => this.get('target'));
+
+    // 37. Chapa Metálica de Plinker / Gongo de Aço
+    this.factories.set('plinker', () => {
+      return new THREE.MeshStandardMaterial({
+        color: 0xf0f2f5,
+        roughness: 0.32,
+        metalness: 0.85,
+      });
+    });
+    this.factories.set('steel_plate', () => this.get('plinker'));
+
     // 34. Concreto / Rocha Escura de Bunker
     this.factories.set('concrete_dark', () => {
       const mossyRock = textures.createMossyRock(512);

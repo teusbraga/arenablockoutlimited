@@ -60,6 +60,10 @@ export const DEFAULT_CONFIG = {
     godMode: false,
     infiniteAmmo: false
   },
+  ZEROING: {
+    defaultZeroDistance: 50.0,
+    zeroingMode: false
+  },
   DEV_MODE: false
 };
 
@@ -128,6 +132,9 @@ export class ConfigLoader {
         }
         if (gp.physics) {
           deepMerge(CONFIG.PHYSICS, gp.physics);
+        }
+        if (gp.zeroing) {
+          deepMerge(CONFIG.ZEROING, gp.zeroing);
         }
       }
 

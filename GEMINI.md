@@ -46,3 +46,9 @@ Qualquer PR, comando ou edição que tocar nos arquivos abaixo **deve ser rejeit
 - [ ] `src/weapons/models/*.js`
 
 **Qualquer nova arma ou mecânica deve usar a infraestrutura existente como caixa preta, sem alterar os algoritmos centrais já blindados.**
+
+---
+
+## 📝 REGRA GERAL OBRIGATÓRIA: INCREMENTO DO CHANGELOG
+
+Toda e qualquer alteração realizada em **scripts JavaScript (`*.js`)** ou **arquivos de dados e configurações (`*.json`)** em qualquer subsistema do projeto (armas, balística, FX, IA, física, áudio, UI ou core) exige **obrigatoriamente o incremento e atualização do `CHANGELOG.md`** no mesmo turno de trabalho, especificando os arquivos modificados e seus impactos. Nenhuma tarefa que envolva código ou dados é considerada concluída sem esse registro.

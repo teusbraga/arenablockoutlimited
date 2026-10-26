@@ -17,6 +17,8 @@
 | 7 | [#7](https://github.com/teusbraga/arenablockoutlimited/issues/7) | `feat(gameplay): bloquear alteração de armas no menu durante a partida em andamento` | UI / Regras de Partida | Média | `enhancement` |
 | 8 | [#8](https://github.com/teusbraga/arenablockoutlimited/issues/8) | `refactor(core): isolar atalhos de depuração e cheats na aba de Desenvolvedor do Menu` | Core / Menu / Dev | Média | `enhancement` |
 | 9 | [#9](https://github.com/teusbraga/arenablockoutlimited/issues/9) | `fix(physics): corrigir perda de colisão (clipping) e afundamento em globalBoxes e degraus` | Física / Colisão / Spatial Hash | Crítica | `bug`, `physics` |
+| 10 | [#10](https://github.com/teusbraga/arenablockoutlimited/issues/10) | `fix(crosshair): amortecer dynamic gap e eliminar estroboscópio de ~35ms no repouso` | HUD / Mira | Baixa | `bug`, `ui` |
+| 11 | [#11](https://github.com/teusbraga/arenablockoutlimited/issues/11) | `refactor(world): renomear e desacoplar ItalyProps para PropFactory global do ecossistema de mapas` | World / Arquitetura / Props | Média | `refactor`, `tech-debt` |
 
 ---
 
@@ -258,3 +260,50 @@ return candidatesList;
 ```
 2. Restaurar a rotina comprovada de descida em `_tryStepUp` com teste rigoroso de `this.overlaps(pos, size, b)`.
 3. Em `src/core/SceneSetup.js:21`, substituir `THREE.PCFSoftShadowMap` por `THREE.PCFShadowMap`.
+
+---
+
+### Issue 11: [TECH-DEBT] Renomear e modularizar ItalyProps para PropFactory global do ecossistema de mapas
+
+**Título:**
+`refactor(world): renomear e desacoplar ItalyProps para PropFactory global do ecossistema de mapas`
+
+**Labels:** `refactor`, `world`, `architecture`, `tech-debt`, `good-first-issue`
+
+#### Descrição
+O arquivo [`src/world/ItalyProps.js`](../src/world/ItalyProps.js) nasceu originalmente para construir e instanciar elementos cenográficos específicos do mapa **CS Italy** (janelas venezianas, peitoris de pedra, arcos rústicos, sacadas e toldos).
+
+Entretanto, conforme o ecossistema do jogo expandiu com novos mapas temáticos, **todos os novos props procedurais foram sendo empilhados dentro do mesmo arquivo `ItalyProps.js`**:
+* **Vila Ensolarada:** `addVillageTree`, `addRusticFence`, `addVillageWell`, `addChimney`, `addHayBale`.
+* **Dust Mirage:** `addPalmTree`, `addArabicArch`, `addArabicRugWall`, `addMilitaryCrate`, `addOilBarrel`, `addDesertTarp`, `addWaterTank`.
+* **Woods (Selva Tropical):** `addGiantJungleTree`, `addFallenLog`, `addFernCluster`, `addBambooGrove`, `addSandbagBunker`, `addJungleWatchtower`, `addAncientRuins`, `addMilitaryCamoTent`, `addMossyBoulder`.
+* **Range (Campo de Tiro):** `addPaperTarget`, `addPlinkerTarget` (com simulação física pendular), `addShootingBench`, `addDistanceSign`.
+
+Atualmente, `ItalyProps.js` ultrapassa **1.700 linhas de código e 35 métodos heterogêneos**, atuando como a **Fábrica Global de Props 3D do Jogo**, mas carregando um nome de mapa específico.
+
+#### Impacto na Manutenção e Débito Técnico
+1. **Confusão de Domínio e Falsa Sinalização:** Desenvolvedores e agentes de IA que precisam adicionar props a mapas como `woods`, `dust` ou `range` hesitam ao abrir um arquivo chamado `ItalyProps`, questionando se existe outra fábrica de props ou se devem criar novos arquivos paralelos.
+2. **Arquivo-Deus (God Class):** O arquivo acumula arquitetura toscana, vegetação tropical, caixas militares modernas e física/áudio interativo de alvos de tiro sem divisão de responsabilidade.
+3. **Acoplamento no `MapLoader.js`:** O [`src/world/MapLoader.js`](../src/world/MapLoader.js) instancia explicitamente `new ItalyProps(scene, world)` para mapas que nada têm a ver com a temática da Itália.
+
+#### Comportamento Esperado
+- A fábrica central de props deve ter nome agnóstico a mapas específicos (ex: `PropFactory.js` ou `WorldProps.js`);
+- Os métodos de construção de props devem ser organizados por domínio temático;
+- O `MapLoader` e o `PROJECT_MAP.md` devem referenciar uma nomenclatura canônica clara;
+- Deve ser mantido um alias ou re-export retrocompatível (`export { PropFactory as ItalyProps }`) para evitar quebra de integrações em andamento.
+
+#### Plano de Refatoração Proposto
+1. **Criação do diretório modular `src/world/props/`:**
+   * `ArchitecturalProps.js`: portas, janelas, arcos de pedra, sacadas, chaminés, toldos e vitrines.
+   * `NatureProps.js`: árvores (vila e selva), palmeiras, troncos caídos, samambaias, bambuzais e rochas/monólitos.
+   * `MilitaryProps.js`: caixotes militares, barris de óleo, bunkers de sacos de areia, tanques d'água, tendas e torres de vigia.
+   * `RangeProps.js`: alvos de papel (`addPaperTarget`), alvos pendulares de plinker (`addPlinkerTarget`), bancadas de tiro e sinalização métrica.
+2. **Criação de `src/world/PropFactory.js`:**
+   * Atua como fachada unificada (*Facade Pattern*) instanciando e expondo as categorias de props acima, recebendo `(scene, world)`.
+3. **Retrocompatibilidade Temporária:**
+   * `src/world/ItalyProps.js` passa a ser um arquivo de re-export deprecado apontando para `PropFactory`.
+4. **Atualização das Chamadas:**
+   * Atualizar `src/world/MapLoader.js` para importar e instanciar `PropFactory`.
+   * Atualizar referências e tabelas do `PROJECT_MAP.md` (§7.5 e §4).
+5. **Validação de Testes:**
+   * Garantir que `npm test` e todas as suítes de mapas permaneçam 100% verdes.

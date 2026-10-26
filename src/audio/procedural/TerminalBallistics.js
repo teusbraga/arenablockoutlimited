@@ -287,4 +287,82 @@ export class TerminalBallistics {
       vibSrc.stop(t0 + 0.050);
     }
   }
+
+  /* ========================================================================
+     5. IMPACTO EM ALVO DE PLINKER / GONGO METÁLICO (O FAMOSO "PLIINNN")
+     ======================================================================== */
+  synthesizeBulletHitPlinker(params, ctx, destination, startTime = null, humanize = false) {
+    const t0 = startTime !== null ? startTime : ctx.currentTime;
+    const j = humanize ? (1 + (Math.random() - 0.5) * 0.04) : 1.0;
+
+    const snapVal  = getVal(params?.leadSnap, 1.00);
+    const thudVal  = getVal(params?.steelThud, 0.80);
+    const gongFreq = getVal(params?.gongFreq, 1650) * j;
+    const gongRing = getVal(params?.gongRing, 0.95);
+    const decaySec = getVal(params?.ringDecay, 1.25);
+
+    // 1. Estalo inicial cortante do chumbo na chapa endurecida (0-5ms)
+    if (snapVal > 0.01 && this.noiseBuffers?.white) {
+      const snapSrc = this.noiseBuffers.createSource('white', false);
+      const snapFilter = ctx.createBiquadFilter();
+      snapFilter.type = 'bandpass';
+      snapFilter.frequency.setValueAtTime(5200, t0);
+      snapFilter.Q.setValueAtTime(4.5, t0);
+
+      const snapEnv = ctx.createGain();
+      snapEnv.gain.setValueAtTime(0.0001, t0);
+      snapEnv.gain.linearRampToValueAtTime(snapVal * 1.0, t0 + 0.0003);
+      snapEnv.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.012);
+
+      snapSrc.connect(snapFilter);
+      snapFilter.connect(snapEnv);
+      snapEnv.connect(destination);
+      snapSrc.start(t0);
+      snapSrc.stop(t0 + 0.015);
+    }
+
+    // 2. Soco e massa da chapa de aço vibrando (impacto mecânico)
+    if (thudVal > 0.01) {
+      const thudOsc = ctx.createOscillator();
+      const thudGain = ctx.createGain();
+      thudOsc.type = 'triangle';
+      thudOsc.frequency.setValueAtTime(290, t0);
+      thudOsc.frequency.exponentialRampToValueAtTime(95, t0 + 0.024);
+
+      thudGain.gain.setValueAtTime(0.0001, t0);
+      thudGain.gain.exponentialRampToValueAtTime(thudVal * 0.85, t0 + 0.0006);
+      thudGain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.038);
+
+      thudOsc.connect(thudGain);
+      thudGain.connect(destination);
+      thudOsc.start(t0);
+      thudOsc.stop(t0 + 0.042);
+    }
+
+    // 3. Sino e Ressonância Tonal Harmônica "PLIIINNNG"
+    if (gongRing > 0.01) {
+      // Componentes tonais: fundamental cristalina + harmônicos superiores metálicos
+      const modes = [
+        { f: gongFreq, g: 0.88, decay: decaySec },
+        { f: gongFreq * 2.74, g: 0.42, decay: decaySec * 0.65 },
+        { f: gongFreq * 5.35, g: 0.22, decay: decaySec * 0.35 }
+      ];
+
+      for (const m of modes) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(m.f, t0);
+
+        gain.gain.setValueAtTime(0.0001, t0);
+        gain.gain.linearRampToValueAtTime(gongRing * m.g, t0 + 0.0008);
+        gain.gain.exponentialRampToValueAtTime(0.0001, t0 + m.decay);
+
+        osc.connect(gain);
+        gain.connect(destination);
+        osc.start(t0);
+        osc.stop(t0 + m.decay + 0.02);
+      }
+    }
+  }
 }

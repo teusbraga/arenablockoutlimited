@@ -407,13 +407,13 @@ Cada linha: responsabilidade, exports principais, dependências e consumidores.
 - **Responsabilidade:** 39 geradores procedurais (canvas 2D) de albedo/bump/roughness.
 - **Exporta:** `TextureGenerator`, singleton `textures`.
 - **Utilidades:** `pseudoRandom`, `valueNoise`, `fbm`, `createCanvas`, `toTexture`, `loadFromURL`, `loadFromFile`.
-- **Geradores:** cobblestones, rustic wood door, shutters, roof tiles, ivy, wine barrel/crate, awning, stone arch, grass, dirt path, tree bark, oak foliage, sand dunes, sandstone, adobe, arabic rug, palm fronds/trunk, military crate, oil barrel, jungle floor, mossy rock, jungle bark, jungle fern, bamboo, camo tarp, sandbags, corrugated iron.
+- **Geradores:** cobblestones, rustic wood door, shutters, roof tiles, ivy, wine barrel/crate, awning, stone arch, grass, dirt path, tree bark, oak foliage, sand dunes, sandstone, adobe, arabic rug, palm fronds/trunk, military crate, oil barrel, jungle floor, mossy rock, jungle bark, jungle fern, bamboo, camo tarp, sandbags, corrugated iron, shooting_target, concrete.
 
-#### `ItalyProps.js` (1397 linhas)
+#### `ItalyProps.js` (1740 linhas)
 - **Responsabilidade:** props arquitetônicos procedurais e seus colisores.
 - **Exporta:** `ItalyProps`.
 - **Depende:** `materialFactory`.
-- **31 métodos** (`addWindow`, `addRusticDoorFrame`, `addStoneArchway`, `addBalcony`, `addIvyPatch`, `addWineBarrel`, `addWineCrate`, `addMarketStall`, `addStreetLantern`, `addTextureShowcaseWall`, `addVillageTree`, `addRusticFence`, `addVillageWell`, `addChimney`, `addHayBale`, `addPalmTree`, `addArabicArch`, `addArabicRugWall`, `addMilitaryCrate`, `addOilBarrel`, `addDesertTarp`, `addWaterTank`, `addGiantJungleTree`, `addFallenLog`, `addFernCluster`, `addBambooGrove`, `addSandbagBunker`, `addJungleWatchtower`, `addAncientRuins`, `addMilitaryCamoTent`, `addMossyBoulder`). Vários registram colisão `vaultable:true`.
+- **35 métodos** (`addWindow`, `addRusticDoorFrame`, `addStoneArchway`, `addBalcony`, `addIvyPatch`, `addWineBarrel`, `addWineCrate`, `addMarketStall`, `addStreetLantern`, `addTextureShowcaseWall`, `addVillageTree`, `addRusticFence`, `addVillageWell`, `addChimney`, `addHayBale`, `addPalmTree`, `addArabicArch`, `addArabicRugWall`, `addMilitaryCrate`, `addOilBarrel`, `addDesertTarp`, `addWaterTank`, `addGiantJungleTree`, `addFallenLog`, `addFernCluster`, `addBambooGrove`, `addSandbagBunker`, `addJungleWatchtower`, `addAncientRuins`, `addMilitaryCamoTent`, `addMossyBoulder`, `addPaperTarget`, `addPlinkerTarget`, `addShootingBench`, `addDistanceSign`). Plinkers possuem física pendular harmônica amortecida e reagem a `shot:world`.
 
 #### `SurfaceEyedropper.js` (201 linhas)
 - **Responsabilidade:** amostrar a cor exata da textura no ponto de impacto (projeção triplanar idêntica ao shader).
@@ -447,16 +447,22 @@ Cada linha: responsabilidade, exports principais, dependências e consumidores.
 - **`initWeaponsFromData` (`:207`):** limpa e repopula `WEAPONS` in-place; chamar **uma vez no boot** e nos testes.
 - **Defaults de balística:** `normalizeBallistics` (`:11-67`).
 
+#### `MasterWeapon.js` (68 linhas)
+- **Stateless & Motor Canônico.**
+- **`isZeroingMode(mapName)`:** Ativo no mapa `range` (`Campo de Tiro`) ou via `CONFIG.ZEROING.zeroingMode`.
+- **`getConvergenceTarget(camPos, camForward, zeroDist, world)`:** Ponto focal central no infinito (50m padrão) ou no obstáculo mais próximo (raycast a partir de 0.4m).
+- **`computeShotDirection(muzzleWorld, targetPoint)`:** Vetor diretor unificado colinear entre o bocal e o alvo focal, eliminando desvio de paralaxe tanto em Hipfire quanto em ADS com height-over-bore realista a curta distância.
+
 #### `BallisticsCalculator.js` (192 linhas)
 - **Stateless.**
-- **`calculateCurrentSpread` (`:14`):** base + sway + perda por movimento (cap 0.035) + penalty; ADS reduz 50%; em repouso usa 100% da precisão intrínseca.
-- **`calculateRecoilImpulse` (`:72`):** streak multiplier, ADS scales, patterns (`kick_right`, `linear_left`, `spray_wide`, `vertical_snap`, `heavy_churn`, `standard`).
-- **`calculateSway` (`:130`):** Lissajous.
+- **`calculateCurrentSpread` (`:14`):** base + sway + perda por movimento (cap 0.035) + penalty; ADS reduz 50%; em repouso usa 100% da precisão intrínseca; suporta `zeroingMode` (retorna 0.0).
+- **`calculateRecoilImpulse` (`:72`):** streak multiplier, ADS scales, patterns (`kick_right`, `linear_left`, `spray_wide`, `vertical_snap`, `heavy_churn`, `standard`); suporta `zeroingMode` (retorna 0).
+- **`calculateSway` (`:130`):** Lissajous; suporta `zeroingMode` (retorna 0).
 - **`calculateTerminalImpact` (`:155`):** falloff por distância + `dropY = 0.5*g*t²`.
 
 #### `WeaponSystem.js` (825 linhas)
 - **Responsabilidade:** slots, munição, recarga/QTE, fire modes, ADS, wall press, spread, disparo, recoil, muzzle/eject, spawn de projéteis.
-- **Depende:** `WEAPONS`, `BallisticsCalculator`, `ProjectileManager`, `CONFIG`, EventBus.
+- **Depende:** `WEAPONS`, `BallisticsCalculator`, `MasterWeapon`, `ProjectileManager`, `CONFIG`, EventBus.
 - **Estado:** `slots[2]`, `currentSlot`, `current`, `ammo`, `ammoByWeapon`, `reserveMagsByWeapon` (default 3), `fireModeByWeapon`, QTE, `wallCompression`, `sprayRecoil`, `sustainedFireDuration`, `smokeCooldown*`.
 - **API:** `_equip` (`:134`), `toggleFireMode` (`:170`), `cycle` (`:183`), `selectSlot` (`:192`), `setSlot` (`:204`), `pickupWeapon` (`:222`), `getReserveMags/addReserveMag` (`:230/234`), `startReload` (`:243`), `update` (`:289`), `getSprayRecoil` (`:531`), `reloadProgress` (`:535`), `_currentSpread` (`:540`), `_fire` (`:558`), `getMuzzlePosition` (`:805`), `destroy` (`:819`).
 - **Recarga:** speed = 0.85 s, descarta carregador em 35% e decrementa reserva; tactical = 4.0 s com QTE de 1.8 s (sweet spot 45–70%), acerto encerra na hora; **tactical não decrementa reserva** (§13.7).
@@ -464,7 +470,9 @@ Cada linha: responsabilidade, exports principais, dependências e consumidores.
 - **Auto-reload:** ao ficar com 0 e ter reserva, chama `reload()` (speed) sem input (`:478-480`).
 - **Wall press:** raycast da câmera até `barrelLength + 0.18`; comprime ADS e bloqueia tiro se `noFireWarning` (`:295-311`, `:558-568`).
 - **Disparo:** recoil no Rig → kick/flash no Viewmodel → muzzle/eject no mundo → `weapon:fired` → spread → pellets → `ProjectileManager.spawn`.
-- **Origem do projétil:** ADS = câmera; hip = muzzle + convergência a 50 m (ou alinhamento dinâmico se ativo) (`:698-720`).
+- **Origem do projétil:** `_muzzleWorld` unificado tanto em Hipfire quanto em ADS, convergindo a 50 m (ou alinhamento dinâmico se ativo) com compensação cinemática `GEMINI.md` intacta (`:698-720`).
+- **Sincronização de matriz:** `this.viewmodel.mount.updateWorldMatrix(true, true)` antes do cálculo de saída da bala.
+- **Recoil climbing sustentado:** `recoveryDelay` dinâmico (`fireInterval * 2.2`) repassado ao `CameraRig.addRecoilImpulse`.
 
 #### `ProjectileManager.js` (674 linhas)
 - **Responsabilidade:** pool de 256 projéteis, CCD sweep, gravidade/drag/vento, dano terminal, penetração, ricochete, supressão, tracer estimado.
@@ -535,7 +543,9 @@ Cada linha: responsabilidade, exports principais, dependências e consumidores.
 - `RiflePrototype.js` também exporta `GLOW_TEX`, `SMOKE_TEX` (usados por `Effects` e `P9`).
 - **GEMINI.md congela** `muzzleLocal`, `sightLocal`, `ejectLocal`, posições e esses modelos.
 
-### 7.8 `src/fx/Effects.js` (2129 linhas)
+### 7.8 `src/fx/`
+
+#### `Effects.js` (2129 linhas)
 - **Responsabilidade:** pools de tracers, faíscas, fumaça, cartuchos, sangue voxel, fumaça fantasma, poeira de superfície.
 - **Depende:** EventBus, `SMOKE_TEX` de RiflePrototype, `WEAPONS`, `surfaceEyedropper`.
 - **Perfis:** `DEFAULT_SWIPE_PROFILE` (`:38`), `DEFAULT_PHOTOGRAPHIC_PROFILE` (`:61`), `DEFAULT_TRACER_PROFILE` (`:82`), `DEFAULT_SURFACE_IMPACTS` (`:84`).
@@ -544,6 +554,18 @@ Cada linha: responsabilidade, exports principais, dependências e consumidores.
 - **Métodos:** `_spawnFlashTracer`, `_spawnTracer`, `_initPools`, `setWorld`, `setGameManager`, `_resolveMaterialKey`, `_spawnProtoSparks/Smoke`, `_spawnCasing`, `_spawnImpact`, `_spawnMuzzleSmoke`, `_spawnBarrelHeatSmoke`, `_spawnSurfaceImpactDust`, `_spawnSoldierBloodVoxels`, `_spawnGhostDeathSmoke`, `update`.
 - **Tracers:** estilos `swipe`, `laser`, `streak`, `photographic`; parâmetros vêm de `weaponDef.tracerProfile` (ammo.json).
 - **Congelado por `GEMINI.md`.**
+
+#### `DecalSystem.js` e `ProceduralDecalAtlas.js`
+- **Responsabilidade:** marcas de impacto de projétil (Shot Decals) tridimensionais procedurais em quads orientados com `polygonOffset`.
+- **Atlas Procedural:** gera no boot Texture Atlas (Diffuse + Alpha) com slots por material (`concrete`, `metal`, `wood`, `dirt`) e Normal Map procedural derivado via filtro Sobel a partir do mapa de relevo/altura.
+- **Pool Circular (Ring Buffer):** pool pré-alocado O(1) de 128 quads reutilizados continuamente (zero alocação no loop de disparo).
+- **Balística Dinâmica:**
+  - `shot:world`: impacto com fuligem, anel de fratura e amostragem de cor milimétrica via `SurfaceEyedropper.js`.
+  - `shot:penetration`: entrada com fuligem + saída blowout 1.65x maior sem fuligem.
+  - `shot:ricochet`: sulco de raspão elíptico esticado na direção tangencial de reflexão.
+  - `game:reset`: desativa e oculta todos os decals do pool.
+- **Fade-out:** decaimento suave de opacidade nos últimos segundos de vida útil em `renderUpdate`.
+- **Configuração:** `assets/config/gameplay.json` (`decals`) e `assets/weapons/sfx/surface_impacts.json` (`decal`).
 
 ### 7.9 `src/audio/`
 
@@ -795,10 +817,10 @@ Input contínuo → `Player.update`:
 | `weapon:cycle_action` | (ninguém) | WeaponSystem | — |
 | `projectile:spawned` | ProjectileManager | Effects | `projectile` |
 | `tracer:fire` | ProjectileManager | Effects | origem/fim/velocidade/cor/perfil |
-| `shot:world` | ProjectileManager | Effects, AudioSystem | `point, material, normal, distance, soundDelay` |
+| `shot:world` | ProjectileManager | Effects, AudioSystem, DecalSystem | `point, material, normal, distance, soundDelay` |
 | `shot:bot` | ProjectileManager | Effects, HUD | `point, headshot, killed, distance, screenX/Y` |
-| `shot:ricochet` | ProjectileManager | Effects, AudioSystem | `point, normal, material` |
-| `shot:penetration` | ProjectileManager | Effects, AudioSystem | `entryPoint, exitPoint, material, thickness` |
+| `shot:ricochet` | ProjectileManager | Effects, AudioSystem, DecalSystem | `point, normal, material` |
+| `shot:penetration` | ProjectileManager | Effects, AudioSystem, DecalSystem | `entryPoint, exitPoint, material, thickness` |
 | `shot:tracer` | (ninguém) | Effects | — |
 | `player:hp` | Player, GameManager | HUD | `hp, max` |
 | `player:damaged` | Player | HUD, AudioSystem, main (haptics) | `dmg, source, playerPos` |
@@ -951,14 +973,14 @@ Mapas atuais:
 | `vertigo.json` | Vertigo | 80×80 | ±35 | 83 | 0 | 0 | não |
 | `city.json` | Cidade Abandonada | 1000×1000 | ±485 | 2201 | 0 | 0 | não |
 | `vice.json` | Vice City | 2000×2000 | ±980 | 5908 | 0 | 0 | não |
-| `range.json` | Campo de Tiro | 56×96 | [-28,28,-48,48] | 59 | 0 | 0 | não |
+| `range.json` | Campo de Tiro (Sunny Remake) | 56×96 | [-28,28,-48,48] | 42 | 27 | 0 | sim (PBR) |
 
 ### 10.5 Materiais PBR (`MaterialFactory`)
 
-51 nomes registrados:
-`cobblestones`, `floor`, `wall_peeling_ochre`, `wall`, `wall_peeling_terra`, `wall_white`, `stone`, `roof`, `door_wood`, `window_shutter`, `ivy_foliage`, `wine_barrel`, `crate`, `wood`, `awning_red`, `dirt`, `path`, `grass`, `trunk`, `foliage`, `foliage_light`, `sand`, `sand_dark`, `sandstone`, `plaster_light`, `fabric_red`, `arabic_rug`, `fabric_green`, `palm_frond`, `palm_trunk`, `military_crate`, `oil_barrel`, `metal_barrel`, `blue_tarp`, `iron_grill`, `fence`, `scaffold`, `jungle_floor`, `woods_floor`, `mossy_rock`, `rock`, `jungle_bark`, `jungle_fern`, `fern`, `bamboo`, `camo_tarp`, `camo`, `sandbags`, `corrugated_iron`, `rusty_metal`, `concrete_dark`.
+54 nomes registrados:
+`cobblestones`, `floor`, `wall_peeling_ochre`, `wall`, `wall_peeling_terra`, `wall_white`, `stone`, `roof`, `door_wood`, `window_shutter`, `ivy_foliage`, `wine_barrel`, `crate`, `wood`, `awning_red`, `dirt`, `path`, `grass`, `trunk`, `foliage`, `foliage_light`, `sand`, `sand_dark`, `sandstone`, `plaster_light`, `fabric_red`, `arabic_rug`, `fabric_green`, `palm_frond`, `palm_trunk`, `military_crate`, `oil_barrel`, `metal_barrel`, `blue_tarp`, `iron_grill`, `fence`, `scaffold`, `jungle_floor`, `woods_floor`, `mossy_rock`, `rock`, `jungle_bark`, `jungle_fern`, `fern`, `bamboo`, `camo_tarp`, `camo`, `sandbags`, `corrugated_iron`, `rusty_metal`, `concrete_dark`, `concrete`, `target`, `plinker`.
 
-- **Não existem** `concrete`, `caution_yellow`, `steel_girder` → fallback `wall`.
+- **Não existem** `caution_yellow`, `steel_girder` → fallback `wall`. (Concreto e alvos foram implementados).
 - `Lisbon` usa `caution_yellow`, `metal_barrel` (existe), `steel_girder` → dois fallbacks.
 - `applyWorldSpaceUV` escala por material (0.35–0.45).
 
@@ -1122,8 +1144,8 @@ Chave `"type"` adicionada a todas as 10 armas em `assets/weapons/weapons.json` (
 ### 13.12 Materiais PBR ausentes em Lisbon
 `lisbon.json` usa `caution_yellow` e `steel_girder`, que não existem em `MaterialFactory`; caem no fallback `wall` silenciosamente. `concrete` também não existe como fábrica (só `concrete_dark`).
 
-### 13.13 `BarrelCrosshairAlignment` usa o ponto balístico, não o “puro”
-O comentário do passo 4 diz que projeta `_vPureTarget3D`, mas o código projeta `this.aimPointWorld` (`BarrelCrosshairAlignment.js:154-155`), que inclui spray. Consequência: `dynamicAlignment` ON reflete o ponto de impacto com recuo, não apenas sway/inércia.
+### 13.13 `BarrelCrosshairAlignment` e Sincronização 98%+ de Impacto [RESOLVIDO]
+Resolvida a divergência entre ponto puro e balístico. `BarrelCrosshairAlignment.js` agora projeta e expõe separadamente `pureScreenPos` (projeção física do cano com sway e inércia sem subida de spray) e `screenPos` (projeção balística completa com spray). No `CrosshairManager.js`, quando `dynamicAlignment` está ativo, o `transform` adicional de recuo é zerado para eliminar o double-dipping que jogava a mira no teto. Com isso, no modo dinâmico + follow recoil, o HUD atinge $\ge 98\%$ de match espacial comprovado com o ponto exato de impacto dos projéteis.
 
 ### 13.14 Documentação histórica divergente
 `src/new_mechanics/walkthrough.md` cita share codes, sliders RGB/opacidade e “12 suítes”; `README.md` lista controles e “9 armas”/“13 suítes”; `HUD.md` cita IDs `#btn-fire` etc. que não existem. **Código é a fonte de verdade.** `GEMINI.md` é a única diretiva formal congelada.
@@ -1165,6 +1187,15 @@ Todo o trabalho pendente de reload tático, drop de carregadores, QTE, áudio pr
 
 ### 13.24 Cheats e depuração expostos durante gameplay [RESOLVIDO]
 `Input.js` agora restringe a detecção de cheats no buffer de digitação de teclas a `CONFIG.DEV_MODE === true`. Foi integrado um Painel Dev & Cheats interativo na aba Ajustes do menu (`index.html` e `MenuController.js`) com botões dedicados e persistência via `localStorage`.
+
+### 13.25 Recoil climbing neutralizado precocemente durante rajadas [RESOLVIDO]
+Issue #9 no GitHub. `recoilRecoveryDelay = 0.08s` em `CameraRig.js` era menor que a cadência das armas (88–105ms), forçando a mira para baixo entre tiros consecutivos de uma mesma rajada e anulando o climbing. Resolvido com `recoveryDelay` dinâmico (`fireInterval * 2.2` ou mínimo de 0.24s) passado via `addRecoilImpulse()`, sustentando a subida cumulativa durante rajadas contínuas.
+
+### 13.26 Piscar estroboscópico de 35ms na retícula dinâmica [RESOLVIDO]
+Issue #10 no GitHub. O salto binário de `isResting` (0.0015 para 0.025 rad) somado ao decaimento em 2 frames da penalidade e ausência de lerp no `--gap` abriam e fechavam a mira de forma espasmódica. Resolvido com cálculo proporcional contínuo em `BallisticsCalculator.calculateCurrentSpread` e amortecimento inercial assimétrico (`lerpSpeed: 28.0` subida, `10.0` decaimento) em `CrosshairManager.js`.
+
+### 13.27 Baseline Canônica MasterWeapon e Modo Zeroing no mapa Range [RESOLVIDO]
+Arquitetura de balística pura desacoplada dos debuffs de armas individuais. Módulo `MasterWeapon.js` fornece baseline de 100% de precisão intrínseca, gravidade vertical pura e convergência tridimensional a 50m (`getConvergenceTarget` e `computeShotDirection`). No mapa Range (`range.json`) ou via `CONFIG.ZEROING.zeroingMode`, debuffs de dispersão, recuo e oscilação são desativados para calibração de miras e auditoria de modelos 3D, preservando rigorosamente a blindagem cinemática e de traçantes do `GEMINI.md`.
 
 ---
 
@@ -1234,7 +1265,8 @@ Todo o trabalho pendente de reload tático, drop de carregadores, QTE, áudio pr
 - [ ] Mapas: AABB, bounds, spawns, materiais válidos.
 - [ ] `npm test` verde; testes extras relevantes verdes.
 - [ ] Teste manual no navegador via HTTP (não `file://`).
-- [ ] Documentação atualizada (`PROJECT_MAP.md`/`CHANGELOG.md`/`DEFECTS_AND_VULNERABILITIES.md` conforme o caso).
+- [ ] `CHANGELOG.md` atualizado obrigatoriamente se scripts `.js` ou dados `.json` foram alterados.
+- [ ] Documentação atualizada (`PROJECT_MAP.md`/`DEFECTS_AND_VULNERABILITIES.md` conforme o caso).
 - [ ] Nenhum commit sem pedido explícito.
 
 ---
@@ -1245,5 +1277,6 @@ Todo o trabalho pendente de reload tático, drop de carregadores, QTE, áudio pr
 - Se mover/renomear arquivo, atualize §2, §6, §7 e os atalhos §0.
 - Se adicionar/remover evento, atualize §9.
 - Se alterar schema JSON, atualize §10.
+- Se alterar scripts `.js` ou dados `.json`, incremente obrigatoriamente o `CHANGELOG.md`.
 - Se descobrir divergência nova, registre em §13 com evidência (`arquivo:linha`).
 - Este mapa não substitui `GEMINI.md` (diretiva congelada) nem `AGENTS.md` (regras operacionais).

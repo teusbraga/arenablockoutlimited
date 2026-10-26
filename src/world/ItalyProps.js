@@ -1,5 +1,7 @@
 import * as THREE from 'three';
 import { materialFactory } from './MaterialFactory.js';
+import { TextureGenerator } from './TextureGenerator.js';
+import { on } from '../core/EventBus.js';
 
 /**
  * ItalyProps.js
@@ -19,6 +21,7 @@ export class ItalyProps {
   constructor(scene, world) {
     this.scene = scene;
     this.world = world;
+    this.plinkers = [];
   }
 
   /**
@@ -1393,5 +1396,345 @@ export class ItalyProps {
     }
     return mesh;
   }
-}
 
+
+  // =========================================================================
+  // PROPS DO ESTANDE DE TIRO (RANGE FACELIFT)
+  // =========================================================================
+
+  /**
+   * Suporte de madeira com alvo de papel militar e anéis concêntricos
+   */
+  addPaperTarget(x, y, z, rotY = 0, scale = 1.0) {
+    const group = new THREE.Group();
+    group.position.set(x, y, z);
+    group.rotation.y = rotY;
+
+    const matWood = materialFactory.get('wood');
+    const matTarget = materialFactory.get('target');
+
+    // 1. Mourões verticais de madeira (2x4)
+    const legGeo = new THREE.BoxGeometry(0.06 * scale, 1.8 * scale, 0.06 * scale);
+    const legL = new THREE.Mesh(legGeo, matWood);
+    legL.position.set(-0.35 * scale, 0.9 * scale, 0);
+    legL.castShadow = true;
+    group.add(legL);
+
+    const legR = new THREE.Mesh(legGeo, matWood);
+    legR.position.set(0.35 * scale, 0.9 * scale, 0);
+    legR.castShadow = true;
+    group.add(legR);
+
+    // 2. Travessas e sapatas de base no chão (H-base)
+    const footGeo = new THREE.BoxGeometry(0.06 * scale, 0.06 * scale, 0.65 * scale);
+    const footL = new THREE.Mesh(footGeo, matWood);
+    footL.position.set(-0.35 * scale, 0.03 * scale, 0);
+    footL.castShadow = true;
+    group.add(footL);
+
+    const footR = new THREE.Mesh(footGeo, matWood);
+    footR.position.set(0.35 * scale, 0.03 * scale, 0);
+    footR.castShadow = true;
+    group.add(footR);
+
+    // 3. Placa de sustentação de papelão/compensado
+    const boardW = 0.88 * scale;
+    const boardH = 1.25 * scale;
+    const boardGeo = new THREE.BoxGeometry(boardW, boardH, 0.02 * scale);
+    const board = new THREE.Mesh(boardGeo, matWood);
+    board.position.set(0, 1.25 * scale, 0);
+    board.castShadow = true;
+    board.receiveShadow = true;
+    group.add(board);
+
+    // 4. Folha de alvo frontal com textura concêntrica (virada para +Z)
+    const paperGeo = new THREE.PlaneGeometry(boardW * 0.98, boardH * 0.98);
+    const paperFront = new THREE.Mesh(paperGeo, matTarget);
+    paperFront.position.set(0, 1.25 * scale, 0.012 * scale);
+    paperFront.receiveShadow = true;
+    group.add(paperFront);
+
+    // 5. Folha de alvo traseira (virada para -Z)
+    const paperBack = new THREE.Mesh(paperGeo, matTarget);
+    paperBack.position.set(0, 1.25 * scale, -0.012 * scale);
+    paperBack.rotation.y = Math.PI;
+    paperBack.receiveShadow = true;
+    group.add(paperBack);
+
+    this.scene.add(group);
+
+    if (this.world) {
+      this.world.addBox(x, y + 1.25 * scale, z, boardW, boardH, 0.22 * scale, {
+        material: 'target',
+        isTarget: true
+      });
+    }
+
+    return group;
+  }
+
+  /**
+   * Alvo pendular de plinker (gongo metálico em cavalete que balança e emite PLIINNNG)
+   */
+  addPlinkerTarget(x, y, z, rotY = 0, plateRadius = 0.28, frameHeight = 1.75) {
+    const group = new THREE.Group();
+    group.position.set(x, y, z);
+    group.rotation.y = rotY;
+
+    const matSteel = materialFactory.get('scaffold');
+    const matPlinker = materialFactory.get('plinker');
+
+    // 1. Armação de cavalete em A (tubos de aço)
+    const legLen = frameHeight / Math.cos(0.24);
+    const legGeo = new THREE.CylinderGeometry(0.028, 0.028, legLen, 8);
+
+    const legFL = new THREE.Mesh(legGeo, matSteel);
+    legFL.position.set(-0.48, frameHeight * 0.5, 0.24);
+    legFL.rotation.z = 0.22;
+    legFL.rotation.x = -0.24;
+    legFL.castShadow = true;
+    group.add(legFL);
+
+    const legFR = new THREE.Mesh(legGeo, matSteel);
+    legFR.position.set(0.48, frameHeight * 0.5, 0.24);
+    legFR.rotation.z = -0.22;
+    legFR.rotation.x = -0.24;
+    legFR.castShadow = true;
+    group.add(legFR);
+
+    const legBL = new THREE.Mesh(legGeo, matSteel);
+    legBL.position.set(-0.48, frameHeight * 0.5, -0.24);
+    legBL.rotation.z = 0.22;
+    legBL.rotation.x = 0.24;
+    legBL.castShadow = true;
+    group.add(legBL);
+
+    const legBR = new THREE.Mesh(legGeo, matSteel);
+    legBR.position.set(0.48, frameHeight * 0.5, -0.24);
+    legBR.rotation.z = -0.22;
+    legBR.rotation.x = 0.24;
+    legBR.castShadow = true;
+    group.add(legBR);
+
+    // Barra superior horizontal do pivô
+    const barGeo = new THREE.CylinderGeometry(0.038, 0.038, 1.15, 10);
+    barGeo.rotateZ(Math.PI / 2);
+    const topBar = new THREE.Mesh(barGeo, matSteel);
+    topBar.position.set(0, frameHeight, 0);
+    topBar.castShadow = true;
+    group.add(topBar);
+
+    // 2. Montagem Balançante Suspensa no Pivô (Eixo no topo em frameHeight)
+    const pivotGroup = new THREE.Group();
+    pivotGroup.position.set(0, frameHeight, 0);
+    group.add(pivotGroup);
+
+    // Hastes/correntes de suspensão
+    const armLen = frameHeight * 0.56;
+    const armGeo = new THREE.BoxGeometry(0.022, armLen, 0.015);
+
+    const armL = new THREE.Mesh(armGeo, matSteel);
+    armL.position.set(-plateRadius * 0.6, -armLen * 0.5, 0);
+    armL.castShadow = true;
+    pivotGroup.add(armL);
+
+    const armR = new THREE.Mesh(armGeo, matSteel);
+    armR.position.set(plateRadius * 0.6, -armLen * 0.5, 0);
+    armR.castShadow = true;
+    pivotGroup.add(armR);
+
+    // Chapa circular do gongo de aço
+    const gongGeo = new THREE.CylinderGeometry(plateRadius, plateRadius, 0.028, 24);
+    gongGeo.rotateX(Math.PI / 2);
+    const gongMesh = new THREE.Mesh(gongGeo, matPlinker);
+    gongMesh.position.set(0, -armLen, 0);
+    gongMesh.castShadow = true;
+    gongMesh.receiveShadow = true;
+    pivotGroup.add(gongMesh);
+
+    // Centro bullseye em vermelho escarlate vivo
+    const dotGeo = new THREE.CylinderGeometry(plateRadius * 0.38, plateRadius * 0.38, 0.032, 20);
+    dotGeo.rotateX(Math.PI / 2);
+    const matDot = new THREE.MeshStandardMaterial({
+      color: 0xd32f2f,
+      roughness: 0.38,
+      metalness: 0.60
+    });
+    const dotMesh = new THREE.Mesh(dotGeo, matDot);
+    dotMesh.position.set(0, -armLen, 0.002);
+    pivotGroup.add(dotMesh);
+
+    this.scene.add(group);
+
+    const worldPlateY = y + frameHeight - armLen;
+
+    // 3. Colisor no CollisionWorld
+    let colBox = null;
+    if (this.world) {
+      colBox = this.world.addBox(x, worldPlateY, z, plateRadius * 2.1, plateRadius * 2.1, 0.28, {
+        material: 'plinker',
+        isPlinker: true
+      });
+    }
+
+    // 4. Controlador de Física Pendular do Plinker
+    const plinker = {
+      group,
+      pivotGroup,
+      box: colBox,
+      pos: new THREE.Vector3(x, worldPlateY, z),
+      angle: 0,
+      angularVel: 0,
+      hit(e) {
+        const dmg = e?.weapon?.ballistics?.terminal?.damage || 35;
+        const kick = Math.min(13.5, 3.2 + dmg * 0.14);
+        this.angularVel -= kick;
+      },
+      update(dt) {
+        if (Math.abs(this.angle) < 0.0005 && Math.abs(this.angularVel) < 0.002) {
+          if (this.angle !== 0 || this.angularVel !== 0) {
+            this.angle = 0;
+            this.angularVel = 0;
+            this.pivotGroup.rotation.x = 0;
+          }
+          return;
+        }
+
+        const omegaSq = 32.0; // torque restaurador da gravidade
+        const damping = 3.2;  // atrito viscoso nos rolamentos
+        const accel = -omegaSq * Math.sin(this.angle) - damping * this.angularVel;
+
+        this.angularVel += accel * dt;
+        this.angle += this.angularVel * dt;
+
+        if (this.angle < -2.9) {
+          this.angle = -2.9;
+          this.angularVel = -this.angularVel * 0.35;
+        } else if (this.angle > 2.9) {
+          this.angle = 2.9;
+          this.angularVel = -this.angularVel * 0.35;
+        }
+
+        this.pivotGroup.rotation.x = this.angle;
+      },
+      destroy() {
+        if (this._unsub) {
+          this._unsub();
+          this._unsub = null;
+        }
+      }
+    };
+
+    if (colBox) {
+      colBox.meta.plinker = plinker;
+    }
+
+    plinker._unsub = on('shot:world', e => {
+      if (e?.box === plinker.box || e?.box?.meta?.plinker === plinker) {
+        plinker.hit(e);
+      }
+    });
+
+    this.plinkers.push(plinker);
+    return plinker;
+  }
+
+  /**
+   * Bancada de tiro com divisórias de baia acústica
+   */
+  addShootingBench(x, y, z, rotY = 0, width = 2.4, depth = 0.9, height = 0.95) {
+    const group = new THREE.Group();
+    group.position.set(x, y, z);
+    group.rotation.y = rotY;
+
+    const matWood = materialFactory.get('wood');
+    const matSteel = materialFactory.get('scaffold');
+
+    // Tampo da bancada
+    const topGeo = new THREE.BoxGeometry(width, 0.08, depth);
+    const topMesh = new THREE.Mesh(topGeo, matWood);
+    topMesh.position.set(0, height, 0);
+    topMesh.castShadow = true;
+    topMesh.receiveShadow = true;
+    group.add(topMesh);
+
+    // 4 pernas tubulares de aço
+    const legGeo = new THREE.CylinderGeometry(0.035, 0.035, height, 8);
+    const px = width * 0.44;
+    const pz = depth * 0.40;
+    const offsets = [
+      [-px, pz], [px, pz],
+      [-px, -pz], [px, -pz]
+    ];
+    for (const [ox, oz] of offsets) {
+      const leg = new THREE.Mesh(legGeo, matSteel);
+      leg.position.set(ox, height * 0.5, oz);
+      leg.castShadow = true;
+      group.add(leg);
+    }
+
+    // Divisória lateral de baia (Sound Baffle Partition)
+    const baffleGeo = new THREE.BoxGeometry(0.06, 1.6, depth * 1.1);
+    const baffleMesh = new THREE.Mesh(baffleGeo, matWood);
+    baffleMesh.position.set(width * 0.5, height + 0.8, 0);
+    baffleMesh.castShadow = true;
+    group.add(baffleMesh);
+
+    this.scene.add(group);
+
+    if (this.world) {
+      this.world.addBox(x, y + height * 0.5, z, width, height, depth, {
+        material: 'wood',
+        vaultable: true
+      });
+    }
+
+    return group;
+  }
+
+  /**
+   * Placa de marcação de distância (ex: 10m, 25m, 50m, 75m)
+   */
+  addDistanceSign(x, y, z, text = "25m", rotY = 0) {
+    const group = new THREE.Group();
+    group.position.set(x, y, z);
+    group.rotation.y = rotY;
+
+    const matWood = materialFactory.get('wood');
+    const legGeo = new THREE.BoxGeometry(0.06, 1.2, 0.06);
+    const leg = new THREE.Mesh(legGeo, matWood);
+    leg.position.set(0, 0.6, 0);
+    leg.castShadow = true;
+    group.add(leg);
+
+    // Placa amarela de trânsito/militar com texto preto
+    const { canvas, ctx } = TextureGenerator.createCanvas(256, 128);
+    ctx.fillStyle = '#ffcc00';
+    ctx.fillRect(0, 0, 256, 128);
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = '#111111';
+    ctx.strokeRect(4, 4, 248, 120);
+
+    ctx.fillStyle = '#111111';
+    ctx.font = 'bold 56px "Oswald", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 128, 64);
+
+    const tex = TextureGenerator.toTexture(canvas, true);
+    const signMat = new THREE.MeshStandardMaterial({
+      map: tex,
+      roughness: 0.6,
+      metalness: 0.1
+    });
+
+    const signGeo = new THREE.BoxGeometry(0.8, 0.45, 0.03);
+    const signMesh = new THREE.Mesh(signGeo, signMat);
+    signMesh.position.set(0, 1.15, 0);
+    signMesh.castShadow = true;
+    group.add(signMesh);
+
+    this.scene.add(group);
+    return group;
+  }
+}
