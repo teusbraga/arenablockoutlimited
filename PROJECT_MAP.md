@@ -305,7 +305,7 @@ Cada linha: responsabilidade, exports principais, dependências e consumidores.
 - **Depende:** `CONFIG`.
 - **Camadas:** target yaw/pitch (`:44-46`), current/inércia (`:48-55`), punch/coice/shake (`:58-64`), bob/lean/flinch/perspectiva (`:70-93`).
 - **Métodos:** `addMouseInput` (`:99`), `addRecoilImpulse` (`:114`), `addShake` (`:145`), `setOrientation` (`:151`), `togglePerspective` (`:189`), `reset` (`:204`), `update` (`:227`), `applyToCamera` (`:450`).
-- **Update:** smoothDamp yaw/pitch; molas de recoil em subpassos de 2 ms; shake; headbob com `CONFIG.ACCESSIBILITY.headbobScale`; eye height/crouch; death roll; lean; spring-arm de 3ª pessoa com raycast.
+- **Update:** smoothDamp yaw/pitch; climb com controle 100% manual (autoRecoilRecovery: false por padrão, estilo CS2); amortecimento de 90% do headbob no ADS (adsDamp = 0.10); molas ágeis de recoil em subpassos de 2 ms (340/32); shake; eye height/crouch; death roll; lean; spring-arm de 3ª pessoa com raycast.
 - **Não usa** `CONFIG.SWAY` (molas são hardcoded 280/25 e 240/24).
 
 ### 7.2 `src/entities/`
@@ -450,7 +450,8 @@ Cada linha: responsabilidade, exports principais, dependências e consumidores.
 #### `MasterWeapon.js` (68 linhas)
 - **Stateless & Motor Canônico.**
 - **`isZeroingMode(mapName)`:** Ativo no mapa `range` (`Campo de Tiro`) ou via `CONFIG.ZEROING.zeroingMode`.
-- **`getConvergenceTarget(camPos, camForward, zeroDist, world)`:** Ponto focal central no infinito (50m padrão) ou no obstáculo mais próximo (raycast a partir de 0.4m).
+- **`calculateZeroingElevation(weaponDef, zeroDistance = 50.0)`:** Calcula o ângulo analítico exato θ_zero = (h / Z) + (g · Z) / (2 · v²) compensando o Height-Over-Bore (h) e queda gravitacional a 50m.
+- **`getConvergenceTarget(camPos, camForward, zeroDist, world)`:** Ponto focal fixo no infinito/distância zero (50m padrão), sem raycast de colisão dinâmica próximo, eliminando o efeito chicote ("mangueira elástica").
 - **`computeShotDirection(muzzleWorld, targetPoint)`:** Vetor diretor unificado colinear entre o bocal e o alvo focal, eliminando desvio de paralaxe tanto em Hipfire quanto em ADS com height-over-bore realista a curta distância.
 
 #### `BallisticsCalculator.js` (192 linhas)
@@ -491,7 +492,7 @@ Cada linha: responsabilidade, exports principais, dependências e consumidores.
 - **Re-exporta builders** (`:19`).
 - **Estrutura:** `swayGroup` → `mount` → modelo + flash light/mesh + arms.
 - **Métodos:** `registerModel` (`:171`, aceita `Group` ou `{group, physics}`), `equip` (`:181`), `triggerFire/reload` (`:208/214`), `applyKick` (`:224`), `applySwayFromRig` (`:243`), `updatePose` (`:355`), `_adsPos` (`:486`), `flash` (`:493`), `decayFlash` (`:546`).
-- **Pose:** hip/ADS/sprint de `weapons.json`; blend contínuo; recoil decai por peso; wall press; reload dip; magazine mesh animation; draw animation; physics própria quando existe.
+- **Pose:** hip/ADS/sprint de `weapons.json`; blend contínuo; cinemática Stock-Pivot com rotação apoiada no ombro; atenuação de 82% do recuo visual e 85% de sway/bobbing no ADS; recoil decai por peso; wall press; reload dip; magazine mesh animation; draw animation; physics própria quando existe.
 - **Flash:** consome `def.sfx.flash`; fallback por arma; VSS/P9/M12 sem flash.
 
 #### `ViewmodelArms.js` (328 linhas)
@@ -1280,3 +1281,6 @@ Arquitetura de balística pura desacoplada dos debuffs de armas individuais. Mó
 - Se alterar scripts `.js` ou dados `.json`, incremente obrigatoriamente o `CHANGELOG.md`.
 - Se descobrir divergência nova, registre em §13 com evidência (`arquivo:linha`).
 - Este mapa não substitui `GEMINI.md` (diretiva congelada) nem `AGENTS.md` (regras operacionais).
+
+### 13.28 Desacoplamento de Gunplay, Zeroing Analítico, Stock-Pivot e Recuo CS2 [RESOLVIDO]
+Normalização completa da cadeia de tiro: eliminação da convergência elástica em obstáculos próximos por substituição pelo cálculo analítico θ_zero a 50m em `MasterWeapon.js`; desacoplamento do frame 0 em `WeaponSystem.js`; cinemática de recuo Stock-Pivot com rotação ao redor do ombro direito e atenuação de 82% no ADS em `Viewmodel.js`; e controle de recuo 100% manual sem auto-recuperação pós-cessar fogo no `CameraRig.js` (estilo Counter-Strike 2).

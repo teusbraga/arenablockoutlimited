@@ -3,6 +3,8 @@
  * Fonte única de verdade: weapons.json — sem fallback hardcoded.
  */
 
+import { MasterWeapon } from './MasterWeapon.js';
+
 export let MODS = {};
 
 // BASE_WEAPONS inicia vazio; populado exclusivamente por initWeaponsFromData via weapons.json
@@ -196,6 +198,10 @@ export function compileWeapons(baseList = BASE_WEAPONS, modsList = MODS, ammoLis
     finalWep.casingType = base.casingType || (base.type === 'shotgun' ? 'shotgun' : 'standard');
     finalWep.smokeResidualMax = base.smokeResidualMax ?? 2;
     finalWep.smokeResidualColor = base.smokeResidualColor ?? '#ffffff';
+
+    // Elevação mecânica analítica de zeroing fixo (sem raycast dinâmico no tiro)
+    finalWep.zeroingDistance = 50.0;
+    finalWep.zeroingElevation = MasterWeapon.calculateZeroingElevation(finalWep, finalWep.zeroingDistance);
 
     compiled[key] = finalWep;
   }

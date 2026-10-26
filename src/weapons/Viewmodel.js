@@ -19,6 +19,11 @@ import { ViewmodelArms } from './ViewmodelArms.js';
 export { buildHK416, buildHK416 as buildAR15, buildP9, buildUZI, buildM249, buildRiflePrototype, buildAK47, buildSW500, buildWinchester1912, buildWinchester1912 as buildM12, buildVSS, buildSCARH };
 
 // Fallback de segurança para mocks sem sfx compilado
+
+const _vStockOffset = new THREE.Vector3();
+const _vRecoilPivotOffset = new THREE.Vector3();
+const _qStockRecoil = new THREE.Quaternion();
+const _eStockRecoil = new THREE.Euler();
 const FALLBACK_FLASH_SIZES = {
   'ar15': 0.25,
   'hk416': 0.25,
@@ -226,14 +231,15 @@ export class Viewmodel {
     if (this.activePhysics) return;
 
     // Cano sobe: rotação positiva em X eleva a ponta do cano e apoia a coronha
-    const rotScale = isADS ? 0.35 : 1.0;
-    const posScale = isADS ? 0.30 : 1.0;
+    const rotScale = isADS ? 0.20 : 1.0;
+    const posScale = isADS ? 0.35 : 1.0;
 
-    this.kickRotX += Math.max(pitch * customKickRot * rotScale, 0.015 * rotScale);
-    this.kickRotX = Math.min(this.kickRotX, isADS ? 0.035 : 0.075);
+    this.kickRotX += Math.max(pitch * customKickRot * rotScale, 0.012 * rotScale);
+    this.kickRotX = Math.min(this.kickRotX, isADS ? 0.020 : 0.075);
 
     this.kickPos.z += customKickbackZ * posScale;
-    this.kickPos.z = Math.min(this.kickPos.z, isADS ? 0.003 : 0.008);
+    this.kickPos.z = Math.min(this.kickPos.z, isADS ? 0.004 : 0.008);
+
   }
 
   /**
@@ -306,18 +312,19 @@ export class Viewmodel {
       idlePosY = Math.cos(time * 1.1) * 0.002 * idleWeight;
     }
 
+    // Atenuação tática no ADS: estabiliza a ótica no centro sem remover 100% a sensação de peso
+    const curAds = options?.adsAmount ?? (isADS ? 1.0 : 0.0);
+    const adsSwayDamp = Math.max(0.12, 1.0 - (curAds * 0.85));
+
     // Aplica Rotações no grupo de sway:
-    // - rotation.y: cano acompanha inércia virando na direção de atraso
-    // - rotation.x: cano sobe ou desce com o olhar vertical + inércia de arrancada/frenagem
-    // - rotation.z: inclinação (banking) orgânica na direção do movimento
-    this.swayGroup.rotation.y = -this.swayPos.x * 0.45 + idleRotY;
-    this.swayGroup.rotation.x = this.swayPos.y * 0.45 + idleRotX + this.locomotion.accelInertiaPitch;
-    this.swayGroup.rotation.z = this.swayPos.x * 0.20;
+    this.swayGroup.rotation.y = (-this.swayPos.x * 0.45 * adsSwayDamp) + (idleRotY * adsSwayDamp);
+    this.swayGroup.rotation.x = (this.swayPos.y * 0.45 * adsSwayDamp) + (idleRotX * adsSwayDamp) + (this.locomotion.accelInertiaPitch * adsSwayDamp);
+    this.swayGroup.rotation.z = this.swayPos.x * 0.20 * adsSwayDamp;
     
-    // Aplica Posições (bobbing com fase 100% contínua + offset suavizado + inércia longitudinal Z)
-    this.swayGroup.position.x = this.swayPos.x * 0.18 + bobX + idlePosX;
-    this.swayGroup.position.y = this.swayPos.y * 0.18 + bobY + idlePosY + this.locomotion.locoOffsetY;
-    this.swayGroup.position.z = this.locomotion.accelInertiaZ;
+    // Aplica Posições (bobbing e inércia longitudinal amortecidos no ADS para alinhamento firme):
+    this.swayGroup.position.x = (this.swayPos.x * 0.18 * adsSwayDamp) + (bobX * adsSwayDamp) + (idlePosX * adsSwayDamp);
+    this.swayGroup.position.y = (this.swayPos.y * 0.18 * adsSwayDamp) + (bobY * adsSwayDamp) + (idlePosY * adsSwayDamp) + (this.locomotion.locoOffsetY * adsSwayDamp);
+    this.swayGroup.position.z = this.locomotion.accelInertiaZ * adsSwayDamp;
 
     const mag = Math.hypot(this.swayPos.x, this.swayPos.y);
     this.smoothMag += (mag - this.smoothMag) * Math.min(dt * 6, 1);
@@ -407,12 +414,23 @@ export class Viewmodel {
     this.kickPos.z *= decay;
     this.kickRotX  *= decay;
 
-    // Atribui posição combinada final: pose base + recoil offset
-    mount.position.x = this.basePos.x;
-    mount.position.y = this.basePos.y;
-    mount.position.z = this.basePos.z + this.kickPos.z;
+    // Cinemática Stock-Pivot: Gira a arma ao redor da coronha apoiada no ombro direito,
+    // eliminando o efeito pêndulo. No ADS, atenua a rotação local para preservar a visão pela lente.
+    const rotMultiplier = 1.0 - (curAdsAmount * 0.82);
+    const effectiveKickRotX = this.kickRotX * rotMultiplier;
 
-    mount.rotation.x = this.baseRot.x + this.kickRotX;
+    // Posição de ombro (pivô): transição contínua entre hipfire e ADS
+    _vStockOffset.set(0.14 * (1.0 - curAdsAmount) + 0.08 * curAdsAmount, -0.16, 0.18);
+    _eStockRecoil.set(effectiveKickRotX, 0, 0, 'YXZ');
+    _qStockRecoil.setFromEuler(_eStockRecoil);
+
+    _vRecoilPivotOffset.copy(this.basePos).sub(_vStockOffset);
+    _vRecoilPivotOffset.applyQuaternion(_qStockRecoil);
+    _vRecoilPivotOffset.add(_vStockOffset);
+    _vRecoilPivotOffset.z += this.kickPos.z; // Coice linear no ombro
+
+    mount.position.copy(_vRecoilPivotOffset);
+    mount.rotation.x = this.baseRot.x + effectiveKickRotX;
     mount.rotation.y = this.baseRot.y;
     mount.rotation.z = this.baseRot.z;
 

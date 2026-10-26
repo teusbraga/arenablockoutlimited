@@ -45,6 +45,7 @@
     "idleBreathingSpeed": 1.5
   },
   "gunplay": {
+    "autoRecoilRecovery": false,
     "recoilRecoverySpeed": 14,
     "fireStreakDecayDelay": 0.22,
     "fireStreakMultiplier": 0.06,

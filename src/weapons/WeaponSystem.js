@@ -766,31 +766,51 @@ export class WeaponSystem {
       _muzzleWorld.z += dz;
     }
 
-    // Se dynamicAlignment estiver ativo no HUD (Mecânica Wardogs), atualiza e extrai o vetor exato do cano 3D
+    // Se dynamicAlignment estiver ativo no HUD (Mecânica Wardogs) OU se estiver em ADS,
+    // o tiro é 100% COLINEAR com o cano físico 3D da arma no mundo (Zero Curva / Zero Paralaxe)
     const isDynamicAlignment = this.hud?.crosshairManager
-      ? !!this.hud.crosshairManager.config.dynamicAlignment
-      : false;
-    const isFollowRecoil = this.hud?.crosshairManager
-      ? !!this.hud.crosshairManager.config.followRecoil
-      : false;
-
-    if (isDynamicAlignment && this.barrelAlignment && !this.ads) {
-      this.barrelAlignment.update(def, this.ads, 0.016, this.sprayRecoil, _muzzleWorld);
-      if (this.barrelAlignment.aimPointWorld) {
-        _dir.copy(this.barrelAlignment.aimPointWorld).sub(_muzzleWorld).normalize();
-      }
-    } else {
-      // Convergência Focal Unificada (Zeroing a 50m / Obstáculos Próximos)
-      // Se followRecoil estiver ativo no modo fixo, adiciona a elevação de sprayRecoil ao vetor antes da convergência
-      if (isFollowRecoil && !this.ads && this.sprayRecoil) {
-        _dir.addScaledVector(_up, this.sprayRecoil.pitch)
-            .addScaledVector(_right, -this.sprayRecoil.yaw)
-            .normalize();
-      }
-      const zeroDist = this.zeroDistance || (CONFIG?.ZEROING?.defaultZeroDistance ?? 50.0);
-      MasterWeapon.getConvergenceTarget(_camPos, _dir, zeroDist, this.world, _targetPoint);
-      MasterWeapon.computeShotDirection(_muzzleWorld, _targetPoint, _dir);
-    }
+          ? !!this.hud.crosshairManager.config.dynamicAlignment
+          : false;
+        const isFollowRecoil = this.hud?.crosshairManager
+          ? !!this.hud.crosshairManager.config.followRecoil
+          : false;
+    
+        // Distância nominal de zeroing e elevação mecânica analítica (calculada em WeaponDefs)
+        const zeroDist = this.zeroDistance || (CONFIG?.ZEROING?.defaultZeroDistance ?? 50.0);
+        const zeroElevation = def.zeroingElevation || MasterWeapon.calculateZeroingElevation(def, zeroDist);
+    
+        // Extrai o vetor diretor físico puro do cano 3D da arma no espaço de mundo
+        const _barrelDir = _forwardCopy;
+        _barrelDir.set(0, 0, -1);
+        if (this.viewmodel && this.viewmodel.mount) {
+          _barrelDir.transformDirection(this.viewmodel.mount.matrixWorld).normalize();
+        }
+    
+        if (this.ads) {
+          // 1. ADS: Visada ótica central (linha de visada da câmera).
+          // Aplica a elevação mecânica analítica fixa (zeroElevation) para cruzar a visada exatamente nos 50m.
+          // A bala sai 100% reta da ponta física do cano e preserva Height-Over-Bore natural (< 2m).
+          _dir.addScaledVector(_up, zeroElevation).normalize();
+        } else if (isDynamicAlignment) {
+          // 2. Hipfire Dinâmico (Mecânica Wardogs):
+          // A bala sai na direção física do cano 3D com a elevação mecânica de zeroing.
+          _dir.copy(_barrelDir).addScaledVector(_up, zeroElevation).normalize();
+    
+          if (this.barrelAlignment) {
+            this.barrelAlignment.update(def, this.ads, 0.016, this.sprayRecoil, _muzzleWorld);
+          }
+        } else {
+          // 3. Hipfire Clássico (Retículo Estático 50%, 50%):
+          // Se followRecoil estiver ativo no modo clássico estilo CS2, aplica a deflexão de sprayRecoil.
+          if (isFollowRecoil && this.sprayRecoil) {
+            _dir.addScaledVector(_up, this.sprayRecoil.pitch)
+                .addScaledVector(_right, -this.sprayRecoil.yaw)
+                .normalize();
+          }
+          MasterWeapon.getConvergenceTarget(_camPos, _dir, zeroDist, _targetPoint);
+          MasterWeapon.computeShotDirection(_muzzleWorld, _targetPoint, _dir);
+        }
+    
 
     // Se o cano estiver obstruído/comprimido contra a parede (Wall Press) e o mount ainda não tiver
     // refletido a inclinação (ex: antes do renderUpdate ou sem barrelAlignment), aplica a elevação física do cano (~75° para cima)

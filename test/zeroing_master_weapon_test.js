@@ -112,15 +112,24 @@ test('MasterWeapon - 3D Focal Convergence & Height-Over-Bore at Point-Blank vs 5
   assert.ok(hitPoint2m.y < 1.6, 'A 2m a bala deve estar abaixo da mira (height-over-bore)');
   assert.ok(hitPoint2m.y > 1.45, 'A bala deve estar subindo em direção ao ponto zero');
 
-  // 3. Com obstáculo a 10m: o ponto de convergência é a superfície física do obstáculo
+  // 3. Ausência de snap dinâmico por raycast: convergência estática preserva trajetória reta
   world.addBox(0, 1.6, -10, 2, 2, 1);
   const targetWall = MasterWeapon.getConvergenceTarget(camPos, camForward, 50.0, world);
-  assert.ok(Math.abs(targetWall.z - (-9.5)) < 0.01 || Math.abs(targetWall.z - (-10.5)) < 0.6);
+  assert.equal(targetWall.z, -50.0, 'Convergência estática a 50m não deve sofrer snap por obstáculo a 10m');
+
+  // 4. Teste de cálculo analítico de zeroing mecânico (HOB + gravidade)
+  const dummyElevation = MasterWeapon.calculateZeroingElevation({
+    muzzleLocal: [0, 0.02, -0.5],
+    sightLocal: [0, 0.076, -0.26],
+    ballistics: { terminal: { bulletSpeed: 850, bulletDrop: 9.8 } }
+  }, 50.0);
+  assert.ok(dummyElevation > 0.001 && dummyElevation < 0.002, `Zeroing elevation esperado ~0.0014 rad, obteve ${dummyElevation}`);
 });
 
 test('CameraRig - Issue #9: Recoil Climbing Sustained Across Rapid Bursts with recoveryDelay', () => {
   const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
   const rig = new CameraRig(camera);
+  rig.autoRecoilRecovery = true;
   const mockPlayer = {
     ads: false,
     activeWeaponWeight: 3.5,
@@ -163,6 +172,27 @@ test('CameraRig - Issue #9: Recoil Climbing Sustained Across Rapid Bursts with r
   const peakPitch = rig.targetPitch;
   rig.update(0.35, mockPlayer);
   assert.ok(rig.targetPitch < peakPitch, 'Após cessar a rajada e expirar o delay, o pitch deve começar a recuperar suavemente');
+});
+
+test('CameraRig - CS2 Manual Recoil Mode: Climb sobe e não volta no cessar-fogo', () => {
+  const camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+  const rig = new CameraRig(camera);
+  rig.autoRecoilRecovery = false;
+  const mockPlayer = {
+    ads: false,
+    activeWeaponWeight: 3.5,
+    vel: { x: 0, y: 0, z: 0 },
+    pos: { x: 0, y: 0, z: 0 },
+    renderPos: { x: 0, y: 0, z: 0 },
+    alive: true,
+    onGround: true,
+    sprinting: false,
+    crouched: false
+  };
+  rig.addRecoilImpulse({ climbPitch: 0.02 });
+  assert.equal(rig.targetPitch, 0.02);
+  rig.update(0.4, mockPlayer);
+  assert.equal(rig.targetPitch, 0.02, 'No modo CS2, o climb não deve decair sozinho após o fim da rajada');
 });
 
 test('CrosshairManager - Issue #10: Dynamic Gap Smoothing Eliminates 35ms Strobe', () => {

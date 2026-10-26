@@ -92,10 +92,11 @@ export class CameraRig {
     this.tpOffsetY = 0.22; // Elevação acima dos olhos
     this.tpSmoothDist = 2.4;
 
-    // ---- Recoil Climb & Recovery (Recuperação elástica gradual de subida de mira) ----
+    // ---- Recoil Climb & Recovery (CS2: controle 100% manual por padrão; autoRecoilRecovery opcional) ----
     this.recoilClimbPitch = 0;
     this.recoilClimbYaw = 0;
-    this.recoilRecoverySpeed = 4.0;
+    this.autoRecoilRecovery = CONFIG.GUNPLAY?.autoRecoilRecovery ?? false;
+    this.recoilRecoverySpeed = CONFIG.GUNPLAY?.recoilRecoverySpeed ?? 4.0;
     this.recoilRecoveryDelay = 0.08;
     this.timeSinceLastRecoil = 0;
   }
@@ -281,7 +282,8 @@ export class CameraRig {
 
     // Pitch
     this.timeSinceLastRecoil += dt;
-    if (this.timeSinceLastRecoil > this.recoilRecoveryDelay && this.recoilClimbPitch > 0.0001) {
+    const shouldRecover = this.autoRecoilRecovery ?? (CONFIG.GUNPLAY?.autoRecoilRecovery ?? false);
+    if (shouldRecover && this.timeSinceLastRecoil > this.recoilRecoveryDelay && this.recoilClimbPitch > 0.0001) {
       const rec = Math.min(this.recoilClimbPitch, this.recoilClimbPitch * this.recoilRecoverySpeed * dt);
       this.targetPitch -= rec;
       this.recoilClimbPitch -= rec;
@@ -303,8 +305,8 @@ export class CameraRig {
     // Sub-stepping numérico (500 Hz) para estabilidade analítica rigorosa
     let remainDt = dt;
     const subDt = 0.002;
-    const kRot = isAds ? 320.0 : 280.0;
-    const dRot = isAds ? 28.0 : 25.0;
+    const kRot = isAds ? 340.0 : 300.0;
+    const dRot = isAds ? 32.0 : 28.0;
     const kPos = 240.0;
     const dPos = 24.0;
 
@@ -365,7 +367,7 @@ export class CameraRig {
     const speedXZ = Math.hypot(player.vel.x, player.vel.z);
     const isMoving = player.alive && player.onGround && speedXZ > 0.15;
     const userBobScale = CONFIG.ACCESSIBILITY?.headbobScale ?? 1.0;
-    const adsDamp = isAds ? 0.15 : 1.0; // No ADS amortece 85% do headbob da câmera para mira tática estável
+    const adsDamp = isAds ? 0.10 : 1.0; // No ADS amortece 85% do headbob da câmera para mira tática estável
 
     this.stepTriggered = false;
 

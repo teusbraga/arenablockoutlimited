@@ -127,18 +127,10 @@ export class BarrelCrosshairAlignment {
     }
     this.pureAimPointWorld.copy(_vPureTarget3D);
 
-    // 2B. Direção BALÍSTICA Fiel do Cano 3D (respeita mount.matrixWorld, kickRotX físico e sway natural)
-    _vMuzzleDir.set(0, 0, -1).applyMatrix4(_matRot).normalize();
-    if (sprayRecoil && (Math.abs(sprayRecoil.pitch) > 0.0001 || Math.abs(sprayRecoil.yaw) > 0.0001)) {
-      _vRight.set(1, 0, 0).applyMatrix4(_matRot).normalize();
-      _vUp.set(0, 1, 0).applyMatrix4(_matRot).normalize();
-      const recoilGain = 0.54; // ~17% mais conservador que o antigo 0.65
-      _vMuzzleDir.addScaledVector(_vUp, sprayRecoil.pitch * recoilGain)
-                 .addScaledVector(_vRight, -sprayRecoil.yaw * recoilGain)
-                 .normalize();
-    }
-    this.barrelAimDir.copy(_vMuzzleDir);
-
+    // 2B. Direção BALÍSTICA Fiel do Cano 3D (100% colinear com mount.matrixWorld, kickRotX físico e sway natural)
+    _vMuzzleDir.set(0, 0, -1).applyMatrix4(_matRot).normalize();
+    this.barrelAimDir.copy(_vMuzzleDir);
+
     // 3. Raycast físico balístico para onde o tiro/tracer realmente vai no mundo 3D
     let hit = null;
     if (this.collisionWorld && typeof this.collisionWorld.raycast === 'function') {

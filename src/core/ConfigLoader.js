@@ -45,9 +45,10 @@ export const DEFAULT_CONFIG = {
     idleBreathingSpeed: 1.5
   },
   GUNPLAY: {
+    autoRecoilRecovery: false,
     recoilRecoverySpeed: 14.0,
     fireStreakDecayDelay: 0.22,
-    fireStreakMultiplier: 0.16,
+    fireStreakMultiplier: 0.06,
     maxFireStreak: 6
   },
   ACCESSIBILITY: {

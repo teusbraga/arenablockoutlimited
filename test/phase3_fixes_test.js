@@ -92,6 +92,7 @@ describe('Phase 3 - Bug Fixes & Mechanical Stability', () => {
 
   it('2. CameraRig: Recoil Climbing Recovery elástico e compensação manual', () => {
     const rig = new CameraRig();
+    rig.autoRecoilRecovery = true;
     rig.setOrientation(0, 0);
 
     // Injeta impulso de recuo (climbPitch = 0.05)
@@ -121,6 +122,25 @@ describe('Phase 3 - Bug Fixes & Mechanical Stability', () => {
     rig.recoilClimbPitch = 0.04;
     rig.addMouseInput(0, 15, 0.002); // dy = 15 -> pitchDelta = 0.03
     assert.ok(rig.recoilClimbPitch < 0.04, 'Movimento do mouse para baixo deve consumir climb pendente');
+  });
+
+  it('2b. CameraRig: Estilo CS2 (autoRecoilRecovery = false), climb sobe e permanece fixo sem retornar no cessar-fogo', () => {
+    const rig = new CameraRig();
+    rig.autoRecoilRecovery = false;
+    rig.setOrientation(0, 0);
+    rig.addRecoilImpulse({ climbPitch: 0.05 });
+    assert.strictEqual(rig.targetPitch, 0.05);
+    const mockPlayer = {
+      ads: false,
+      activeWeaponWeight: 3.5,
+      alive: true,
+      onGround: true,
+      vel: { x: 0, y: 0, z: 0 },
+      pos: { x: 0, y: 0, z: 0 },
+      renderPos: { x: 0, y: 0, z: 0 }
+    };
+    rig.update(0.5, mockPlayer); // 500ms pós-cessar fogo
+    assert.strictEqual(rig.targetPitch, 0.05, 'Pitch deve permanecer estritamente no valor subido sem decair');
   });
 
   it('3. MagazineDrop: Bloqueio de coleta em andares diferentes (Delta Y)', () => {
