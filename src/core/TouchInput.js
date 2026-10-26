@@ -4,8 +4,8 @@ import { CONFIG } from './ConfigLoader.js';
 export class TouchInput {
   constructor(inputManager) {
     this.input = inputManager;
-    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    const isCoarseOrMobileUA = (window.matchMedia?.('(pointer: coarse)')?.matches) || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+    const hasTouch = (typeof window !== 'undefined' && 'ontouchstart' in window) || (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0);
+    const isCoarseOrMobileUA = (typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)')?.matches) || (typeof navigator !== 'undefined' && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || ''));
     this.isMobile = Boolean(hasTouch && isCoarseOrMobileUA);
     
     // Identificadores de toque ativos
@@ -21,17 +21,19 @@ export class TouchInput {
     this.lastLookPos = { x: 0, y: 0 };
 
     // Elementos DOM
-    this.container = document.getElementById('mobile-controls');
-    this.joystickBase = document.getElementById('joystick-base');
-    this.joystickKnob = document.getElementById('joystick-knob');
-    this.touchZoneLeft = document.getElementById('touch-zone-left');
-    this.touchZoneRight = document.getElementById('touch-zone-right');
+    this.container = typeof document !== 'undefined' ? document.getElementById('mobile-controls') : null;
+    this.joystickBase = typeof document !== 'undefined' ? document.getElementById('joystick-base') : null;
+    this.joystickKnob = typeof document !== 'undefined' ? document.getElementById('joystick-knob') : null;
+    this.touchZoneLeft = typeof document !== 'undefined' ? document.getElementById('touch-zone-left') : null;
+    this.touchZoneRight = typeof document !== 'undefined' ? document.getElementById('touch-zone-right') : null;
 
     this._unsubs = [
       on('weapon:fired', () => this.vibrate(18)),
       on('player:damaged', () => this.vibrate([40, 30, 40])),
       on('weapon:empty', () => this.vibrate(35)),
-      on('weapon:reload', () => this.vibrate(25))
+      on('weapon:reload:start', () => this.vibrate(25)),
+      on('weapon:reload:end', () => this.vibrate([15, 30, 20])),
+      on('weapon:pump', () => this.vibrate(22))
     ];
 
     if (this.isMobile && this.container) {
@@ -175,6 +177,7 @@ export class TouchInput {
       const press = e => {
         e.preventDefault();
         e.stopPropagation();
+        this.vibrate(12);
         if (isToggle) {
           this.input.actions[action] = !this.input.actions[action];
           el.classList.toggle('active', this.input.actions[action]);
@@ -212,6 +215,7 @@ export class TouchInput {
       fireBtn.addEventListener('touchstart', e => {
         e.preventDefault();
         e.stopPropagation();
+        this.vibrate(18);
         for (let i = 0; i < e.changedTouches.length; i++) {
           const t = e.changedTouches[i];
           if (this.fireTouchId === null) {
@@ -295,6 +299,7 @@ export class TouchInput {
       const startFire = e => {
         e.preventDefault();
         e.stopPropagation();
+        this.vibrate(18);
         this.input.actions.fire = true;
         this.input._actionQueue.add('fire');
         btn.classList.add('active');
@@ -345,6 +350,7 @@ export class TouchInput {
       const triggerPause = e => {
         e.preventDefault();
         e.stopPropagation();
+        this.vibrate(12);
         this.input.locked = false;
         emit('input:lock', { locked: false });
       };
@@ -358,6 +364,7 @@ export class TouchInput {
       const triggerZoom = e => {
         e.preventDefault();
         e.stopPropagation();
+        this.vibrate(12);
         emit('input:zoom-toggle', {});
       };
       zoomBtn.addEventListener('touchstart', triggerZoom, { passive: false });
@@ -386,12 +393,77 @@ export class TouchInput {
     }
   }
 
-  vibrate(pattern) {
+  _ensureIOSHapticBridge() {
+    if (typeof document === 'undefined' || typeof document.createElement !== 'function') return null;
+    let label = typeof document.getElementById === 'function' ? document.getElementById('ios-haptic-label') : null;
+    if (!label) {
+      const bridge = document.createElement('div');
+      bridge.id = 'ios-haptic-bridge';
+      bridge.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0.01;pointer-events:none;overflow:hidden;';
+      bridge.setAttribute('aria-hidden', 'true');
+
+      const switchInput = document.createElement('input');
+      switchInput.type = 'checkbox';
+      switchInput.id = 'ios-haptic-switch';
+      switchInput.setAttribute('switch', '');
+
+      label = document.createElement('label');
+      label.id = 'ios-haptic-label';
+      label.htmlFor = 'ios-haptic-switch';
+
+      bridge.appendChild(switchInput);
+      bridge.appendChild(label);
+      if (document.body && typeof document.body.appendChild === 'function') {
+        document.body.appendChild(bridge);
+      }
+    }
+    return label;
+  }
+
+  _triggerIOSHaptic(pattern) {
+    if (!this._iosHapticLabel) {
+      this._iosHapticLabel = this._ensureIOSHapticBridge();
+    }
+    const label = this._iosHapticLabel;
+    if (!label || typeof label.click !== 'function') return;
+
+    if (Array.isArray(pattern)) {
+      let delay = 0;
+      for (let i = 0; i < pattern.length; i++) {
+        const dur = pattern[i];
+        if (i % 2 === 0) {
+          if (delay === 0) {
+            try { label.click(); } catch (_) {}
+          } else {
+            setTimeout(() => {
+              try { label.click(); } catch (_) {}
+            }, delay);
+          }
+        }
+        delay += dur;
+      }
+    } else {
+      try {
+        label.click();
+      } catch (_) {}
+    }
+  }
+
+  vibrate(pattern = 18) {
     if (!CONFIG.ACCESSIBILITY?.vibrationEnabled) return;
+    let hasVibrated = false;
     if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
       try {
-        navigator.vibrate(pattern);
-      } catch (_) {}
+        const res = navigator.vibrate(pattern);
+        hasVibrated = res !== false;
+      } catch (_) {
+        hasVibrated = false;
+      }
+    }
+
+    // Fallback para iOS WebKit / Safari / PWA (onde navigator.vibrate não existe ou retorna false)
+    if (!hasVibrated) {
+      this._triggerIOSHaptic(pattern);
     }
   }
 

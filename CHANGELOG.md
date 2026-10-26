@@ -19,6 +19,40 @@
 
 ### 🔹 Outubro de 2026
 
+#### [Mapa Favela 150x150, Texturas Procedurais Orgânicas e Props de Laje/Vielas] — 26/10/2026
+* **feat(maps):** Implementação completa do mapa `favela.json` (150x150), novas texturas procedurais PBR orgânicas e props temáticos de vielas e lajes:
+  * **Novo Mapa `assets/maps/favela.json` (150x150):** Escala de 150 × 150 metros (`bounds: [-70, 70, -70, 70]`) com traçado de labirinto orgânico de vielas e becos estreitos (1.8m a 3.0m de largura).
+  * **Céu e Atmosfera Ensolarada (Sunny Sky Environment):** Configuração de céu azul celeste ensolarado vibrante (`fogColor: "#4ea8f5"`, `fogNear: 85`, `fogFar: 260`) com iluminação solar intensa (`sunIntensity: 2.2`, `sunColor: "#fffdf0"`) e luz ambiente difusa azul (`ambientIntensity: 1.25`), eliminando a neblina escura padrão e destacando os sobrados sob luz de dia limpo.
+  * **Casas com Interior Acessível e Lajes Transitáveis:**
+    * *Casa 1 (Casarão da Laje Central):* Térreo de 2 cômodos com portas e janelas abertas, escada de alvenaria interna/externa (`favela_stairs`) levando à laje superior (Y = 3.8m) com muretas de cobertura, caixa d'água azul e puxadinho de zinco.
+    * *Casa 2 (Sobrado do Beco do Trapézio):* Geometria angular inspirada no esboço com sala térrea acessível, escada e laje com vista da travessa norte.
+    * *Casa 3 (Fortim do Beco do Pixo):* Edifício com interior acessível, escada externa, passarela de madeira suspensa conectando à laje vizinha para combate vertical.
+  * **Novas Texturas Procedurais PBR em `TextureGenerator.js` e `MaterialFactory.js`:**
+    * `favela_brick`: Tijolo baiano furado terracota aparente sem reboco com argamassa espessa e manchas de queima.
+    * `favela_wall_organic`: Reboco tosco com padrões orgânicos complexos (manchas de umidade capilar ascendente na base, mofo/lodo esverdeado, escorrimentos verticais de chuva e partes descascadas com tijolo exposto).
+    * `favela_graffiti` / `favela_pixo`: Paredes de reboco com pichações de traço reto brasileiro ("PAZ", "FÉ", "150M"), tags em spray e escorrimentos verticais de tinta fresca.
+    * `favela_concrete_slab`: Laje de concreto armado rústico com marcas de tábuas de caixaria de madeira e pontas de vergalhão enferrujado.
+    * `favela_alley_floor`: Piso de vielas com cimento batido irregular, remendos de asfalto gasto, canaleta central de esgoto/drenagem e manchas de óleo.
+  * **Novos Props 3D em `ItalyProps.js` e `MapLoader.js`:**
+    * `favela_antenna`: Antenas UHF espinha de peixe com varetas de alumínio e antenas parabólicas de laje.
+    * `overhead_wires`: Fiação elétrica aérea e cabos pretos suspensos com catenária cruzando os becos entre as casas.
+    * `utility_pole`: Poste de viela com cruzeta de madeira, 4 isoladores de cerâmica e transformador em balanço.
+    * `favela_water_tank`: Autêntica caixa d'água azul de polietileno (1000L) com anéis de reforço, tampa cônica e colisão transitável.
+    * `favela_stairs`: Escadas com degraus de 0.35m (compatíveis com o `stepHeight: 0.55m` do jogador para subida suave sem pular).
+  * **Integração na Interface:** Disponibilização da opção no seletor de mapas de `index.html`.
+  * **Garantia de Qualidade & Testes:** Suíte dedicada `test/favela_map_test.js` com validação de dimensões, spawns com distância de segurança (>11m), integridade de materiais e colisão do mundo. Suíte `npm test` 100% verde (111/111 testes aprovados).
+
+#### [Suporte a Vibração Tátil no PWA de iPhone e Correção de Haptics Mobile] — 26/10/2026
+* **feat(haptics):** Suporte nativo ao motor tátil (Taptic Engine) do iPhone (iOS 17.4+ e iOS 18+) para Safari e PWAs instalados na Tela de Início em `src/core/TouchInput.js` e `index.html`:
+  * **Ponte Nativa WebKit Switch Bridge (`#ios-haptic-bridge`):** Como o WebKit para iOS não implementa o padrão W3C `navigator.vibrate()`, foi injetada uma ponte nativa estruturada com `<input type="checkbox" switch>` e `<label for="...">` posicionada no DOM para se manter no render tree sem visibilidade ou interferência de ponteiro (`position: fixed; top: -9999px; left: -9999px; width: 1px; height: 1px; opacity: 0.01; pointer-events: none`). O acionamento programático `.click()` do label faz o WebKit acionar o Taptic Engine físico do iPhone.
+  * **Fallback Transparente e Suporte a Padrões de Múltiplos Pulsos:** Em `TouchInput.prototype.vibrate()`, se `navigator.vibrate` não estiver disponível ou retornar falso (iOS), o método delega para `_triggerIOSHaptic()`. Padrões escalonados como arrays (ex: `[40, 30, 40]` de dano sofrido ou `[15, 30, 20]` de fim de recarga) são despachados sequencialmente através de temporizadores sincronizados.
+  * **Resposta Tátil Síncrona em Gestos de Toque:** Inclusão de feedback tátil imediato no evento `touchstart` dos botões virtuais de disparo (`btn-touch-fire`, `btn-touch-fire-top`, `btn-touch-fire-left`) e de ação (`btn-touch-reload`, `btn-touch-jump`, `btn-touch-crouch`, `btn-touch-ads`, `btn-touch-smoke`, `btn-touch-cycle`, `btn-touch-firemode`, `btn-touch-interact`, `btn-touch-pause`, `btn-touch-zoom`), cumprindo o requisito de gesto de usuário do WebKit e eliminando qualquer latência percebida.
+  * **Confirmação no Menu de Acessibilidade:** Em `MenuController.js`, alternar a opção "Vibração Tátil" para "Ativado" aciona imediatamente um pulso de teste de 25ms para que o jogador sinta a resposta tátil na hora.
+* **fix(events):** Correção de evento canônico de recarga e expansão de haptics em `src/core/TouchInput.js`:
+  * **Substituição do Evento Inexistente:** O listener de `weapon:reload` (evento inexistente no catálogo canônico) foi substituído pelos eventos canônicos reais `weapon:reload:start` e `weapon:reload:end`.
+  * **Adição de Haptics para Ação de Bomba:** Inclusão de listener para `weapon:pump` (ação de bomba da espingarda Winchester Model 1912).
+* **test(haptics):** Nova suíte de testes unitários e de integração `test/touch_haptics_ios_test.js` com 6 testes aprovados, cobrindo respeito à configuração de acessibilidade, caminho padrão W3C, fallback WebKit iOS, criação dinâmica da ponte DOM e validação de todos os eventos canônicos ouvidos. Suíte global `npm test` atualizada de 105 para 111 testes verdes.
+
 #### [Sincronização Fiel do HUD, Dynamic Gap Sub-MOA e Alinhamento do Cano 3D] — 26/10/2026
 * **fix(crosshair):** Sincronização do HUD e projeção 3D de alta precisão em `BarrelCrosshairAlignment.js` e `CrosshairManager.js`:
   * **Alinhamento do Cano Colinear com Zeroing Analítico:** Em `BarrelCrosshairAlignment.js`, o vetor balístico do cano (`barrelAimDir`) e a direção pura (`pureBarrelDir`) agora incorporam analiticamente a elevação mecânica `weaponDef.zeroingElevation`, garantindo que a projeção da crosshair no modo dinâmico coincida com precisão sub-milimétrica com o ponto real de impacto a 50m.

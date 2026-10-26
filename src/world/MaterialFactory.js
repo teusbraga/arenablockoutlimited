@@ -694,6 +694,82 @@ export class MaterialFactory {
       return mat;
     });
 
+    // 38. Tijolo Baiano / Cerâmico Furado de Favela
+    this.factories.set('favela_brick', () => {
+      const b = textures.createFavelaBrick(512);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        map: b.diffuse,
+        bumpMap: b.bump,
+        bumpScale: 0.05,
+        roughnessMap: b.roughness,
+        roughness: 0.90,
+      });
+      MaterialFactory.applyWorldSpaceUV(mat, 0.4);
+      return mat;
+    });
+
+    // 39. Parede Orgânica de Favela (Manchas, Mofo, Infiltração e Reboco)
+    this.factories.set('favela_wall_organic', () => {
+      const w = textures.createFavelaOrganicWall(512);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        map: w.diffuse,
+        bumpMap: w.bump,
+        bumpScale: 0.045,
+        roughnessMap: w.roughness,
+        roughness: 0.88,
+      });
+      MaterialFactory.applyWorldSpaceUV(mat, 0.35);
+      return mat;
+    });
+
+    // 40. Parede com Pichação e Grafites Urbanos
+    this.factories.set('favela_graffiti', () => {
+      const g = textures.createFavelaGraffiti(512);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        map: g.diffuse,
+        bumpMap: g.bump,
+        bumpScale: 0.035,
+        roughnessMap: g.roughness,
+        roughness: 0.85,
+      });
+      MaterialFactory.applyWorldSpaceUV(mat, 0.35);
+      return mat;
+    });
+    this.factories.set('favela_pixo', () => this.get('favela_graffiti'));
+
+    // 41. Laje de Concreto Armado com Marcas de Caixaria
+    this.factories.set('favela_concrete_slab', () => {
+      const s = textures.createFavelaConcreteSlab(512);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        map: s.diffuse,
+        bumpMap: s.bump,
+        bumpScale: 0.04,
+        roughnessMap: s.roughness,
+        roughness: 0.85,
+      });
+      MaterialFactory.applyWorldSpaceUV(mat, 0.35);
+      return mat;
+    });
+    this.factories.set('favela_slab', () => this.get('favela_concrete_slab'));
+
+    // 42. Chão de Vielas e Becos da Favela (Concreto Irregular e Canaleta)
+    this.factories.set('favela_alley_floor', () => {
+      const f = textures.createFavelaAlleyFloor(512);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        map: f.diffuse,
+        bumpMap: f.bump,
+        bumpScale: 0.05,
+        roughnessMap: f.roughness,
+        roughness: 0.92,
+      });
+      MaterialFactory.applyWorldSpaceUV(mat, 0.35);
+      return mat;
+    });
     return this.materials;
   }
 

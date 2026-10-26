@@ -210,6 +210,12 @@
   <button id="btn-touch-pause" class="touch-btn">⏸</button>
 </div>
 
+<!-- Ponte Nativa de Haptic Feedback para iOS Safari / PWA (Taptic Engine) -->
+<div id="ios-haptic-bridge" style="position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0.01;pointer-events:none;overflow:hidden;" aria-hidden="true">
+  <input type="checkbox" id="ios-haptic-switch" switch />
+  <label for="ios-haptic-switch" id="ios-haptic-label"></label>
+</div>
+
 <!-- Alerta de Orientação Horizontal para Celular -->
 <div id="orientation-warning">
   <h2>GIRE O APARELHO</h2>
@@ -380,6 +386,7 @@
           <div class="menu-option">
             <label for="map-select">Mapa</label>
             <select id="map-select">
+              <option value="./assets/maps/favela.json">Favela (Labirinto &amp; Vielas 150x150)</option>
               <option value="./assets/maps/dust.json" selected>Dust Block (Mirage Dunes Remake)</option>
               <option value="./assets/maps/lisbon.json">Lisboa — Bairro Alto &amp; Baixa (300x300)</option>
               <option value="./assets/maps/italy.json">CS Italy (Mapa Teste de Texturas)</option>

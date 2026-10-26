@@ -335,6 +335,22 @@ export async function loadMap(url, scene) {
         case 'mossy_boulder':
           italyProps.addMossyBoulder(p.pos[0], p.pos[1], p.pos[2], p.sx || 2.8, p.sy || 2.0, p.sz || 2.5, p.rotY || 0);
           break;
+        // Props especializados de Favela
+        case 'favela_antenna':
+          italyProps.addFavelaAntenna(p.pos[0], p.pos[1], p.pos[2], p.rotY || 0, p.scale || 1.0, p.antennaType || 'uhf');
+          break;
+        case 'overhead_wires':
+          italyProps.addOverheadWires(p.from[0], p.from[1], p.from[2], p.to[0], p.to[1], p.to[2], p.sag || 0.35, p.cableCount || 3);
+          break;
+        case 'utility_pole':
+          italyProps.addUtilityPole(p.pos[0], p.pos[1], p.pos[2], p.rotY || 0, p.height || 7.0);
+          break;
+        case 'favela_water_tank':
+          italyProps.addFavelaWaterTank(p.pos[0], p.pos[1], p.pos[2], p.scale || 1.0);
+          break;
+        case 'favela_stairs':
+          italyProps.addFavelaStairs(p.pos[0], p.pos[1], p.pos[2], p.rotY || 0, p.steps || 8, p.width || 1.2, p.stepHeight || 0.35, p.stepDepth || 0.45, p.withHandrail ?? true);
+          break;
       }
     }
   }

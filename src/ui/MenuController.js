@@ -355,6 +355,18 @@ export class MenuController {
         const enabled = this.vibrationToggle.value === 'on';
         CONFIG.ACCESSIBILITY.vibrationEnabled = enabled;
         localStorage.setItem('blocky_vibration', enabled ? 'true' : 'false');
+        if (enabled) {
+          if (this.input?.touch?.vibrate) {
+            this.input.touch.vibrate(25);
+          } else if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+            try { navigator.vibrate(25); } catch (_) {}
+          } else {
+            const label = document.getElementById('ios-haptic-label');
+            if (label && typeof label.click === 'function') {
+              try { label.click(); } catch (_) {}
+            }
+          }
+        }
       });
     }
 

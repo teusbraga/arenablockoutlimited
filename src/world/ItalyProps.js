@@ -1695,6 +1695,264 @@ export class ItalyProps {
   /**
    * Placa de marcação de distância (ex: 10m, 25m, 50m, 75m)
    */
+  /** =========================================================================
+   * PROPS ESPECIALIZADOS DE FAVELA (Labirinto, Vielas, Lajes e Telhados)
+   * ========================================================================= */
+
+  /**
+   * Antenas de TV de laje (UHF espinha de peixe ou antena parabólica com prato)
+   */
+  addFavelaAntenna(x, y, z, rotY = 0, scale = 1.0, type = 'uhf') {
+    const group = new THREE.Group();
+    group.position.set(x, y, z);
+    group.rotation.y = rotY;
+
+    const matMetal = new THREE.MeshStandardMaterial({
+      color: 0xa0a5ab,
+      metalness: 0.85,
+      roughness: 0.35
+    });
+
+    // Mastro principal de fixação
+    const mastH = 2.4 * scale;
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.03 * scale, 0.035 * scale, mastH, 8), matMetal);
+    mast.position.set(0, mastH / 2, 0);
+    mast.castShadow = true;
+    group.add(mast);
+
+    if (type === 'dish') {
+      // Antena Parabólica de laje
+      const dishR = 0.65 * scale;
+      const dish = new THREE.Mesh(new THREE.CylinderGeometry(dishR, dishR * 0.9, 0.05 * scale, 16), matMetal);
+      dish.position.set(0, mastH - 0.15 * scale, 0.25 * scale);
+      dish.rotation.x = -Math.PI / 4; // Inclinada para o céu
+      dish.castShadow = true;
+      group.add(dish);
+
+      // Haste do LNB receptor
+      const lnb = new THREE.Mesh(new THREE.CylinderGeometry(0.015 * scale, 0.015 * scale, 0.55 * scale, 6), matMetal);
+      lnb.position.set(0, mastH + 0.1 * scale, 0.45 * scale);
+      lnb.rotation.x = Math.PI / 4;
+      group.add(lnb);
+    } else {
+      // Antena UHF Espinha de Peixe clássica brasileira
+      const boomLen = 1.4 * scale;
+      const boom = new THREE.Mesh(new THREE.BoxGeometry(0.03 * scale, 0.03 * scale, boomLen), matMetal);
+      boom.position.set(0, mastH - 0.1 * scale, boomLen / 2);
+      boom.castShadow = true;
+      group.add(boom);
+
+      // Varetas transversais decrescentes
+      const elements = 6;
+      for (let i = 0; i < elements; i++) {
+        const elemW = (0.75 - i * 0.08) * scale;
+        const elemZ = (i / (elements - 1)) * (boomLen * 0.9) + 0.05 * scale;
+        const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.012 * scale, 0.012 * scale, elemW, 6), matMetal);
+        bar.rotation.z = Math.PI / 2;
+        bar.position.set(0, mastH - 0.1 * scale, elemZ);
+        bar.castShadow = true;
+        group.add(bar);
+      }
+    }
+
+    if (this.world) {
+      this.world.addBox(x, y + 0.45, z, 0.4, 0.9, 0.4, { vaultable: true });
+    }
+
+    this.scene.add(group);
+    return group;
+  }
+
+  /**
+   * Fiação elétrica aérea e cabos pretos suspensos cruzando o beco
+   */
+  addOverheadWires(x1, y1, z1, x2, y2, z2, sag = 0.35, cableCount = 3) {
+    const group = new THREE.Group();
+    const wireMat = new THREE.MeshBasicMaterial({ color: 0x141517 });
+
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const dz = z2 - z1;
+    const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    if (dist < 0.5) return group;
+
+    // Vetor perpendicular horizontal para espalhar os fios
+    const perpX = -dz / dist;
+    const perpZ = dx / dist;
+
+    for (let c = 0; c < cableCount; c++) {
+      const offset = (c - (cableCount - 1) * 0.5) * 0.16;
+      const p1 = new THREE.Vector3(x1 + perpX * offset, y1 - c * 0.08, z1 + perpZ * offset);
+      const p2 = new THREE.Vector3(x2 + perpX * offset, y2 - c * 0.08, z2 + perpZ * offset);
+      const mid = new THREE.Vector3(
+        (p1.x + p2.x) * 0.5,
+        (p1.y + p2.y) * 0.5 - sag * (1.0 + c * 0.15),
+        (p1.z + p2.z) * 0.5
+      );
+
+      const curve = new THREE.QuadraticBezierCurve3(p1, mid, p2);
+      const tubeGeo = new THREE.TubeGeometry(curve, 8, 0.018, 4, false);
+      const wireMesh = new THREE.Mesh(tubeGeo, wireMat);
+      group.add(wireMesh);
+    }
+
+    this.scene.add(group);
+    return group;
+  }
+
+  /**
+   * Poste de concreto de viela com cruzeta, isoladores e transformador ("gatos")
+   */
+  addUtilityPole(x, y, z, rotY = 0, height = 7.0) {
+    const group = new THREE.Group();
+    group.position.set(x, y, z);
+    group.rotation.y = rotY;
+
+    const matPole = materialFactory.get('concrete') || new THREE.MeshStandardMaterial({ color: 0x888b90, roughness: 0.9 });
+    const matWood = materialFactory.get('wood') || new THREE.MeshStandardMaterial({ color: 0x4a321f });
+    const matMetal = new THREE.MeshStandardMaterial({ color: 0x2e3338, metalness: 0.8, roughness: 0.4 });
+
+    // 1. Coluna de concreto do poste
+    const poleGeo = new THREE.BoxGeometry(0.38, height, 0.38);
+    const poleMesh = new THREE.Mesh(poleGeo, matPole);
+    poleMesh.position.set(0, height / 2, 0);
+    poleMesh.castShadow = true;
+    group.add(poleMesh);
+
+    // 2. Cruzeta horizontal superior
+    const armGeo = new THREE.BoxGeometry(2.2, 0.14, 0.14);
+    const armMesh = new THREE.Mesh(armGeo, matWood);
+    armMesh.position.set(0, height - 0.35, 0);
+    armMesh.castShadow = true;
+    group.add(armMesh);
+
+    // 3. 4 isoladores de cerâmica
+    const insMat = new THREE.MeshStandardMaterial({ color: 0x2b4f3b, roughness: 0.3 });
+    const insPositions = [-0.85, -0.3, 0.3, 0.85];
+    for (const ip of insPositions) {
+      const ins = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.16, 8), insMat);
+      ins.position.set(ip, height - 0.22, 0);
+      group.add(ins);
+    }
+
+    // 4. Transformador de energia em balanço
+    const trafo = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.85, 0.55), matMetal);
+    trafo.position.set(0, height - 2.5, 0.42);
+    trafo.castShadow = true;
+    group.add(trafo);
+
+    if (this.world) {
+      this.world.addBox(x, y + height / 2, z, 0.5, height, 0.5);
+    }
+
+    this.scene.add(group);
+    return group;
+  }
+
+  /**
+   * A autêntica caixa d'água azul brasileira (polietileno 1000L com tampa e anéis)
+   */
+  addFavelaWaterTank(x, y, z, scale = 1.0) {
+    const group = new THREE.Group();
+    group.position.set(x, y, z);
+
+    const tankMat = new THREE.MeshStandardMaterial({
+      color: 0x0c4ea2, // Azul escuro royal característico
+      roughness: 0.42,
+      metalness: 0.12
+    });
+
+    const tankH = 1.35 * scale;
+    const tankRTop = 0.85 * scale;
+    const tankRBot = 0.72 * scale;
+
+    // Corpo cilíndrico cônico da caixa
+    const tankGeo = new THREE.CylinderGeometry(tankRTop, tankRBot, tankH, 16);
+    const tankMesh = new THREE.Mesh(tankGeo, tankMat);
+    tankMesh.position.set(0, tankH / 2, 0);
+    tankMesh.castShadow = true;
+    group.add(tankMesh);
+
+    // Tampa sobreposta cônica
+    const lidH = 0.22 * scale;
+    const lidGeo = new THREE.CylinderGeometry(0.15 * scale, tankRTop + 0.05 * scale, lidH, 16);
+    const lidMesh = new THREE.Mesh(lidGeo, tankMat);
+    lidMesh.position.set(0, tankH + lidH / 2, 0);
+    lidMesh.castShadow = true;
+    group.add(lidMesh);
+
+    // Anéis de reforço
+    const ringGeo = new THREE.TorusGeometry(tankRTop * 0.94, 0.025 * scale, 6, 20);
+    const ring1 = new THREE.Mesh(ringGeo, tankMat);
+    ring1.rotation.x = Math.PI / 2;
+    ring1.position.set(0, tankH * 0.4, 0);
+    group.add(ring1);
+
+    const ring2 = new THREE.Mesh(ringGeo, tankMat);
+    ring2.rotation.x = Math.PI / 2;
+    ring2.position.set(0, tankH * 0.75, 0);
+    group.add(ring2);
+
+    if (this.world) {
+      this.world.addBox(x, y + (tankH + lidH) / 2, z, tankRTop * 2, tankH + lidH, tankRTop * 2, { vaultable: true });
+    }
+
+    this.scene.add(group);
+    return group;
+  }
+
+  /**
+   * Escada de alvenaria/concreto para acesso transitável a lajes e pisos superiores
+   */
+  addFavelaStairs(x, y, z, rotY = 0, steps = 8, width = 1.2, stepHeight = 0.35, stepDepth = 0.45, withHandrail = true) {
+    const group = new THREE.Group();
+    group.position.set(x, y, z);
+    group.rotation.y = rotY;
+
+    const matSlab = materialFactory.get('favela_concrete_slab') || materialFactory.get('concrete');
+    const matRail = materialFactory.get('iron_grill');
+
+    const cos = Math.cos(rotY);
+    const sin = Math.sin(rotY);
+
+    for (let i = 0; i < steps; i++) {
+      const localZ = i * stepDepth + stepDepth / 2;
+      const localY = i * stepHeight + stepHeight / 2;
+
+      const stepGeo = new THREE.BoxGeometry(width, stepHeight, stepDepth);
+      const stepMesh = new THREE.Mesh(stepGeo, matSlab);
+      stepMesh.position.set(0, localY, localZ);
+      stepMesh.castShadow = true;
+      stepMesh.receiveShadow = true;
+      group.add(stepMesh);
+
+      // Colisão para o player caminhar (stepHeight <= 0.4m permite subir sem travar)
+      if (this.world) {
+        const wx = x + (-sin * localZ);
+        const wz = z + (cos * localZ);
+        const wy = y + localY;
+        if (Math.abs(sin) > 0.7) {
+          this.world.addBox(wx, wy, wz, stepDepth, stepHeight, width);
+        } else {
+          this.world.addBox(wx, wy, wz, width, stepHeight, stepDepth);
+        }
+      }
+    }
+
+    if (withHandrail) {
+      const totalZ = steps * stepDepth;
+      const totalY = steps * stepHeight;
+      const railGeo = new THREE.BoxGeometry(0.06, 0.06, totalZ * 1.05);
+      const railMesh = new THREE.Mesh(railGeo, matRail);
+      railMesh.position.set(width / 2, totalY / 2 + 0.9, totalZ / 2);
+      railMesh.rotation.x = Math.atan2(totalY, totalZ);
+      group.add(railMesh);
+    }
+
+    this.scene.add(group);
+    return group;
+  }
+
   addDistanceSign(x, y, z, text = "25m", rotY = 0) {
     const group = new THREE.Group();
     group.position.set(x, y, z);

@@ -2768,6 +2768,469 @@ export class TextureGenerator {
   }
 
   // =========================================================================
+  // 42. TIJOLO BAIANO / TIJOLO CERÂMICO FURADO DE FAVELA
+  // =========================================================================
+  /**
+   * Gera tijolo baiano terracota rústico de olaria, com ranhuras de extrusão,
+   * juntas grossas e irregulares de argamassa cinza, e manchas de queima.
+   */
+  createFavelaBrick(size = 512) {
+    const cacheKey = `favela_brick_${size}`;
+    if (this._cache.has(cacheKey)) return this._cache.get(cacheKey);
+
+    const { canvas: diffCanvas, ctx: diffCtx } = TextureGenerator.createCanvas(size, size);
+    const { canvas: bumpCanvas, ctx: bumpCtx } = TextureGenerator.createCanvas(size, size);
+    const { canvas: roughCanvas, ctx: roughCtx } = TextureGenerator.createCanvas(size, size);
+
+    // 1. Fundo de argamassa cinza irregular
+    diffCtx.fillStyle = '#7a766e';
+    diffCtx.fillRect(0, 0, size, size);
+    bumpCtx.fillStyle = '#505050';
+    bumpCtx.fillRect(0, 0, size, size);
+    roughCtx.fillStyle = '#c5c5c5';
+    roughCtx.fillRect(0, 0, size, size);
+
+    const rows = 12;
+    const cols = 6;
+    const bH = size / rows;
+    const bW = size / cols;
+    const mortar = 5;
+
+    for (let r = 0; r < rows; r++) {
+      const offsetX = (r % 2 === 1) ? bW * 0.5 : 0;
+      for (let c = -1; c < cols + 1; c++) {
+        const bx = c * bW + offsetX + mortar * 0.5;
+        const by = r * bH + mortar * 0.5;
+        const bw = bW - mortar;
+        const bh = bH - mortar;
+
+        const seed = r * 41 + c * 17;
+        const tone = 0.82 + TextureGenerator.pseudoRandom(seed, 3) * 0.36;
+        const rVal = Math.floor(180 * tone);
+        const gVal = Math.floor(70 * tone);
+        const bVal = Math.floor(35 * tone);
+
+        // Bloco cerâmico terracota
+        diffCtx.fillStyle = `rgb(${rVal}, ${gVal}, ${bVal})`;
+        diffCtx.fillRect(bx, by, bw, bh);
+
+        bumpCtx.fillStyle = '#b8b8b8';
+        bumpCtx.fillRect(bx, by, bw, bh);
+
+        roughCtx.fillStyle = '#9e9e9e';
+        roughCtx.fillRect(bx, by, bw, bh);
+
+        // Ranhuras de extrusão cerâmica típicas de tijolo furado
+        const grooves = 4;
+        for (let g = 1; g <= grooves; g++) {
+          const gy = by + (bh / (grooves + 1)) * g;
+          diffCtx.fillStyle = `rgb(${Math.floor(rVal * 0.78)}, ${Math.floor(gVal * 0.78)}, ${Math.floor(bVal * 0.78)})`;
+          diffCtx.fillRect(bx + 2, gy - 1, bw - 4, 2);
+
+          bumpCtx.fillStyle = '#828282';
+          bumpCtx.fillRect(bx + 2, gy - 1, bw - 4, 2);
+        }
+
+        // Manchas de queima escura em tijolos selecionados
+        if (TextureGenerator.pseudoRandom(seed, 9) > 0.65) {
+          diffCtx.fillStyle = 'rgba(25, 20, 15, 0.35)';
+          diffCtx.fillRect(bx + bw * 0.2, by + bh * 0.1, bw * 0.6, bh * 0.5);
+        }
+      }
+    }
+
+    const diffImg = diffCtx.getImageData(0, 0, size, size);
+    const bumpImg = bumpCtx.getImageData(0, 0, size, size);
+    if (diffImg && diffImg.data && diffImg.data.length > 0) {
+      for (let i = 0; i < diffImg.data.length; i += 4) {
+        const px = (i / 4) % size;
+        const py = Math.floor((i / 4) / size);
+        const noise = (TextureGenerator.valueNoise(px * 0.15, py * 0.15) - 0.5) * 28;
+        diffImg.data[i] = Math.max(0, Math.min(255, diffImg.data[i] + noise));
+        diffImg.data[i + 1] = Math.max(0, Math.min(255, diffImg.data[i + 1] + noise * 0.8));
+        diffImg.data[i + 2] = Math.max(0, Math.min(255, diffImg.data[i + 2] + noise * 0.6));
+        bumpImg.data[i] = Math.max(0, Math.min(255, bumpImg.data[i] + noise * 1.2));
+      }
+      diffCtx.putImageData(diffImg, 0, 0);
+      bumpCtx.putImageData(bumpImg, 0, 0);
+    }
+
+    const bundle = {
+      diffuse: TextureGenerator.toTexture(diffCanvas, true),
+      bump: TextureGenerator.toTexture(bumpCanvas, false),
+      roughness: TextureGenerator.toTexture(roughCanvas, false),
+    };
+    this._cache.set(cacheKey, bundle);
+    return bundle;
+  }
+
+  // =========================================================================
+  // 43. PAREDE ORGÂNICA DE FAVELA (INFILTRAÇÃO, MOFO, REBOCO E MANCHAS)
+  // =========================================================================
+  /**
+   * Gera parede com manchas orgânicas de umidade capilar na base, eflorescência salina,
+   * escorrimentos verticais de chuva e reboco tosco com tijolos expostos.
+   */
+  createFavelaOrganicWall(size = 512) {
+    const cacheKey = `favela_organic_wall_${size}`;
+    if (this._cache.has(cacheKey)) return this._cache.get(cacheKey);
+
+    const { canvas: diffCanvas, ctx: diffCtx } = TextureGenerator.createCanvas(size, size);
+    const { canvas: bumpCanvas, ctx: bumpCtx } = TextureGenerator.createCanvas(size, size);
+    const { canvas: roughCanvas, ctx: roughCtx } = TextureGenerator.createCanvas(size, size);
+
+    // 1. Base reboco cinza/ocre tosco
+    diffCtx.fillStyle = '#b5aba0';
+    diffCtx.fillRect(0, 0, size, size);
+    bumpCtx.fillStyle = '#d0d0d0';
+    bumpCtx.fillRect(0, 0, size, size);
+    roughCtx.fillStyle = '#b8b8b8';
+    roughCtx.fillRect(0, 0, size, size);
+
+    // 2. Fundo de tijolo baiano em áreas descascadas
+    const brickW = size / 6;
+    const brickH = size / 12;
+    for (let r = 0; r < 12; r++) {
+      const off = (r % 2 === 1) ? brickW * 0.5 : 0;
+      for (let c = -1; c < 7; c++) {
+        const bx = c * brickW + off + 2;
+        const by = r * brickH + 2;
+        const bw = brickW - 4;
+        const bh = brickH - 4;
+        const seed = r * 37 + c * 19;
+        const t = 0.85 + TextureGenerator.pseudoRandom(seed, 5) * 0.3;
+        diffCtx.fillStyle = `rgb(${Math.floor(170 * t)}, ${Math.floor(65 * t)}, ${Math.floor(35 * t)})`;
+        diffCtx.fillRect(bx, by, bw, bh);
+      }
+    }
+
+    const diffImg = diffCtx.getImageData(0, 0, size, size);
+    const bumpImg = bumpCtx.getImageData(0, 0, size, size);
+    const roughImg = roughCtx.getImageData(0, 0, size, size);
+
+    if (diffImg && diffImg.data && diffImg.data.length > 0) {
+      for (let y = 0; y < size; y++) {
+        const vPos = y / size; // 0 topo, 1 base
+        for (let x = 0; x < size; x++) {
+          const idx = (y * size + x) * 4;
+
+          const peelNoise = TextureGenerator.fbm(x * 0.008, y * 0.008, 4);
+          const isStucco = peelNoise > 0.38;
+          const isLip = Math.abs(peelNoise - 0.38) < 0.03;
+
+          if (isStucco) {
+            const stuccoGrain = (TextureGenerator.valueNoise(x * 0.1, y * 0.1) - 0.5) * 20;
+            let rP = 182 + stuccoGrain;
+            let gP = 172 + stuccoGrain;
+            let bP = 160 + stuccoGrain;
+
+            if (vPos > 0.55) {
+              const dampness = (vPos - 0.55) / 0.45;
+              const dampNoise = TextureGenerator.fbm(x * 0.015, y * 0.015, 3);
+              const dampFactor = dampness * dampNoise * 0.7;
+              rP = rP * (1.0 - dampFactor * 0.65);
+              gP = gP * (1.0 - dampFactor * 0.45);
+              bP = bP * (1.0 - dampFactor * 0.75);
+            }
+
+            const streakNoise = TextureGenerator.valueNoise(x * 0.05, 1.0);
+            if (streakNoise > 0.72) {
+              const streakIntensity = (streakNoise - 0.72) * 2.5;
+              rP -= 25 * streakIntensity;
+              gP -= 30 * streakIntensity;
+              bP -= 35 * streakIntensity;
+            }
+
+            diffImg.data[idx] = Math.max(0, Math.min(255, rP));
+            diffImg.data[idx + 1] = Math.max(0, Math.min(255, gP));
+            diffImg.data[idx + 2] = Math.max(0, Math.min(255, bP));
+
+            bumpImg.data[idx] = isLip ? 245 : Math.min(255, 195 + stuccoGrain * 0.5);
+            roughImg.data[idx] = 210;
+          } else {
+            bumpImg.data[idx] = 100;
+            roughImg.data[idx] = 230;
+          }
+        }
+      }
+      diffCtx.putImageData(diffImg, 0, 0);
+      bumpCtx.putImageData(bumpImg, 0, 0);
+      roughCtx.putImageData(roughImg, 0, 0);
+    }
+
+    const bundle = {
+      diffuse: TextureGenerator.toTexture(diffCanvas, true),
+      bump: TextureGenerator.toTexture(bumpCanvas, false),
+      roughness: TextureGenerator.toTexture(roughCanvas, false),
+    };
+    this._cache.set(cacheKey, bundle);
+    return bundle;
+  }
+
+  // =========================================================================
+  // 44. PAREDE COM PICHAÇÃO E GRAFITES DE BECO (FAVELA GRAFFITI)
+  // =========================================================================
+  /**
+   * Gera reboco com pichações autênticas urbanas ("pixo" reto, tags "PAZ", "FÉ",
+   * "150M", traços de spray com gotas e escorrimentos verticais realistas).
+   */
+  createFavelaGraffiti(size = 512) {
+    const cacheKey = `favela_graffiti_${size}`;
+    if (this._cache.has(cacheKey)) return this._cache.get(cacheKey);
+
+    const { canvas: diffCanvas, ctx: diffCtx } = TextureGenerator.createCanvas(size, size);
+    const { canvas: bumpCanvas, ctx: bumpCtx } = TextureGenerator.createCanvas(size, size);
+    const { canvas: roughCanvas, ctx: roughCtx } = TextureGenerator.createCanvas(size, size);
+
+    diffCtx.fillStyle = '#8f8c85';
+    diffCtx.fillRect(0, 0, size, size);
+    bumpCtx.fillStyle = '#b0b0b0';
+    bumpCtx.fillRect(0, 0, size, size);
+    roughCtx.fillStyle = '#c0c0c0';
+    roughCtx.fillRect(0, 0, size, size);
+
+    for (let i = 0; i < 18; i++) {
+      const cx = (i * 97) % size;
+      const cy = (i * 131) % size;
+      const rad = 30 + (i * 13) % 60;
+      diffCtx.fillStyle = i % 2 === 0 ? 'rgba(50, 52, 48, 0.22)' : 'rgba(140, 95, 60, 0.15)';
+      diffCtx.beginPath();
+      diffCtx.arc(cx, cy, rad, 0, Math.PI * 2);
+      diffCtx.fill();
+    }
+
+    diffCtx.lineCap = 'square';
+    diffCtx.lineJoin = 'miter';
+
+    const drawPixoWord = (text, startX, startY, strokeWidth = 8, scale = 1.0) => {
+      diffCtx.save();
+      diffCtx.font = `900 ${Math.floor(48 * scale)}px monospace, sans-serif`;
+      diffCtx.lineWidth = strokeWidth + 4;
+      diffCtx.strokeStyle = 'rgba(235, 235, 230, 0.85)';
+      diffCtx.strokeText(text, startX, startY);
+      diffCtx.lineWidth = strokeWidth;
+      diffCtx.strokeStyle = '#121214';
+      diffCtx.strokeText(text, startX, startY);
+      diffCtx.restore();
+
+      diffCtx.fillStyle = '#121214';
+      for (let d = 0; d < text.length * 2; d++) {
+        const dx = startX + 15 + d * 22 * scale;
+        const dy = startY + 4;
+        const dLen = 12 + ((d * 17) % 35);
+        diffCtx.fillRect(dx, dy, 2, dLen);
+        diffCtx.beginPath();
+        diffCtx.arc(dx + 1, dy + dLen, 2.5, 0, Math.PI * 2);
+        diffCtx.fill();
+      }
+    };
+
+    drawPixoWord('PAZ', 40, 160, 10, 1.3);
+    drawPixoWord('FE', 260, 190, 9, 1.2);
+    drawPixoWord('150M', 70, 360, 11, 1.4);
+
+    diffCtx.save();
+    diffCtx.lineWidth = 6;
+    diffCtx.strokeStyle = 'rgba(180, 32, 28, 0.9)';
+    diffCtx.beginPath();
+    diffCtx.moveTo(280, 320);
+    diffCtx.lineTo(330, 270);
+    diffCtx.lineTo(390, 340);
+    diffCtx.lineTo(440, 280);
+    diffCtx.stroke();
+    diffCtx.restore();
+
+    const diffImg = diffCtx.getImageData(0, 0, size, size);
+    const bumpImg = bumpCtx.getImageData(0, 0, size, size);
+    if (diffImg && diffImg.data && diffImg.data.length > 0) {
+      for (let i = 0; i < diffImg.data.length; i += 4) {
+        const noise = (Math.random() - 0.5) * 16;
+        diffImg.data[i] = Math.max(0, Math.min(255, diffImg.data[i] + noise));
+        diffImg.data[i + 1] = Math.max(0, Math.min(255, diffImg.data[i + 1] + noise));
+        diffImg.data[i + 2] = Math.max(0, Math.min(255, diffImg.data[i + 2] + noise));
+        bumpImg.data[i] = Math.max(0, Math.min(255, bumpImg.data[i] + noise * 1.5));
+      }
+      diffCtx.putImageData(diffImg, 0, 0);
+      bumpCtx.putImageData(bumpImg, 0, 0);
+    }
+
+    const bundle = {
+      diffuse: TextureGenerator.toTexture(diffCanvas, true),
+      bump: TextureGenerator.toTexture(bumpCanvas, false),
+      roughness: TextureGenerator.toTexture(roughCanvas, false),
+    };
+    this._cache.set(cacheKey, bundle);
+    return bundle;
+  }
+
+  // =========================================================================
+  // 45. LAJE DE CONCRETO ARMADO DE FAVELA COM CAIXARIA
+  // =========================================================================
+  /**
+   * Gera laje de concreto com marcas horizontais de fôrmas de madeira/caixaria,
+   * agregados de brita e pontas de vergalhão de aço enferrujado expostas.
+   */
+  createFavelaConcreteSlab(size = 512) {
+    const cacheKey = `favela_concrete_slab_${size}`;
+    if (this._cache.has(cacheKey)) return this._cache.get(cacheKey);
+
+    const { canvas: diffCanvas, ctx: diffCtx } = TextureGenerator.createCanvas(size, size);
+    const { canvas: bumpCanvas, ctx: bumpCtx } = TextureGenerator.createCanvas(size, size);
+    const { canvas: roughCanvas, ctx: roughCtx } = TextureGenerator.createCanvas(size, size);
+
+    diffCtx.fillStyle = '#7a7d82';
+    diffCtx.fillRect(0, 0, size, size);
+    bumpCtx.fillStyle = '#909090';
+    bumpCtx.fillRect(0, 0, size, size);
+    roughCtx.fillStyle = '#c0c0c0';
+    roughCtx.fillRect(0, 0, size, size);
+
+    const plankH = 64;
+    for (let y = 0; y < size; y += plankH) {
+      diffCtx.fillStyle = '#5c5e63';
+      diffCtx.fillRect(0, y, size, 3);
+      bumpCtx.fillStyle = '#505050';
+      bumpCtx.fillRect(0, y, size, 3);
+
+      for (let x = (y % 128 === 0 ? 90 : 220); x < size; x += 256) {
+        diffCtx.fillStyle = '#55575c';
+        diffCtx.fillRect(x, y, 3, plankH);
+        bumpCtx.fillStyle = '#484848';
+        bumpCtx.fillRect(x, y, 3, plankH);
+      }
+    }
+
+    const rebarPoints = [
+      [35, 40], [size - 45, 50], [60, size - 55], [size - 60, size - 45]
+    ];
+    for (const [rx, ry] of rebarPoints) {
+      const rad = 24;
+      const grad = diffCtx.createRadialGradient(rx, ry, 2, rx, ry, rad);
+      grad.addColorStop(0, '#9e461b');
+      grad.addColorStop(0.4, '#7a3818');
+      grad.addColorStop(1, 'rgba(122, 56, 24, 0)');
+      diffCtx.fillStyle = grad;
+      diffCtx.beginPath();
+      diffCtx.arc(rx, ry, rad, 0, Math.PI * 2);
+      diffCtx.fill();
+
+      diffCtx.fillStyle = '#222324';
+      diffCtx.beginPath();
+      diffCtx.arc(rx, ry, 4, 0, Math.PI * 2);
+      diffCtx.fill();
+
+      bumpCtx.fillStyle = '#303030';
+      diffCtx.beginPath();
+      bumpCtx.arc(rx, ry, 4, 0, Math.PI * 2);
+      bumpCtx.fill();
+    }
+
+    const diffImg = diffCtx.getImageData(0, 0, size, size);
+    const bumpImg = bumpCtx.getImageData(0, 0, size, size);
+    if (diffImg && diffImg.data && diffImg.data.length > 0) {
+      for (let i = 0; i < diffImg.data.length; i += 4) {
+        const noise = (Math.random() - 0.5) * 18;
+        diffImg.data[i] = Math.max(0, Math.min(255, diffImg.data[i] + noise));
+        diffImg.data[i + 1] = Math.max(0, Math.min(255, diffImg.data[i + 1] + noise));
+        diffImg.data[i + 2] = Math.max(0, Math.min(255, diffImg.data[i + 2] + noise));
+        bumpImg.data[i] = Math.max(0, Math.min(255, bumpImg.data[i] + noise * 1.6));
+      }
+      diffCtx.putImageData(diffImg, 0, 0);
+      bumpCtx.putImageData(bumpImg, 0, 0);
+    }
+
+    const bundle = {
+      diffuse: TextureGenerator.toTexture(diffCanvas, true),
+      bump: TextureGenerator.toTexture(bumpCanvas, false),
+      roughness: TextureGenerator.toTexture(roughCanvas, false),
+    };
+    this._cache.set(cacheKey, bundle);
+    return bundle;
+  }
+
+  // =========================================================================
+  // 46. CHÃO DE BECO E VIELAS / PAVIMENTO IRREGULAR COM CANALETA
+  // =========================================================================
+  /**
+   * Gera pavimento de vielas: cimento batido, remendos pretos de asfalto gasto,
+   * canaleta central de drenagem de água cinza e manchas de óleo.
+   */
+  createFavelaAlleyFloor(size = 512) {
+    const cacheKey = `favela_alley_floor_${size}`;
+    if (this._cache.has(cacheKey)) return this._cache.get(cacheKey);
+
+    const { canvas: diffCanvas, ctx: diffCtx } = TextureGenerator.createCanvas(size, size);
+    const { canvas: bumpCanvas, ctx: bumpCtx } = TextureGenerator.createCanvas(size, size);
+    const { canvas: roughCanvas, ctx: roughCtx } = TextureGenerator.createCanvas(size, size);
+
+    diffCtx.fillStyle = '#6e706c';
+    diffCtx.fillRect(0, 0, size, size);
+    bumpCtx.fillStyle = '#858585';
+    bumpCtx.fillRect(0, 0, size, size);
+    roughCtx.fillStyle = '#c8c8c8';
+    roughCtx.fillRect(0, 0, size, size);
+
+    const patches = [
+      [80, 100, 140, 80],
+      [310, 260, 160, 110],
+      [120, 370, 180, 95]
+    ];
+    for (const [px, py, pw, ph] of patches) {
+      diffCtx.fillStyle = '#3a3b3d';
+      diffCtx.beginPath();
+      diffCtx.ellipse(px + pw / 2, py + ph / 2, pw / 2, ph / 2, 0.2, 0, Math.PI * 2);
+      diffCtx.fill();
+
+      bumpCtx.fillStyle = '#656565';
+      bumpCtx.beginPath();
+      bumpCtx.ellipse(px + pw / 2, py + ph / 2, pw / 2, ph / 2, 0.2, 0, Math.PI * 2);
+      bumpCtx.fill();
+    }
+
+    const canalX = size * 0.48;
+    const canalW = size * 0.12;
+    diffCtx.fillStyle = '#2d332a';
+    diffCtx.fillRect(canalX, 0, canalW, size);
+
+    bumpCtx.fillStyle = '#353535';
+    bumpCtx.fillRect(canalX, 0, canalW, size);
+
+    roughCtx.fillStyle = '#707070';
+    roughCtx.fillRect(canalX, 0, canalW, size);
+
+    for (let o = 0; o < 6; o++) {
+      const ox = (o * 89 + 50) % size;
+      const oy = (o * 143 + 30) % size;
+      diffCtx.fillStyle = 'rgba(20, 20, 22, 0.45)';
+      diffCtx.beginPath();
+      diffCtx.arc(ox, oy, 14 + (o * 5), 0, Math.PI * 2);
+      diffCtx.fill();
+    }
+
+    const diffImg = diffCtx.getImageData(0, 0, size, size);
+    const bumpImg = bumpCtx.getImageData(0, 0, size, size);
+    if (diffImg && diffImg.data && diffImg.data.length > 0) {
+      for (let i = 0; i < diffImg.data.length; i += 4) {
+        const noise = (Math.random() - 0.5) * 22;
+        diffImg.data[i] = Math.max(0, Math.min(255, diffImg.data[i] + noise));
+        diffImg.data[i + 1] = Math.max(0, Math.min(255, diffImg.data[i + 1] + noise));
+        diffImg.data[i + 2] = Math.max(0, Math.min(255, diffImg.data[i + 2] + noise));
+        bumpImg.data[i] = Math.max(0, Math.min(255, bumpImg.data[i] + noise * 1.4));
+      }
+      diffCtx.putImageData(diffImg, 0, 0);
+      bumpCtx.putImageData(bumpImg, 0, 0);
+    }
+
+    const bundle = {
+      diffuse: TextureGenerator.toTexture(diffCanvas, true),
+      bump: TextureGenerator.toTexture(bumpCanvas, false),
+      roughness: TextureGenerator.toTexture(roughCanvas, false),
+    };
+    this._cache.set(cacheKey, bundle);
+    return bundle;
+  }
+
+  // =========================================================================
   // CARREGADOR DE TEXTURAS DE IMAGEM EXTERNA (PNG / JPG / BITMAP)
   // =========================================================================
   /**

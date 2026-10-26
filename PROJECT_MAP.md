@@ -291,8 +291,9 @@ Cada linha: responsabilidade, exports principais, dependências e consumidores.
 - **Pointer lock:** `requestLock` com fallback mobile e `navigator.keyboard.lock` (`:444-470`); perda de lock limpa estado (`:434-443`).
 - **Consumo:** `consumeMouseDelta` (`:473`), `consumeAction` (`:483`).
 
-#### `TouchInput.js` (379 linhas)
-- **Responsabilidade:** joystick esquerdo, look direito, botões touch.
+#### `TouchInput.js` (475 linhas)
+- **Responsabilidade:** joystick esquerdo, look direito, botões touch e haptics mobile (Android e iOS).
+- **Vibração e Haptics:** W3C `navigator.vibrate` com fallback para Taptic Engine no iOS WebKit (Safari / PWA) via ponte switch nativa (`#ios-haptic-bridge`). Suporte a pulsos síncronos em `touchstart`, rajadas escalonadas (arrays) e eventos canônicos (`weapon:fired`, `weapon:empty`, `weapon:reload:start`, `weapon:reload:end`, `weapon:pump`, `player:damaged`).
 - **Detecção mobile:** exige touch **e** `(pointer: coarse)` ou UA móvel (`:7-9`).
 - **Joystick:** deadzone 10 px; sprint automático >75% (`:65-95`).
 - **Look:** `sensFactor = 2.8 * CONFIG.CAMERA.sensMultiplier` (`:134`).
@@ -975,11 +976,12 @@ Mapas atuais:
 | `city.json` | Cidade Abandonada | 1000×1000 | ±485 | 2201 | 0 | 0 | não |
 | `vice.json` | Vice City | 2000×2000 | ±980 | 5908 | 0 | 0 | não |
 | `range.json` | Campo de Tiro (Sunny Remake) | 56×96 | [-28,28,-48,48] | 42 | 27 | 0 | sim (PBR) |
+| `favela.json` | Favela (Labirinto & Vielas) | 150×150 | ±70 | 93 | 51 | 0 | sim (PBR) |
 
 ### 10.5 Materiais PBR (`MaterialFactory`)
 
-54 nomes registrados:
-`cobblestones`, `floor`, `wall_peeling_ochre`, `wall`, `wall_peeling_terra`, `wall_white`, `stone`, `roof`, `door_wood`, `window_shutter`, `ivy_foliage`, `wine_barrel`, `crate`, `wood`, `awning_red`, `dirt`, `path`, `grass`, `trunk`, `foliage`, `foliage_light`, `sand`, `sand_dark`, `sandstone`, `plaster_light`, `fabric_red`, `arabic_rug`, `fabric_green`, `palm_frond`, `palm_trunk`, `military_crate`, `oil_barrel`, `metal_barrel`, `blue_tarp`, `iron_grill`, `fence`, `scaffold`, `jungle_floor`, `woods_floor`, `mossy_rock`, `rock`, `jungle_bark`, `jungle_fern`, `fern`, `bamboo`, `camo_tarp`, `camo`, `sandbags`, `corrugated_iron`, `rusty_metal`, `concrete_dark`, `concrete`, `target`, `plinker`.
+59 nomes registrados:
+`cobblestones`, `floor`, `wall_peeling_ochre`, `wall`, `wall_peeling_terra`, `wall_white`, `stone`, `roof`, `door_wood`, `window_shutter`, `ivy_foliage`, `wine_barrel`, `crate`, `wood`, `awning_red`, `dirt`, `path`, `grass`, `trunk`, `foliage`, `foliage_light`, `sand`, `sand_dark`, `sandstone`, `plaster_light`, `fabric_red`, `arabic_rug`, `fabric_green`, `palm_frond`, `palm_trunk`, `military_crate`, `oil_barrel`, `metal_barrel`, `blue_tarp`, `iron_grill`, `fence`, `scaffold`, `jungle_floor`, `woods_floor`, `mossy_rock`, `rock`, `jungle_bark`, `jungle_fern`, `fern`, `bamboo`, `camo_tarp`, `camo`, `sandbags`, `corrugated_iron`, `rusty_metal`, `concrete_dark`, `concrete`, `target`, `plinker`, `favela_brick`, `favela_wall_organic`, `favela_graffiti`, `favela_concrete_slab`, `favela_alley_floor`.
 
 - **Não existem** `caution_yellow`, `steel_girder` → fallback `wall`. (Concreto e alvos foram implementados).
 - `Lisbon` usa `caution_yellow`, `metal_barrel` (existe), `steel_girder` → dois fallbacks.
@@ -1177,8 +1179,8 @@ Todo o trabalho pendente de reload tático, drop de carregadores, QTE, áudio pr
 ### 13.20 Instabilidade de física e coleta em `MagazineDrop` [RESOLVIDO]
 `MagazineDrop.js` agora verifica a diferença vertical ($\Delta Y$) impedindo coletas através de andares/tetos diferentes, amplia a sondagem de solo para 15m e `GameManager.js` seleciona estritamente o carregador e drop mais próximos do jogador via `distanceTo`.
 
-### 13.21 Configuração fantasma de vibração em mobile [RESOLVIDO]
-`TouchInput.js` agora consome `CONFIG.ACCESSIBILITY.vibrationEnabled` e aciona `navigator.vibrate` com pulsos hápticos dedicados para disparo de arma, dano recebido pelo jogador, clique de munição esgotada e recarga, com cleanup em `destroy()`.
+### 13.21 Configuração e suporte a vibração em mobile e iOS PWA [RESOLVIDO]
+`TouchInput.js` consome `CONFIG.ACCESSIBILITY.vibrationEnabled`. Possui suporte completo a Android via `navigator.vibrate` e a iPhone (iOS Safari / WebKit PWA) via Taptic Engine Switch Bridge (`#ios-haptic-bridge`), com feedback tátil síncrono no `touchstart` dos botões virtuais, suporte a arrays de padrões temporizados e eventos canônicos (`weapon:fired`, `weapon:empty`, `weapon:reload:start`, `weapon:reload:end`, `weapon:pump`, `player:damaged`), com cleanup em `destroy()`.
 
 ### 13.22 Deformação de rotação de juntas nos dedos esquerdos do Viewmodel
 `ViewmodelArms.js:183-191` inverte os eixos do IK da mão esquerda em relação aos ossos de `TacticalManContinuous.js`, resultando em rotação anatômica distorcida dos dedos ao redor dos guarda-mãos das armas primárias.
