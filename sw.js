@@ -1,5 +1,5 @@
 // Service Worker para PWA (iOS Safari / Android Chrome)
-const CACHE_NAME = 'arena-blockout-v2';
+const CACHE_NAME = 'arena-blockout-v3';
 
 self.addEventListener('install', () => {
   self.skipWaiting();

@@ -187,7 +187,11 @@ export class MenuController {
 
   static getSavedMap(defaultUrl = './assets/maps/dust.json') {
     const mapSelect = document.getElementById('map-select');
-    const saved = localStorage.getItem('blocky_map');
+    let saved = localStorage.getItem('blocky_map');
+    if (saved === 'grid') {
+      saved = './assets/maps/grid.json';
+      localStorage.setItem('blocky_map', saved);
+    }
     if (saved && mapSelect) mapSelect.value = saved;
     return mapSelect ? mapSelect.value : defaultUrl;
   }

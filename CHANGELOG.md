@@ -37,7 +37,10 @@
     * Normalização automática de URLs curtas (`"grid"` resolve para `./assets/maps/grid.json`).
     * Suporte a dimensões 3D no mapa (`size: [w, h, d]` extrai largura X e profundidade Z).
     * Normalização resiliente de limites (`bounds: [minX, minZ, maxX, maxZ]` converte para o formato interno do motor `[minX, maxX, minZ, maxZ]`).
-  * **Interface do Usuário (`index.html`):** Adição da opção `<option value="grid">Grid (Calibration Lab)</option>` no `<select id="map-select">`.
+  * **Interface do Usuário (`index.html` & `MenuController.js`):**
+    * Padronização da opção no `<select id="map-select">` para o caminho relativo `./assets/maps/grid.json` alinhado aos demais mapas do jogo;
+    * Migração defensiva e compatibilidade retroativa em `MenuController.getSavedMap()`, convertendo automaticamente valores legados `"grid"` salvos no `localStorage` para `"./assets/maps/grid.json"`;
+    * Incremento do Service Worker (`sw.js` para `arena-blockout-v3`) para purgar caches obsoletos de módulos ES do navegador.
   * **Testes & CI (`test/grid_map_test.js` & `package.json`):** Nova suíte de testes de contrato e física (validação de metadados, distâncias de segurança dos spawns > 11m, 6 degraus, muros, vãos, túnel, placas de texto e simulação de física de step-up e teto no `CollisionWorld`). Suíte `npm test` 100% verde (16 scripts e 111 testes aprovados).
 
 #### [Mapa Favela 150x150, Texturas Procedurais Orgânicas e Props de Laje/Vielas] — 26/10/2026
