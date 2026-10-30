@@ -80,10 +80,14 @@ const MATERIALS = {
   target:        () => materialFactory.get('target'),
   target_paper:  () => materialFactory.get('target'),
   plinker:       () => new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.35, metalness: 0.85 }),
+  grid_1x1:      () => materialFactory.get('grid_1x1'),
+  dev_grid:      () => materialFactory.get('grid_1x1'),
 };
 
 export async function loadMap(url, scene) {
-  const fetchUrl = url;
+  const fetchUrl = (typeof url === 'string' && !url.includes('/') && !url.endsWith('.json'))
+    ? `./assets/maps/${url}.json`
+    : url;
   const res = await fetch(fetchUrl, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Falha ao carregar mapa: ${url}`);
   const data = await res.json();
@@ -94,8 +98,8 @@ export async function loadMap(url, scene) {
   const world = new CollisionWorld();
   const doors = [];
 
-  // Define se o mapa utiliza o ecossistema de texturas PBR procedurais (ex: Dust Mirage, CS Italy, Woods)
-  const isPbrMap = Boolean(data.pbr || (Array.isArray(data.props) && data.props.length > 0) || data.id === 'dust' || data.id === 'italy' || data.id === 'woods' || data.id === 'range');
+  // Define se o mapa utiliza o ecossistema de texturas PBR procedurais (ex: Dust Mirage, CS Italy, Woods, Range, Grid)
+  const isPbrMap = Boolean(data.pbr || (Array.isArray(data.props) && data.props.length > 0) || data.id === 'dust' || data.id === 'italy' || data.id === 'woods' || data.id === 'range' || data.id === 'grid');
 
   if (isPbrMap) {
     materialFactory.initMaterials();
@@ -152,7 +156,8 @@ export async function loadMap(url, scene) {
   }
 
   // Chão — visual + colisão (caixa fina abaixo de y=0)
-  const [w, d] = data.size;
+  const w = data.size[0];
+  const d = data.size.length === 3 ? data.size[2] : data.size[1];
   const floorMatName = data.floorMaterial || 'floor';
   const floorMaterial = isPbrMap
     ? materialFactory.get(floorMatName)
@@ -166,7 +171,18 @@ export async function loadMap(url, scene) {
   }
   world.addBox(0, -0.5, 0, w, 1, d, { material: floorMatName });
 
-  const bounds = data.bounds || [-w/2, w/2, -d/2, d/2];
+  let bounds;
+  if (Array.isArray(data.bounds) && data.bounds.length === 4) {
+    const [b0, b1, b2, b3] = data.bounds;
+    // Normaliza se estiver no formato [minX, minZ, maxX, maxZ] (ex: [-50, -50, 50, 50])
+    if (b1 < b0 || (b1 <= 0 && b2 > 0 && b1 === b0 && b2 === b3)) {
+      bounds = [b0, b2, b1, b3];
+    } else {
+      bounds = [b0, b1, b2, b3];
+    }
+  } else {
+    bounds = [-w/2, w/2, -d/2, d/2];
+  }
 
   // Geometria estática usando InstancedMesh para otimização de Draw Calls
   const itemsByMaterial = new Map();

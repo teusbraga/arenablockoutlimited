@@ -770,6 +770,23 @@ export class MaterialFactory {
       MaterialFactory.applyWorldSpaceUV(mat, 0.35);
       return mat;
     });
+
+    // 43. Piso Tabuleiro Métrico de Calibração (1x1m Developer Calibration Grid)
+    this.factories.set('grid_1x1', () => {
+      const grid = textures.createDevGrid(512);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        map: grid.diffuse,
+        bumpMap: grid.bump,
+        bumpScale: 0.03,
+        roughnessMap: grid.roughness,
+        roughness: 0.88,
+      });
+      MaterialFactory.applyWorldSpaceUV(mat, 0.5);
+      return mat;
+    });
+    this.factories.set('dev_grid', () => this.get('grid_1x1'));
+
     return this.materials;
   }
 

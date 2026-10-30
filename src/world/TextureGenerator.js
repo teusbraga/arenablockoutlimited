@@ -3231,6 +3231,101 @@ export class TextureGenerator {
   }
 
   // =========================================================================
+  // 43. PISO TABULEIRO MÉTRICO DE CALIBRAÇÃO (1x1m Developer Calibration Grid)
+  // =========================================================================
+  /**
+   * Gera textura procedural de grade métrica / tabuleiro de calibração física.
+   * Contém 2x2 quadrantes (ladrilhos de 1m x 1m quando usado com applyWorldSpaceUV 0.5)
+   * com linhas de divisão pretas/escuras, cruzetas centrais e microagregados de concreto.
+   */
+  createDevGrid(size = 512) {
+    const cacheKey = `dev_grid_${size}`;
+    if (this._cache.has(cacheKey)) return this._cache.get(cacheKey);
+
+    const { canvas: diffCanvas, ctx: diffCtx } = TextureGenerator.createCanvas(size, size);
+    const { canvas: bumpCanvas, ctx: bumpCtx } = TextureGenerator.createCanvas(size, size);
+    const { canvas: roughCanvas, ctx: roughCtx } = TextureGenerator.createCanvas(size, size);
+
+    const half = size / 2;
+
+    // 1. Quadrantes alternados do tabuleiro (2x2 ladrilhos de 1m)
+    // Cores: concreto médio (#7e8288) e concreto claro (#9498a0)
+    diffCtx.fillStyle = '#7e8288';
+    diffCtx.fillRect(0, 0, half, half);
+    diffCtx.fillRect(half, half, half, half);
+
+    diffCtx.fillStyle = '#9498a0';
+    diffCtx.fillRect(half, 0, half, half);
+    diffCtx.fillRect(0, half, half, half);
+
+    // Bump base médio
+    bumpCtx.fillStyle = '#808080';
+    bumpCtx.fillRect(0, 0, size, size);
+
+    // Rugosidade padrão (concreto fosco)
+    roughCtx.fillStyle = '#d0d0d0';
+    roughCtx.fillRect(0, 0, size, size);
+
+    // 2. Linhas de divisão métrica (bordas externas e divisória central de 1m)
+    diffCtx.strokeStyle = '#36393e';
+    diffCtx.lineWidth = 4;
+    diffCtx.strokeRect(2, 2, size - 4, size - 4);
+    diffCtx.beginPath();
+    diffCtx.moveTo(half, 0); diffCtx.lineTo(half, size);
+    diffCtx.moveTo(0, half); diffCtx.lineTo(size, half);
+    diffCtx.stroke();
+
+    // Rebaixo profundo nas juntas métricas para o bump map
+    bumpCtx.strokeStyle = '#252525';
+    bumpCtx.lineWidth = 6;
+    bumpCtx.strokeRect(3, 3, size - 6, size - 6);
+    bumpCtx.beginPath();
+    bumpCtx.moveTo(half, 0); bumpCtx.lineTo(half, size);
+    bumpCtx.moveTo(0, half); bumpCtx.lineTo(size, half);
+    bumpCtx.stroke();
+
+    // 3. Cruzetas e marcas sub-métricas (ao centro de cada ladrilho de 1m)
+    diffCtx.strokeStyle = '#5a5e66';
+    diffCtx.lineWidth = 2;
+    const centers = [
+      [half * 0.5, half * 0.5],
+      [half * 1.5, half * 0.5],
+      [half * 0.5, half * 1.5],
+      [half * 1.5, half * 1.5]
+    ];
+    const crossSize = 10;
+    for (const [cx, cy] of centers) {
+      diffCtx.beginPath();
+      diffCtx.moveTo(cx - crossSize, cy); diffCtx.lineTo(cx + crossSize, cy);
+      diffCtx.moveTo(cx, cy - crossSize); diffCtx.lineTo(cx, cy + crossSize);
+      diffCtx.stroke();
+    }
+
+    // 4. Ruído micro-granular para aspecto de concreto PBR tático
+    const diffImg = diffCtx.getImageData(0, 0, size, size);
+    const bumpImg = bumpCtx.getImageData(0, 0, size, size);
+    if (diffImg && diffImg.data && diffImg.data.length > 0) {
+      for (let i = 0; i < diffImg.data.length; i += 4) {
+        const noise = (Math.random() - 0.5) * 14;
+        diffImg.data[i] = Math.max(0, Math.min(255, diffImg.data[i] + noise));
+        diffImg.data[i + 1] = Math.max(0, Math.min(255, diffImg.data[i + 1] + noise));
+        diffImg.data[i + 2] = Math.max(0, Math.min(255, diffImg.data[i + 2] + noise));
+        bumpImg.data[i] = Math.max(0, Math.min(255, bumpImg.data[i] + noise * 1.2));
+      }
+      diffCtx.putImageData(diffImg, 0, 0);
+      bumpCtx.putImageData(bumpImg, 0, 0);
+    }
+
+    const bundle = {
+      diffuse: TextureGenerator.toTexture(diffCanvas, true),
+      bump: TextureGenerator.toTexture(bumpCanvas, false),
+      roughness: TextureGenerator.toTexture(roughCanvas, false),
+    };
+    this._cache.set(cacheKey, bundle);
+    return bundle;
+  }
+
+  // =========================================================================
   // CARREGADOR DE TEXTURAS DE IMAGEM EXTERNA (PNG / JPG / BITMAP)
   // =========================================================================
   /**

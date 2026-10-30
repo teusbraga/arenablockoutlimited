@@ -1,7 +1,7 @@
 # 📜 Log de Versões e Histórico de Desenvolvimento (CHANGELOG)
 **Projeto:** Arena Blockout (FPS Browser 3D Three.js)  
 **Repositório:** [teusbraga/arenablockoutlimited](https://github.com/teusbraga/arenablockoutlimited)  
-**Data da última atualização:** 25 de Outubro de 2026  
+**Data da última atualização:** 30 de Outubro de 2026  
 
 ---
 
@@ -18,6 +18,27 @@
 ## 🚀 Histórico Cronológico de Versões e Commits
 
 ### 🔹 Outubro de 2026
+
+#### [Mapa Grid de Calibração Métrica & Física, Piso Tabuleiro 1x1m e Circuito de Testes] — 30/10/2026
+* **feat(maps):** Implementação completa do mapa de laboratório de calibração física e métrica `assets/maps/grid.json` (100×100m) e ecossistema de testes em `src/world/TextureGenerator.js`, `src/world/MaterialFactory.js`, `src/world/MapLoader.js`, `index.html` e `test/grid_map_test.js`:
+  * **Novo Mapa `assets/maps/grid.json` (100×20×100):** Escala de 100 × 100 metros (`bounds: [-50, -50, 50, 50]`) estruturado em 5 estações modulares padronizadas para validação de locomoção, balística, pulos e colisões:
+    * *a) Pista de Arrancada (50m):* Corredor livre central de 8m de largura estendendo-se de $z = 40$ até $z = -10$, com pilares marcadores laterais contrastantes em $x = -4$ e $x = 4$ a cada 10 metros ($z = 40, 30, 20, 10, 0, -10$) para aferição de aceleração, velocidade máxima e tempo de corrida/sprint.
+    * *b) Estação de Degraus (Step-Up Test com 6 Blocos):* Bateria de degraus progressivos lado a lado de alturas 0,15m (guia de calçada), 0,30m (escada dupla), 0,35m (degrau padrão urbano), 0,45m (bloco médio), 0,60m (obstáculo alto que excede o limiar) e 0,65m (bloqueio total), validando milimetricamente o limiar de subida suave (`stepHeight: 0.55m`).
+    * *c) Estação de Pulo & Frestas (Jump & Gaps):* 4 muros de salto de alturas 0,6m, 0,9m, 1,2m e 1,5m com propriedade `vaultable: true`; pista elevada de 1,0m de altura com vãos vazados de 1,0m (pulo curto), 1,8m (pulo em corrida), 2,5m (pulo no limite) e 3,5m (aferição de coyote time e salto impossível).
+    * *d) Estação de Corredores e Portas:* 3 corredores paralelos de largura útil 1,0m, 1,5m e 2,5m com paredes de 3m de altura; batente de passagem com abertura de 1,0m de largura por 2,2m de altura e porta interativa em `doors`.
+    * *e) Túnel de Teto Baixo (Headroom / Crouch Test):* Túnel de 8m de extensão com teto rígido a 1,40m do piso, bloqueando a entrada do jogador em pé (`height: 1.8m`) e permitindo passagem agachada (`crouchHeight: 1.2m`), garantindo que o jogador permaneça agachado sem teleporte ou atravessar a colisão.
+    * *f) Muralha Perimetral:* Enclausuramento da área de 100×100m para confinamento de entidades e projéteis.
+  * **Piso Tabuleiro Métrico 1×1m (`grid_1x1` / `dev_grid`):**
+    * Novo gerador procedural `createDevGrid()` em `TextureGenerator.js` com padrão xadrez 2×2 (dois tons de cinza concreto `#7e8288` e `#9498a0`), juntas métricas de 1 metro rebaixadas no mapa de relevo (*bump map*), cruzetas submétricas de 0,5m e microagregados de concreto.
+    * Registro do material `grid_1x1` e alias `dev_grid` em `MaterialFactory.js` com projeção triplanar `applyWorldSpaceUV(mat, 0.5)`, garantindo que cada ladrilho do solo meça rigorosamente 1,0m × 1,0m no espaço de mundo 3D.
+  * **Identificação Textual em Placas (`distance_sign`):**
+    * Inclusão de 32 placas 3D em alta visibilidade (amarelo militar com texto preto em negrito) afixadas diante de cada bloco, pilar, degrau, muro, vão, corredor e túnel (ex: `"0m"`, `"10m"`, `"0.15m"`, `"0.35m"`, `"0.60m"`, `"GAP 1.8m"`, `"1.0x2.2m"`, `"1.40m TETO"`).
+  * **Resiliência e Normalização no Carregamento (`MapLoader.js`):**
+    * Normalização automática de URLs curtas (`"grid"` resolve para `./assets/maps/grid.json`).
+    * Suporte a dimensões 3D no mapa (`size: [w, h, d]` extrai largura X e profundidade Z).
+    * Normalização resiliente de limites (`bounds: [minX, minZ, maxX, maxZ]` converte para o formato interno do motor `[minX, maxX, minZ, maxZ]`).
+  * **Interface do Usuário (`index.html`):** Adição da opção `<option value="grid">Grid (Calibration Lab)</option>` no `<select id="map-select">`.
+  * **Testes & CI (`test/grid_map_test.js` & `package.json`):** Nova suíte de testes de contrato e física (validação de metadados, distâncias de segurança dos spawns > 11m, 6 degraus, muros, vãos, túnel, placas de texto e simulação de física de step-up e teto no `CollisionWorld`). Suíte `npm test` 100% verde (16 scripts e 111 testes aprovados).
 
 #### [Mapa Favela 150x150, Texturas Procedurais Orgânicas e Props de Laje/Vielas] — 26/10/2026
 * **feat(maps):** Implementação completa do mapa `favela.json` (150x150), novas texturas procedurais PBR orgânicas e props temáticos de vielas e lajes:
