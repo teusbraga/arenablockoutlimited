@@ -19,6 +19,99 @@
 
 ### 🔹 Outubro de 2026
 
+#### [Movimentação — Fase 5: Humanização da IA, Inércia dos Bots & Sincronia do NavGrid] — 30/10/2026
+* **feat(movement):** Conclusão da Fase 5 do Superplano de Movimentação em `src/ai/AIController.js`, `src/ai/NavGrid.js`, `src/entities/Bot.js`, `src/entities/Character.js` e `test/movement_phase5_test.js`:
+  * **Inércia e Aceleração Orgânica dos Bots ($k_{acc} = 18.0$, $k_{dec} = 26.0$):**
+    * Substituição da atribuição de velocidade instantânea (`bot.vel.x = desiredMove.x`) por interpolação cinemática contínua em `AIController.js`.
+    * Arrancada e manobras aceleram a uma taxa de $18\text{ s}^{-1}$ e frenagens sangram momentum a $26\text{ s}^{-1}$ com parada limpa em zero (sem micro-drift residual), eliminando a sensação de "patinação no gelo" e estalos não-físicos na locomoção dos soldados inimigos.
+  * **Grace Period no Detector Anti-Stuck (250 ms):**
+    * Adição do temporizador `motionGraceTimer` (0,25s) em `AIController.js`, ativado ao sair da imobilidade.
+    * Bloqueio de falsos positivos: o detector de quinas não dispara desengates errôneos nos primeiros 250ms de arrancada enquanto o bot ainda está vencendo a inércia inicial.
+  * **Normalização Universal de `stepHeight` (0,35 m) na IA e Física:**
+    * Atualização do valor padrão de `stepHeight` em `NavGrid.js` de `0.52` para `0.35` (lendo `CONFIG.PLAYER.stepHeight`), impedindo que a busca A* trace rotas por cima de muretas altas intransponíveis.
+    * Normalização de `stepHeight` em `Bot.js` e fallback em `Character.js` para `0.35`, alinhando perfeitamente a física do jogador, a física dos bots e a malha de navegação.
+  * **Testes e CI (`test/movement_phase5_test.js` & `package.json`):**
+    * Nova suíte automatizada cobrindo: transposição física de obstáculo de 0,30m e bloqueio de 0,50m; curva de aceleração progressiva em 16ms, 83ms e 416ms; frenagem limpa com $k=26$; imunidade do grace period de 250ms e acionamento correto sob bloqueio real. 100% dos testes aprovados no pipeline `npm test`.
+
+
+#### [Movimentação: Calibração Direcional Tática (Strafe, Recuo & Bloqueio de Sprint para Trás)] — 30/10/2026
+* **feat(movement):** Calibração biomecânica de locomoção direcional em `assets/config/gameplay.json`, `src/core/ConfigLoader.js`, `src/entities/Player.js` e `test/movement_directional_test.js`:
+  * **Proibição Estrita de Sprint para Trás e Lateral (`Player.js`):**
+    * Sprint agora requer obrigatoriamente componente vetorial de movimento para frente ($\vec{w}_{wish} \cdot \vec{fwd} > 0.01$).
+    * Tentar sprintar recuando (`S` + `Shift`) ou em strafe puro (`A`/`D` + `Shift`) mantém o operador em marcha tática contida, eliminando a corrida de costas irreal a 24,5 km/h. Sprint permanece ativo em avanço frontal e diagonais frontais (`W+A`, `W+D`).
+  * **Elipsoide de Velocidade Direcional (`strafeMul: 0.85`, `backwardMul: 0.75`):**
+    * Multiplicadores data-driven adicionados em `gameplay.json` e `ConfigLoader.js`.
+    * Cálculo contínuo baseado em elipsoide de locomoção em `Player.js`:
+      * Marcha à ré pura (`S`): $75\%$ da velocidade base $\rightarrow$ $3,15\text{ m/s}$ (~11,3 km/h).
+      * Strafe lateral puro (`A`/`D`): $85\%$ da velocidade base $\rightarrow$ $3,57\text{ m/s}$ (~12,8 km/h).
+      * Marcha frontal pura (`W`): $100\%$ da velocidade base $\rightarrow$ $4,20\text{ m/s}$ (~15,1 km/h).
+      * Diagonais interpoladas suavemente em $360^\circ$ sem descontinuidades cinemáticas.
+  * **Testes e CI (`test/movement_directional_test.js` & `package.json`):**
+    * Nova suíte automatizada validando dados data-driven, velocidades exatas de caminhada em todos os eixos, bloqueio de sprint de costas e lateral, e preservação do sprint frontal/diagonal. 100% dos testes aprovados no pipeline `npm test`.
+
+
+#### [Movimentação — Fase 4: Camera Impact, Landing Dip, Respawn Orientation & Viewmodel Sync] — 30/10/2026
+* **feat(movement):** Implementação da Fase 4 do Superplano de Movimentação em `assets/config/gameplay.json`, `src/core/ConfigLoader.js`, `src/core/CameraRig.js`, `src/entities/Player.js`, `src/new_mechanics/LocomotionSmoothingSystem.js`, `src/weapons/Viewmodel.js` e `test/movement_phase4_test.js`:
+  * **Landing Dip Cinestésico (`landingDipScale: 0.0035`):**
+    * Adição do parâmetro data-driven `landingDipScale: 0.0035` em `gameplay.json` e `ConfigLoader.js`.
+    * Implementação de sub-mola amortecida de impacto vertical ($k = 280, d = 26$) em `CameraRig.js` acionada quando o jogador aterrissa no solo com velocidade vertical $\text{vel.y} < -3.0\text{ m/s}$ (com clamp de segurança em $-12.0\text{ m/s}$).
+    * Flexão sutil e realista dos joelhos e da câmera (~1,5 a 5 cm) que estabiliza organicamente sem oscilação perpétua, com atenuação proporcional a `headbobScale` de acessibilidade (desativa completamente se configurado para 0).
+  * **Preservação e Restauração de Orientação no Respawn (`spawnYaw`):**
+    * `CameraRig.reset(spawnYaw = 0)` agora aceita o ângulo de azimute do ponto de desova e define atomicamente `this.currentYaw = spawnYaw` e `this.targetYaw = spawnYaw`.
+    * `Player.js` extrai `spawnYaw` a partir do vetor de coordenadas `[x, y, z, yaw]` do mapa e restaura a orientação inicial tanto no boot quanto no `respawn()`, eliminando o defeito histórico de renascer de costas para o combate.
+  * **Trava de Fase 1:1 entre Câmera e Viewmodel (`currentBobPhase`):**
+    * Exposição pública da propriedade `get currentBobPhase()` em `CameraRig.js`.
+    * `LocomotionSmoothingSystem.js` passa a sincronizar `this.bobPhase = rig.currentBobPhase` quando `rig` é fornecido via `Viewmodel.applySwayFromRig`, unificando a cadência da arma com o movimento da cabeça e eliminando descompasso visual entre olhos e braços.
+    * Preservação do fallback autônomo contínuo caso o sistema de locomoção seja executado de forma isolada/headless.
+  * **Testes e CI (`test/movement_phase4_test.js` & `package.json`):**
+    * Nova suíte automatizada cobrindo: integridade de dados data-driven; `CameraRig.reset(spawnYaw)`; retenção de orientação após morte e respawn do Player; dinâmica da sub-mola de `landingDip`; disparo automático na aterrissagem física após queda livre; trava de fase 1:1 com fallback autônomo. 100% dos testes aprovados no pipeline `npm test`.
+
+
+#### [Movimentação — Fase 3: Robustez de Colisão, Headroom Check e Unificação do Lean] — 30/10/2026
+* **feat(movement):** Implementação da Fase 3 do Superplano de Movimentação em `src/physics/CollisionWorld.js`, `src/entities/Player.js`, `src/core/CameraRig.js` e `test/movement_phase3_test.js`:
+  * **Headroom Check Volumétrico (`CollisionWorld.hasHeadroom`):**
+    * Adição do método volumétrico de verificação vertical `hasHeadroom(pos, size, targetHeight)` utilizando a AABB completa do jogador via `_anyOverlap` com buffer estático `_headroomTestSize` pré-alocado (zero garbage collection).
+    * Bloqueio físico em `Player.js`: ao soltar a tecla de agachar (`crouch`) dentro de dutos, túneis ou sob tetos baixos (< 1.80m), o operador permanece agachado até alcançar área aberta com altura vertical suficiente, eliminando teleporte acidental para cima de tetos ou engasgos na física de colisão.
+  * **Unificação e Sincronização do Lean Tático (`Player.js` & `CameraRig.js`):**
+    * Eliminação do duplo lerp desconexo (14/s na física + 14/s na câmera). A interpolação de inclinação de tronco agora é calculada exclusivamente em `Player.js` com taxa responsiva de 18/s.
+    * `CameraRig.js` rastreia diretamente `player.lean` (`this.currentLean = this.targetLean`), garantindo sincronia 1:1 imediata e em fase entre o tronco do modelo em 3ª pessoa (`CharacterView`) e a visão do operador em 1ª pessoa.
+  * **Normalização Estrita de Postura (`crouchAmount`):**
+    * Remoção da constante legada desestabilizadora `1.5` ao morrer; `crouchAmount` agora é estritamente limitado no intervalo $[0.0, 1.0]$.
+  * **Testes e CI (`test/movement_phase3_test.js` & `package.json`):**
+    * Nova suíte automatizada cobrindo: detecção volumétrica de headroom sob teto de 1,40m e liberação sob teto de 2,20m; bloqueio de destravamento de agachamento em túneis com liberação ao sair; interpolação responsiva de lean a 18/s; rastreamento direto e sem atraso secundário no `CameraRig`. 100% dos testes aprovados no pipeline `npm test`.
+
+
+#### [Movimentação — Fase 2: Física de Salto, Step-Height 0.35m, Coyote Time e Jump Buffer] — 30/10/2026
+* **feat(movement):** Implementação da Fase 2 do Superplano de Movimentação em `assets/config/gameplay.json`, `src/core/ConfigLoader.js`, `src/entities/Player.js` e `test/movement_phase2_test.js`:
+  * **Arco de Salto Tático e Crível (`jumpSpeed: 6.0 m/s`):**
+    * Redução calibrada da velocidade vertical de salto de `7.0 m/s` para `6.0 m/s`. Sob a gravidade canônica de `20 m/s²`, o ápice do salto passou de lunático `1,225 m` para atléticos `0,85–0,90 m`, eliminando a sensação de "gravidade lunar" e permitindo ultrapassar muros de 0,60m a 0,80m com precisão.
+  * **Normalização do Degrau Físico (`stepHeight: 0.35 m`):**
+    * Ajuste do limite de subida suave (`stepHeight`) de `0.55 m` para `0.35 m` em `gameplay.json` e `ConfigLoader.js`. O jogador agora sobe guias de calçada (0,15m) e degraus de escada (0,30m e 0,35m) sem pressionar pulo, mas é bloqueado rigidamente em blocos de 0,45m e 0,60m, acabando com a anomalia de escalar muretas andando.
+  * **Coyote Time (120 ms de Tolerância):**
+    * Adição do temporizador `coyoteTimer` (0,12s) que preserva a capacidade de salto por 120 ms após o operador deixar o chão ou correr para fora de quinas de plataformas, eliminando quedas frustrantes no limiar de desníveis.
+  * **Jump Buffer (120 ms de Pré-Acionamento) e Fim do Auto-Bhop:**
+    * Adição do temporizador `jumpBufferTimer` (0,12s) alimentado via consumo discreto de ação (`input.consumeAction('jump')` / `input.isActionJustPressed`). Se o pulo for pressionado até 120 ms antes de tocar o solo, ele dispara imediatamente no tick do impacto.
+    * Substituição da leitura contínua de pulo por ação discreta: segurar a tecla `Espaço` agora realiza apenas um salto e mantém o jogador firme no chão após aterrissar, impedindo bunny-hopping acidental ou involuntário.
+  * **Testes e CI (`test/movement_phase2_test.js` & `package.json`):**
+    * Nova suíte automatizada validando dados de configuração, altura de ápice em simulação (0,85m–0,90m), física de step-up em 5 alturas de blocos (0.15m a 0.60m), tolerância de coyote time em queda livre, enfileiramento de jump buffer e mitigação do auto-bhop. Testes 100% aprovados.
+
+
+#### [Movimentação — Fase 1: Escala Métrica, Pacing Tático e Desacoplamento de Postura] — 30/10/2026
+* **feat(movement):** Implementação da Fase 1 do Superplano de Movimentação em `assets/config/gameplay.json`, `src/core/ConfigLoader.js`, `src/entities/Player.js`, `src/weapons/WeaponSystem.js` e `test/movement_phase1_test.js`:
+  * **Pacing Tático Data-Driven (`gameplay.json` & `ConfigLoader.js`):**
+    * Calibração da velocidade de caminhada base (`walkSpeed: 4.2m/s`, ~15,1 km/h) e multiplicador de sprint (`sprintMul: 1.62x`, resultando em 6,80 m/s / ~24,5 km/h), aproximando o ritmo do combate tático a padrões modernos como CS2 e CoD.
+    * Ativação e consumo real dos multiplicadores data-driven `crouchMul` (0.50x $\rightarrow$ 2,10 m/s) e `adsMul` (0.48x $\rightarrow$ 2,02 m/s), eliminando a regra hardcoded legada de `0.5x` estático.
+    * Inclusão do parâmetro `stanceRecoveryTime: 0.15s` na configuração do jogador.
+  * **Desacoplamento e Cooldown de Postura Sprint $\rightarrow$ ADS (`Player.js` & `WeaponSystem.js`):**
+    * Adição do temporizador `sprintRecoveryTimer` (0,15s) ativado no momento da transição de sprint para parada/caminhada.
+    * Bloqueio sincronizado da mira ativa (ADS) em `Player.js` (linha 120) e `WeaponSystem.js` (linha 431) enquanto `sprintRecoveryTimer > 0`, prevenindo o exploit de "snap-shot" instantâneo em alta velocidade.
+    * Correção da ordem de avaliação de estado em `Player.js`: o estado de `crouched` agora é atualizado antes de avaliar `wantsSprint`, impedindo o atraso de 1 tick em transições agachado/em pé.
+  * **Eliminação de Código Morto:**
+    * Remoção definitiva do bloco inalcançável de passos sonoros em `Player.js` (`if (!this.rig)`), já que todo `Player` instancia `CameraRig` e os passos sonoros canônicos são emitidos no render sincronizados com a passada da câmera.
+  * **Testes e CI (`test/movement_phase1_test.js` & `package.json`):**
+    * Nova suíte automatizada validando dados de configuração, velocidades finais em simulação física de 60 ticks (Walk 4.20 m/s, Sprint 6.80 m/s, Crouch 2.10 m/s, ADS 2.02 m/s), disparo do `sprintRecoveryTimer` e ausência de resíduos de código morto. 100% dos testes aprovados no pipeline `npm test`.
+
+
 #### [Mapa Grid de Calibração Métrica & Física, Piso Tabuleiro 1x1m e Circuito de Testes] — 30/10/2026
 * **feat(maps):** Implementação completa do mapa de laboratório de calibração física e métrica `assets/maps/grid.json` (100×100m) e ecossistema de testes em `src/world/TextureGenerator.js`, `src/world/MaterialFactory.js`, `src/world/MapLoader.js`, `index.html` e `test/grid_map_test.js`:
   * **Novo Mapa `assets/maps/grid.json` (100×20×100):** Escala de 100 × 100 metros (`bounds: [-50, -50, 50, 50]`) estruturado em 5 estações modulares padronizadas para validação de locomoção, balística, pulos e colisões:

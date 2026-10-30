@@ -10,17 +10,18 @@ const _right = new THREE.Vector3();
 const _wish = new THREE.Vector3();
 
 export class Player extends Character {
-  constructor(world, bounds, spawnPos = [0, 0.1, 10], scene = null) {
+  constructor(world, bounds, spawnPos = [0, 0.1, 10], scene = null, spawnYaw = 0) {
     super(world);
     this.scene = scene;
     this.bounds = bounds;
     this.spawnPos = spawnPos;
+    this.spawnYaw = (Array.isArray(spawnPos) && typeof spawnPos[3] === 'number') ? spawnPos[3] : (spawnYaw || 0);
     this.setPosition(spawnPos[0], spawnPos[1], spawnPos[2]);
     this.size.set(0.6, CONFIG.PLAYER.height, 0.6);
 
     // Instancia o CameraRig (Layer 1 da câmera)
     this.rig = new CameraRig();
-    this.rig.setOrientation(this._yaw || 0, 0);
+    this.rig.setOrientation(this.spawnYaw || 0, 0);
 
     // Representação visual 3D em 3ª pessoa usando o Soldado Blocky tático
     this.skinType = 'soldier';
@@ -34,7 +35,9 @@ export class Player extends Character {
     this.crouched = false;
     this.ads = false;
     this.lastDamageTime = -999;
-    this.stepTimer = 0;
+    this.sprintRecoveryTimer = 0;
+    this.coyoteTimer = 0;
+    this.jumpBufferTimer = 0;
     this.respawnTimer = 0;
     this.crouchAmount = 0;
     this.lean = 0;
@@ -115,9 +118,10 @@ export class Player extends Character {
 
     // ---- Look & Input (só se estiver vivo) ----
     if (this.alive) {
-      // Atualiza ADS imediatamente com a ação do botão direito do mouse
+      // Atualiza ADS imediatamente com a ação do botão direito do mouse (bloqueado em sprint e recuperação de postura)
       if (input) {
-        this.ads = input.isActionPressed ? input.isActionPressed('ads') : !!input.actions?.ads;
+        const wantsAds = input.isActionPressed ? input.isActionPressed('ads') : !!input.actions?.ads;
+        this.ads = wantsAds && !this.sprinting && !(this.sprintRecoveryTimer > 0);
       }
 
       const { dx, dy } = input.consumeMouseDelta();
@@ -143,10 +147,31 @@ export class Player extends Character {
       if (isPressed('move_right')) _wish.add(_right);
       if (isPressed('move_left')) _wish.sub(_right);
 
-      this.sprinting = isPressed('sprint') && _wish.lengthSq() > 0 && !this.ads && !this.crouched;
-      this.crouched = isPressed('crouch');
+      const wantsCrouch = isPressed('crouch');
+      if (wantsCrouch) {
+        this.crouched = true;
+      } else if (this.crouched) {
+        // Soltou a tecla de agachar: só levanta se houver espaço vertical livre
+        const canStand = this.world?.hasHeadroom
+          ? this.world.hasHeadroom(this.pos, this.size, CONFIG.PLAYER.height)
+          : true;
+        this.crouched = !canStand;
+      } else {
+        this.crouched = false;
+      }
 
-      // Lean (Inclinação tática com Q / E)
+      // Sprint só é permitido com movimento para frente ou diagonais frontais
+      const isMovingForward = _wish.dot(_fwd) > 0.01;
+      const wantsSprint = isPressed('sprint') && _wish.lengthSq() > 0 && isMovingForward && !this.ads && !this.crouched;
+      if (this.sprinting && !wantsSprint) {
+        this.sprintRecoveryTimer = CONFIG.PLAYER.stanceRecoveryTime || 0.15;
+      }
+      this.sprinting = wantsSprint;
+      if (this.sprintRecoveryTimer > 0) {
+        this.sprintRecoveryTimer = Math.max(0, this.sprintRecoveryTimer - dt);
+      }
+
+      // Lean (Inclinação tática com Q / E) - Lerp único calibrado a 18/s
       const isLeanL = isPressed('lean_left');
       const isLeanR = isPressed('lean_right');
       if (isLeanL && !isLeanR) {
@@ -156,29 +181,75 @@ export class Player extends Character {
       } else {
         this.targetLean = 0.0;
       }
-      this.lean += (this.targetLean - this.lean) * Math.min(dt * 14, 1);
+      this.lean += (this.targetLean - this.lean) * Math.min(dt * 18, 1);
 
-      // Pulo
-      if (isPressed('jump') && this.onGround) {
+      // Pulo com Coyote Time e Jump Buffer (ação discreta anti auto-bhop)
+      let jumpJustPressed = false;
+      if (typeof input.consumeAction === 'function') {
+        jumpJustPressed = input.consumeAction('jump');
+      } else if (typeof input.isActionJustPressed === 'function') {
+        jumpJustPressed = input.isActionJustPressed('jump');
+      } else if (input.actions && input.actions.jump) {
+        jumpJustPressed = true;
+        input.actions.jump = false;
+      }
+
+      if (jumpJustPressed) {
+        this.jumpBufferTimer = CONFIG.PLAYER.jumpBuffer ?? 0.12;
+      }
+
+      if (this.onGround) {
+        this.coyoteTimer = CONFIG.PLAYER.coyoteTime ?? 0.12;
+      } else if (this.coyoteTimer > 0) {
+        this.coyoteTimer = Math.max(0, this.coyoteTimer - dt);
+      }
+
+      if (this.jumpBufferTimer > 0) {
+        this.jumpBufferTimer = Math.max(0, this.jumpBufferTimer - dt);
+      }
+
+      if (this.jumpBufferTimer > 0 && (this.onGround || this.coyoteTimer > 0)) {
         this.vel.y = CONFIG.PLAYER.jumpSpeed;
         this.onGround = false;
+        this.coyoteTimer = 0;
+        this.jumpBufferTimer = 0;
       }
     } else {
       _wish.set(0, 0, 0);
       this.sprinting = false;
       this.crouched = false;
       this.ads = false;
+      this.sprintRecoveryTimer = 0;
+      this.coyoteTimer = 0;
+      this.jumpBufferTimer = 0;
       this.targetLean = 0;
-      this.lean += (0 - this.lean) * Math.min(dt * 14, 1);
+      this.lean += (0 - this.lean) * Math.min(dt * 18, 1);
     }
 
     // ---- Velocidade alvo ----
     let speed = CONFIG.PLAYER.walkSpeed;
+
+    // Multiplicador Direcional Tático (Elipsoide de Locomoção: Forward 1.0, Strafe 0.85, Backward 0.75)
+    if (_wish.lengthSq() > 0.0001) {
+      const wishLen = _wish.length();
+      const dotFwd = _wish.dot(_fwd) / wishLen;
+      const dotRight = _wish.dot(_right) / wishLen;
+      const strafeMul = CONFIG.PLAYER.strafeMul ?? 0.85;
+      const backwardMul = CONFIG.PLAYER.backwardMul ?? 0.75;
+      const fwdFactor = dotFwd >= 0 ? 1.0 : backwardMul;
+      const dirMul = Math.sqrt((dotFwd * fwdFactor) ** 2 + (dotRight * strafeMul) ** 2);
+      speed *= dirMul;
+    }
+
     if (this.sprinting) {
-      speed *= CONFIG.PLAYER.sprintMul;
-    } else if (this.crouched || this.ads) {
-      // Valor fixo de 0.5x tanto no agachado quanto no ADS, sem acumular
-      speed *= 0.5;
+      speed *= (CONFIG.PLAYER.sprintMul ?? 1.62);
+    } else if (this.crouched && this.ads) {
+      // Menor multiplicador quando agachado e mirando simultaneamente
+      speed *= Math.min(CONFIG.PLAYER.crouchMul ?? 0.5, CONFIG.PLAYER.adsMul ?? 0.48);
+    } else if (this.crouched) {
+      speed *= (CONFIG.PLAYER.crouchMul ?? 0.5);
+    } else if (this.ads) {
+      speed *= (CONFIG.PLAYER.adsMul ?? 0.48);
     }
 
     // ---- Aceleração e Atrito ----
@@ -193,32 +264,27 @@ export class Player extends Character {
       this.vel.z -= this.vel.z * k;
     }
 
-    // Interpola altura do corpo (para colisão bater com a animação de agachar)
-    // Se morto, força a altura para o chão
-    const targetCrouch = !this.alive ? 1.5 : (this.crouched ? 1 : 0);
+    // Interpola altura do corpo (normalizada entre 0 e 1)
+    const targetCrouch = this.crouched ? 1.0 : 0.0;
     this.crouchAmount += (targetCrouch - this.crouchAmount) * Math.min(dt * 12, 1);
+    this.crouchAmount = Math.max(0, Math.min(1.0, this.crouchAmount));
     this.size.y = Math.max(0.2, CONFIG.PLAYER.height + (CONFIG.PLAYER.crouchHeight - CONFIG.PLAYER.height) * this.crouchAmount);
 
     // ---- Aplica Física Unificada ----
+    const prevVelY = this.vel.y;
+    const wasOnGround = this.onGround;
     this.applyPhysics(dt, CONFIG.PLAYER.stepHeight);
+
+    if (!wasOnGround && this.onGround && prevVelY < -3.0) {
+      if (this.rig?.triggerLandingDip) {
+        this.rig.triggerLandingDip(prevVelY);
+      }
+    }
 
     // ---- Limites do mapa ----
     const [minX, maxX, minZ, maxZ] = this.bounds;
     this.pos.x = Math.max(minX, Math.min(maxX, this.pos.x));
     this.pos.z = Math.max(minZ, Math.min(maxZ, this.pos.z));
-
-    // ---- Passos sonoros ----
-    const speedXZ = Math.hypot(this.vel.x, this.vel.z);
-    if (!this.rig && this.alive && this.onGround && speedXZ > 1) {
-      this.stepTimer -= dt;
-      const interval = this.sprinting ? 0.30 : (this.crouched ? 0.55 : 0.42);
-      if (this.stepTimer <= 0) {
-        this.stepTimer = interval;
-        emit('player:footstep', { pos: this.pos.clone(), material: this.groundMaterial || 'floor' });
-      }
-    } else {
-      this.stepTimer = 0;
-    }
 
     // ---- Regeneração de Vida ----
     const now = performance.now() / 1000;
@@ -308,7 +374,8 @@ export class Player extends Character {
     } else {
       this.setPosition(0, 0.1, 12);
     }
-    this.rig.reset();
+    this.rig.reset(this.spawnYaw || 0);
+    this.rig.setOrientation(this.spawnYaw || 0, 0);
     this.lean = 0;
     this.targetLean = 0;
     if (this.view?.root) {

@@ -11,10 +11,12 @@ export const DEFAULT_CONFIG = {
   PLAYER: {
     height: 1.8, crouchHeight: 1.2, eyeHeight: 1.6, eyeCrouch: 1.05,
     radius: 0.35,
-    walkSpeed: 5.2, sprintMul: 1.75, crouchMul: 0.5, adsMul: 0.5,
+    walkSpeed: 4.2, sprintMul: 1.62, crouchMul: 0.5, adsMul: 0.48,
+    strafeMul: 0.85, backwardMul: 0.75, stanceRecoveryTime: 0.15,
     accel: 40.0, airAccel: 6.0, friction: 22.0,
-    jumpSpeed: 7.0, gravity: 20.0,
-    stepHeight: 0.55,
+    jumpSpeed: 6.0, gravity: 20.0,
+    stepHeight: 0.35,
+    coyoteTime: 0.12, jumpBuffer: 0.12, landingDipScale: 0.0035,
     regenDelay: 5.0, regenRate: 12.0
   },
   CAMERA: {
@@ -106,6 +108,8 @@ export class ConfigLoader {
           CONFIG.PLAYER.crouchMultiplier = CONFIG.PLAYER.crouchMul;
           CONFIG.PLAYER.adsMul = gp.player.adsMul ?? gp.player.adsMultiplier ?? CONFIG.PLAYER.adsMul;
           CONFIG.PLAYER.adsMultiplier = CONFIG.PLAYER.adsMul;
+          CONFIG.PLAYER.strafeMul = gp.player.strafeMul ?? CONFIG.PLAYER.strafeMul;
+          CONFIG.PLAYER.backwardMul = gp.player.backwardMul ?? CONFIG.PLAYER.backwardMul;
           CONFIG.PLAYER.accel = gp.player.accel ?? CONFIG.PLAYER.accel;
           CONFIG.PLAYER.airAccel = gp.player.airAccel ?? CONFIG.PLAYER.airAccel;
           CONFIG.PLAYER.jumpSpeed = gp.player.jumpSpeed ?? CONFIG.PLAYER.jumpSpeed;
@@ -113,6 +117,10 @@ export class ConfigLoader {
           CONFIG.PLAYER.stepHeight = gp.player.stepHeight ?? CONFIG.PLAYER.stepHeight;
           CONFIG.PLAYER.regenDelay = gp.player.regenDelay ?? CONFIG.PLAYER.regenDelay;
           CONFIG.PLAYER.regenRate = gp.player.regenRate ?? CONFIG.PLAYER.regenRate;
+          CONFIG.PLAYER.stanceRecoveryTime = gp.player.stanceRecoveryTime ?? CONFIG.PLAYER.stanceRecoveryTime;
+          CONFIG.PLAYER.coyoteTime = gp.player.coyoteTime ?? CONFIG.PLAYER.coyoteTime;
+          CONFIG.PLAYER.jumpBuffer = gp.player.jumpBuffer ?? CONFIG.PLAYER.jumpBuffer;
+          CONFIG.PLAYER.landingDipScale = gp.player.landingDipScale ?? CONFIG.PLAYER.landingDipScale;
         }
         if (gp.camera) {
           CONFIG.CAMERA.hipFov = gp.camera.hipFov ?? CONFIG.CAMERA.hipFov;

@@ -46,7 +46,7 @@ export class Character {
     }
   }
 
-  applyPhysics(dt, stepHeight = 0.5) {
+  applyPhysics(dt, stepHeight = (CONFIG.PLAYER?.stepHeight || 0.35)) {
     // Gravidade
     this.vel.y -= CONFIG.PLAYER.gravity * dt;
 

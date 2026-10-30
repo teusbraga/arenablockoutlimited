@@ -48,6 +48,7 @@ export class AIController {
     this.lastProgressPos = new THREE.Vector3();
     this.unstickTimer = 0;
     this.unstickYaw = 0;
+    this.motionGraceTimer = 0.25;
 
     // Burst Fire state
     this.burstShotsRemaining = 0;
@@ -139,12 +140,21 @@ export class AIController {
   }
 
   _updateStuckDetector(dt) {
+    const wantSpeed = Math.hypot(this.desiredMove.x, this.desiredMove.z);
+
+    // Grace period de 250ms ao arrancar da imobilidade para evitar falso-positivo durante aceleração
+    if (wantSpeed <= 0.2) {
+      this.motionGraceTimer = 0.25;
+    } else if (this.motionGraceTimer > 0) {
+      this.motionGraceTimer = Math.max(0, this.motionGraceTimer - dt);
+      return;
+    }
+
     this.stuckCheckTimer -= dt;
     if (this.stuckCheckTimer > 0) return;
     this.stuckCheckTimer = 0.35 + Math.random() * 0.10;
 
     const bot = this.bot;
-    const wantSpeed = Math.hypot(this.desiredMove.x, this.desiredMove.z);
     const movedDist = Math.hypot(bot.pos.x - this.lastProgressPos.x, bot.pos.z - this.lastProgressPos.z);
     this.lastProgressPos.copy(bot.pos);
 
@@ -277,9 +287,24 @@ export class AIController {
     // Monitora se o bot ficou preso em alguma quina e aplica manobra de desengate
     this._updateStuckDetector(dt);
 
-    // Aplica velocidade desejada
-    bot.vel.x = this.desiredMove.x;
-    bot.vel.z = this.desiredMove.z;
+    // Aplica velocidade desejada com aceleração e frenagem suaves (humanização de locomoção)
+    const targetX = this.desiredMove.x;
+    const targetZ = this.desiredMove.z;
+    const targetSpeed = Math.hypot(targetX, targetZ);
+
+    if (targetSpeed > 0.05) {
+      const kAcc = Math.min(18.0 * dt, 1.0);
+      bot.vel.x += (targetX - bot.vel.x) * kAcc;
+      bot.vel.z += (targetZ - bot.vel.z) * kAcc;
+    } else {
+      const kDec = Math.min(26.0 * dt, 1.0);
+      bot.vel.x -= bot.vel.x * kDec;
+      bot.vel.z -= bot.vel.z * kDec;
+      if (Math.hypot(bot.vel.x, bot.vel.z) < 0.01) {
+        bot.vel.x = 0;
+        bot.vel.z = 0;
+      }
+    }
   }
 
   _hasLOS(player, dist) {

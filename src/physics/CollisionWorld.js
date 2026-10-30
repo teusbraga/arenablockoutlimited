@@ -5,6 +5,8 @@
  * Convenção: entidade.pos = PÉS (bottom-center).
  *            entidade.size = extents totais {x, y, z}.
  */
+const _headroomTestSize = { x: 0.6, y: 1.8, z: 0.6 };
+
 export class CollisionWorld {
   constructor(cellSize = 4.0) {
     this.cellSize = cellSize;
@@ -146,6 +148,21 @@ export class CollisionWorld {
       if (this.overlaps(pos, size, b)) return true;
     }
     return false;
+  }
+
+  /**
+   * Verifica se uma entidade na posição pos tem espaço vertical livre até targetHeight.
+   * Usado para headroom check (impede levantar agachado sob tetos baixos).
+   * @param {{x: number, y: number, z: number}} pos 
+   * @param {{x: number, y: number, z: number}} size 
+   * @param {number} targetHeight 
+   * @returns {boolean} true se houver espaço livre sem colisão sólida
+   */
+  hasHeadroom(pos, size, targetHeight) {
+    _headroomTestSize.x = size.x;
+    _headroomTestSize.y = targetHeight;
+    _headroomTestSize.z = size.z;
+    return !this._anyOverlap(pos, _headroomTestSize);
   }
 
   /**

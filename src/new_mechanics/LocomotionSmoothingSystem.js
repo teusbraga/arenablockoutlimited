@@ -50,7 +50,8 @@ export class LocomotionSmoothingSystem {
     isADS = false,
     adsAmount = 0,
     walkSpeed = CONFIG.PLAYER?.walkSpeed || 5.2,
-    sprintMul = CONFIG.PLAYER?.sprintMul || 1.75
+    sprintMul = CONFIG.PLAYER?.sprintMul || 1.75,
+    rig = null
   } = {}) {
     if (dt <= 0) return;
 
@@ -130,7 +131,9 @@ export class LocomotionSmoothingSystem {
     // A amplitude responde ágilmente (~70-90ms)
     this.bobAmount += (targetBobAmt - this.bobAmount) * Math.min(dt * 22.0, 1.0);
 
-    if (this.bobAmount > 0.0001) {
+    if (rig && typeof rig.currentBobPhase === 'number') {
+      this.bobPhase = rig.currentBobPhase;
+    } else if (this.bobAmount > 0.0001) {
       this.bobPhase += dt * currentFreq;
       if (this.bobPhase > Math.PI * 2) {
         this.bobPhase -= Math.PI * 2;

@@ -1,4 +1,5 @@
 import { on } from '../core/EventBus.js';
+import { CONFIG } from '../core/ConfigLoader.js';
 
 /**
  * GPS Tático dos Bots — Grid de Navegação Esparsa + Pathfinding A* (8 direções sem cortar quinas)
@@ -16,7 +17,7 @@ export class NavGrid {
     this.world = world;
     this.cellSize = opts.cellSize ?? 1.0;
     this.botRadius = opts.botRadius ?? 0.42; // Folga horizontal para AABB 0.8m do bot
-    this.stepHeight = opts.stepHeight ?? 0.52;
+    this.stepHeight = opts.stepHeight ?? (CONFIG.PLAYER?.stepHeight || 0.35);
     this.botHeight = opts.botHeight ?? 1.65;
 
     /** @type {Map<number, boolean>} Cache de caminhabilidade por célula (chave inteira 32-bit) */

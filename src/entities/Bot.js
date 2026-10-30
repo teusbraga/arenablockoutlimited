@@ -1,4 +1,5 @@
 import { Character } from './Character.js';
+import { CONFIG } from '../core/ConfigLoader.js';
 import { AIController } from '../ai/AIController.js';
 import { CharacterView } from '../view/CharacterView.js';
 import { emit, on, off } from '../core/EventBus.js';
@@ -55,7 +56,7 @@ export class Bot extends Character {
     this.lean += ((this.targetLean || 0) - this.lean) * Math.min(dt * 10, 1);
 
     // Aplica física unificada
-    this.applyPhysics(dt, 0.5);
+    this.applyPhysics(dt, CONFIG.PLAYER?.stepHeight || 0.35);
 
     // Atualiza representação visual (se acoplada)
     if (this.view) {

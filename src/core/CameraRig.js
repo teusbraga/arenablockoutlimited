@@ -39,6 +39,10 @@ function smoothDamp(current, target, currentVelocity, smoothTime, maxSpeed = Inf
  * - Expõe angularVelocity limpa e contínua para o Viewmodel (Layer 3) e Scope (Layer 4).
  */
 export class CameraRig {
+  get currentBobPhase() {
+    return this.bobPhase;
+  }
+
   constructor() {
     // ---- Orientação Alvo (Layer 0 - Mouse Intent) ----
     this.targetYaw = 0;
@@ -79,6 +83,10 @@ export class CameraRig {
     // ---- Lean / Inclinação de Tronco (Q / E) ----
     this.currentLean = 0;
     this.targetLean = 0;
+
+    // ---- Landing Dip (Amortecimento vertical de impacto no pouso) ----
+    this.landingDip = 0;
+    this.landingDipVel = 0;
 
     // ---- Flinch (Impacto de Tiro Recebido) ----
     this.flinchPitch = 0;
@@ -224,7 +232,17 @@ export class CameraRig {
     return this.perspective === 'third';
   }
 
-  reset() {
+  triggerLandingDip(impactYVel) {
+    const scale = CONFIG.PLAYER?.landingDipScale ?? 0.0035;
+    if (scale <= 0) return;
+    const userBobScale = CONFIG.ACCESSIBILITY?.headbobScale ?? 1.0;
+    const clampedSpeed = Math.min(Math.abs(impactYVel), 12.0);
+    this.landingDipVel -= clampedSpeed * scale * 60.0 * userBobScale;
+  }
+
+  reset(spawnYaw = 0) {
+    this.targetYaw = spawnYaw;
+    this.currentYaw = spawnYaw;
     this.flinchPitch = 0;
     this.flinchYaw = 0;
     this.currentRoll = 0;
@@ -243,6 +261,8 @@ export class CameraRig {
     this.shakeIntensity = 0;
     this.shakeRot.set(0, 0, 0);
     this.shakePos.set(0, 0, 0);
+    this.landingDip = 0;
+    this.landingDipVel = 0;
   }
 
   /**
@@ -411,9 +431,25 @@ export class CameraRig {
 
     // ---- 8. Lean / Inclinação de Tronco (Layer 1.5) ----
     this.targetLean = player.alive ? (player.lean || 0) : 0;
-    this.currentLean += (this.targetLean - this.currentLean) * Math.min(dt * 14, 1);
+    this.currentLean = this.targetLean;
     const leanOffsetDist = this.currentLean * 0.35; // 35cm de deslocamento lateral da cabeça
     const leanDrop = Math.abs(this.currentLean) * 0.05; // 5cm de flexão natural ao inclinar
+
+    // ---- 8.5. Landing Dip (Amortecimento vertical de pouso) ----
+    if (Math.abs(this.landingDip) > 0.0001 || Math.abs(this.landingDipVel) > 0.001) {
+      const springK = 280.0;
+      const springD = 26.0;
+      const dipAcc = -springK * this.landingDip - springD * this.landingDipVel;
+      this.landingDipVel += dipAcc * dt;
+      this.landingDip += this.landingDipVel * dt;
+      if (Math.abs(this.landingDip) < 0.0001 && Math.abs(this.landingDipVel) < 0.001) {
+        this.landingDip = 0;
+        this.landingDipVel = 0;
+      }
+    } else {
+      this.landingDip = 0;
+      this.landingDipVel = 0;
+    }
 
     // ---- 9. Posição no Espaço World (1ª Pessoa vs 3ª Pessoa com Spring-Arm) ----
     const rightX = Math.cos(this.currentYaw);
@@ -424,7 +460,7 @@ export class CameraRig {
 
     const firstPersonPos = {
       x: player.renderPos.x + (bobX + leanOffsetDist) * rightX + rightX * this.recoilPos.x + backX * this.recoilPos.z + this.shakePos.x,
-      y: player.renderPos.y + this.eyeHeight - leanDrop + bobY + this.recoilPos.y + this.shakePos.y,
+      y: player.renderPos.y + this.eyeHeight - leanDrop + bobY + this.recoilPos.y + this.shakePos.y + this.landingDip,
       z: player.renderPos.z + (bobX + leanOffsetDist) * rightZ + rightZ * this.recoilPos.x + backZ * this.recoilPos.z + this.shakePos.z
     };
 
@@ -445,7 +481,7 @@ export class CameraRig {
       // Ponto de pivô de cabeça/ombros do player
       const pivot = {
         x: player.renderPos.x + (leanOffsetDist + this.tpOffsetRight * this.thirdPersonAmount) * rightX,
-        y: player.renderPos.y + this.eyeHeight - leanDrop + (this.tpOffsetY * this.thirdPersonAmount),
+        y: player.renderPos.y + this.eyeHeight - leanDrop + (this.tpOffsetY * this.thirdPersonAmount) + this.landingDip,
         z: player.renderPos.z + (leanOffsetDist + this.tpOffsetRight * this.thirdPersonAmount) * rightZ
       };
 

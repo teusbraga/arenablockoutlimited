@@ -428,7 +428,7 @@ export class WeaponSystem {
     }
 
     // 3. ADS (Mira com botão direito, bloqueada se o cano estiver colado na parede)
-    this.ads = this.input.actions.ads && !this.player.sprinting && this.player.alive && (this.wallCompression < 0.45);
+    this.ads = this.input.actions.ads && !this.player.sprinting && !(this.player.sprintRecoveryTimer > 0) && this.player.alive && (this.wallCompression < 0.45);
     this.player.ads = this.ads;
     emit('player:ads', { ads: this.ads });
     const adsTime = def.ballistics?.internal?.adsTime || 0.22;

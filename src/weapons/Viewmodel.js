@@ -291,6 +291,7 @@ export class Viewmodel {
       isCrouched: options?.isCrouched ?? false,
       isADS,
       adsAmount: options?.adsAmount ?? (isADS ? 1.0 : 0.0),
+      rig,
     });
 
     const bobScale = CONFIG.ACCESSIBILITY?.headbobScale ?? 1.0;
