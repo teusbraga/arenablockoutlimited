@@ -84,13 +84,85 @@ const MATERIALS = {
   dev_grid:      () => materialFactory.get('grid_1x1'),
 };
 
-export async function loadMap(url, scene) {
-  const fetchUrl = (typeof url === 'string' && !url.includes('/') && !url.endsWith('.json'))
-    ? `./assets/maps/${url}.json`
-    : url;
-  const res = await fetch(fetchUrl, { cache: 'no-store' });
-  if (!res.ok) throw new Error(`Falha ao carregar mapa: ${url}`);
-  const data = await res.json();
+/**
+ * Cria a geometria de uma rampa em formato de cunha (wedge / prisma triangular retilíneo)
+ * com superfícies planas, normais nítidas e UVs ajustadas.
+ * 
+ * @param {number} sx Largura X
+ * @param {number} sy Altura Y total
+ * @param {number} sz Profundidade Z
+ * @param {string} direction '+z' | '-z' | '+x' | '-x'
+ * @returns {THREE.BufferGeometry}
+ */
+export function createWedgeGeometry(sx, sy, sz, direction = '+z') {
+  const geo = new THREE.BufferGeometry();
+  const positions = [];
+  const uvs = [];
+
+  const x0 = -sx / 2, x1 = sx / 2;
+  const y0 = 0,       y1 = sy;
+  const z0 = -sz / 2, z1 = sz / 2;
+
+  function addTri(a, b, c) {
+    positions.push(...a, ...b, ...c);
+    uvs.push(0, 0, 1, 0, 0, 1);
+  }
+
+  function addQuad(a, b, c, d) {
+    positions.push(...a, ...b, ...c, ...a, ...c, ...d);
+    uvs.push(0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1);
+  }
+
+  // Base comum a todas as orientações (normal -Y)
+  addQuad([x0, 0, z0], [x1, 0, z0], [x1, 0, z1], [x0, 0, z1]);
+
+  const dir = (direction || '+z').toLowerCase();
+
+  if (dir === '+z') {
+    // Sobe em direção a +Z (Low em z0, High em z1)
+    addQuad([x0, 0, z1], [x1, 0, z1], [x1, sy, z1], [x0, sy, z1]);
+    addQuad([x0, 0, z0], [x0, sy, z1], [x1, sy, z1], [x1, 0, z0]);
+    addTri([x0, 0, z0], [x0, 0, z1], [x0, sy, z1]);
+    addTri([x1, 0, z0], [x1, sy, z1], [x1, 0, z1]);
+  } else if (dir === '-z') {
+    // Sobe em direção a -Z (Low em z1, High em z0)
+    addQuad([x1, 0, z0], [x0, 0, z0], [x0, sy, z0], [x1, sy, z0]);
+    addQuad([x0, 0, z1], [x1, 0, z1], [x1, sy, z0], [x0, sy, z0]);
+    addTri([x0, 0, z1], [x0, sy, z0], [x0, 0, z0]);
+    addTri([x1, 0, z1], [x1, 0, z0], [x1, sy, z0]);
+  } else if (dir === '+x') {
+    // Sobe em direção a +X (Low em x0, High em x1)
+    addQuad([x1, 0, z1], [x1, 0, z0], [x1, sy, z0], [x1, sy, z1]);
+    addQuad([x0, 0, z0], [x0, 0, z1], [x1, sy, z1], [x1, sy, z0]);
+    addTri([x0, 0, z1], [x1, 0, z1], [x1, sy, z1]);
+    addTri([x0, 0, z0], [x1, sy, z0], [x1, 0, z0]);
+  } else if (dir === '-x') {
+    // Sobe em direção a -X (Low em x1, High em x0)
+    addQuad([x0, 0, z0], [x0, 0, z1], [x0, sy, z1], [x0, sy, z0]);
+    addQuad([x1, 0, z0], [x0, sy, z0], [x0, sy, z1], [x1, 0, z1]);
+    addTri([x1, 0, z1], [x0, sy, z1], [x0, 0, z1]);
+    addTri([x1, 0, z0], [x0, 0, z0], [x0, sy, z0]);
+  }
+
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+  geo.computeVertexNormals();
+
+  return geo;
+}
+
+export async function loadMap(mapOrUrl, scene) {
+  let data;
+  if (typeof mapOrUrl === 'object' && mapOrUrl !== null) {
+    data = mapOrUrl;
+  } else {
+    const fetchUrl = (typeof mapOrUrl === 'string' && !mapOrUrl.includes('/') && !mapOrUrl.endsWith('.json'))
+      ? `./assets/maps/${mapOrUrl}.json`
+      : mapOrUrl;
+    const res = await fetch(fetchUrl, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Falha ao carregar mapa: ${mapOrUrl}`);
+    data = await res.json();
+  }
 
   loadingScreen.show(data.name || 'CARREGANDO MAPA...');
   loadingScreen.setProgress(10, 'Lendo geometria e limites...');
@@ -184,20 +256,29 @@ export async function loadMap(url, scene) {
     bounds = [-w/2, w/2, -d/2, d/2];
   }
 
-  // Geometria estática usando InstancedMesh para otimização de Draw Calls
+  // Geometria estática usando InstancedMesh (boxes) e malhas dedicadas (rampas e domos)
   const itemsByMaterial = new Map();
+  const rampsToRender = [];
+  const domesToRender = [];
+
   for (const item of data.staticGeometry || []) {
     const [x, y, z] = item.pos;
     const [sx, sy, sz] = item.size;
     const matName = item.material || 'wall';
 
-    if (!itemsByMaterial.has(matName)) {
-      itemsByMaterial.set(matName, []);
+    if (item.type === 'ramp') {
+      world.addRamp(x, y + sy/2, z, sx, sy, sz, item.direction || '+z', { vaultable: !!item.vaultable, material: matName });
+      rampsToRender.push(item);
+    } else if (item.type === 'dome') {
+      world.addDome(x, y, z, sx / 2, sy, sz / 2, { vaultable: !!item.vaultable, material: matName });
+      domesToRender.push(item);
+    } else {
+      if (!itemsByMaterial.has(matName)) {
+        itemsByMaterial.set(matName, []);
+      }
+      itemsByMaterial.get(matName).push(item);
+      world.addBox(x, y + sy/2, z, sx, sy, sz, { vaultable: !!item.vaultable, material: matName });
     }
-    itemsByMaterial.get(matName).push(item);
-
-    // Registra hitbox pura no CollisionWorld (purificada de Mesh)
-    world.addBox(x, y + sy/2, z, sx, sy, sz, { vaultable: !!item.vaultable, material: matName });
   }
 
   // Caixa unitária compartilhada por todas as instâncias
@@ -233,6 +314,39 @@ export async function loadMap(url, scene) {
 
       instancedMesh.instanceMatrix.needsUpdate = true;
       scene.add(instancedMesh);
+    }
+
+    // Renderização de rampas individuais
+    for (const item of rampsToRender) {
+      const [x, y, z] = item.pos;
+      const [sx, sy, sz] = item.size;
+      const matName = item.material || 'wall';
+      const material = isPbrMap
+        ? materialFactory.get(matName)
+        : (MATERIALS[matName] ? MATERIALS[matName]() : MATERIALS.wall());
+      const geo = createWedgeGeometry(sx, sy, sz, item.direction || '+z');
+      const mesh = new THREE.Mesh(geo, material);
+      mesh.position.set(x, y, z);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      scene.add(mesh);
+    }
+
+    // Renderização de domos individuais (meia esfera)
+    for (const item of domesToRender) {
+      const [x, y, z] = item.pos;
+      const [sx, sy, sz] = item.size;
+      const matName = item.material || 'wall';
+      const material = isPbrMap
+        ? materialFactory.get(matName)
+        : (MATERIALS[matName] ? MATERIALS[matName]() : MATERIALS.wall());
+      const geo = new THREE.SphereGeometry(1, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+      const mesh = new THREE.Mesh(geo, material);
+      mesh.scale.set(sx / 2, sy, sz / 2);
+      mesh.position.set(x, y, z);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      scene.add(mesh);
     }
   }
 

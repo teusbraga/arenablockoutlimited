@@ -290,9 +290,9 @@ export class CharacterView {
 
         // Pitch vertical (olhar para cima/baixo na mira)
         const pitch = this.character.pitch || 0;
-        this.joints.neck.rotation.x = pitch * 0.75;
-        this.joints.shoulderRight.rotation.x = pitch * 0.65;
-        this.joints.shoulderLeft.rotation.x = pitch * 0.65;
+        this.joints.neck.rotation.x = pitch * 0.35;
+        this.joints.shoulderRight.rotation.x = pitch * 0.35;
+        this.joints.shoulderLeft.rotation.x = pitch * 0.35;
       } else {
         if (this.leftLegPivot) this.leftLegPivot.rotation.x = swing * 0.65;
         if (this.rightLegPivot) this.rightLegPivot.rotation.x = -swing * 0.65;
@@ -359,13 +359,16 @@ export class CharacterView {
 
     this.root.rotation.y = this.currentBodyYaw;
 
-    // Torso twist
+    // Torso twist and vertical pitch (biomechanical aim)
     if (this.torso) {
       let spineTwist = aimYaw - this.currentBodyYaw;
       while (spineTwist > Math.PI) spineTwist -= Math.PI * 2;
       while (spineTwist < -Math.PI) spineTwist += Math.PI * 2;
       const maxSpineTwist = 1.25;
       this.torso.rotation.y = Math.max(-maxSpineTwist, Math.min(maxSpineTwist, spineTwist));
+
+      const charPitch = this.character.pitch || 0;
+      this.torso.rotation.x = Math.max(-0.85, Math.min(0.85, charPitch * 0.65));
     }
   }
 

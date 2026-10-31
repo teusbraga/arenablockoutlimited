@@ -46,7 +46,8 @@ export class Input {
       'reload_tactical': 'reload_tactical',
       'reload_tap': 'reload_speed',
       'reload_hold': 'reload_tactical',
-      'qte_interact': 'qte_interact'
+      'qte_interact': 'qte_interact',
+      'scoreboard': 'scoreboard'
     };
 
     // Mapeamento de botões físicos para ações canônicas
@@ -69,7 +70,8 @@ export class Input {
       'KeyF': 'interact',
       'KeyB': 'toggle_fire_mode',
       'KeyU': 'throw_smoke',
-      'KeyI': 'toggle_inventory'
+      'KeyI': 'toggle_inventory',
+      'Tab': 'scoreboard'
     };
 
     // Estado atual das intenções (ações contínuas) - Proxy transparente para retrocompatibilidade
@@ -79,7 +81,7 @@ export class Input {
       fire: false, ads: false, reload: false, nextWeapon: false,
       slot1: false, slot2: false, interact: false, toggleFireMode: false,
       leanLeft: false, leanRight: false, throwSmoke: false,
-      toggleInventory: false
+      toggleInventory: false, scoreboard: false
     };
 
     // Cria Proxy em this.actions para aceitar tanto snake_case quanto camelCase
@@ -364,9 +366,11 @@ export class Input {
         }
       }
 
-      // 1. Previne atalhos perigosos do Chrome quando o mouse está capturado no jogo
-      if (this.locked) {
-        if (e.ctrlKey || e.metaKey || ['ControlLeft','ControlRight','AltLeft','AltRight','Tab'].includes(e.code)) {
+      // 1. Previne atalhos perigosos do Chrome quando o mouse está capturado no jogo e intercepta Tab
+      if (e.code === 'Tab') {
+        e.preventDefault();
+      } else if (this.locked) {
+        if (e.ctrlKey || e.metaKey || ['ControlLeft','ControlRight','AltLeft','AltRight'].includes(e.code)) {
           if (!['F12','F5','F11'].includes(e.code)) {
             e.preventDefault();
           }
@@ -375,12 +379,13 @@ export class Input {
 
       const rawAction = this.bindings[e.code];
       if (rawAction) {
-        if (e.repeat && e.code === 'KeyR') {
+        if (e.repeat && (e.code === 'KeyR' || e.code === 'Tab')) {
           e.preventDefault();
           return;
         }
         const isInventoryKey = e.code === 'KeyI';
-        if ((this.locked && !this.roundOver && !this.inventoryOpen) || (isInventoryKey && !this.roundOver)) {
+        const isScoreboardKey = e.code === 'Tab';
+        if ((this.locked && !this.roundOver && !this.inventoryOpen) || (isInventoryKey && !this.roundOver) || isScoreboardKey) {
           this.pressAction(rawAction);
           e.preventDefault();
         }
@@ -388,13 +393,15 @@ export class Input {
     });
 
     addEventListener('keyup', e => {
-      if (this.locked && (e.ctrlKey || e.metaKey)) {
+      if (e.code === 'Tab') {
+        e.preventDefault();
+      } else if (this.locked && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
       }
       const rawAction = this.bindings[e.code];
       if (rawAction) {
         this.releaseAction(rawAction);
-        if (this.locked) e.preventDefault();
+        if (this.locked || e.code === 'Tab') e.preventDefault();
       }
     });
 

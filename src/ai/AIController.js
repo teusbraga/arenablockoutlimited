@@ -57,6 +57,9 @@ export class AIController {
     // Suppression State
     this.suppressionLevel = 0;
 
+    this.gameManager = null;
+    this.currentTarget = null;
+
     // FSM States registry
     this.states = {
       patrol: new PatrolState(),
@@ -69,6 +72,62 @@ export class AIController {
 
     this._bindAudioSensory();
     this._bindPlayerDied();
+  }
+
+  /**
+   * Avalia se há um obstáculo transponível/baixo à frente (entre 0.35m e 1.40m ou vaultable: true)
+   * e aciona o pulo intencional bot.vel.y = 6.0 para transpor a superfície.
+   */
+  tryVault() {
+    const bot = this.bot;
+    if (!bot.onGround || !this.world) return false;
+
+    // Cooldown para evitar saltos repetitivos seguidos
+    const now = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    if (this._lastVaultTime && (now - this._lastVaultTime) < 450) {
+      return false;
+    }
+
+    const forwardX = this.desiredMove.x !== 0 ? this.desiredMove.x : Math.sin(bot.yaw);
+    const forwardZ = this.desiredMove.z !== 0 ? this.desiredMove.z : Math.cos(bot.yaw);
+    const speed = Math.hypot(forwardX, forwardZ);
+    if (speed < 0.01) return false;
+
+    const dirX = forwardX / speed;
+    const dirZ = forwardZ / speed;
+
+    const probeDist = 1.05;
+    const probeX = bot.pos.x + dirX * probeDist;
+    const probeZ = bot.pos.z + dirZ * probeDist;
+    const currentY = bot.pos.y;
+
+    const minX = Math.min(bot.pos.x, probeX) - 0.45;
+    const maxX = Math.max(bot.pos.x, probeX) + 0.45;
+    const minZ = Math.min(bot.pos.z, probeZ) - 0.45;
+    const maxZ = Math.max(bot.pos.z, probeZ) + 0.45;
+
+    const candidates = this.world.getNearbyBoxes
+      ? this.world.getNearbyBoxes(minX, maxX, minZ, maxZ)
+      : (this.world.boxes || []);
+
+    for (let i = 0; i < candidates.length; i++) {
+      const b = candidates[i];
+      if (!b.solid) continue;
+
+      const relHeight = b.max.y - currentY;
+      const isLow = relHeight > 0.30 && relHeight <= 1.35;
+      const isVaultable = b.vaultable === true || b.meta?.vaultable === true || isLow;
+
+      if (isVaultable && relHeight > 0.30 && relHeight <= 1.50) {
+        if (maxX >= b.min.x && minX <= b.max.x &&
+            maxZ >= b.min.z && minZ <= b.max.z) {
+          bot.vel.y = 6.0;
+          this._lastVaultTime = now;
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   clearPath() {
@@ -84,6 +143,11 @@ export class AIController {
    */
   navigateTo(targetX, targetZ, speed, dt, turnSpeed = 5) {
     const bot = this.bot;
+
+    // Salto ativo se houver obstáculo baixo transponível no caminho
+    if (bot.onGround && (bot.lastMoveRes?.hitWall || Math.random() < 0.08)) {
+      this.tryVault();
+    }
 
     // Se estiver executando manobra curta de desengate lateral (anti-stuck)
     if (this.unstickTimer > 0) {
@@ -222,18 +286,21 @@ export class AIController {
   }
 
   _bindAudioSensory() {
-    this._unsubShot = on('weapon:fired', (e) => {
+    const handleGunshot = (e) => {
       if (!this.bot.alive) return;
-      // Se não estiver em combate ativo (engage ou flee), reage ao som de tiros
-      if (this.state === 'patrol' && e.muzzleWorld) {
-        const distSound = Math.hypot(e.muzzleWorld.x - this.bot.pos.x, e.muzzleWorld.z - this.bot.pos.z);
+      if (e?.bot === this.bot) return;
+      const muzzle = e?.muzzleWorld || e?.pos;
+      if (muzzle && (this.state === 'patrol' || this.state === 'search')) {
+        const distSound = Math.hypot(muzzle.x - this.bot.pos.x, muzzle.z - this.bot.pos.z);
         if (distSound < 35.0) {
-          this.lastKnownPlayerPos.set(e.muzzleWorld.x, e.muzzleWorld.y, e.muzzleWorld.z);
+          this.lastKnownPlayerPos.set(muzzle.x, muzzle.y, muzzle.z);
           this.hasKnownPlayerPos = true;
           this.changeState('search');
         }
       }
-    });
+    };
+    this._unsubShot = on('weapon:fired', handleGunshot);
+    this._unsubBotShot = on('bot:fired', handleGunshot);
   }
 
   destroy() {
@@ -241,34 +308,89 @@ export class AIController {
       this._unsubShot();
       this._unsubShot = null;
     }
+    if (this._unsubBotShot) {
+      this._unsubBotShot();
+      this._unsubBotShot = null;
+    }
     if (this._unsubPlayerDied) {
       this._unsubPlayerDied();
       this._unsubPlayerDied = null;
     }
   }
 
+  _selectTarget(player) {
+    if (!this.gameManager) {
+      return (player && player.alive) ? player : null;
+    }
+
+    const bot = this.bot;
+    const candidates = [player, ...(this.gameManager.bots || [])].filter(
+      c => c && c !== bot && c.alive && this.gameManager.isEnemy(bot, c)
+    );
+
+    if (candidates.length === 0) return null;
+
+    if (this.currentTarget && candidates.includes(this.currentTarget) && this.currentTarget.alive) {
+      const d = Math.hypot(this.currentTarget.pos.x - bot.pos.x, this.currentTarget.pos.z - bot.pos.z);
+      if (this._hasLOS(this.currentTarget, d)) {
+        return this.currentTarget;
+      }
+    }
+
+    let best = null;
+    let bestDist = Infinity;
+    for (let i = 0; i < candidates.length; i++) {
+      const c = candidates[i];
+      const d = Math.hypot(c.pos.x - bot.pos.x, c.pos.z - bot.pos.z);
+      if (d < bestDist && this._hasLOS(c, d)) {
+        best = c;
+        bestDist = d;
+      }
+    }
+
+    return best || (this.currentTarget?.alive ? this.currentTarget : candidates[0]);
+  }
+
   update(dt, player) {
     const bot = this.bot;
-    _toPlayer.subVectors(player.pos, bot.pos);
-    _toPlayer.y = 0;
-    const dist = _toPlayer.length();
+    const target = this._selectTarget(player);
+    this.currentTarget = target;
 
-    // CPU Optimization: Não rodar raycast a 60Hz. 
-    // Verifica apenas a cada ~100ms (10Hz).
-    this._losTimerTick = (this._losTimerTick || 0) - dt;
-    if (this._losTimerTick <= 0) {
-      this._canSee = player.alive && this._hasLOS(player, dist);
-      this._losTimerTick = 0.1 + Math.random() * 0.05; // 100ms + jitter
-    }
-    const canSee = this._canSee;
+    let dist = Infinity;
+    let canSee = false;
 
-    if (canSee) {
-      this.lastKnownPlayerPos.copy(player.pos);
-      this.hasKnownPlayerPos = true;
-      if (this.state !== 'engage' && this.state !== 'flee') {
-        this.changeState('engage');
-        emit('bot:alerted', { bot });
+    if (target) {
+      const dx = target.pos.x - bot.pos.x;
+      const dy = (target.pos.y + 1.4) - (bot.pos.y + 1.4);
+      const dz = target.pos.z - bot.pos.z;
+      const distXZ = Math.hypot(dx, dz);
+      const dist3D = Math.hypot(dx, dy, dz);
+      dist = dist3D;
+
+      this._losTimerTick = (this._losTimerTick || 0) - dt;
+      if (this._losTimerTick <= 0) {
+        this._canSee = target.alive && this._hasLOS(target, distXZ);
+        this._losTimerTick = 0.1 + Math.random() * 0.05;
       }
+      canSee = this._canSee;
+
+      if (canSee) {
+        this.lastKnownPlayerPos.copy(target.pos);
+        this.hasKnownPlayerPos = true;
+        if (this.state !== 'engage' && this.state !== 'flee') {
+          this.changeState('engage');
+          emit('bot:alerted', { bot });
+        }
+      }
+
+      // Inclinação biomecânica vertical (pitch) - apenas em combate ou quando avistar o alvo
+      if ((canSee || this.state === 'engage') && distXZ > 0.05) {
+        bot.pitch = Math.atan2(dy, distXZ);
+      } else {
+        bot.pitch = 0;
+      }
+    } else {
+      bot.pitch = 0;
     }
 
     // Se o estado mudou via string legada, sincroniza com o objeto da FSM
@@ -282,7 +404,7 @@ export class AIController {
     }
 
     // Atualiza o estado atual na FSM
-    this.currentState.update(this, dt, player, dist, canSee);
+    this.currentState.update(this, dt, target || player, dist, canSee);
 
     // Monitora se o bot ficou preso em alguma quina e aplica manobra de desengate
     this._updateStuckDetector(dt);

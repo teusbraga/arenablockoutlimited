@@ -19,6 +19,197 @@
 
 ### 🔹 Outubro de 2026
 
+#### [Correção de Geometria de Rampa 3D (createWedgeGeometry) e Registro de Materiais PBR] — 31/10/2026
+* **fix(render):** Resolução do `ReferenceError: createWedgeGeometry is not defined` no carregamento de mapas com rampas em runtime (`src/world/MapLoader.js`):
+  * Implementação e exportação da função `createWedgeGeometry(sx, sy, sz, direction)` que gera a malha 3D (`BufferGeometry`) de prisma triangular retilíneo (cunha) para renderização de rampas com 24 vértices, 8 triângulos/5 faces (base, parede vertical posterior, plano inclinado e 2 paredes laterais triangulares).
+  * Cálculo analítico e geração de normais por vértice e coordenadas UV em todas as 4 orientações cardinais (`'+z'`, `'-z'`, `'+x'`, `'-x'`), garantindo vetor normal perfeitamente colinear ao plano contínuo de colisão de `CollisionWorld.addRamp`.
+* **feat(materials):** Registro e eliminação de fallbacks em `src/world/MaterialFactory.js` (resolvendo o aviso de fallback para `'wall'` e a pendência #10 do `AGENTS.md`):
+  * Registro de `caution_yellow`: material amarelo de alta visibilidade e atenção industrial (`#d9a425`) com mapa de bump de concreto (`textures.createConcrete`), roughness 0.60 e mapeamento de coordenadas de mundo (`applyWorldSpaceUV`).
+  * Registro de `steel_girder`: aço estrutural / viga metálica industrial com cor de óxido avermelhado (`0xc44527`), metalness 0.65 e roughness 0.55.
+* **test(slope):** Expansão de `test/slope_physics_test.js` (Seção 8) cobrindo a instanciação geométrica 3D de `createWedgeGeometry`, validação de propriedades e cores dos novos materiais em `MaterialFactory` e teste integrado de carregamento de cena `THREE.Scene` instanciando com sucesso as 6 rampas e os 2 domos do mapa `grid.json`.
+
+#### [Correção de Alinhamento Dinâmico a Queima-Roupa e Sincronização 1:1 de Projéteis] — 31/10/2026
+* **fix(crosshair):** Resolução definitiva do descolamento da crosshair dinâmica em distâncias ultra-curtas e sincronização exata com o ponto de impacto balístico:
+  * **Eliminação do Limiar Arbitrário de 0.30m (`src/new_mechanics/BarrelCrosshairAlignment.js`):**
+    * Remoção dos filtros rígidos `(pureHit.distance || pureHit.dist) > 0.3` e `(hit.distance || hit.dist) > 0.3` que descartavam qualquer colisão a menos de 30 cm do bocal e atiravam a crosshair para o ponto virtual de 50 metros.
+    * Implementação do método `_raycastWorld(origin, dir, maxDist)` com tolerância contínua $\ge 0.001\text{m}$, garantindo rastreamento fidedigno da superfície mesmo com o jogador colado no obstáculo.
+  * **Proteção contra Penetração de Bocal em Sólidos (Backup Raycast):**
+    * Quando a ponta do cano ultrapassa a face externa de uma AABB ou rampa no `CollisionWorld` (`tmin <= 0`), o método `_raycastWorld` recua a origem de teste em $0.65\text{m}$ (espaço seguro do viewmodel/câmera do jogador) ao longo da linha do cano, detectando com precisão milimétrica a face de entrada do obstáculo.
+  * **Projeção Angular Perspectiva Bounded (`_projectToScreen` em `BarrelCrosshairAlignment.js`):**
+    * Conversão da projeção de tela para cálculo trigonométrico angular colinear direto baseado no vetor de visada da câmera ($	an(	ext{fov}/2)$ e aspect ratio) com proteção de profundidade para pontos situados atrás da câmera ($	ext{depth} le 0.01	ext{m} ightarrow 50%, 50%$).
+    * Bounding seguro com margem de segurança de $24	ext{px}$ nos limites da viewport ($[-1.0 + 	ext{pad}, 1.0 - 	ext{pad}]$), garantindo que a crosshair nunca sofra fuga de coordenadas para fora da tela (runaway para milhares de pixels).
+  * **Anti-Inversão Balística de Bocal Penetrado (`getFiringDirection` e `WeaponSystem._fire`):**
+    * No método `getFiringDirection(muzzleOrigin, outDir)`, caso a boca do cano penetre a superfície do obstáculo (`aimPointWorld - muzzleOrigin` com produto escalar $le 0$ em relação ao cano), o vetor de tiro não inverte 180° para trás ($+Z$), mantendo-se estritamente colinear e alinhado ao vetor diretor frontal físico do cano (`barrelAimDir`).
+    * Alinhamento irrestrito no disparo: `barrelAlignment.getFiringDirection(_muzzleWorld, _dir)` é chamado consistentemente sob `isDynamicAlignment`, eliminando divergências entre o ponto de visada 3D e a trajetória do projétil em qualquer distância (queima-roupa ou espaço aberto).
+    * Ponto de spawn protegido a queima-roupa: quando `distanceToTarget <= 0.02	ext{m}`, o projétil nasce $2	ext{cm}$ à frente da face colidida (`originPoint = _pointBlankSpawn`), garantindo detecção imediata no frame 1 pelo `ProjectileManager` com decalques e faíscas.
+  * **Suíte de Testes Automatizada Dedicada (`test/point_blank_crosshair_alignment_test.js`, `package.json`):**
+    * Adicionados 4 testes automatizados cobrindo AR-15 e P-9 a distâncias de $0.05	ext{m}$ a $2.0	ext{m}$, o pilar do mapa `grid.json`, match espacial 3D $leftrightarrow$ 2D com erro $< 2	ext{px}$ (match $> 99.8%$), e proteção contra inversão balística com bocal penetrado e bounding de tela.
+    * Integrado ao gate principal `npm test` (137/137 testes aprovados).
+  * **Documentação Técnica (`docs/GITHUB_ISSUES_DRAFT.md`):**
+    * Atualizada a Issue 12 com a documentação do diagnóstico e a validação completa da correção.
+
+#### [Física de Terrenos Inclinados, Rampas, Montes e Domos Arredondados com Escorregamento Físico] — 31/10/2026
+* **feat(physics):** Implementação completa de física analítica contínua para rampas retilíneas (`RampBox`), pedras arredondadas e montes orgânicos (`EllipsoidDome`), com suporte a caminhada contínua até 45° e escorregamento físico tangencial em declives acentuados (> 45°):
+  * **Primitivas de Terreno e Detecção Espacial (`src/physics/CollisionWorld.js`):**
+    * Adicionados métodos analíticos `addRamp(cx, cy, cz, sx, sy, sz, direction, meta)` e `addDome(cx, cy, cz, rx, ry, rz, meta)` integrados diretamente ao Spatial Hash Grid ($O(1)$) através de suas AABBs delimitadoras.
+    * Suporte a rampas nas 4 direções cardinais (`'+z'`, `'-z'`, `'+x'`, `'-x'`) com pré-cálculo de vetor normal unitário e função contínua de altura de superfície `getSurfaceAt(x, z)`.
+    * Suporte a domos e montículos elipsoidais com altura de superfície analítica $y(x, z) = cy + ry \sqrt{1 - q}$ e vetor normal instantâneo via gradiente analítico $\nabla F$ normalizado ($O(1)$).
+    * Consulta otimizada `getSlopeSurfaceAt(x, z)` para determinar a superfície de contato mais alta sob o jogador em tempo de execução.
+    * Atualização de `overlaps(pos, size, b)`: validação de penetração baseada na superfície contínua, permitindo que a entidade fique sobre o declive sem gerar colisão de parede fantasma.
+    * Atualização de `moveAndSlide(pos, size, delta, opts)`:
+      * Resolução no eixo Y: determina o piso mais alto (caixa, rampa ou domo), extrai a normal da superfície de contato (`groundNormal`) e avalia o ângulo crítico de transitabilidade `maxWalkSlope` (padrão $0.7071$ correspondente a $45^\circ$).
+      * Se $n_y \ge 0.7071$: ativa `res.onGround = true` e `res.isSliding = false`.
+      * Se $n_y < 0.7071$: forçado para `res.onGround = false` e ativa `res.isSliding = true`.
+      * Resolução nos eixos X e Z: ajuste suave de elevação contínua no contato com superfícies transitáveis (`pos.y = surf.y`), permitindo subidas e descidas suaves sem interrupção de movimento ou engasgos de `stepUp`.
+    * Raycast analítico de alta precisão (`raycast`): suporte a testes raio-plano em rampas e raio-elipsoide fechado em domos para disparos de arma e linhas de visão (LOS) sem aproximação por malha gráfica.
+  * **Dinâmica de Escorregamento Físico e Controle da Entidade (`src/entities/Character.js`, `src/entities/Player.js`):**
+    * Em `Character.applyPhysics`: quando `this.lastMoveRes.isSliding` for ativo, calcula a componente tangencial da gravidade $\vec{a}_{\text{slide}} = \vec{g} - (\vec{g} \cdot \vec{n})\vec{n}$ com magnitude $\|\vec{a}_{\text{slide}}\| = g \sin(\theta)$ e acelera a entidade encosta abaixo; preserva a velocidade tangencial em X e Z (`hitX`/`hitZ` não zeram `vel` durante slide).
+    * Em `Player.update`: quando `this.isSliding` for ativo, o pulo é bloqueado (`!this.isSliding`) para impedir escalada de paredões íngremes por pulos repetitivos; aceleração de controle de entrada atenuada para tração de ar reduzida (`airAccel * 0.3`), impedindo subir contra a gravidade de declives acentuados.
+  * **Configuração e Dados de Balanceamento (`assets/config/gameplay.json`, `src/core/ConfigLoader.js`):**
+    * Adicionados parâmetros canônicos `maxSlopeAngle: 45` e `maxWalkSlope: 0.7071` em `DEFAULT_CONFIG.PLAYER` e `assets/config/gameplay.json`.
+  * **Renderização e Props do Mundo (`src/world/ItalyProps.js`, `src/world/MapLoader.js`):**
+    * `ItalyProps.addMossyBoulder`: hitboxes de rochas e monólitos com musgo convertidas de caixas retas para `world.addDome`, tornando o cume das rochas pisáveis e suas encostas laterais escorregadias.
+    * `MapLoader.js`: suporte a itens `type: "ramp"` e `type: "dome"` em `data.staticGeometry`; geração de malhas visuais Three.js via `createWedgeGeometry` (prisma triangular BufferGeometry) e `SphereGeometry` hemisférica.
+  * **Estação Modular de Rampas e Declives no Mapa Grid (`assets/maps/grid.json`):**
+    * Implantação da Estação de Rampas e Montes no Quadrante Leste Aberto ($X \in [30, 45], Z \in [10, 38]$), com mais de 8 metros de recuo em relação aos corredores, túneis e pontos de spawn, garantindo layout limpo, espaçoso e sem colisões:
+      * **Bateria de Calibração Angular (4 pistas paralelas com entrada alinhada em $Z = 36$):**
+        * Rampa 1 ($14.0^\circ$, $n_y \approx 0.970$): declive suave / guia de calçada;
+        * Rampa 2 ($26.6^\circ$, $n_y \approx 0.894$): rampa padrão de acesso (caminhada fluida sem pulo);
+        * Rampa 3 ($45.0^\circ$, $n_y = 0.7071$): limiar crítico exato de tração;
+        * Rampa 4 ($60.3^\circ$, $n_y \approx 0.496$): parede íngreme com sinalização zebrada (`caution_yellow`) e escorregamento físico imediato;
+        * Todas as 4 rampas equipadas com plataformas de topo niveladas em $Z = 28$ a $34$;
+      * **Passarela Elevada de Dupla Rampa (Overpass Bridge em $X = 33$):**
+        * Rampa de subida de $2.0\text{m}$ de altura, deck central plano de $6\text{m}$ de extensão e rampa de descida, permitindo travessia contínua;
+      * **Parque dos Montes e Pedras Arredondadas (Mounds / Boulders em $X = 42$):**
+        * Monte Suave (diâmetro $5\text{m}$, altura $1.2\text{m}$, transitável) e Monte do Molly (diâmetro $6\text{m}$, altura $2.2\text{m}$, cume transitável e bordas com escorregamento);
+      * **Placas de Sinalização Métrica (`distance_sign`):**
+        * Placas individuais alinhadas a $1.5\text{m}$ da entrada de cada rampa e em torno dos montes com textos descritivos das inclinações e alturas.
+  * **Garantia de Qualidade & Testes Automatizados (`test/slope_physics_test.js`, `package.json`):**
+    * Criação da suíte `test/slope_physics_test.js` com 7 seções cobrindo normais, alturas, domos, raycasts, subida/descida contínua em 60 Hz, deslizamento por aceleração tangencial e integração com `MapLoader`. Integrado ao pipeline oficial de testes no `package.json` (`npm test`).
+
+#### [Mata-Mata FFA, Arquitetura de Modos de Jogo (GameMode), Salto Vertical da IA & Placar TAB] — 31/10/2026
+* **feat(gameplay & modes):** Implementação completa do modo Mata-Mata Todos contra Todos (FFA Deathmatch) e da Arquitetura Strategy Pattern extensível de Modos de Jogo:
+  * **Arquitetura `GameMode` & `DeathmatchMode` (`src/core/modes/GameMode.js`, `src/core/modes/DeathmatchMode.js`):**
+    * Criação da classe base canônica `GameMode` encapsulando contratos de regras: `isEnemy(a, b)`, `canDamage(attacker, victim)`, `getSpawnPoint(entity, context)`, `onKill(killer, victim, headshot, extra)`, `getScoreboard()` e `reset()`.
+    * Implementação da estratégia `DeathmatchMode` (FFA): toda entidade viva é inimiga de qualquer outra diferente de si mesma, fogo livre sem dano próprio, seleção de spawn por máxima dispersão segura (pondera distância mínima até o inimigo mais próximo e seleciona entre os melhores dentro de 15% de margem de segurança) e pontuação individual de abates e mortes com ordenação por Kills -> K/D -> menos mortes.
+    * Suporte polimórfico a `onKill` aceitando tanto argumentos posicionais quanto payload de evento `{ killer, victim, headshot, extra }`.
+  * **Combate Mútuo Bot vs Bot & Balística CCD (`src/weapons/ProjectileManager.js`, `src/core/GameManager.js`):**
+    * Acoplamento do `GameManager` ao `ProjectileManager` via `setGameManager(this)`.
+    * O teste de CCD do projétil agora avalia todos os combatentes inimigos registrados (`bots` e `player`) e valida permissão de dano via `_canDamage(attacker, victim)`.
+    * Atribuição canônica de autoria: quando um bot é atingido por outro bot ou pelo jogador, o dano é aplicado via `takeDamage(dmg, part, attackerEntity)`, propagando o causador para o evento `bot:died` e disparando `match:kill` e `match:score_update`.
+    * Projéteis físicos que passam raspando em bots agora aplicam supressão tática realista a qualquer combatente que não seja o atirador do tiro.
+  * **Identidade Tática & Visual Biomecânico dos Combatentes (`src/entities/Bot.js`, `src/entities/Player.js`, `src/view/CharacterView.js`):**
+    * Atribuição de identificadores aos bots: número tático (`botNumber`), codinomes militares dinâmicos (`callsign` sorteado entre Alpha, Bravo, Charlie, Delta, Echo, Foxtrot, Ghost, Hawk, Viper, Titan, Reaper, Phantom), distintivo visual de facção (`skinBadge` 🪖 / 👻) e propriedade de mira angular vertical (`pitch`).
+    * Identidade do jogador: `name = 'VOCÊ'`, `badge = '🌟'`, flag `isPlayer = true` e rastreamento de `lastAttacker` em `takeDamage(dmg, part, attacker)`.
+    * Inclinação biomecânica da coluna: `CharacterView.js` agora aplica rotação vertical em `this.torso.rotation.x = this.character.pitch`, permitindo que bots e soldados mirem para cima e para baixo de forma visualmente autêntica.
+  * **Verticalidade 3D da IA, Salto Ativo (Vaulting) & Postura Sniper (`src/ai/AIController.js`, `src/ai/states/EngageState.js`, `src/ai/states/PatrolState.js`):**
+    * Novo método `tryVault()` no `AIController`: sonda 0,95m à frente por caixas/props sólidos com altura relativa entre 0,35m e 1,50m (ou marcados com `vaultable: true`). Caso detecte obstáculo transponível ao andar ou colidir, aciona salto intencional `bot.vel.y = 6.0`.
+    * Postura de Atirador em Terreno Elevado (`EngageState`): bots posicionados em telhados ou plataformas elevadas (`bot.pos.y > 2.5` com alvo abaixo) mantêm sua posição de vantagem com strafe lateral contido e `forward = 0`, impedindo que corram e caiam pela beirada do prédio; se o HP atingir nível crítico (< 30%), executam salto tático de fuga do parapeito (`bot.vel.y = 6.0`) e entram em estado de evasão (`flee`).
+    * Percepção sensorial de áudio expandida: bots agora ouvem disparos de outros bots (`bot:fired`) além do jogador (`weapon:fired`) em um raio de 35 metros, convergindo ativamente para a zona de conflito.
+    * Validação modular de spawn em 3D: `GameManager._isPositionClear` agora reconhece telhados e caixas elevadas (`b.max.y <= y + 0.1`) como piso de suporte válido, permitindo spawns naturais em andares superiores e lajes sem rejeição indevida.
+  * **Placar Tático com Tecla TAB & Killfeed Universal (`src/core/Input.js`, `src/ui/HUD.js`, `index.html`, `assets/css/main.css`):**
+    * Mapeamento de tecla `Tab` no `Input.js` vinculado à ação contínua canônica `'scoreboard'`, com interceptação de `e.preventDefault()` em `keydown` e `keyup` para impedir que o navegador troque o foco do cursor.
+    * Modal `#scoreboard-modal` estilizado com tema tático militar translúcido com backdrop blur, bordas metálicas e destaque dourado/azul para a linha do jogador. Exibe colunas de Rank (`#`), Status (Vivo/Morto), Tag/Emblema, Combatente, Abates, Mortes e K/D com 2 casas decimais.
+    * Atualização contínua do placar na HUD via `match:score_update` e renderização sob demanda ao segurar `Tab` ou no final da rodada (`round:over`).
+    * Killfeed universal no topo esquerdo com ícones e formatação militar: `[BADGE] Atirador ➔ [BADGE] Vítima` com destaque para headshots e cores de borda para kills e mortes do jogador.
+  * **Unificação de Spawns & Integração Geral (`src/main.js`):**
+    * Unificação automática de `map.playerSpawns` e `map.botSpawns` em um pool comum de pontos de spawn dispersos para o `GameManager` e `DeathmatchMode`.
+    * Chamada de `hud.updateScoreboard(input)` sincronizada no loop `renderUpdate`.
+  * **Correções e Refinamentos Críticos de Robustez e Visual:**
+    * **Killfeed & Autoria do Jogador (`src/core/modes/GameMode.js`, `src/ui/HUD.js`):** Alinhamento das chaves de autoria (`isPlayerKiller` e `isPlayerAttacker`), garantindo que abates realizados pelo jogador humano recebam a borda verde com realce (`.feed-player-killer`); formatação militar canônica com tag `[BOT]` nos combatentes de IA (`[BOT] #01 Viper 🪖 ➔ [BOT] #02 Ghost 👻`).
+    * **Ciclo de Vida do Placar TAB & Fim de Rodada (`src/ui/HUD.js`, `src/core/GameManager.js`, `index.html`, `assets/css/main.css`):** Emissão inicial de `match:score_update` no início da partida e reset (eliminando tabela vazia ao abrir o TAB no primeiro segundo); sincronização de status `● VIVO` no respawn de combatentes; eliminação da redundância no nome do jogador (`VOCÊ` em vez de `VOCÊ (VOCÊ)`); exibição em primeiro plano no fim da rodada (`round-over` com `z-index: 300`) com botão "JOGAR DE NOVO" interativo.
+    * **Postura Sniper & Vaulting de Obstáculos Finos (`src/ai/states/EngageState.js`, `src/ai/AIController.js`):** Em terreno elevado, o bot sustenta a posição de vantagem com strafe curto quando perde a visão do alvo (`!canSee`), sem avançar pela quina nem cair do telhado; o salto do parapeito (`vel.y = 6.0`) ocorre estritamente ao perder o alvo por tempo prolongado (`losTimer <= 0`) ou com vida crítica (< 30%). O método `tryVault()` agora utiliza sweep delimitador cobrindo sacos de areia e muretas finas (0,2m a 0,4m) com cooldown de 450ms.
+    * **Harmonização do Pitch Biomecânico (`src/view/CharacterView.js`):** Unificação dos sinais de rotação vertical da coluna com a convenção do modelo (Three.js +Z), combinando rotação de tronco (`pitch * 0.65`) e pescoço/ombros (`pitch * 0.35`) na mesma direção angular, eliminando torções contraditórias ao mirar para cima e para baixo.
+    * **Resiliência de Dano Fallback (`src/core/GameManager.js`):** Normalização da assinatura de `takeDamage` para bots no fallback sem `ProjectileManager` (`bot.takeDamage(dmg, 'body', attacker)`).
+  * **Testes e CI (`test/deathmatch_mode_test.js` & `package.json`):**
+    * Expansão da suíte `test/deathmatch_mode_test.js` de 11 para 19 testes unitários e de integração, cobrindo retenção de posição sniper, salto de parapeito, sweep de vaulting em caixas finas, sincronização de respawn no placar e autoria de abates.
+    * 133/133 testes aprovados no gate `npm test`.
+
+---
+
+### 📘 Guia para Futuros Agentes de IA: Como Criar Novos Modos de Jogo com `GameMode`
+
+Para implementar um novo modo de jogo (ex: **Mata-Mata em Equipe 5v5**, **Defusal / Desarme de Bomba**, **Captura de Ponto / Domination** ou **Campanha Co-op**), siga rigorosamente a arquitetura Strategy Pattern estabelecida:
+
+#### 1. Criar a Subclasse Herdando de `GameMode` (`src/core/modes/SeuModo.js`)
+Herde de `GameMode` e sobrescreva apenas os métodos de regra que diferem do padrão:
+
+```javascript
+import { GameMode } from './GameMode.js';
+
+export class TeamDeathmatchMode extends GameMode {
+  constructor(options = {}) {
+    super(options);
+    this.id = 'tdm_5v5';
+    this.name = 'Team Deathmatch (5v5)';
+    this.teams = { alpha: [], bravo: [] };
+  }
+
+  // Define se duas entidades são inimigas (jogadores do mesmo time retornam false)
+  isEnemy(entityA, entityB) {
+    if (!entityA || !entityB || entityA === entityB) return false;
+    if (entityA.alive === false || entityB.alive === false) return false;
+    return this.getTeam(entityA) !== this.getTeam(entityB);
+  }
+
+  // Previne fogo amigo se friendlyFire for false
+  canDamage(attacker, victim) {
+    if (!attacker || !victim || attacker === victim) return false;
+    if (!this.options.friendlyFire && this.getTeam(attacker) === this.getTeam(victim)) {
+      return false; // Bloqueia dano entre aliados
+    }
+    return true;
+  }
+
+  // Seleciona o spawn baseado na base do time
+  getSpawnPoint(entity, context = {}) {
+    const team = this.getTeam(entity);
+    const teamSpawns = team === 'alpha' ? context.alphaSpawns : context.bravoSpawns;
+    // Utilize context.isPositionClear(x, y, z) para validar o ponto
+    return this._selectBestTeamSpawn(teamSpawns, context);
+  }
+
+  // Processa o abate para pontuação do time e individual
+  onKill(killerOrPayload, victimArg, headshotArg, extraArg) {
+    const data = super.onKill(killerOrPayload, victimArg, headshotArg, extraArg);
+    // Adiciona pontuação global ao placar do time
+    const team = this.getTeam(data.killer);
+    if (team) this.teamScores[team]++;
+    return data;
+  }
+}
+```
+
+#### 2. Plugar o Modo no `GameManager` (`src/core/GameManager.js` ou `src/main.js`)
+O `GameManager` delega 100% das decisões de gameplay para a instância ativa do modo:
+```javascript
+// Ativação do modo desejado
+gameManager.setGameMode(new TeamDeathmatchMode({ friendlyFire: false }));
+```
+
+#### 3. Regras Invioláveis do Contrato de Modos
+- **Eventos Canônicos:** Não altere os nomes de eventos em `EventBus.js`. Dispare sempre `match:kill`, `match:score_update` e `match:scoreboard`.
+- **Compatibilidade Headless:** A lógica de `GameMode` deve ser 100% desacoplada de DOM e WebGL, funcionando em testes Node.js puros e simulação sem render.
+- **Payload Objeto:** Sempre passe `{ killer, victim, headshot, extra }` nos eventos emitidos.
+
+---
+
+#### [Interface: SVG de Configurações & Cards de Ação Dinâmicos com Auto-Expansão] — 31/10/2026
+* **feat(ui):** Refinamento do botão de configurações e dos cards de ação no lobby principal (`index.html` e `assets/css/main.css`):
+  * **SVG de Sliders Horizontais (`#btn-settings`):** Substituição das antigas linhas verticais por um SVG nítido com 3 trilhas horizontais e seletores circulares sólidos (`tune` / `sliders-horizontal`), alinhado 1:1 com o mockup de referência.
+  * **Isolamento de Herança no Overlay:** Atualização da regra legada `#overlay button` para `#overlay button:not([class*="lobby-"])`, além de regras dedicadas `#overlay .lobby-icon-btn`, garantindo dimensões 40x40px, cantos arredondados (`border-radius: 10px`), centralização flexbox perfeita e renderização visível do SVG sem corte ou overflow.
+  * **Mágica CSS de Auto-Expansão (`.lobby-action-card`):** Conversão da largura fixa de 76px para largura auto-adaptativa com `min-width: 76px; width: auto; padding: 0 14px; white-space: nowrap; box-sizing: border-box;`:
+    * Se o texto for curto (ex: "Loja", "Passe", "Shop"), a caixa respeita `min-width: 76px` e permanece com o formato quadrado original idêntico aos cards vizinhos;
+    * Se o texto for longo (ex: "Inventário", "Ausrüstung", "Инвентарь"), a caixa cresce fluidamente para as laterais garantindo 14px de respiro lateral, sem tocar as bordas ou cantos arredondados;
+    * Adaptação responsiva para telas pequenas com `min-width: 58px; padding: 0 10px`.
+
+#### [Interface: Ajuste Visual do Botão Jogar no Lobby] — 31/10/2026
+* **fix(ui):** Ajuste fino de estilização no botão `#btn-play` (`.lobby-play-btn`) no menu principal / lobby (`assets/css/main.css`):
+  * **Fundo Cinza:** Fundo atualizado para cinza claro metálico suave (`#cbd5e1`), combinando harmoniosamente com a tonalidade das bordas dos cards e do menu.
+  * **Borda Contínua:** Remoção do corte angular `clip-path: polygon(...)` e aplicação de contorno arredondado contínuo (`border-radius: 12px`, `border: 1px solid rgba(255, 255, 255, 0.28)`), eliminando o aspecto de linhas descontínuas causadas pelo recorte poligonal anterior.
+  * **Texto em Cinza Escuro:** Tipografia "▶ JOGAR" redefinida para cinza escuro carvão (`#161a20`), idêntico à cor de fundo do card superior de seleção de mapa (`.lobby-map-card`), garantindo alto contraste e leitura cristalina sobre o fundo cinza.
+  * **Isolamento de Herança CSS:** Proteção do seletor `#overlay button:not(.lobby-play-btn)` e especificidade `#overlay #btn-play.lobby-play-btn` para prevenir sobreposição de propriedades transparentes do overlay legado.
+
 #### [Interface: Lobby 3D Inspirado no Mockup, Avatar no Spawn com Arma Primária & Modais] — 31/10/2026
 * **feat(ui):** Atualização completa da interface do menu principal/lobby baseada no mockup de referência:
   * **Layout Visual do Mockup (`index.html` e `assets/css/main.css`):**

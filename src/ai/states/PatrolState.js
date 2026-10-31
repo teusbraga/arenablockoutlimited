@@ -46,6 +46,11 @@ export class PatrolState extends AIState {
       dt,
       4
     );
+
+    // Salto ativo sobre caixas militares e sacos de areia durante a patrulha
+    if (bot.onGround && (bot.lastMoveRes?.hitWall || Math.random() < 0.05)) {
+      controller.tryVault();
+    }
   }
 }
 

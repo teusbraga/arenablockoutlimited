@@ -2,8 +2,17 @@
   "name": "Metric Calibration Grid",
   "id": "grid",
   "pbr": true,
-  "size": [100, 20, 100],
-  "bounds": [-50, -50, 50, 50],
+  "size": [
+    100,
+    20,
+    100
+  ],
+  "bounds": [
+    -50,
+    -50,
+    50,
+    50
+  ],
   "floorMaterial": "grid_1x1",
   "environment": {
     "fogColor": "#d8e2ec",
@@ -15,112 +24,1250 @@
     "ambientIntensity": 1.25
   },
   "playerSpawns": [
-    [0, 0, 40]
+    [
+      0,
+      0,
+      40
+    ]
   ],
   "botSpawns": [
-    [0, 0, -30],
-    [-15, 0, -25],
-    [15, 0, -25]
+    [
+      0,
+      0,
+      -30
+    ],
+    [
+      -15,
+      0,
+      -25
+    ],
+    [
+      15,
+      0,
+      -25
+    ]
   ],
   "doors": [
     {
-      "pos": [22.95, 0, 15],
-      "width": 1.0,
+      "pos": [
+        22.95,
+        0,
+        15
+      ],
+      "width": 1,
       "height": 2.2
     }
   ],
   "staticGeometry": [
-    { "type": "wall", "pos": [0, 0, -50], "size": [100, 4, 1], "material": "concrete_dark" },
-    { "type": "wall", "pos": [0, 0, 50], "size": [100, 4, 1], "material": "concrete_dark" },
-    { "type": "wall", "pos": [-50, 0, 0], "size": [1, 4, 100], "material": "concrete_dark" },
-    { "type": "wall", "pos": [50, 0, 0], "size": [1, 4, 100], "material": "concrete_dark" },
-
-    { "type": "pillar", "pos": [-4, 0, 40], "size": [0.6, 2.0, 0.6], "material": "caution_yellow" },
-    { "type": "pillar", "pos": [4, 0, 40], "size": [0.6, 2.0, 0.6], "material": "caution_yellow" },
-    { "type": "pillar", "pos": [-4, 0, 30], "size": [0.6, 2.0, 0.6], "material": "concrete_dark" },
-    { "type": "pillar", "pos": [4, 0, 30], "size": [0.6, 2.0, 0.6], "material": "concrete_dark" },
-    { "type": "pillar", "pos": [-4, 0, 20], "size": [0.6, 2.0, 0.6], "material": "concrete_dark" },
-    { "type": "pillar", "pos": [4, 0, 20], "size": [0.6, 2.0, 0.6], "material": "concrete_dark" },
-    { "type": "pillar", "pos": [-4, 0, 10], "size": [0.6, 2.0, 0.6], "material": "concrete_dark" },
-    { "type": "pillar", "pos": [4, 0, 10], "size": [0.6, 2.0, 0.6], "material": "concrete_dark" },
-    { "type": "pillar", "pos": [-4, 0, 0], "size": [0.6, 2.0, 0.6], "material": "concrete_dark" },
-    { "type": "pillar", "pos": [4, 0, 0], "size": [0.6, 2.0, 0.6], "material": "concrete_dark" },
-    { "type": "pillar", "pos": [-4, 0, -10], "size": [0.6, 2.0, 0.6], "material": "caution_yellow" },
-    { "type": "pillar", "pos": [4, 0, -10], "size": [0.6, 2.0, 0.6], "material": "caution_yellow" },
-
-    { "type": "step", "pos": [-27, 0, 25], "size": [2.0, 0.15, 3.0], "material": "concrete_dark" },
-    { "type": "step", "pos": [-24, 0, 25], "size": [2.0, 0.30, 3.0], "material": "concrete_dark" },
-    { "type": "step", "pos": [-21, 0, 25], "size": [2.0, 0.35, 3.0], "material": "concrete_dark" },
-    { "type": "step", "pos": [-18, 0, 25], "size": [2.0, 0.45, 3.0], "material": "concrete_dark" },
-    { "type": "step", "pos": [-15, 0, 25], "size": [2.0, 0.60, 3.0], "material": "concrete_dark" },
-    { "type": "step", "pos": [-12, 0, 25], "size": [2.0, 0.65, 3.0], "material": "concrete_dark" },
-
-    { "type": "wall", "pos": [-27, 0, 10], "size": [2.0, 0.6, 0.4], "material": "wall", "vaultable": true },
-    { "type": "wall", "pos": [-23, 0, 10], "size": [2.0, 0.9, 0.4], "material": "wall", "vaultable": true },
-    { "type": "wall", "pos": [-19, 0, 10], "size": [2.0, 1.2, 0.4], "material": "wall", "vaultable": true },
-    { "type": "wall", "pos": [-15, 0, 10], "size": [2.0, 1.5, 0.4], "material": "wall", "vaultable": true },
-
-    { "type": "stair", "pos": [-32, 0, 5], "size": [3.0, 0.5, 2.0], "material": "concrete" },
-    { "type": "platform", "pos": [-32, 0, 1.5], "size": [3.0, 1.0, 5.0], "material": "concrete" },
-    { "type": "platform", "pos": [-32, 0, -4.0], "size": [3.0, 1.0, 4.0], "material": "concrete" },
-    { "type": "platform", "pos": [-32, 0, -9.8], "size": [3.0, 1.0, 4.0], "material": "concrete" },
-    { "type": "platform", "pos": [-32, 0, -16.3], "size": [3.0, 1.0, 4.0], "material": "concrete" },
-    { "type": "platform", "pos": [-32, 0, -24.8], "size": [3.0, 1.0, 6.0], "material": "concrete" },
-
-    { "type": "wall", "pos": [14.0, 0, 25], "size": [0.4, 3.0, 20.0], "material": "wall" },
-    { "type": "wall", "pos": [15.4, 0, 25], "size": [0.4, 3.0, 20.0], "material": "wall" },
-
-    { "type": "wall", "pos": [17.5, 0, 25], "size": [0.4, 3.0, 20.0], "material": "wall" },
-    { "type": "wall", "pos": [19.4, 0, 25], "size": [0.4, 3.0, 20.0], "material": "wall" },
-
-    { "type": "wall", "pos": [21.5, 0, 25], "size": [0.4, 3.0, 20.0], "material": "wall" },
-    { "type": "wall", "pos": [24.4, 0, 25], "size": [0.4, 3.0, 20.0], "material": "wall" },
-
-    { "type": "wall", "pos": [22.075, 0, 15], "size": [0.75, 3.0, 0.4], "material": "wall" },
-    { "type": "wall", "pos": [23.825, 0, 15], "size": [0.75, 3.0, 0.4], "material": "wall" },
-    { "type": "roof", "pos": [22.95, 2.2, 15], "size": [1.0, 0.8, 0.4], "material": "wall" },
-
-    { "type": "wall", "pos": [30.8, 0, -4], "size": [0.4, 2.5, 8.0], "material": "wall" },
-    { "type": "wall", "pos": [33.2, 0, -4], "size": [0.4, 2.5, 8.0], "material": "wall" },
-    { "type": "roof", "pos": [32.0, 1.40, -4], "size": [2.8, 0.4, 8.0], "material": "concrete_dark" }
+    {
+      "type": "wall",
+      "pos": [
+        0,
+        0,
+        -50
+      ],
+      "size": [
+        100,
+        4,
+        1
+      ],
+      "material": "concrete_dark"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        0,
+        0,
+        50
+      ],
+      "size": [
+        100,
+        4,
+        1
+      ],
+      "material": "concrete_dark"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        -50,
+        0,
+        0
+      ],
+      "size": [
+        1,
+        4,
+        100
+      ],
+      "material": "concrete_dark"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        50,
+        0,
+        0
+      ],
+      "size": [
+        1,
+        4,
+        100
+      ],
+      "material": "concrete_dark"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        -4,
+        0,
+        40
+      ],
+      "size": [
+        0.6,
+        2,
+        0.6
+      ],
+      "material": "caution_yellow"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        4,
+        0,
+        40
+      ],
+      "size": [
+        0.6,
+        2,
+        0.6
+      ],
+      "material": "caution_yellow"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        -4,
+        0,
+        30
+      ],
+      "size": [
+        0.6,
+        2,
+        0.6
+      ],
+      "material": "concrete_dark"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        4,
+        0,
+        30
+      ],
+      "size": [
+        0.6,
+        2,
+        0.6
+      ],
+      "material": "concrete_dark"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        -4,
+        0,
+        20
+      ],
+      "size": [
+        0.6,
+        2,
+        0.6
+      ],
+      "material": "concrete_dark"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        4,
+        0,
+        20
+      ],
+      "size": [
+        0.6,
+        2,
+        0.6
+      ],
+      "material": "concrete_dark"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        -4,
+        0,
+        10
+      ],
+      "size": [
+        0.6,
+        2,
+        0.6
+      ],
+      "material": "concrete_dark"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        4,
+        0,
+        10
+      ],
+      "size": [
+        0.6,
+        2,
+        0.6
+      ],
+      "material": "concrete_dark"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        -4,
+        0,
+        0
+      ],
+      "size": [
+        0.6,
+        2,
+        0.6
+      ],
+      "material": "concrete_dark"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        4,
+        0,
+        0
+      ],
+      "size": [
+        0.6,
+        2,
+        0.6
+      ],
+      "material": "concrete_dark"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        -4,
+        0,
+        -10
+      ],
+      "size": [
+        0.6,
+        2,
+        0.6
+      ],
+      "material": "caution_yellow"
+    },
+    {
+      "type": "pillar",
+      "pos": [
+        4,
+        0,
+        -10
+      ],
+      "size": [
+        0.6,
+        2,
+        0.6
+      ],
+      "material": "caution_yellow"
+    },
+    {
+      "type": "step",
+      "pos": [
+        -27,
+        0,
+        25
+      ],
+      "size": [
+        2,
+        0.15,
+        3
+      ],
+      "material": "concrete_dark"
+    },
+    {
+      "type": "step",
+      "pos": [
+        -24,
+        0,
+        25
+      ],
+      "size": [
+        2,
+        0.3,
+        3
+      ],
+      "material": "concrete_dark"
+    },
+    {
+      "type": "step",
+      "pos": [
+        -21,
+        0,
+        25
+      ],
+      "size": [
+        2,
+        0.35,
+        3
+      ],
+      "material": "concrete_dark"
+    },
+    {
+      "type": "step",
+      "pos": [
+        -18,
+        0,
+        25
+      ],
+      "size": [
+        2,
+        0.45,
+        3
+      ],
+      "material": "concrete_dark"
+    },
+    {
+      "type": "step",
+      "pos": [
+        -15,
+        0,
+        25
+      ],
+      "size": [
+        2,
+        0.6,
+        3
+      ],
+      "material": "concrete_dark"
+    },
+    {
+      "type": "step",
+      "pos": [
+        -12,
+        0,
+        25
+      ],
+      "size": [
+        2,
+        0.65,
+        3
+      ],
+      "material": "concrete_dark"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        -27,
+        0,
+        10
+      ],
+      "size": [
+        2,
+        0.6,
+        0.4
+      ],
+      "material": "wall",
+      "vaultable": true
+    },
+    {
+      "type": "wall",
+      "pos": [
+        -23,
+        0,
+        10
+      ],
+      "size": [
+        2,
+        0.9,
+        0.4
+      ],
+      "material": "wall",
+      "vaultable": true
+    },
+    {
+      "type": "wall",
+      "pos": [
+        -19,
+        0,
+        10
+      ],
+      "size": [
+        2,
+        1.2,
+        0.4
+      ],
+      "material": "wall",
+      "vaultable": true
+    },
+    {
+      "type": "wall",
+      "pos": [
+        -15,
+        0,
+        10
+      ],
+      "size": [
+        2,
+        1.5,
+        0.4
+      ],
+      "material": "wall",
+      "vaultable": true
+    },
+    {
+      "type": "stair",
+      "pos": [
+        -32,
+        0,
+        5
+      ],
+      "size": [
+        3,
+        0.5,
+        2
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "platform",
+      "pos": [
+        -32,
+        0,
+        1.5
+      ],
+      "size": [
+        3,
+        1,
+        5
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "platform",
+      "pos": [
+        -32,
+        0,
+        -4
+      ],
+      "size": [
+        3,
+        1,
+        4
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "platform",
+      "pos": [
+        -32,
+        0,
+        -9.8
+      ],
+      "size": [
+        3,
+        1,
+        4
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "platform",
+      "pos": [
+        -32,
+        0,
+        -16.3
+      ],
+      "size": [
+        3,
+        1,
+        4
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "platform",
+      "pos": [
+        -32,
+        0,
+        -24.8
+      ],
+      "size": [
+        3,
+        1,
+        6
+      ],
+      "material": "concrete"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        14,
+        0,
+        25
+      ],
+      "size": [
+        0.4,
+        3,
+        20
+      ],
+      "material": "wall"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        15.4,
+        0,
+        25
+      ],
+      "size": [
+        0.4,
+        3,
+        20
+      ],
+      "material": "wall"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        17.5,
+        0,
+        25
+      ],
+      "size": [
+        0.4,
+        3,
+        20
+      ],
+      "material": "wall"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        19.4,
+        0,
+        25
+      ],
+      "size": [
+        0.4,
+        3,
+        20
+      ],
+      "material": "wall"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        21.5,
+        0,
+        25
+      ],
+      "size": [
+        0.4,
+        3,
+        20
+      ],
+      "material": "wall"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        24.4,
+        0,
+        25
+      ],
+      "size": [
+        0.4,
+        3,
+        20
+      ],
+      "material": "wall"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        22.075,
+        0,
+        15
+      ],
+      "size": [
+        0.75,
+        3,
+        0.4
+      ],
+      "material": "wall"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        23.825,
+        0,
+        15
+      ],
+      "size": [
+        0.75,
+        3,
+        0.4
+      ],
+      "material": "wall"
+    },
+    {
+      "type": "roof",
+      "pos": [
+        22.95,
+        2.2,
+        15
+      ],
+      "size": [
+        1,
+        0.8,
+        0.4
+      ],
+      "material": "wall"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        30.8,
+        0,
+        -4
+      ],
+      "size": [
+        0.4,
+        2.5,
+        8
+      ],
+      "material": "wall"
+    },
+    {
+      "type": "wall",
+      "pos": [
+        33.2,
+        0,
+        -4
+      ],
+      "size": [
+        0.4,
+        2.5,
+        8
+      ],
+      "material": "wall"
+    },
+    {
+      "type": "roof",
+      "pos": [
+        32,
+        1.4,
+        -4
+      ],
+      "size": [
+        2.8,
+        0.4,
+        8
+      ],
+      "material": "concrete_dark"
+    },
+    {
+      "type": "ramp",
+      "pos": [
+        31,
+        0,
+        34
+      ],
+      "size": [
+        2.6,
+        1,
+        4
+      ],
+      "direction": "-z",
+      "material": "concrete"
+    },
+    {
+      "type": "platform",
+      "pos": [
+        31,
+        0,
+        30
+      ],
+      "size": [
+        2.6,
+        1,
+        4
+      ],
+      "material": "concrete_dark"
+    },
+    {
+      "type": "ramp",
+      "pos": [
+        35,
+        0,
+        34
+      ],
+      "size": [
+        2.6,
+        2,
+        4
+      ],
+      "direction": "-z",
+      "material": "concrete"
+    },
+    {
+      "type": "platform",
+      "pos": [
+        35,
+        0,
+        30
+      ],
+      "size": [
+        2.6,
+        2,
+        4
+      ],
+      "material": "concrete_dark"
+    },
+    {
+      "type": "ramp",
+      "pos": [
+        39,
+        0,
+        34.5
+      ],
+      "size": [
+        2.6,
+        3,
+        3
+      ],
+      "direction": "-z",
+      "material": "concrete"
+    },
+    {
+      "type": "platform",
+      "pos": [
+        39,
+        0,
+        30.5
+      ],
+      "size": [
+        2.6,
+        3,
+        5
+      ],
+      "material": "concrete_dark"
+    },
+    {
+      "type": "ramp",
+      "pos": [
+        43,
+        0,
+        35
+      ],
+      "size": [
+        2.6,
+        3.5,
+        2
+      ],
+      "direction": "-z",
+      "material": "caution_yellow"
+    },
+    {
+      "type": "platform",
+      "pos": [
+        43,
+        0,
+        31
+      ],
+      "size": [
+        2.6,
+        3.5,
+        6
+      ],
+      "material": "concrete_dark"
+    },
+    {
+      "type": "ramp",
+      "pos": [
+        33,
+        0,
+        23
+      ],
+      "size": [
+        2.6,
+        2,
+        4
+      ],
+      "direction": "-z",
+      "material": "concrete"
+    },
+    {
+      "type": "platform",
+      "pos": [
+        33,
+        0,
+        18
+      ],
+      "size": [
+        2.6,
+        2,
+        6
+      ],
+      "material": "concrete_dark"
+    },
+    {
+      "type": "ramp",
+      "pos": [
+        33,
+        0,
+        13
+      ],
+      "size": [
+        2.6,
+        2,
+        4
+      ],
+      "direction": "+z",
+      "material": "concrete"
+    },
+    {
+      "type": "dome",
+      "pos": [
+        42,
+        0,
+        22
+      ],
+      "size": [
+        5,
+        1.2,
+        5
+      ],
+      "material": "mossy_rock"
+    },
+    {
+      "type": "dome",
+      "pos": [
+        42,
+        0,
+        13
+      ],
+      "size": [
+        6,
+        2.2,
+        6
+      ],
+      "material": "mossy_rock"
+    }
   ],
   "props": [
-    { "type": "distance_sign", "pos": [-5.0, 0, 40], "text": "0m", "rotY": 0 },
-    { "type": "distance_sign", "pos": [5.0, 0, 40], "text": "0m", "rotY": 0 },
-    { "type": "distance_sign", "pos": [-5.0, 0, 30], "text": "10m", "rotY": 0 },
-    { "type": "distance_sign", "pos": [5.0, 0, 30], "text": "10m", "rotY": 0 },
-    { "type": "distance_sign", "pos": [-5.0, 0, 20], "text": "20m", "rotY": 0 },
-    { "type": "distance_sign", "pos": [5.0, 0, 20], "text": "20m", "rotY": 0 },
-    { "type": "distance_sign", "pos": [-5.0, 0, 10], "text": "30m", "rotY": 0 },
-    { "type": "distance_sign", "pos": [5.0, 0, 10], "text": "30m", "rotY": 0 },
-    { "type": "distance_sign", "pos": [-5.0, 0, 0], "text": "40m", "rotY": 0 },
-    { "type": "distance_sign", "pos": [5.0, 0, 0], "text": "40m", "rotY": 0 },
-    { "type": "distance_sign", "pos": [-5.0, 0, -10], "text": "50m", "rotY": 0 },
-    { "type": "distance_sign", "pos": [5.0, 0, -10], "text": "50m", "rotY": 0 },
-
-    { "type": "distance_sign", "pos": [-27, 0, 27.2], "text": "0.15m", "rotY": 0 },
-    { "type": "distance_sign", "pos": [-24, 0, 27.2], "text": "0.30m", "rotY": 0 },
-    { "type": "distance_sign", "pos": [-21, 0, 27.2], "text": "0.35m", "rotY": 0 },
-    { "type": "distance_sign", "pos": [-18, 0, 27.2], "text": "0.45m", "rotY": 0 },
-    { "type": "distance_sign", "pos": [-15, 0, 27.2], "text": "0.60m", "rotY": 0 },
-    { "type": "distance_sign", "pos": [-12, 0, 27.2], "text": "0.65m", "rotY": 0 },
-
-    { "type": "distance_sign", "pos": [-27, 0, 11.5], "text": "0.6m", "rotY": 0 },
-    { "type": "distance_sign", "pos": [-23, 0, 11.5], "text": "0.9m", "rotY": 0 },
-    { "type": "distance_sign", "pos": [-19, 0, 11.5], "text": "1.2m", "rotY": 0 },
-    { "type": "distance_sign", "pos": [-15, 0, 11.5], "text": "1.5m", "rotY": 0 },
-
-    { "type": "distance_sign", "pos": [-29.8, 0, -1.5], "text": "GAP 1.0m", "rotY": -1.57 },
-    { "type": "distance_sign", "pos": [-29.8, 0, -6.9], "text": "GAP 1.8m", "rotY": -1.57 },
-    { "type": "distance_sign", "pos": [-29.8, 0, -13.05], "text": "GAP 2.5m", "rotY": -1.57 },
-    { "type": "distance_sign", "pos": [-29.8, 0, -20.05], "text": "GAP 3.5m", "rotY": -1.57 },
-
-    { "type": "distance_sign", "pos": [14.7, 0, 36], "text": "1.0m", "rotY": 0 },
-    { "type": "distance_sign", "pos": [18.45, 0, 36], "text": "1.5m", "rotY": 0 },
-    { "type": "distance_sign", "pos": [22.95, 0, 36], "text": "2.5m", "rotY": 0 },
-    { "type": "distance_sign", "pos": [25.0, 0, 15], "text": "1.0x2.2m", "rotY": 0 },
-
-    { "type": "distance_sign", "pos": [32.0, 0, 1.5], "text": "1.40m TETO", "rotY": 0 },
-    { "type": "distance_sign", "pos": [34.0, 0, 1.5], "text": "CROUCH", "rotY": 0 }
+    {
+      "type": "distance_sign",
+      "pos": [
+        -5,
+        0,
+        40
+      ],
+      "text": "0m",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        5,
+        0,
+        40
+      ],
+      "text": "0m",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        -5,
+        0,
+        30
+      ],
+      "text": "10m",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        5,
+        0,
+        30
+      ],
+      "text": "10m",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        -5,
+        0,
+        20
+      ],
+      "text": "20m",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        5,
+        0,
+        20
+      ],
+      "text": "20m",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        -5,
+        0,
+        10
+      ],
+      "text": "30m",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        5,
+        0,
+        10
+      ],
+      "text": "30m",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        -5,
+        0,
+        0
+      ],
+      "text": "40m",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        5,
+        0,
+        0
+      ],
+      "text": "40m",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        -5,
+        0,
+        -10
+      ],
+      "text": "50m",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        5,
+        0,
+        -10
+      ],
+      "text": "50m",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        -27,
+        0,
+        27.2
+      ],
+      "text": "0.15m",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        -24,
+        0,
+        27.2
+      ],
+      "text": "0.30m",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        -21,
+        0,
+        27.2
+      ],
+      "text": "0.35m",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        -18,
+        0,
+        27.2
+      ],
+      "text": "0.45m",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        -15,
+        0,
+        27.2
+      ],
+      "text": "0.60m",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        -12,
+        0,
+        27.2
+      ],
+      "text": "0.65m",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        -27,
+        0,
+        11.5
+      ],
+      "text": "0.6m",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        -23,
+        0,
+        11.5
+      ],
+      "text": "0.9m",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        -19,
+        0,
+        11.5
+      ],
+      "text": "1.2m",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        -15,
+        0,
+        11.5
+      ],
+      "text": "1.5m",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        -29.8,
+        0,
+        -1.5
+      ],
+      "text": "GAP 1.0m",
+      "rotY": -1.57
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        -29.8,
+        0,
+        -6.9
+      ],
+      "text": "GAP 1.8m",
+      "rotY": -1.57
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        -29.8,
+        0,
+        -13.05
+      ],
+      "text": "GAP 2.5m",
+      "rotY": -1.57
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        -29.8,
+        0,
+        -20.05
+      ],
+      "text": "GAP 3.5m",
+      "rotY": -1.57
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        14.7,
+        0,
+        36
+      ],
+      "text": "1.0m",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        18.45,
+        0,
+        36
+      ],
+      "text": "1.5m",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        22.95,
+        0,
+        36
+      ],
+      "text": "2.5m",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        25,
+        0,
+        15
+      ],
+      "text": "1.0x2.2m",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        32,
+        0,
+        1.5
+      ],
+      "text": "1.40m TETO",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        34,
+        0,
+        1.5
+      ],
+      "text": "CROUCH",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        31,
+        0,
+        37.5
+      ],
+      "text": "RAMP 14 DEG (GENTLE)",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        35,
+        0,
+        37.5
+      ],
+      "text": "RAMP 26.6 DEG (WALK)",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        39,
+        0,
+        37.5
+      ],
+      "text": "RAMP 45 DEG (LIMIT)",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        43,
+        0,
+        37.5
+      ],
+      "text": "RAMP 60 DEG (SLIDE)",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        33,
+        0,
+        26.5
+      ],
+      "text": "OVERPASS UP (2m)",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        33,
+        0,
+        9.5
+      ],
+      "text": "OVERPASS DOWN",
+      "rotY": 3.14
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        42,
+        0,
+        25.5
+      ],
+      "text": "MOUND 1.2m (WALK)",
+      "rotY": 0
+    },
+    {
+      "type": "distance_sign",
+      "pos": [
+        42,
+        0,
+        8.5
+      ],
+      "text": "MOLLY DOME 2.2m (SLIDE)",
+      "rotY": 0
+    }
   ]
 }

@@ -381,3 +381,20 @@ A investigação identificou quatro fatores concorrentes no código:
    Se a origem do cano penetrar uma AABB sólida (`inside box`), efetuar o raycast ou projeção a partir da face de entrada da câmera para evitar que o raio atravesse a parede para o infinito.
 3. **Tratamento da Rotação de Wall Press:**
    Em `BarrelCrosshairAlignment`, isolar ou compensar o componente de Wall Press quando `wallCompression > 0`, ou suprimir a exibição do retículo com `ch-blocked` quando o cano estiver recolhido.
+
+#### ✅ Resolução Implementada e Validada
+1. **Eliminação do Threshold Arbitrário de 0.30m:**
+   - Remoção completa de `(pureHit.distance || pureHit.dist) > 0.3` e `(hit.distance || hit.dist) > 0.3`.
+   - Adicionado método `_raycastWorld(origin, dir, maxDist)` com tolerância de distância $\ge 0.001\text{m}$.
+2. **Backup Raycast contra Penetração AABB a Queima-Roupa:**
+   - Se a ponta do cano penetrar o volume AABB ou rampa (`tmin <= 0` em `CollisionWorld.raycast`), a origem do raio é recuada em até 65cm em direção à empunhadura/câmera (espaço livre do jogador), detectando a face frontal de entrada exata do obstáculo.
+3. **Projeção Angular Perspectiva Bounded (`_projectToScreen`):**
+   - Conversão da projeção de tela para cálculo trigonométrico angular colinear direto baseado no vetor de visada da câmera ($\tan(\text{fov}/2)$ e aspect ratio) com proteção de profundidade para pontos situados atrás da câmera ($\text{depth} \le 0.01\text{m} \rightarrow 50\%, 50\%$).
+   - Bounding seguro com margem de segurança de $24\text{px}$ nos limites da viewport ($[-1.0 + \text{pad}, 1.0 - \text{pad}]$), garantindo que a crosshair nunca sofra fuga de coordenadas para fora da tela (runaway).
+4. **Sincronização 1:1 no Disparo de Projéteis e Anti-Inversão Balística:**
+   - Em `getFiringDirection(muzzleOrigin, outDir)`, quando a boca do cano penetra a superfície do obstáculo (`aimPointWorld - muzzleOrigin` com produto escalar $\le 0$ em relação ao cano), o vetor de tiro não inverte 180° para trás ($+Z$), mantendo-se estritamente colinear e alinhado ao vetor diretor frontal físico do cano (`barrelAimDir`).
+   - Em `WeaponSystem._fire()`, no modo `isDynamicAlignment`, o vetor de saída `_dir` é recalculado consistentemente por `barrelAlignment.getFiringDirection(_muzzleWorld, _dir)`.
+   - Em caso de bocal penetrado a queima-roupa ($\le 2\text{cm}$), a origem de spawn físico do projétil é posicionada $2\text{cm}$ à frente da face colidida, garantindo registro imediato do decalque e faíscas no frame 1 sem atravessar a parede.
+5. **Suíte de Testes Automatizada Dedicada:**
+   - Criado `test/point_blank_crosshair_alignment_test.js` com 4 testes abrangendo HK416 e P-9 contra paredes a distâncias de $0.05\text{m}$ a $2.0\text{m}$, pilar de `grid.json`, match espacial 3D $\leftrightarrow$ 2D com erro $< 2\text{px}$ (match $> 99.8\%$), e proteção contra inversão balística com bocal penetrado e bounding de tela.
+   - Integrado ao gate principal `npm test` (137/137 testes verdes).

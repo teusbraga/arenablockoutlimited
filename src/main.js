@@ -147,12 +147,13 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
       secondary: weapons.slots[1] || null
     });
 
+    const unifiedSpawns = [...(map.playerSpawns || []), ...(map.botSpawns || [])];
     gameManager = new GameManager({
       scene,
       world,
       player,
       weapons,
-      botSpawns: map.botSpawns,
+      botSpawns: unifiedSpawns,
       playerSpawn: spawn,
       bounds: map.bounds,
     });
@@ -243,6 +244,7 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
         player.interpolatePosition(alpha);
         player.renderUpdate(alpha, dt);
         gameManager.renderUpdate(alpha, dt);
+        hud.updateScoreboard(input);
 
         // Alternância de Inventário com tecla I (permitida durante a partida antes do fim de rodada)
         if (gameManager.hasStarted && !gameManager.roundOver) {

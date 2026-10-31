@@ -75,18 +75,32 @@ const _targetHead = new THREE.Vector3();
  * Trajetória parabólica, resistência do ar, vento e atraso acústico realista.
  */
 export class ProjectileManager {
-  constructor({ world, botsProvider = () => [], player = null, camera = null, maxProjectiles = 256 }) {
+  constructor({ world, botsProvider = () => [], player = null, camera = null, maxProjectiles = 256, gameManager = null }) {
     this.world = world;
     this.botsProvider = botsProvider;
     this.player = player;
     this.camera = camera;
     this.maxProjectiles = maxProjectiles;
+    this.gameManager = gameManager;
 
     // Object Pool pré-alocado
     this.pool = Array.from({ length: maxProjectiles }, () => new Projectile());
     this._activeList = [];
     this.raycaster = new THREE.Raycaster();
     this.wind = new THREE.Vector3(0, 0, 0); // Vento global (m/s)
+  }
+
+  setGameManager(gm) {
+    this.gameManager = gm;
+  }
+
+  _canDamage(attacker, victim) {
+    if (!victim) return false;
+    if (attacker && attacker === victim) return false;
+    if (this.gameManager && typeof this.gameManager.canDamage === 'function') {
+      return this.gameManager.canDamage(attacker, victim);
+    }
+    return attacker !== victim;
   }
 
   setWind(x = 0, y = 0, z = 0) {
@@ -164,7 +178,7 @@ export class ProjectileManager {
     const isPhysicalTracer = p.speed < 200 || weaponDef?.tracerProfile?.physical === true;
     if (!isPhysicalTracer) {
       const normDir = _tempDir.copy(direction).normalize();
-      const estHit = this._estimateImpact(origin, normDir, p.maxDistance, owner);
+      const estHit = this._estimateImpact(origin, normDir, p.maxDistance, owner, p.ownerEntity);
 
       emit('tracer:fire', {
         origin: origin.clone(),
@@ -184,7 +198,7 @@ export class ProjectileManager {
    * Raycast síncrono rápido no momento do disparo para estimar impacto visual imediato.
    * Totalmente desacoplado do avanço contínuo do projétil (evita atraso de vôo no tracer).
    */
-  _estimateImpact(origin, dir, maxDist, owner = 'player') {
+  _estimateImpact(origin, dir, maxDist, owner = 'player', ownerEntity = null) {
     let closestDist = maxDist;
     let hitPoint = null;
 
@@ -198,19 +212,20 @@ export class ProjectileManager {
     }
 
     // 2. Raycast em entidades dinâmicas (Bots / Player)
-    if (owner === 'player') {
-      const bots = this.botsProvider ? this.botsProvider() : [];
-      for (let i = 0; i < bots.length; i++) {
-        const b = bots[i];
-        if (!b || !b.alive) continue;
-        const mHit = this._raycastMathBot(origin, dir, closestDist, b);
-        if (mHit && mHit.distance < closestDist) {
-          closestDist = mHit.distance;
-          hitPoint = mHit.point;
-        }
+    const attacker = ownerEntity || (owner === 'player' ? this.player : null);
+    const bots = this.botsProvider ? this.botsProvider() : [];
+    for (let i = 0; i < bots.length; i++) {
+      const b = bots[i];
+      if (!b || !b.alive) continue;
+      if (!this._canDamage(attacker, b)) continue;
+      const mHit = this._raycastMathBot(origin, dir, closestDist, b);
+      if (mHit && mHit.distance < closestDist) {
+        closestDist = mHit.distance;
+        hitPoint = mHit.point;
       }
-    } else if (owner === 'bot' && this.player && this.player.alive) {
-      // Bots ignoram fogo amigo visual no raycast de tracer para performance
+    }
+
+    if (this.player && this.player.alive && this._canDamage(attacker, this.player)) {
       const mHit = this._raycastMathBot(origin, dir, closestDist, this.player);
       if (mHit && mHit.distance < closestDist) {
         closestDist = mHit.distance;
@@ -328,51 +343,58 @@ export class ProjectileManager {
 
       // 3. Continuous Collision Detection (CCD Sweep)
       let entityHit = null;
+      let closestEntityDist = stepDist;
+      const attackerEntity = p.ownerEntity || (p.owner === 'player' ? this.player : null);
 
-      if (p.owner === 'player') {
-        // Verifica se há meshes de bots disponíveis no navegador
-        _hittableMeshes.length = 0;
-        const bots = this.botsProvider ? this.botsProvider() : [];
-        for (let bIdx = 0; bIdx < bots.length; bIdx++) {
-          const b = bots[bIdx];
-          if (!b || !b.alive) continue;
-          const hits = b.hittables ? b.hittables() : [];
+      // A) Testa bots
+      _hittableMeshes.length = 0;
+      const bots = this.botsProvider ? this.botsProvider() : [];
+      let hasMeshes = false;
+
+      for (let bIdx = 0; bIdx < bots.length; bIdx++) {
+        const b = bots[bIdx];
+        if (!b || !b.alive) continue;
+        if (!this._canDamage(attackerEntity, b)) continue;
+
+        const hits = b.hittables ? b.hittables() : [];
+        if (hits.length > 0) {
+          hasMeshes = true;
           for (let hIdx = 0; hIdx < hits.length; hIdx++) {
             _hittableMeshes.push(hits[hIdx]);
           }
-        }
-
-        if (_hittableMeshes.length > 0) {
-          // Modo WebGL / Three.js Mesh Intersection
-          this.raycaster.set(p.prevPos, _stepDir);
-          this.raycaster.far = stepDist;
-          const intersects = this.raycaster.intersectObjects(_hittableMeshes, false);
-          if (intersects.length > 0) {
-            const h = intersects[0];
-            entityHit = {
-              distance: h.distance,
-              bot: h.object.userData.bot,
-              part: h.object.userData.part || 'body',
-              point: h.point
-            };
-          }
         } else {
           // Modo Headless / Matemática Pura
-          let closestDist = stepDist;
-          for (let bIdx = 0; bIdx < bots.length; bIdx++) {
-            const mHit = this._raycastMathBot(p.prevPos, _stepDir, closestDist, bots[bIdx]);
-            if (mHit && mHit.distance < closestDist) {
-              closestDist = mHit.distance;
-              entityHit = mHit;
-            }
+          const mHit = this._raycastMathBot(p.prevPos, _stepDir, closestEntityDist, b);
+          if (mHit && mHit.distance < closestEntityDist) {
+            closestEntityDist = mHit.distance;
+            entityHit = mHit;
           }
         }
-      } else if (p.owner === 'bot' && this.player && this.player.alive) {
-        // Tiro de Bot contra Player
+      }
+
+      if (hasMeshes && _hittableMeshes.length > 0) {
+        this.raycaster.set(p.prevPos, _stepDir);
+        this.raycaster.far = closestEntityDist;
+        const intersects = this.raycaster.intersectObjects(_hittableMeshes, false);
+        if (intersects.length > 0 && intersects[0].distance < closestEntityDist) {
+          const h = intersects[0];
+          closestEntityDist = h.distance;
+          entityHit = {
+            distance: h.distance,
+            bot: h.object.userData.bot,
+            part: h.object.userData.part || 'body',
+            point: h.point
+          };
+        }
+      }
+
+      // B) Testa player
+      if (this.player && this.player.alive && this._canDamage(attackerEntity, this.player)) {
         const pDist = this.player.pos.distanceTo(p.prevPos);
-        if (pDist <= stepDist + 3.0) {
-          const mHit = this._raycastMathBot(p.prevPos, _stepDir, stepDist, this.player);
-          if (mHit) {
+        if (pDist <= closestEntityDist + 3.0) {
+          const mHit = this._raycastMathBot(p.prevPos, _stepDir, closestEntityDist, this.player);
+          if (mHit && mHit.distance < closestEntityDist) {
+            closestEntityDist = mHit.distance;
             entityHit = {
               distance: mHit.distance,
               player: this.player,
@@ -401,7 +423,7 @@ export class ProjectileManager {
         p.pos.copy(entityHit.point);
         p.active = false;
 
-        if (p.owner === 'player' && entityHit.bot) {
+        if (entityHit.bot) {
           const bot = entityHit.bot;
           let part = entityHit.part;
 
@@ -412,29 +434,31 @@ export class ProjectileManager {
           }
 
           const dmg = Math.max(1, Math.round(terminalImpact.finalDamage * (p.damageMultiplier || 1.0)));
-          const killed = bot.takeDamage(dmg, part);
+          const killed = bot.takeDamage(dmg, part, attackerEntity);
 
-          let px = undefined, py = undefined;
-          if (this.camera && typeof window !== 'undefined') {
-            _screenPos.copy(entityHit.point).project(this.camera);
-            px = (_screenPos.x * 0.5 + 0.5) * window.innerWidth;
-            py = -(_screenPos.y * 0.5 - 0.5) * window.innerHeight;
+          if (p.owner === 'player') {
+            let px = undefined, py = undefined;
+            if (this.camera && typeof window !== 'undefined') {
+              _screenPos.copy(entityHit.point).project(this.camera);
+              px = (_screenPos.x * 0.5 + 0.5) * window.innerWidth;
+              py = -(_screenPos.y * 0.5 - 0.5) * window.innerHeight;
+            }
+
+            _botHitPoint.copy(entityHit.point);
+            emit('shot:bot', {
+              point: _botHitPoint,
+              headshot: part === 'head',
+              killed,
+              distance: totalDistance,
+              soundDelay: acousticDelay,
+              screenX: px,
+              screenY: py,
+              isShotgun: p.isPellet
+            });
           }
-
-          _botHitPoint.copy(entityHit.point);
-          emit('shot:bot', {
-            point: _botHitPoint,
-            headshot: part === 'head',
-            killed,
-            distance: totalDistance,
-            soundDelay: acousticDelay,
-            screenX: px,
-            screenY: py,
-            isShotgun: p.isPellet
-          });
-        } else if (p.owner === 'bot' && entityHit.player) {
+        } else if (entityHit.player) {
           const dmg = Math.max(1, Math.round(BallisticsCalculator.calculateTerminalImpact(p.weaponDef, totalDistance, entityHit.part).finalDamage * (p.damageMultiplier || 1.0)));
-          const hitSource = p.ownerEntity || (p.spawnOrigin ? { pos: p.spawnOrigin.clone() } : null);
+          const hitSource = attackerEntity || (p.spawnOrigin ? { pos: p.spawnOrigin.clone() } : null);
           this.player.takeDamage(dmg, hitSource);
         }
 
@@ -624,12 +648,14 @@ export class ProjectileManager {
       }
     }
 
-    // 2. Supressão contra Bots (tiros disparados pelo jogador passando raspando)
-    if (p.owner === 'player' && this.botsProvider) {
+    // 2. Supressão contra Bots (tiros que passam raspando em bots inimigos)
+    if (this.botsProvider) {
       const bots = this.botsProvider();
+      const attacker = p.ownerEntity || (p.owner === 'player' ? this.player : null);
       for (let bIdx = 0; bIdx < bots.length; bIdx++) {
         const b = bots[bIdx];
         if (!b || !b.alive) continue;
+        if (b === attacker) continue;
         if (entityHit && entityHit.bot === b) continue;
         if (p.suppressedBots && p.suppressedBots.has(b.id)) continue;
 

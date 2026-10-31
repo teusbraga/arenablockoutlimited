@@ -41,11 +41,15 @@ export class HUD {
       qteSweetSpot: document.getElementById('qte-sweet-spot'),
       qteNeedle: document.getElementById('qte-needle'),
       qteStatus: document.getElementById('qte-status'),
+      scoreboardModal: document.getElementById('scoreboard-modal'),
+      scoreboardBody: document.getElementById('scoreboard-body'),
+      scoreboardTimer: document.getElementById('sc-timer'),
     };
     
     this.diCtx = this.el.diCanvas.getContext('2d');
     this.damageMarks = [];
     this._flashTimers = new Map();
+    this.scoreboardData = [];
     
     this.kills = 0;
     this.deaths = 0;
@@ -219,15 +223,44 @@ export class HUD {
           this._hit({ headshot: false });
         }
       }),
+      on('match:score_update', e => {
+        if (e && Array.isArray(e.scoreboard)) {
+          this.scoreboardData = e.scoreboard;
+          this.renderScoreboard();
+          const playerEntry = this.scoreboardData.find(item => item.isPlayer);
+          if (playerEntry) {
+            this.kills = playerEntry.kills;
+            this.deaths = playerEntry.deaths;
+            if (this.el.kills) this.el.kills.textContent = this.kills;
+            if (this.el.deaths) this.el.deaths.textContent = this.deaths;
+          }
+        }
+      }),
+      on('match:kill', e => {
+        const isPlayerKiller = !!(e.isPlayerKiller || e.isPlayerAttacker);
+        const isPlayerVictim = !!e.isPlayerVictim;
+        const attackerName = e.attackerName || 'COMBATENTE';
+        const attackerBadge = e.attackerBadge || '🪖';
+        const victimName = e.victimName || 'INIMIGO';
+        const victimBadge = e.victimBadge || '🪖';
+        const hsTag = e.headshot ? ' <span class="hs">⚡HEADSHOT</span>' : '';
+
+        let extraClass = '';
+        if (isPlayerKiller) extraClass = 'feed-player-killer';
+        else if (isPlayerVictim) extraClass = 'feed-player-victim';
+
+        const attackerDisplay = isPlayerKiller ? `<b>VOCÊ</b> ${attackerBadge}` : `<b>[BOT] ${attackerName}</b> ${attackerBadge}`;
+        const victimDisplay = isPlayerVictim ? `VOCÊ ${victimBadge}` : `[BOT] ${victimName} ${victimBadge}`;
+
+        const feedHtml = `<span>${attackerDisplay} ➔ ${victimDisplay}${hsTag}</span>`;
+        this._addKillFeed(feedHtml, extraClass);
+      }),
       on('bot:died', e => {
-        this.kills++; 
-        this.el.kills.textContent = this.kills;
-        this.triggerFlash(this.el.kills);
-        this._addKillFeed(`Você eliminou <b>Bot</b>${e.headshot ? ' <span class="hs">HEADSHOT</span>' : ''}`);
+        if (e?.killer?.isPlayer) {
+          this.triggerFlash(this.el.kills);
+        }
       }),
       on('player:died', () => { 
-        this.deaths++; 
-        this.el.deaths.textContent = this.deaths; 
         this.triggerFlash(this.el.deaths);
         this.isDead = true;
         this.el.deathScreen.classList.add('show');
@@ -247,10 +280,16 @@ export class HUD {
         this.deaths = 0;
         this.isDead = false;
         this.isRoundOver = false;
+        this.scoreboardData = [];
         this.el.kills.textContent = '0';
         this.el.deaths.textContent = '0';
         this.el.deathScreen.classList.remove('show');
         this.el.killfeed.innerHTML = '';
+        if (this.el.scoreboardBody) this.el.scoreboardBody.innerHTML = '';
+        if (this.el.scoreboardModal) {
+          this.el.scoreboardModal.classList.remove('show');
+          this.el.scoreboardModal.classList.add('hidden');
+        }
         this.damageMarks = [];
         this.syncGameplayUIVisibility();
       }),
@@ -276,11 +315,12 @@ export class HUD {
       on('round:over', () => {
         this.isRoundOver = true;
         this.el.overlay?.classList.add('hidden');
+        this.renderScoreboard();
+        this.updateScoreboard(null);
         const screen = document.getElementById('roundover-screen');
+        if (screen) screen.style.display = 'none';
         const stats = document.getElementById('final-stats');
-        stats.textContent = `${this.kills} abates · ${this.deaths} mortes`;
-        screen.style.opacity = '1';
-        screen.style.pointerEvents = 'auto';
+        if (stats) stats.textContent = `${this.kills} abates · ${this.deaths} mortes`;
         this.syncGameplayUIVisibility();
       }),
       on('input:lock', e => {
@@ -329,6 +369,7 @@ export class HUD {
     bindPill(this.el.slot2Pill, 1);
 
     document.getElementById('restart-btn')?.addEventListener('click', () => location.reload());
+    document.getElementById('sc-restart-btn')?.addEventListener('click', () => location.reload());
   }
 
   _bindInventoryUI() {
@@ -453,17 +494,18 @@ export class HUD {
     }
   }
 
-  _addKillFeed(html) {
+  _addKillFeed(html, extraClass = '') {
     const feed = this.el.killfeed;
+    if (!feed) return;
     const el = document.createElement('div');
-    el.className = 'feed-item';
+    el.className = 'feed-item' + (extraClass ? ` ${extraClass}` : '');
     el.innerHTML = html;
     feed.appendChild(el);
     while (feed.children.length > 5) feed.removeChild(feed.firstChild);
     setTimeout(() => {
       el.classList.add('fade');
       setTimeout(() => el.remove(), 600);
-    }, 3200);
+    }, 3500);
   }
 
   _showKillPopup(text, color, duration = 700) {
@@ -509,7 +551,60 @@ export class HUD {
   setTimer(seconds) {
     const m = Math.floor(seconds / 60);
     const s = Math.floor(seconds % 60);
-    this.el.roundTimer.textContent = `${m}:${String(s).padStart(2, '0')}`;
+    const timeStr = `${m}:${String(s).padStart(2, '0')}`;
+    if (this.el.roundTimer) this.el.roundTimer.textContent = timeStr;
+    if (this.el.scoreboardTimer) this.el.scoreboardTimer.textContent = timeStr;
+  }
+
+  renderScoreboard() {
+    if (!this.el.scoreboardBody) return;
+    if (!this.scoreboardData || this.scoreboardData.length === 0) return;
+
+    let html = '';
+    for (let i = 0; i < this.scoreboardData.length; i++) {
+      const row = this.scoreboardData[i];
+      const isPlayer = row.isPlayer === true;
+      const statusHtml = row.alive 
+        ? '<span class="sc-status-alive">● VIVO</span>' 
+        : '<span class="sc-status-dead">✕ MORTO</span>';
+
+      const displayName = isPlayer
+        ? (row.name?.includes('VOCÊ') ? row.name : `${row.name || 'VOCÊ'} (VOCÊ)`)
+        : (row.name || `Bot_${row.id}`);
+
+      html += `<tr class="${isPlayer ? 'sc-player-row' : ''}">
+        <td class="sc-td-rank">${row.rank}</td>
+        <td class="sc-td-status">${statusHtml}</td>
+        <td class="sc-td-badge">${row.badge || '🪖'}</td>
+        <td class="sc-td-name">${displayName}</td>
+        <td class="sc-td-kills">${row.kills}</td>
+        <td class="sc-td-deaths">${row.deaths}</td>
+        <td class="sc-td-kd">${row.kd}</td>
+      </tr>`;
+    }
+    this.el.scoreboardBody.innerHTML = html;
+  }
+
+  updateScoreboard(input) {
+    const modal = this.el.scoreboardModal;
+    if (!modal) return;
+    const isTab = input ? (input.isActionPressed('scoreboard') || input.actions?.scoreboard) : false;
+    const shouldShow = !!isTab || this.isRoundOver;
+    if (shouldShow) {
+      modal.classList.add('show');
+      modal.classList.remove('hidden');
+      if (this.isRoundOver) {
+        modal.classList.add('round-over');
+        const scRestart = document.getElementById('sc-restart-btn');
+        if (scRestart) scRestart.style.display = 'inline-block';
+        const hint = modal.querySelector('.sc-footer-tab-hint');
+        if (hint) hint.textContent = 'FIM DE PARTIDA · CLASSIFICAÇÃO FINAL';
+      }
+    } else {
+      modal.classList.remove('show');
+      modal.classList.add('hidden');
+      modal.classList.remove('round-over');
+    }
   }
 
   _addDirectionalMark(sourcePos, playerPos, intensity = 1.0, isSuppression = false) {

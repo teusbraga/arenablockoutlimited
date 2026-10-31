@@ -13,6 +13,8 @@ export class Character {
     this.yaw = 0;
     this.size = new THREE.Vector3(0.6, 1.8, 0.6);
     this.onGround = false;
+    this.isSliding = false;
+    this.groundNormal = new THREE.Vector3(0, 1, 0);
     this.hp = 100;
     this.maxHp = 100;
     this.alive = true;
@@ -47,22 +49,43 @@ export class Character {
   }
 
   applyPhysics(dt, stepHeight = (CONFIG.PLAYER?.stepHeight || 0.35)) {
-    // Gravidade
-    this.vel.y -= CONFIG.PLAYER.gravity * dt;
+    // Gravidade e Escorregamento Físico (Slide Physics em superfícies > 45°)
+    const g = CONFIG.PLAYER?.gravity || 20.0;
+    if (this.lastMoveRes?.isSliding && this.lastMoveRes?.groundNormal) {
+      const n = this.lastMoveRes.groundNormal;
+      const slideAx = g * n.y * n.x;
+      const slideAy = -g * (1.0 - n.y * n.y);
+      const slideAz = g * n.y * n.z;
+
+      this.vel.x += slideAx * dt;
+      this.vel.y += slideAy * dt;
+      this.vel.z += slideAz * dt;
+      this.isSliding = true;
+    } else {
+      this.vel.y -= g * dt;
+      this.isSliding = false;
+    }
 
     // Integração e colisão com o mundo
     _delta.set(this.vel.x * dt, this.vel.y * dt, this.vel.z * dt);
-    const res = this.world.moveAndSlide(this.pos, this.size, _delta, { stepHeight });
+    const res = this.world.moveAndSlide(this.pos, this.size, _delta, {
+      stepHeight,
+      maxWalkSlope: CONFIG.PLAYER?.maxWalkSlope ?? 0.7071
+    });
     this.lastMoveRes = res;
 
     this.onGround = res.onGround;
+    this.isSliding = res.isSliding;
+    if (res.groundNormal) {
+      this.groundNormal.set(res.groundNormal.x, res.groundNormal.y, res.groundNormal.z);
+    }
     if (res.onGround && res.groundMaterial) {
       this.groundMaterial = res.groundMaterial;
     }
     if (res.onGround && this.vel.y < 0) this.vel.y = 0;
     if (res.hitCeiling && this.vel.y > 0) this.vel.y = 0;
-    if (res.hitX) this.vel.x = 0;
-    if (res.hitZ) this.vel.z = 0;
+    if (res.hitX && !res.isSliding) this.vel.x = 0;
+    if (res.hitZ && !res.isSliding) this.vel.z = 0;
 
     return res;
   }

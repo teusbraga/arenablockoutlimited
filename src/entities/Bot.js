@@ -4,14 +4,40 @@ import { AIController } from '../ai/AIController.js';
 import { CharacterView } from '../view/CharacterView.js';
 import { emit, on, off } from '../core/EventBus.js';
 
+const SOLDIER_CALLSIGNS = [
+  'Viper', 'Ghost', 'Specter', 'Bravo', 'Nomad',
+  'Apex', 'Razor', 'Hunter', 'Falcon', 'Titan',
+  'Hawk', 'Shadow', 'Sable', 'Phantom', 'Havoc',
+  'Reaper', 'Cobra', 'Wolf', 'Striker', 'Echo'
+];
+
+const GHOST_CALLSIGNS = [
+  'Phantom', 'Specter', 'Wraith', 'Blinky', 'Pinky',
+  'Inky', 'Clyde', 'Spook', 'Shade', 'Banshee',
+  'Mirage', 'Polter', 'Mist', 'Gloom', 'Haunt'
+];
+
 export class Bot extends Character {
   static skinType = 'soldier'; // 'soldier' | 'ghost'
 
   constructor(id, world, scene = null, skinType = Bot.skinType, weaponId = 'ar15') {
     super(world);
     this.id = id;
+    this.botNumber = `#${String(id).padStart(2, '0')}`;
     this.skinType = skinType;
     this.weaponId = weaponId;
+    this.pitch = 0;
+    this.lastAttacker = null;
+
+    if (skinType === 'ghost') {
+      this.skinBadge = '👻';
+      this.callsign = GHOST_CALLSIGNS[(id - 1) % GHOST_CALLSIGNS.length] || `Ghost_${id}`;
+    } else {
+      this.skinBadge = '🪖';
+      this.callsign = SOLDIER_CALLSIGNS[(id - 1) % SOLDIER_CALLSIGNS.length] || `Soldier_${id}`;
+    }
+    this.name = `${this.botNumber} ${this.callsign}`;
+
     this.size.set(0.8, 1.7, 0.8);
     this.respawnTimer = 0;
     this.lean = 0;
@@ -75,11 +101,12 @@ export class Bot extends Character {
     }
   }
 
-  takeDamage(dmg, part) {
+  takeDamage(dmg, part, attacker = null) {
     if (!this.alive) return false;
     this.lastHitPart = part;
+    this.lastAttacker = attacker || null;
     const died = super.takeDamage(dmg);
-    emit('bot:damaged', { bot: this, dmg, part });
+    emit('bot:damaged', { bot: this, dmg, part, attacker: this.lastAttacker });
     return died;
   }
 
@@ -87,10 +114,15 @@ export class Bot extends Character {
     super.die();
     this.lean = 0;
     this.targetLean = 0;
+    this.pitch = 0;
     if (this.view?.root) {
       this.view.root.visible = false;
     }
-    emit('bot:died', { bot: this, headshot: this.lastHitPart === 'head' });
+    emit('bot:died', {
+      bot: this,
+      headshot: this.lastHitPart === 'head',
+      attacker: this.lastAttacker
+    });
   }
 
   respawn() {

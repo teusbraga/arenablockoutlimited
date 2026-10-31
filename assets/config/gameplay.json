@@ -18,14 +18,16 @@
     "accel": 40,
     "airAccel": 6,
     "friction": 22,
-    "jumpSpeed": 6.0,
+    "jumpSpeed": 6,
     "gravity": 20,
     "stepHeight": 0.35,
     "coyoteTime": 0.12,
     "jumpBuffer": 0.12,
     "landingDipScale": 0.0035,
     "regenDelay": 5,
-    "regenRate": 12
+    "regenRate": 12,
+    "maxSlopeAngle": 45,
+    "maxWalkSlope": 0.7071
   },
   "camera": {
     "hipFov": 78,

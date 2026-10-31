@@ -14,8 +14,14 @@ export class EngageState extends AIState {
   update(controller, dt, player, dist, canSee) {
     const bot = controller.bot;
 
+    const isHighGround = bot.pos.y > 2.5 && (player?.pos ? (bot.pos.y > player.pos.y + 1.2) : false);
+
     // Se HP estiver crítico (< 30%), recua para Flee/Cover
     if (bot.hp < 30 && dist < 20) {
+      if (isHighGround) {
+        // Salto tático de escape do parapeito
+        bot.vel.y = 6.0;
+      }
       controller.changeState('flee');
       return;
     }
@@ -23,10 +29,26 @@ export class EngageState extends AIState {
     if (!canSee) {
       controller.losTimer -= dt;
       if (controller.losTimer <= 0) {
+        if (isHighGround) {
+          // Perdeu o alvo por tempo prolongado: salta do parapeito para descer e buscar
+          bot.vel.y = 6.0;
+        }
         controller.changeState('search');
         return;
       }
-      // Enquanto ainda lembra do jogador atrás da quina, contorna via A* mantendo mira pronta
+
+      if (isHighGround) {
+        // Terreno elevado: segura a posição na cobertura sem cair pela borda
+        const targetYaw = Math.atan2(player.pos.x - bot.pos.x, player.pos.z - bot.pos.z);
+        controller._faceTowards(targetYaw, dt, 8);
+        const rightX = Math.cos(bot.yaw);
+        const rightZ = -Math.sin(bot.yaw);
+        controller.desiredMove.x = rightX * controller.strafeDir * CONFIG.BOTS.walkSpeed * 0.4;
+        controller.desiredMove.z = rightZ * controller.strafeDir * CONFIG.BOTS.walkSpeed * 0.4;
+        return;
+      }
+
+      // Enquanto ainda lembra do jogador atrás da quina em solo normal, contorna via A* mantendo mira pronta
       controller.navigateTo(player.pos.x, player.pos.z, CONFIG.BOTS.walkSpeed * 0.85, dt, 7);
       const targetYaw = Math.atan2(player.pos.x - bot.pos.x, player.pos.z - bot.pos.z);
       controller._faceTowards(targetYaw, dt, 8);
@@ -63,8 +85,16 @@ export class EngageState extends AIState {
 
     // Avanço / recuo tático
     let forward = 0;
-    if (dist > 14) forward = CONFIG.BOTS.sprintSpeed * 0.7;
-    else if (dist < 5) forward = -CONFIG.BOTS.walkSpeed * 0.6;
+    if (isHighGround) {
+      // Postura de atirador em terreno elevado: mantém a posição elevada sem correr para a borda
+      forward = 0;
+    } else {
+      if (dist > 14) forward = CONFIG.BOTS.sprintSpeed * 0.7;
+      else if (dist < 5) forward = -CONFIG.BOTS.walkSpeed * 0.6;
+      if (bot.onGround && bot.lastMoveRes?.hitWall) {
+        controller.tryVault();
+      }
+    }
     controller.desiredMove.x += Math.sin(bot.yaw) * forward;
     controller.desiredMove.z += Math.cos(bot.yaw) * forward;
 

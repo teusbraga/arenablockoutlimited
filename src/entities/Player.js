@@ -31,6 +31,13 @@ export class Player extends Character {
       this.view.root.visible = false;
     }
 
+    // Identidade do Jogador
+    this.name = 'VOCÊ';
+    this.badge = '🌟';
+    this.isPlayer = true;
+    this.lastAttacker = null;
+    this.onRespawnRequest = null;
+
     this.sprinting = false;
     this.crouched = false;
     this.ads = false;
@@ -208,7 +215,7 @@ export class Player extends Character {
         this.jumpBufferTimer = Math.max(0, this.jumpBufferTimer - dt);
       }
 
-      if (this.jumpBufferTimer > 0 && (this.onGround || this.coyoteTimer > 0)) {
+      if (this.jumpBufferTimer > 0 && (this.onGround || this.coyoteTimer > 0) && !this.isSliding) {
         this.vel.y = CONFIG.PLAYER.jumpSpeed;
         this.onGround = false;
         this.coyoteTimer = 0;
@@ -255,7 +262,10 @@ export class Player extends Character {
     // ---- Aceleração e Atrito ----
     if (this.alive && _wish.lengthSq() > 0) {
       _wish.normalize().multiplyScalar(speed);
-      const k = Math.min((this.onGround ? CONFIG.PLAYER.accel : CONFIG.PLAYER.airAccel) * dt, 1);
+      const accelRate = this.isSliding
+        ? ((CONFIG.PLAYER.airAccel || 6.0) * 0.3)
+        : (this.onGround ? CONFIG.PLAYER.accel : CONFIG.PLAYER.airAccel);
+      const k = Math.min(accelRate * dt, 1);
       this.vel.x += (_wish.x - this.vel.x) * k;
       this.vel.z += (_wish.z - this.vel.z) * k;
     } else if (this.onGround) {
@@ -343,6 +353,7 @@ export class Player extends Character {
   takeDamage(dmg, source) {
     if (!this.alive) return;
     this.lastDamageTime = performance.now() / 1000;
+    this.lastAttacker = source || null;
     
     // Flinch impact no rig e indicador direcional mesmo se godMode estiver ativo
     this.rig.addFlinch(Math.random() * 0.06 + 0.04, (Math.random() - 0.5) * 0.1);
@@ -359,7 +370,7 @@ export class Player extends Character {
     if (this.view?.root) {
       this.view.root.visible = false;
     }
-    emit('player:died', {});
+    emit('player:died', { attacker: this.lastAttacker });
     
     // Morte dura 3 segundos antes do respawn, controlada no loop update(dt)
     this.respawnTimer = 3.0;
@@ -369,7 +380,20 @@ export class Player extends Character {
   respawn() {
     super.respawn();
     this.respawnTimer = 0;
-    if (this.spawnPos) {
+    this.lastAttacker = null;
+
+    let dynamicSpawn = null;
+    if (typeof this.onRespawnRequest === 'function') {
+      try {
+        dynamicSpawn = this.onRespawnRequest();
+      } catch (err) {
+        dynamicSpawn = null;
+      }
+    }
+
+    if (dynamicSpawn && typeof dynamicSpawn.x === 'number') {
+      this.setPosition(dynamicSpawn.x, dynamicSpawn.y ?? 0.6, dynamicSpawn.z);
+    } else if (this.spawnPos) {
       this.setPosition(this.spawnPos[0], this.spawnPos[1], this.spawnPos[2]);
     } else {
       this.setPosition(0, 0.1, 12);

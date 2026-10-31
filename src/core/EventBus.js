@@ -56,7 +56,10 @@ export const CANONICAL_EVENTS = Object.freeze([
   'bot:fired',
   'bot:suppressed',
 
-  // game:* / round:* / kill:*
+  // match:* / game:* / round:* / kill:*
+  'match:kill',
+  'match:scoreboard',
+  'match:score_update',
   'game:reset',
   'round:timer',
   'round:over',

@@ -1392,7 +1392,11 @@ export class ItalyProps {
     this.scene.add(mesh);
 
     if (this.world) {
-      this.world.addBox(x, y + sy * 0.45, z, sx, sy * 0.9, sz, { vaultable: true });
+      if (typeof this.world.addDome === 'function') {
+        this.world.addDome(x, y, z, sx * 0.5, sy * 0.9, sz * 0.5, { vaultable: true, material: 'mossy_rock' });
+      } else {
+        this.world.addBox(x, y + sy * 0.45, z, sx, sy * 0.9, sz, { vaultable: true });
+      }
     }
     return mesh;
   }

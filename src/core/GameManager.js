@@ -5,6 +5,7 @@ import { MagazineDrop } from '../weapons/MagazineDrop.js';
 import { CONFIG } from './ConfigLoader.js';
 import { emit, on } from './EventBus.js';
 import { WEAPONS } from '../weapons/WeaponDefs.js';
+import { DeathmatchMode } from './modes/DeathmatchMode.js';
 
 const _tempPelletDir = new THREE.Vector3();
 
@@ -17,6 +18,23 @@ export class GameManager {
     this.botSpawns = botSpawns;
     this.playerSpawn = playerSpawn;
     this.bounds = bounds;
+
+    // Conecta ProjectileManager ao GameManager se disponível
+    if (this.weapons?.projectileManager) {
+      this.weapons.projectileManager.setGameManager(this);
+    }
+
+    // Modo de Jogo Ativo (Padrão: Deathmatch / Mata-Mata FFA)
+    const allSpawns = [...(playerSpawn ? [playerSpawn] : []), ...(botSpawns || [])];
+    this.gameMode = new DeathmatchMode({
+      bounds: this.bounds,
+      spawns: allSpawns
+    });
+
+    if (this.player) {
+      this.player.onRespawnRequest = () => this.getSpawnPoint(this.player);
+      this.gameMode.registerCombatant(this.player);
+    }
 
     this.bots = [];
     this.doors = [];
@@ -34,10 +52,43 @@ export class GameManager {
     this._setupEvents();
   }
 
+  setGameMode(mode) {
+    this.gameMode = mode;
+  }
+
+  isEnemy(entityA, entityB) {
+    if (this.gameMode) return this.gameMode.isEnemy(entityA, entityB);
+    return entityA !== entityB && entityA?.alive && entityB?.alive;
+  }
+
+  canDamage(attacker, victim) {
+    if (this.gameMode) return this.gameMode.canDamage(attacker, victim);
+    return attacker !== victim;
+  }
+
+  getSpawnPoint(entity) {
+    const allCombatants = [this.player, ...this.bots].filter(Boolean);
+    const allSpawns = [...(this.playerSpawn ? [this.playerSpawn] : []), ...(this.botSpawns || [])];
+    if (this.gameMode) {
+      return this.gameMode.getSpawnPoint(entity, {
+        bounds: this.bounds,
+        world: this.world,
+        combatants: allCombatants,
+        spawns: allSpawns,
+        isPositionClear: (px, py, pz, minPropDist, minOtherDist, ignoreEntity) =>
+          this._isPositionClear(px, py, pz, minPropDist, minOtherDist, ignoreEntity)
+      });
+    }
+    return this._findClearSpawnPos(3.0, 11.0, entity);
+  }
+
   startMatch() {
     this.hasStarted = true;
     if (this.weapons && typeof this.weapons.setLoadoutLocked === 'function') {
       this.weapons.setLoadoutLocked(true);
+    }
+    if (this.gameMode) {
+      emit('match:score_update', { scoreboard: this.gameMode.getScoreboard() });
     }
   }
 
@@ -100,14 +151,31 @@ export class GameManager {
           if (isHit) {
             const baseDamage = def?.damageBody || CONFIG.BOTS?.damageBody || 14;
             const dmg = baseDamage * (0.8 + Math.random() * 0.4);
-            p.takeDamage(dmg, bot);
+            if (p.isPlayer || p === this.player) {
+              p.takeDamage(dmg, bot);
+            } else {
+              p.takeDamage(dmg, 'body', bot);
+            }
           }
         }
       }),
 
       // Quando qualquer bot morre: registra kill, dropa arma/loot específica e agenda respawn
       on('bot:died', e => {
-        this.registerKill(e.headshot);
+        const killer = e?.attacker !== undefined ? e.attacker : (this.player || null);
+        const killInfo = this.gameMode
+          ? this.gameMode.onKill(killer, e.bot, e.headshot, { player: this.player, weaponId: killer?.weaponId })
+          : null;
+
+        if (killInfo) {
+          emit('match:kill', killInfo);
+          emit('match:score_update', { scoreboard: this.gameMode.getScoreboard() });
+        }
+
+        if (e?.attacker === this.player || killInfo?.isPlayerKiller) {
+          this.registerKill(e?.headshot);
+        }
+
         if (e.bot) {
           const dropWeapon = e.bot.weaponId || this._getRandomWeaponId();
           const def = WEAPONS[dropWeapon];
@@ -117,6 +185,23 @@ export class GameManager {
           setTimeout(() => {
             if (e.bot && !e.bot.alive) this.scheduleBotRespawn(e.bot);
           }, 0);
+        }
+      }),
+
+      on('player:died', e => {
+        const killer = e?.attacker;
+        const killInfo = this.gameMode
+          ? this.gameMode.onKill(killer, this.player, false, { player: this.player, weaponId: killer?.weaponId })
+          : null;
+
+        if (killInfo) {
+          emit('match:kill', killInfo);
+          emit('match:score_update', { scoreboard: this.gameMode.getScoreboard() });
+        }
+      }),
+      on('player:respawn', () => {
+        if (this.gameMode) {
+          emit('match:score_update', { scoreboard: this.gameMode.getScoreboard() });
         }
       }),
       on('weapon:magazine_dropped', e => {
@@ -220,49 +305,81 @@ export class GameManager {
   }
 
   /**
-   * Avalia se uma posição (px, pz) está desobstruída e cumpre as regras de segurança:
+   * Avalia se uma posição (px, py, pz) está desobstruída e cumpre as regras de segurança:
    * - Dentro dos limites do mapa
-   * - Distância mínima de qualquer prop/parede sólida (ignora o chão y <= 0.2)
-   * - Distância mínima do jogador
-   * - Distância mínima de outros bots ou posições já reservadas
+   * - Distância mínima de qualquer prop/parede sólida considerando a cota vertical (Y):
+   *   caixas abaixo dos pés (b.max.y <= py + 0.1) são suporte/chão (lajes e telhados válidos).
+   *   caixas acima da cabeça (b.min.y >= py + 1.85) não obstruem.
+   * - Distância mínima do jogador e de outros bots.
    */
-  _isPositionClear(px, pz, minPropDist = 3.0, minPlayerDist = 11.0, ignoreBot = null) {
+  _isPositionClear(px, py, pz, minPropDist = 3.0, minOtherDist = 11.0, ignoreEntity = null) {
+    let y = py;
+    let z = pz;
+    let propDist = minPropDist;
+    let otherDist = minOtherDist;
+    let ignore = ignoreEntity;
+
+    // Suporte retrocompatível se chamado no formato legado 2D (px, pz, ...)
+    if (arguments.length <= 5 && (typeof minOtherDist === 'object' || (typeof py === 'number' && typeof pz !== 'number'))) {
+      z = py;
+      y = 0.6;
+      propDist = typeof pz === 'number' ? pz : 3.0;
+      otherDist = typeof minPropDist === 'number' ? minPropDist : 11.0;
+      ignore = typeof minOtherDist === 'object' ? minOtherDist : null;
+    } else if (typeof y !== 'number') {
+      y = 0.6;
+    }
+
     const [minX, maxX, minZ, maxZ] = this.bounds;
-    if (px < minX + 2.5 || px > maxX - 2.5 || pz < minZ + 2.5 || pz > maxZ - 2.5) {
+    if (px < minX + 2.5 || px > maxX - 2.5 || z < minZ + 2.5 || z > maxZ - 2.5) {
       return false;
     }
 
-    if (this.player) {
-      const distP = Math.hypot(px - this.player.pos.x, pz - this.player.pos.z);
-      if (distP < minPlayerDist) return false;
-    }
-
-    if (this.world?.getNearbyBoxes) {
-      const r = minPropDist;
-      const candidates = this.world.getNearbyBoxes(px - r, px + r, pz - r, pz + r);
-      for (let i = 0; i < candidates.length; i++) {
-        const b = candidates[i];
-        if (!b.solid || b.max.y <= 0.2) continue;
-        if (this._distToBox(px, pz, b) < minPropDist) {
-          return false;
-        }
-      }
-    } else if (this.world?.boxes) {
-      for (const b of this.world.boxes) {
-        if (!b.solid || b.max.y <= 0.2) continue;
-        if (this._distToBox(px, pz, b) < minPropDist) {
-          return false;
-        }
-      }
+    if (this.player && this.player !== ignore) {
+      const distP = Math.hypot(px - this.player.pos.x, z - this.player.pos.z);
+      const dyP = Math.abs(y - this.player.pos.y);
+      if (distP < otherDist && dyP < 3.0) return false;
     }
 
     for (const other of this.bots) {
-      if (other === ignoreBot) continue;
+      if (other === ignore) continue;
       if (other.alive) {
-        if (Math.hypot(px - other.pos.x, pz - other.pos.z) < 2.5) return false;
+        const distOther = Math.hypot(px - other.pos.x, z - other.pos.z);
+        const dyOther = Math.abs(y - other.pos.y);
+        if (distOther < 2.5 && dyOther < 2.5) return false;
       } else if (other.nextSpawnPos) {
-        if (Math.hypot(px - other.nextSpawnPos.x, pz - other.nextSpawnPos.z) < 2.5) return false;
+        const nextY = other.nextSpawnPos.y ?? 0.6;
+        const distNext = Math.hypot(px - other.nextSpawnPos.x, z - other.nextSpawnPos.z);
+        const dyNext = Math.abs(y - nextY);
+        if (distNext < 2.5 && dyNext < 2.5) return false;
       }
+    }
+
+    const checkBoxes = (candidates) => {
+      for (let i = 0; i < candidates.length; i++) {
+        const b = candidates[i];
+        if (!b.solid) continue;
+
+        // Se a caixa estiver abaixo dos pés do spawn, ela atua como chão de suporte (laje/telhado), NÃO bloqueio
+        if (b.max.y <= y + 0.1) continue;
+
+        // Se a caixa estiver acima da cabeça do personagem, não obstrui
+        if (b.min.y >= y + 1.85) continue;
+
+        // Conflito de volume vertical: verifica distância horizontal
+        if (this._distToBox(px, z, b) < propDist) {
+          return false;
+        }
+      }
+      return true;
+    };
+
+    if (this.world?.getNearbyBoxes) {
+      const r = propDist;
+      const candidates = this.world.getNearbyBoxes(px - r, px + r, z - r, z + r);
+      if (!checkBoxes(candidates)) return false;
+    } else if (this.world?.boxes) {
+      if (!checkBoxes(this.world.boxes)) return false;
     }
 
     return true;
@@ -273,15 +390,26 @@ export class GameManager {
    * Dá lock-in no melhor ponto disponível.
    */
   _findClearSpawnPos(minPropDist = 3.0, minPlayerDist = 11.0, forBot = null) {
+    if (this.gameMode) {
+      return this.gameMode.getSpawnPoint(forBot, {
+        bounds: this.bounds,
+        world: this.world,
+        combatants: [this.player, ...this.bots].filter(Boolean),
+        spawns: [...(this.playerSpawn ? [this.playerSpawn] : []), ...(this.botSpawns || [])],
+        isPositionClear: (px, py, pz, pDist, oDist, ign) => this._isPositionClear(px, py, pz, pDist, oDist, ign)
+      });
+    }
+
     // 1. Testa os pontos pré-configurados do mapa
     if (this.botSpawns && this.botSpawns.length > 0) {
       const validPresets = [];
       for (const s of this.botSpawns) {
         const sx = s[0];
+        const sy = s[1] || 0.6;
         const sz = s[2];
-        if (this._isPositionClear(sx, sz, minPropDist, minPlayerDist, forBot)) {
+        if (this._isPositionClear(sx, sy, sz, minPropDist, minPlayerDist, forBot)) {
           const distToP = Math.hypot(sx - this.player.pos.x, sz - this.player.pos.z);
-          validPresets.push({ x: sx, y: s[1] || 0.6, z: sz, distToP });
+          validPresets.push({ x: sx, y: sy, z: sz, distToP });
         }
       }
       if (validPresets.length > 0) {
@@ -296,7 +424,7 @@ export class GameManager {
     for (let i = 0; i < 45; i++) {
       const rx = minX + 3.5 + Math.random() * (maxX - minX - 7);
       const rz = minZ + 3.5 + Math.random() * (maxZ - minZ - 7);
-      if (this._isPositionClear(rx, rz, minPropDist, minPlayerDist, forBot)) {
+      if (this._isPositionClear(rx, 0.6, rz, minPropDist, minPlayerDist, forBot)) {
         return { x: rx, y: 0.6, z: rz };
       }
     }
@@ -305,7 +433,7 @@ export class GameManager {
     for (let i = 0; i < 30; i++) {
       const rx = minX + 2.5 + Math.random() * (maxX - minX - 5);
       const rz = minZ + 2.5 + Math.random() * (maxZ - minZ - 5);
-      if (this._isPositionClear(rx, rz, 1.8, 8.0, forBot)) {
+      if (this._isPositionClear(rx, 0.6, rz, 1.8, 8.0, forBot)) {
         return { x: rx, y: 0.6, z: rz };
       }
     }
@@ -328,7 +456,7 @@ export class GameManager {
    */
   scheduleBotRespawn(bot) {
     if (!bot) return;
-    const safePos = this._findClearSpawnPos(3.0, 11.0, bot);
+    const safePos = this.getSpawnPoint(bot);
     bot.nextSpawnPos = safePos;
     if (bot.respawnTimer <= 0) {
       bot.respawnTimer = CONFIG.BOTS.respawnTime || 4.0;
@@ -342,8 +470,8 @@ export class GameManager {
     b.respawn();
     b.weaponId = this._getRandomWeaponId();
 
-    const spawnPos = b.nextSpawnPos || this._findClearSpawnPos(3.0, 11.0, b);
-    b.setPosition(spawnPos.x, spawnPos.y || 0.6, spawnPos.z);
+    const spawnPos = b.nextSpawnPos || this.getSpawnPoint(b);
+    b.setPosition(spawnPos.x, spawnPos.y ?? 0.6, spawnPos.z);
     b.vel.set(0, 0, 0);
     b.hp = b.maxHp;
     b.alive = true;
@@ -364,6 +492,10 @@ export class GameManager {
       b.ai.hasPatrolTarget = false;
       b.ai.fireTimer = 0.8 + Math.random() * 0.5;
     }
+
+    if (this.gameMode) {
+      emit('match:score_update', { scoreboard: this.gameMode.getScoreboard() });
+    }
   }
 
   respawnBot(b) {
@@ -373,6 +505,13 @@ export class GameManager {
   spawnBot(id) {
     const weaponId = this._getRandomWeaponId();
     const b = new Bot(id, this.world, this.scene, Bot.skinType, weaponId);
+    b.gameManager = this;
+    if (b.ai) {
+      b.ai.gameManager = this;
+    }
+    if (this.gameMode) {
+      this.gameMode.registerCombatant(b);
+    }
     this.finalizeBotRespawn(b);
     return b;
   }
@@ -387,6 +526,10 @@ export class GameManager {
 
     while (this.bots.length < n) {
       this.bots.push(this.spawnBot(this.bots.length + 1));
+    }
+
+    if (this.gameMode) {
+      emit('match:score_update', { scoreboard: this.gameMode.getScoreboard() });
     }
   }
 
@@ -409,19 +552,23 @@ export class GameManager {
     this.killCombo = 0;
     this.lastKillTime = -999;
     
+    if (this.gameMode) {
+      this.gameMode.reset();
+      emit('match:score_update', { scoreboard: this.gameMode.getScoreboard() });
+    }
+
     // Reset da HUD via EventBus
     emit('game:reset', {});
 
     // Respawna Player
-    this.player.hp = this.player.maxHp;
-    this.player.alive = true;
-    if (this.playerSpawn) {
-      this.player.setPosition(this.playerSpawn[0], this.playerSpawn[1], this.playerSpawn[2]);
-    } else {
-      this.player.setPosition(0, 0.1, 12);
+    if (this.player) {
+      this.player.hp = this.player.maxHp;
+      this.player.alive = true;
+      const playerSpawnPos = this.getSpawnPoint(this.player);
+      this.player.setPosition(playerSpawnPos.x, playerSpawnPos.y, playerSpawnPos.z);
+      this.player.vel.set(0, 0, 0);
+      emit('player:hp', { hp: this.player.hp, max: this.player.maxHp });
     }
-    this.player.vel.set(0, 0, 0);
-    emit('player:hp', { hp: this.player.hp, max: this.player.maxHp });
 
     // Reposiciona Bots com posições seguras
     for (const b of this.bots) {

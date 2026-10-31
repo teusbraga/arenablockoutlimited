@@ -35,6 +35,9 @@ const _vUp = new THREE.Vector3();
 const _vPureTarget3D = new THREE.Vector3();
 const _vScreen = new THREE.Vector3();
 const _vPureScreen = new THREE.Vector3();
+const _vBackupOrigin = new THREE.Vector3();
+const _vCamSpace = new THREE.Vector3();
+const _vProjPoint = new THREE.Vector3();
 const _matRot = new THREE.Matrix4();
 
 export class BarrelCrosshairAlignment {
@@ -69,6 +72,84 @@ export class BarrelCrosshairAlignment {
     this.currentScreenY = typeof window !== 'undefined' ? window.innerHeight / 2 : 0;
     this.currentPureScreenX = typeof window !== 'undefined' ? window.innerWidth / 2 : 0;
     this.currentPureScreenY = typeof window !== 'undefined' ? window.innerHeight / 2 : 0;
+  }
+
+  /**
+   * Executa raycast robusto contra o CollisionWorld:
+   * 1. Testa a partir da boca do cano (muzzleWorld).
+   * 2. Se a ponta do cano estiver colada ou penetrando o obstáculo físico (tmin <= 0 no CollisionWorld),
+   *    recua a origem até o espaço livre garantido do viewmodel/câmera (65cm) e refaz o raycast.
+   * 3. Aceita impactos contínuos a queima-roupa (distância >= 0.001m), eliminando a zona cega de 30cm.
+   * 
+   * @param {THREE.Vector3} origin Posição de origem (normalmente boca do cano)
+   * @param {THREE.Vector3} dir Vetor diretor normalizado
+   * @param {number} [maxDist=120.0] Alcance máximo do raio
+   * @returns {Object|null}
+   */
+  _raycastWorld(origin, dir, maxDist = 120.0) {
+    if (!this.collisionWorld || typeof this.collisionWorld.raycast !== 'function') {
+      return null;
+    }
+
+    const directHit = this.collisionWorld.raycast(origin, dir, maxDist);
+    if (directHit && directHit.point && (directHit.distance >= 0.001)) {
+      return directHit;
+    }
+
+    // Proteção contra penetração a queima-roupa: recua a origem para o espaço livre do viewmodel
+    const backupDist = 0.65;
+    _vBackupOrigin.copy(origin).addScaledVector(dir, -backupDist);
+    const backedHit = this.collisionWorld.raycast(_vBackupOrigin, dir, maxDist + backupDist);
+    if (backedHit && backedHit.point) {
+      const realDist = backedHit.distance - backupDist;
+      return {
+        ...backedHit,
+        distance: Math.max(0.001, realDist),
+        point: backedHit.point
+      };
+    }
+
+    return null;
+  }
+
+  /**
+   * Converte ponto 3D para coordenadas 2D de tela em pixels com proteção contra runaway
+   * em pontos situados atrás ou excessivamente próximos da lente de near clipping.
+   * 
+   * @param {THREE.Vector3} worldPoint Coordenadas 3D no espaço de mundo
+   * @param {{ x: number, y: number }} outScreen Objeto de saída preenchido em pixels
+   * @param {number} screenWidth Largura da tela
+   * @param {number} screenHeight Altura da tela
+   * @returns {{ x: number, y: number }}
+   */
+  _projectToScreen(worldPoint, outScreen, screenWidth = 1920, screenHeight = 1080) {
+    _vCamSpace.copy(worldPoint).applyMatrix4(this.camera.matrixWorldInverse);
+    const depth = -_vCamSpace.z; // Distância à frente da lente da câmera
+
+    if (depth <= 0.01) {
+      outScreen.x = screenWidth * 0.5;
+      outScreen.y = screenHeight * 0.5;
+      return outScreen;
+    }
+
+    const fovRad = (this.camera.fov * Math.PI) / 180;
+    const tanHalf = Math.tan(fovRad * 0.5);
+    const aspect = this.camera.aspect || (screenWidth / screenHeight);
+
+    let ndcX = _vCamSpace.x / (depth * tanHalf * aspect);
+    let ndcY = _vCamSpace.y / (depth * tanHalf);
+
+    // Margem de segurança de 24px para manter o retículo sempre visível na tela sem runaway
+    const padX = 24 / screenWidth;
+    const padY = 24 / screenHeight;
+    const maxNdcX = 1.0 - padX;
+    const maxNdcY = 1.0 - padY;
+    ndcX = Math.max(-maxNdcX, Math.min(maxNdcX, ndcX));
+    ndcY = Math.max(-maxNdcY, Math.min(maxNdcY, ndcY));
+
+    outScreen.x = (ndcX * 0.5 + 0.5) * screenWidth;
+    outScreen.y = (-(ndcY * 0.5) + 0.5) * screenHeight;
+    return outScreen;
   }
 
   /**
@@ -123,12 +204,9 @@ export class BarrelCrosshairAlignment {
     this.pureBarrelDir.copy(_vPureDir);
 
     const rayDist = 120.0;
-    let pureHit = null;
-    if (this.collisionWorld && typeof this.collisionWorld.raycast === 'function') {
-      pureHit = this.collisionWorld.raycast(this.muzzleWorld, this.pureBarrelDir, rayDist);
-    }
-    if (pureHit && pureHit.point && (pureHit.distance || pureHit.dist) > 0.3) {
-      _vPureTarget3D.copy(pureHit.point);
+    const pureHit = this._raycastWorld(this.muzzleWorld, this.pureBarrelDir, rayDist);
+    if (pureHit && pureHit.point) {
+      _vPureTarget3D.set(pureHit.point.x, pureHit.point.y, pureHit.point.z);
     } else {
       _vPureTarget3D.copy(this.muzzleWorld).addScaledVector(this.pureBarrelDir, this.defaultZeroDistance);
     }
@@ -143,43 +221,28 @@ export class BarrelCrosshairAlignment {
     this.barrelAimDir.copy(_vMuzzleDir);
 
     // 3. Raycast físico balístico para onde o tiro/tracer realmente vai no mundo 3D
-    let hit = null;
-    if (this.collisionWorld && typeof this.collisionWorld.raycast === 'function') {
-      hit = this.collisionWorld.raycast(this.muzzleWorld, this.barrelAimDir, rayDist);
-    }
-
-    if (hit && hit.point && (hit.distance || hit.dist) > 0.3) {
+    const hit = this._raycastWorld(this.muzzleWorld, this.barrelAimDir, rayDist);
+    if (hit && hit.point) {
       this.hasTarget = true;
-      this.distanceToTarget = hit.distance || hit.dist;
-      this.aimPointWorld.copy(hit.point);
+      this.distanceToTarget = hit.distance;
+      this.aimPointWorld.set(hit.point.x, hit.point.y, hit.point.z);
     } else {
       this.hasTarget = false;
       this.distanceToTarget = this.defaultZeroDistance;
       this.aimPointWorld.copy(this.muzzleWorld).addScaledVector(this.barrelAimDir, this.defaultZeroDistance);
     }
 
-    // 4. Projetar coordenadas 2D de tela (HUD)
-    _vScreen.copy(this.aimPointWorld).project(this.camera);
-    _vPureScreen.copy(this.pureAimPointWorld).project(this.camera);
-
+    // 4. Projetar coordenadas 2D de tela (HUD) com tolerância segura a queima-roupa
     const screenWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
     const screenHeight = typeof window !== 'undefined' ? window.innerHeight : 1080;
 
-    // Coordenadas em pixels na tela do ponto balístico real (com spray recoil)
-    let targetScreenX = screenWidth * 0.5;
-    let targetScreenY = screenHeight * 0.5;
-    if (_vScreen.z < 1.0) {
-      targetScreenX = (_vScreen.x * 0.5 + 0.5) * screenWidth;
-      targetScreenY = (-(_vScreen.y * 0.5) + 0.5) * screenHeight;
-    }
+    this._projectToScreen(this.aimPointWorld, _vScreen, screenWidth, screenHeight);
+    this._projectToScreen(this.pureAimPointWorld, _vPureScreen, screenWidth, screenHeight);
 
-    // Coordenadas em pixels na tela do ponto puro do cano (sem spray recoil)
-    let pureTargetScreenX = screenWidth * 0.5;
-    let pureTargetScreenY = screenHeight * 0.5;
-    if (_vPureScreen.z < 1.0) {
-      pureTargetScreenX = (_vPureScreen.x * 0.5 + 0.5) * screenWidth;
-      pureTargetScreenY = (-(_vPureScreen.y * 0.5) + 0.5) * screenHeight;
-    }
+    const targetScreenX = _vScreen.x;
+    const targetScreenY = _vScreen.y;
+    const pureTargetScreenX = _vPureScreen.x;
+    const pureTargetScreenY = _vPureScreen.y;
 
     // Inicialização instantânea no primeiro frame (sem atraso de lerp a partir do centro)
     if (!this.initialized) {
@@ -230,7 +293,14 @@ export class BarrelCrosshairAlignment {
    * @returns {THREE.Vector3}
    */
   getFiringDirection(muzzleOrigin, outDir = new THREE.Vector3()) {
-    outDir.copy(this.aimPointWorld).sub(muzzleOrigin).normalize();
+    outDir.copy(this.aimPointWorld).sub(muzzleOrigin);
+    // Se o ponto de impacto na superfície estiver atrás da boca do cano (cano penetrando o obstáculo),
+    // a direção do tiro não pode inverter para trás (+Z); deve manter o vetor diretor físico do cano.
+    if (outDir.dot(this.barrelAimDir) <= 0.0001) {
+      outDir.copy(this.barrelAimDir).normalize();
+    } else {
+      outDir.normalize();
+    }
     return outDir;
   }
 }

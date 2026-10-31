@@ -15,7 +15,7 @@ export const DEFAULT_CONFIG = {
     strafeMul: 0.85, backwardMul: 0.75, stanceRecoveryTime: 0.15,
     accel: 40.0, airAccel: 6.0, friction: 22.0,
     jumpSpeed: 6.0, gravity: 20.0,
-    stepHeight: 0.35,
+    stepHeight: 0.35, maxSlopeAngle: 45.0, maxWalkSlope: 0.7071,
     coyoteTime: 0.12, jumpBuffer: 0.12, landingDipScale: 0.0035,
     regenDelay: 5.0, regenRate: 12.0
   },
@@ -115,6 +115,8 @@ export class ConfigLoader {
           CONFIG.PLAYER.jumpSpeed = gp.player.jumpSpeed ?? CONFIG.PLAYER.jumpSpeed;
           CONFIG.PLAYER.gravity = gp.player.gravity ?? CONFIG.PLAYER.gravity;
           CONFIG.PLAYER.stepHeight = gp.player.stepHeight ?? CONFIG.PLAYER.stepHeight;
+          CONFIG.PLAYER.maxSlopeAngle = gp.player.maxSlopeAngle ?? CONFIG.PLAYER.maxSlopeAngle;
+          CONFIG.PLAYER.maxWalkSlope = gp.player.maxWalkSlope ?? CONFIG.PLAYER.maxWalkSlope;
           CONFIG.PLAYER.regenDelay = gp.player.regenDelay ?? CONFIG.PLAYER.regenDelay;
           CONFIG.PLAYER.regenRate = gp.player.regenRate ?? CONFIG.PLAYER.regenRate;
           CONFIG.PLAYER.stanceRecoveryTime = gp.player.stanceRecoveryTime ?? CONFIG.PLAYER.stanceRecoveryTime;

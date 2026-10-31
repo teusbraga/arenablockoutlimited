@@ -26,6 +26,7 @@ const _botHitPoint = new THREE.Vector3();
 const _worldHitPoint = new THREE.Vector3();
 const _smokeMuzzleWorld = new THREE.Vector3();
 const _targetPoint = new THREE.Vector3();
+const _pointBlankSpawn = new THREE.Vector3();
 const _hittableMeshes = [];
 
 /**
@@ -798,6 +799,7 @@ export class WeaponSystem {
     
           if (this.barrelAlignment) {
             this.barrelAlignment.update(def, this.ads, 0.016, this.sprayRecoil, _muzzleWorld);
+            this.barrelAlignment.getFiringDirection(_muzzleWorld, _dir);
           }
         } else {
           // 3. Hipfire Clássico (Retículo Estático 50%, 50%):
@@ -864,7 +866,11 @@ export class WeaponSystem {
 
     const pelletCount = def.pellets || 1;
     const maxPelletSpread = def.pelletSpread || 0.01333; // Raio de 0.80m a 60m
-    const originPoint = _muzzleWorld;
+    let originPoint = _muzzleWorld;
+    if (this.barrelAlignment && this.barrelAlignment.hasTarget && this.barrelAlignment.distanceToTarget <= 0.02) {
+      _pointBlankSpawn.copy(this.barrelAlignment.aimPointWorld).addScaledVector(_dir, -0.02);
+      originPoint = _pointBlankSpawn;
+    }
 
     for (let p = 0; p < pelletCount; p++) {
       _pelletDir.copy(_dir);

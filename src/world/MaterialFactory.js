@@ -787,6 +787,29 @@ export class MaterialFactory {
     });
     this.factories.set('dev_grid', () => this.get('grid_1x1'));
 
+    // 44. Amarelo Industrial de Atenção / Segurança (Caution Hazard Yellow)
+    this.factories.set('caution_yellow', () => {
+      const conc = textures.createConcrete(512);
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0xd9a425,
+        map: conc.diffuse,
+        bumpMap: conc.bump,
+        bumpScale: 0.03,
+        roughness: 0.60,
+      });
+      MaterialFactory.applyWorldSpaceUV(mat, 0.4);
+      return mat;
+    });
+
+    // 45. Viga Metálica Estrutural / Aço Industrial (Steel Girder)
+    this.factories.set('steel_girder', () => {
+      return new THREE.MeshStandardMaterial({
+        color: 0xc44527,
+        roughness: 0.55,
+        metalness: 0.65,
+      });
+    });
+
     return this.materials;
   }
 
