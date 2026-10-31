@@ -1292,3 +1292,529 @@
     font-weight: 700;
     color: #f59e0b;
   }
+
+  /* =========================================================
+     NOVO LOBBY PRINCIPAL (INSPIRADO NO MOCKUP DE REFERÊNCIA)
+     ========================================================= */
+  #overlay:not(.hidden) {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    cursor: default;
+    padding: 0;
+    display: block;
+    pointer-events: none;
+  }
+  #overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    background: radial-gradient(ellipse 75% 85% at 50% 50%, transparent 35%, rgba(6, 8, 10, 0.78) 100%);
+  }
+
+  /* Header Superior */
+  .lobby-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 310;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: clamp(12px, 2.5vh, 26px) clamp(16px, 2.5vw, 36px);
+    pointer-events: auto;
+  }
+  .lobby-profile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .lobby-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2.5px solid rgba(245, 175, 45, 0.95);
+    background: rgba(26, 30, 38, 0.88);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #e2e8f0;
+    box-shadow: 0 0 16px rgba(245, 175, 45, 0.35);
+    flex-shrink: 0;
+  }
+  .lobby-profile-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-align: left;
+  }
+  #lobby-player-name {
+    font-family: 'Oswald', sans-serif;
+    font-size: 16.5px;
+    font-weight: 600;
+    color: #ffffff;
+    letter-spacing: 0.04em;
+    cursor: text;
+    outline: none;
+    border-bottom: 1px dashed transparent;
+    transition: border-color 0.18s;
+  }
+  #lobby-player-name:focus,
+  #lobby-player-name:hover {
+    border-bottom-color: rgba(245, 175, 45, 0.8);
+  }
+  .lobby-level {
+    font-size: 11px;
+    color: rgba(180, 188, 198, 0.65);
+    letter-spacing: 0.06em;
+  }
+  .lobby-header-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .lobby-currency-badge {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: rgba(22, 26, 32, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-family: 'Oswald', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    letter-spacing: 0.03em;
+    backdrop-filter: blur(6px);
+  }
+  .lobby-currency-icon {
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .lobby-currency-icon--gold {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #ffe082, #f5a623 70%, #d4820a 100%);
+    box-shadow: 0 0 10px rgba(245, 166, 35, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+  .lobby-currency-icon--gem {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    background: radial-gradient(circle at 35% 35%, #b3e5fc, #00b0ff 70%, #01579b 100%);
+    box-shadow: 0 0 10px rgba(0, 176, 255, 0.7);
+    transform: rotate(45deg);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    margin-right: 2px;
+  }
+  .lobby-icon-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(24, 28, 34, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #cbd5e1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(6px);
+    transition: all 0.15s ease;
+  }
+  .lobby-icon-btn:hover {
+    background: rgba(255, 255, 255, 0.10);
+    border-color: rgba(255, 255, 255, 0.35);
+    color: #ffffff;
+    transform: scale(1.05);
+  }
+  .lobby-icon-btn:active {
+    transform: scale(0.95);
+  }
+
+  /* Inferior Esquerdo (3 Cards) */
+  .lobby-bottom-left {
+    position: fixed;
+    bottom: clamp(16px, 2.5vh, 32px);
+    left: clamp(16px, 2.5vw, 36px);
+    display: flex;
+    gap: 12px;
+    z-index: 310;
+    pointer-events: auto;
+  }
+  .lobby-action-card {
+    width: 76px;
+    height: 76px;
+    border-radius: 14px;
+    background: rgba(22, 26, 32, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    cursor: pointer;
+    color: #94a3b8;
+    font-size: 10.5px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.04em;
+    transition: all 0.15s ease;
+    padding: 0;
+  }
+  .lobby-action-card:hover {
+    background: rgba(36, 42, 52, 0.92);
+    border-color: rgba(255, 255, 255, 0.28);
+    color: #ffffff;
+    transform: translateY(-3px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+  }
+  .lobby-action-card:active {
+    transform: scale(0.96);
+  }
+  .lobby-card-icon {
+    line-height: 1;
+    display: block;
+  }
+
+  /* Inferior Direito (Card de Mapa + Botão JOGAR) */
+  .lobby-bottom-right {
+    position: fixed;
+    bottom: clamp(16px, 2.5vh, 32px);
+    right: clamp(16px, 2.5vw, 36px);
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    width: clamp(250px, 22vw, 310px);
+    z-index: 310;
+    pointer-events: auto;
+  }
+  .lobby-map-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(22, 26, 32, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 12px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .lobby-map-card:hover {
+    background: rgba(34, 40, 50, 0.94);
+    border-color: rgba(255, 255, 255, 0.28);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  }
+  .lobby-map-thumb {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    background: rgba(42, 48, 60, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+  .lobby-map-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-align: left;
+    overflow: hidden;
+  }
+  .lobby-map-name {
+    font-family: 'Oswald', sans-serif;
+    font-size: 15.5px;
+    font-weight: 600;
+    color: #ffffff;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .lobby-map-sub {
+    font-size: 11px;
+    color: rgba(180, 188, 198, 0.62);
+    letter-spacing: 0.04em;
+  }
+  .lobby-map-chevron {
+    font-size: 22px;
+    color: rgba(180, 188, 198, 0.4);
+    flex-shrink: 0;
+    line-height: 1;
+    margin-left: 4px;
+  }
+  .lobby-play-btn {
+    width: 100%;
+    height: 58px;
+    border-radius: 12px;
+    border: none;
+    background: linear-gradient(135deg, #f5a623 0%, #e8933a 100%);
+    font-family: 'Oswald', sans-serif;
+    font-size: 23px;
+    font-weight: 700;
+    color: #101317;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 4px 24px rgba(232, 147, 58, 0.42);
+    clip-path: polygon(14px 0%, 100% 0%, calc(100% - 14px) 100%, 0% 100%);
+    transition: all 0.15s ease;
+  }
+  .lobby-play-btn:hover {
+    transform: scale(1.025);
+    filter: brightness(1.12);
+    box-shadow: 0 6px 30px rgba(232, 147, 58, 0.65);
+  }
+  .lobby-play-btn:active {
+    transform: scale(0.98);
+  }
+
+  /* Modais do Lobby */
+  .lobby-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 350;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+  }
+  .lobby-modal.open {
+    display: flex;
+  }
+  .lobby-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(4, 6, 9, 0.70);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .lobby-modal-content {
+    position: relative;
+    z-index: 1;
+    width: min(94vw, 720px);
+    max-height: 88vh;
+    background: rgba(14, 17, 22, 0.94);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.75);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .lobby-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 22px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .lobby-modal-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 16.5px;
+    font-weight: 600;
+    color: #ffffff;
+    letter-spacing: 0.08em;
+  }
+  .lobby-modal-close {
+    width: 32px;
+    height: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    color: #94a3b8;
+    font-size: 15px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.12s;
+  }
+  .lobby-modal-close:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.3);
+  }
+  .lobby-modal-tabs {
+    display: flex;
+    gap: 6px;
+    padding: 10px 22px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(0, 0, 0, 0.22);
+    overflow-x: auto;
+  }
+  .lobby-modal-tab {
+    padding: 7px 16px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: rgba(180, 188, 198, 0.65);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .lobby-modal-tab:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .lobby-modal-tab.active {
+    background: rgba(255, 255, 255, 0.10);
+    border-color: rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+    font-weight: 600;
+  }
+  .lobby-modal-panel {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+    padding: 18px 22px;
+    overflow-y: auto;
+    max-height: calc(88vh - 130px);
+  }
+  .lobby-modal-panel.active {
+    display: flex;
+  }
+
+  /* Modal de Pausa In-Game */
+  .lobby-pause-content {
+    width: min(86vw, 360px);
+    padding: 32px 28px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    text-align: center;
+  }
+  .lobby-pause-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.12em;
+    margin-bottom: 4px;
+  }
+  .lobby-pause-btn {
+    width: 100%;
+    padding: 14px 20px;
+    border-radius: 8px;
+    font-family: 'Oswald', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(245, 248, 255, 0.9);
+    transition: all 0.15s ease;
+  }
+  .lobby-pause-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.4);
+    color: #ffffff;
+  }
+  #btn-resume-pause {
+    background: linear-gradient(135deg, #f5a623, #e8933a);
+    color: #101317;
+    border: none;
+    font-weight: 700;
+  }
+  #btn-resume-pause:hover {
+    filter: brightness(1.12);
+    transform: scale(1.02);
+  }
+  #btn-quit-pause {
+    border-color: rgba(224, 87, 74, 0.4);
+    color: rgba(240, 100, 90, 0.9);
+  }
+  #btn-quit-pause:hover {
+    background: rgba(224, 87, 74, 0.15);
+    border-color: rgba(224, 87, 74, 0.7);
+    color: #ffffff;
+  }
+
+  /* Responsividade para telas baixas (Mobile Landscape) */
+  @media (max-height: 520px) {
+    .lobby-header {
+      padding: 8px 16px;
+    }
+    .lobby-avatar {
+      width: 36px;
+      height: 36px;
+    }
+    #lobby-player-name {
+      font-size: 13.5px;
+    }
+    .lobby-level {
+      font-size: 9.5px;
+    }
+    .lobby-currency-badge {
+      padding: 3px 8px;
+      font-size: 12px;
+    }
+    .lobby-icon-btn {
+      width: 34px;
+      height: 34px;
+    }
+    .lobby-action-card {
+      width: 58px;
+      height: 58px;
+      border-radius: 10px;
+      font-size: 9px;
+      gap: 3px;
+    }
+    .lobby-card-icon {
+      width: 18px;
+      height: 18px;
+    }
+    .lobby-bottom-left {
+      bottom: 12px;
+      left: 14px;
+      gap: 8px;
+    }
+    .lobby-bottom-right {
+      bottom: 12px;
+      right: 14px;
+      width: clamp(210px, 26vw, 260px);
+      gap: 8px;
+    }
+    .lobby-map-card {
+      padding: 6px 10px;
+    }
+    .lobby-map-thumb {
+      width: 34px;
+      height: 34px;
+      font-size: 17px;
+    }
+    .lobby-map-name {
+      font-size: 13px;
+    }
+    .lobby-map-sub {
+      font-size: 9.5px;
+    }
+    .lobby-play-btn {
+      height: 44px;
+      font-size: 18px;
+    }
+  }

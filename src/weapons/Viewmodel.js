@@ -584,4 +584,10 @@ export class Viewmodel {
       this.flashLight.intensity = Math.max(0, this.flashLight.intensity - dt * 36);
     }
   }
+
+  setVisible(visible) {
+    if (this.swayGroup) {
+      this.swayGroup.visible = !!visible;
+    }
+  }
 }

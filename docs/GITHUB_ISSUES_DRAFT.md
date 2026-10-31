@@ -19,6 +19,7 @@
 | 9 | [#9](https://github.com/teusbraga/arenablockoutlimited/issues/9) | `fix(physics): corrigir perda de colisão (clipping) e afundamento em globalBoxes e degraus` | Física / Colisão / Spatial Hash | Crítica | `bug`, `physics` |
 | 10 | [#10](https://github.com/teusbraga/arenablockoutlimited/issues/10) | `fix(crosshair): amortecer dynamic gap e eliminar estroboscópio de ~35ms no repouso` | HUD / Mira | Baixa | `bug`, `ui` |
 | 11 | [#11](https://github.com/teusbraga/arenablockoutlimited/issues/11) | `refactor(world): renomear e desacoplar ItalyProps para PropFactory global do ecossistema de mapas` | World / Arquitetura / Props | Média | `refactor`, `tech-debt` |
+| 12 | [#12](https://github.com/teusbraga/arenablockoutlimited/issues/12) | `fix(crosshair): retículo dinâmico desvia para diagonal superior esquerda a queima-roupa devido a corte de 0.3m e Wall Press` | HUD / Mira / Balística | Média | `bug`, `ui`, `crosshair` |
 
 ---
 
@@ -307,3 +308,76 @@ Atualmente, `ItalyProps.js` ultrapassa **1.700 linhas de código e 35 métodos h
    * Atualizar referências e tabelas do `PROJECT_MAP.md` (§7.5 e §4).
 5. **Validação de Testes:**
    * Garantir que `npm test` e todas as suítes de mapas permaneçam 100% verdes.
+
+---
+
+### Issue 12: [BUG] Retículo dinâmico desvia para diagonal superior esquerda a queima-roupa devido a corte de 0.3m e Wall Press
+
+**Título:**
+`fix(crosshair): retículo dinâmico desvia para diagonal superior esquerda a queima-roupa devido a corte de 0.3m e Wall Press`
+
+**Labels:** `bug`, `ui`, `crosshair`, `gunplay`
+
+#### 🎯 Descrição
+Quando a opção **Alinhamento Dinâmico** (`dynamicAlignment: true`) está ativa no HUD/Menu de Mira, a posição da crosshair é calculada projetando em 2D o vetor do cano da arma no mundo 3D (`BarrelCrosshairAlignment.js`).
+
+Ao se aproximar excessivamente de qualquer obstáculo físico sólido (como a coluna de calibração em `grid.json` ou qualquer parede), a crosshair branca (`#crosshair` / `.ch-dot`) descola repentinamente do centro da tela e sobe para a **diagonal superior esquerda** (cerca de $X \approx 36\%$, $Y \approx 27\%$ na tela, $NDC_x \approx -0.27$, $NDC_y \approx +0.46$).
+
+Entretanto, ao efetuar disparos nessa proximidade (antes do bloqueio total de parede em `wallCompression > 0.45`), **os projéteis atingem a superfície diretamente à frente da arma** (na altura do cano/peito, entre $X \approx 37\%$ e $56\%$, $Y \approx 38\%$ e $42\%$), enquanto a crosshair permanece congelada ou flutuando lá no alto à esquerda, criando um forte descompasso visual entre a mira projetada e o ponto de impacto balístico.
+
+#### 🔍 Diagnóstico e Causas Raízes
+A investigação identificou quatro fatores concorrentes no código:
+
+1. **Descarte Arbitrário de Colisões Próximas (`> 0.3m`)**:
+   Em [`src/new_mechanics/BarrelCrosshairAlignment.js`](../src/new_mechanics/BarrelCrosshairAlignment.js#L130-L135) e linha 151:
+   ```javascript
+   if (pureHit && pureHit.point && (pureHit.distance || pureHit.dist) > 0.3) {
+     _vPureTarget3D.copy(pureHit.point);
+   } else {
+     _vPureTarget3D.copy(this.muzzleWorld).addScaledVector(this.pureBarrelDir, this.defaultZeroDistance);
+   }
+   ```
+   Como o cano da HK416/AR15 fica a ~0.81m à frente da câmera, quando o jogador encosta no obstáculo (ficando a boca do cano a $\le 0.30\text{m}$ da superfície), a verificação `> 0.3` falha. O ponto real de colisão da parede é **ignorado** e o sistema calcula um ponto virtual a **50 metros de distância** (`defaultZeroDistance: 50.0`).
+
+2. **Acoplamento com a Cinemática do Weapon Wall Press**:
+   Em [`src/weapons/Viewmodel.js`](../src/weapons/Viewmodel.js#L440-L447):
+   ```javascript
+   if (wallCompression > 0.001) {
+     mount.position.z += wallCompression * 0.20;
+     mount.position.y += wallCompression * 0.08;
+     mount.position.x -= wallCompression * 0.03;
+     mount.rotation.x += wallCompression * 1.31;  // +75 graus para cima
+     mount.rotation.y -= wallCompression * 0.26;  // -15 graus para a esquerda (aponta para o peito)
+     mount.rotation.z += wallCompression * 0.12;  // banking natural
+   }
+   ```
+   Conforme o jogador se aproxima da parede, `WeaponSystem.update` incrementa `wallCompression` (iniciando em $0.73\text{m}$ de folga). O Viewmodel inclina o mount da arma $+75^\circ$ para cima e $-15^\circ$ para a esquerda.
+   Como o raycast de 0.3m foi descartado, o vetor inclinado pelo Wall Press é projetado para **50 metros no espaço de mundo**, resultando em um vetor desprojetado da câmera com exatamente:
+   $$\text{Yaw} = -15.56^\circ \quad \text{e} \quad \text{Pitch} = +19.74^\circ$$
+   Isso posiciona a crosshair exatamente no quadrante superior esquerdo do HUD ($X \approx 36\%$, $Y \approx 27\%$).
+
+3. **Assincronia Balística no Disparo (`ProjectileManager.js`)**:
+   Ao disparar, `ProjectileManager._estimateImpact()` e `update()` **não possuem o filtro rígido de 0.3m**. Eles detectam o impacto na parede imediatamente à frente ($10\text{ a }25\text{cm}$ do cano) e estampam o decal do tiro na altura do peito, enquanto a mira dinâmica aponta para o infinito no céu/teto.
+
+4. **Vazamento de Raycast por Penetração da AABB**:
+   Em [`src/physics/CollisionWorld.js`](../src/physics/CollisionWorld.js#L320), o método slab testa `if (tmin > 0 && tmin < bestT)`. Se a ponta do cano ultrapassar a face externa da parede, a origem do raio fica dentro da AABB, o que faz `tmin < 0` e o raycast vazar pela parede sem registrar impacto (`hit = null`).
+
+#### 📋 Passos para Reproduzir
+1. Acessar o menu de configurações e, na aba **MIRA**, ativar **Alinhamento Dinâmico** (`dynamicAlignment: ON`) e desativar **Seguir Recuo** (`followRecoil: OFF`).
+2. Entrar em qualquer mapa (ex: `grid` ou `italy`).
+3. Caminhar em direção a uma coluna ou parede até encostar (a menos de $0.5\text{m}$).
+4. Observar que a crosshair salta abruptamente do centro para o canto superior esquerdo.
+5. Efetuar 1 ou 2 disparos: os buracos de bala e faíscas aparecem diretamente na parede à frente da arma, enquanto o retículo permanece desviado no topo esquerdo.
+
+#### ✅ Comportamento Esperado
+- A crosshair dinâmica deve rastrear o ponto exato onde a bala atinge a parede mesmo a distâncias ultra-curtas ($< 0.30\text{m}$);
+- O descarte por threshold (`> 0.3`) deve ser substituído por um limite coerente com o `camera.near` ($0.05\text{m}$) ou clamp seguro de distância mínima;
+- Caso a arma sofra Wall Press (recolhendo contra o corpo), a mira dinâmica deve ou ser atenuada/ocultada com aviso de bloqueio (`🚫 #crosshair-no-fire`), ou permanecer consistente com a trajetória balística sem saltar para 50 metros.
+
+#### 🛠️ Proposta de Correção
+1. **Reduzir o Threshold de Proximidade em `BarrelCrosshairAlignment.js`:**
+   Substituir a checagem `(pureHit.distance || pureHit.dist) > 0.3` por `> 0.05` (ou `camera.near`), aceitando superfícies colididas a queima-roupa.
+2. **Origem Segura para Raycast em Curta Distância:**
+   Se a origem do cano penetrar uma AABB sólida (`inside box`), efetuar o raycast ou projeção a partir da face de entrada da câmera para evitar que o raio atravesse a parede para o infinito.
+3. **Tratamento da Rotação de Wall Press:**
+   Em `BarrelCrosshairAlignment`, isolar ou compensar o componente de Wall Press quando `wallCompression > 0`, ou suprimir a exibição do retículo com `ch-blocked` quando o cano estiver recolhido.

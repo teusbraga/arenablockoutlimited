@@ -222,484 +222,575 @@
   <p>Para jogar no celular, use o smartphone na horizontal (Landscape).</p>
 </div>
 
-<!-- Menu Inicial Minimalista -->
+<!-- Lobby Principal Inspirado no Mockup -->
 <div id="overlay">
-  <div class="menu-content">
-    <div class="menu-logo-wrap">
-      <img src="./assets/ui/logo.svg" alt="ARENA BLOCKOUT: LIMITED" class="menu-logo" />
-    </div>
-    <div class="menu-instructions">
-      WASD mover · Shift correr · C agachar · Space pular<br>
-      LMB atirar · RMB mirar · R reload · B modo tiro · Q/E inclinar · U smoke · F interagir<br>
-      ESC pausa
+  <!-- Header Superior (Perfil + Economia + Settings) -->
+  <header class="lobby-header">
+    <div class="lobby-profile">
+      <div class="lobby-avatar" title="Perfil do Operador">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+          <circle cx="12" cy="7" r="4"></circle>
+        </svg>
+      </div>
+      <div class="lobby-profile-info">
+        <span id="lobby-player-name" contenteditable="true" spellcheck="false" title="Clique para editar seu codinome">Player_01</span>
+        <span class="lobby-level">Nível 3</span>
+      </div>
     </div>
 
-    <!-- Layout Master-Detail: 1/4 Abas Laterais + 3/4 Painel de Opções -->
-    <div class="menu-body">
-      <!-- 1/4 da tela no mobile: Abas Verticais -->
-      <div class="menu-tabs">
-        <button type="button" class="menu-tab-btn active" data-tab="loadout">🔫 LOADOUT</button>
-        <button type="button" class="menu-tab-btn" data-tab="match">🎮 PARTIDA</button>
-        <button type="button" class="menu-tab-btn" data-tab="textures">🎨 TEXTURAS</button>
-        <button type="button" class="menu-tab-btn" data-tab="crosshair">🎯 MIRA</button>
-        <button type="button" class="menu-tab-btn" data-tab="audio">🔊 ÁUDIO</button>
-        <button type="button" class="menu-tab-btn" data-tab="system">⚙️ AJUSTES</button>
+    <div class="lobby-header-right">
+      <div class="lobby-currency-badge" title="Moedas de Ouro">
+        <span class="lobby-currency-icon lobby-currency-icon--gold"></span>
+        <span>1.250</span>
+      </div>
+      <div class="lobby-currency-badge" title="Gemas / Diamantes">
+        <span class="lobby-currency-icon lobby-currency-icon--gem"></span>
+        <span>50</span>
+      </div>
+      <button id="btn-settings" type="button" class="lobby-icon-btn" title="Configurações (Mira, Áudio, Gráficos, Sistema)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="4" y1="21" x2="4" y2="14"></line>
+          <line x1="4" y1="10" x2="4" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12" y2="3"></line>
+          <line x1="20" y1="21" x2="20" y2="16"></line>
+          <line x1="20" y1="12" x2="20" y2="3"></line>
+          <line x1="1" y1="14" x2="7" y2="14"></line>
+          <line x1="9" y1="8" x2="15" y2="8"></line>
+          <line x1="17" y1="16" x2="23" y2="16"></line>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Inferior Esquerdo: 3 Cards Ação (Placeholders) -->
+  <div class="lobby-bottom-left">
+    <button type="button" class="lobby-action-card" id="btn-inventory" title="Inventário">
+      <svg class="lobby-card-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+        <line x1="12" y1="22.08" x2="12" y2="12"></line>
+      </svg>
+      <span>Inventário</span>
+    </button>
+    <button type="button" class="lobby-action-card" id="btn-shop" title="Loja">
+      <svg class="lobby-card-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <path d="M16 10a4 4 0 0 1-8 0"></path>
+      </svg>
+      <span>Loja</span>
+    </button>
+    <button type="button" class="lobby-action-card" id="btn-pass" title="Passe">
+      <svg class="lobby-card-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <polygon points="12 6 13.9 10.3 18.5 10.7 15 13.8 16 18.3 12 15.9 8 18.3 9 13.8 5.5 10.7 10.1 10.3 12 6" fill="currentColor" fill-opacity="0.25"></polygon>
+      </svg>
+      <span>Passe</span>
+    </button>
+  </div>
+
+  <!-- Inferior Direito: Card do Mapa Selecionado + Botão JOGAR -->
+  <div class="lobby-bottom-right">
+    <div class="lobby-map-card" id="lobby-map-card" role="button" tabindex="0" title="Clique para trocar de mapa, bots ou loadout">
+      <div class="lobby-map-thumb">🏜️</div>
+      <div class="lobby-map-info">
+        <span class="lobby-map-name" id="lobby-map-name">Dust Block</span>
+        <span class="lobby-map-sub" id="lobby-map-sub">Mata-Mata · 4 Bots</span>
+      </div>
+      <div class="lobby-map-chevron">›</div>
+    </div>
+    <button id="btn-play" class="lobby-play-btn" type="button" title="Entrar na partida">
+      <span>▶ JOGAR</span>
+    </button>
+  </div>
+
+  <!-- MODAL 1: MAPA & LOADOUT -->
+  <div id="modal-map-loadout" class="lobby-modal">
+    <div class="lobby-modal-backdrop"></div>
+    <div class="lobby-modal-content">
+      <div class="lobby-modal-header">
+        <span class="lobby-modal-title">🗺️ MAPA &amp; LOADOUT</span>
+        <button type="button" class="lobby-modal-close" data-close="modal-map-loadout">✕</button>
+      </div>
+      <div class="lobby-modal-tabs">
+        <button type="button" class="lobby-modal-tab active" data-mtab="map">MAPA &amp; PARTIDA</button>
+        <button type="button" class="lobby-modal-tab" data-mtab="loadout">LOADOUT &amp; SKIN</button>
       </div>
 
-      <!-- 3/4 da tela no mobile: Painéis de Conteúdo -->
-      <div class="menu-panels">
-        <!-- Aba 1: Loadout -->
-        <div class="menu-tab-panel active" data-panel="loadout">
-          <!-- Vitrine 3D Interativa da Arma -->
-          <div id="weapon-preview-box" class="weapon-preview-box">
-            <div class="weapon-preview-topbar">
-              <span id="wp-preview-name" class="wp-preview-title">PRIMÁRIA: HK416</span>
-              <div class="wp-preview-controls">
-                <button type="button" id="wp-btn-slot1" class="wp-pill-btn active" title="Visualizar Arma Primária">[1] PRI</button>
-                <button type="button" id="wp-btn-slot2" class="wp-pill-btn" title="Visualizar Arma Secundária">[2] SEC</button>
-                <button type="button" id="wp-btn-soldier" class="wp-pill-btn" title="Visualizar Modelo do Soldado / Skin">[👤] OPERADOR</button>
-                <button type="button" id="wp-btn-mode-rotate" class="wp-pill-btn active" title="Modo Arrastar: Girar Modelo 3D">🔄 GIRAR</button>
-                <button type="button" id="wp-btn-mode-pan" class="wp-pill-btn" title="Modo Arrastar: Mover Modelo 3D">✋ MOVER</button>
-                <button type="button" id="wp-btn-autospin" class="wp-pill-btn active" title="Ativar/Pausar Rotação Automática">⟳ AUTO</button>
-                <button type="button" id="wp-btn-reset" class="wp-pill-btn" title="Centralizar e Resetar Câmera">↺ RESET</button>
-              </div>
-            </div>
-            <div id="wp-preview-empty" class="wp-preview-empty">SLOT 2 VAZIO — SELECIONE UMA ARMA SECUNDÁRIA</div>
-            <canvas id="weapon-preview-canvas"></canvas>
-            <div class="weapon-preview-footer">
-              <span class="wp-preview-hint">ARRASTE: GIRAR · BOTÃO DIR / 2 DEDOS / ✋: MOVER · SCROLL / PINÇA: ZOOM</span>
+      <!-- Painel Mapa & Partida -->
+      <div class="lobby-modal-panel active" data-mpanel="map">
+        <div class="menu-option">
+          <label for="map-select">Mapa Selecionado</label>
+          <select id="map-select">
+            <option value="./assets/maps/favela.json">Favela (Labirinto &amp; Vielas 150x150)</option>
+            <option value="./assets/maps/dust.json" selected>Dust Block (Mirage Dunes Remake)</option>
+            <option value="./assets/maps/lisbon.json">Lisboa — Bairro Alto &amp; Baixa (300x300)</option>
+            <option value="./assets/maps/italy.json">CS Italy (Mapa Teste de Texturas)</option>
+            <option value="./assets/maps/village.json">Vila Ensolarada (Casas &amp; Árvores)</option>
+            <option value="./assets/maps/woods.json">Woods 300x300 (Bosque &amp; Colinas)</option>
+            <option value="./assets/maps/vice.json">Vice City 2000x2000 (Afronta GTA 6)</option>
+            <option value="./assets/maps/city.json">Cidade Abandonada 1000x1000</option>
+            <option value="./assets/maps/vertigo.json">Vertigo Skyscraper</option>
+            <option value="./assets/maps/range.json">Campo de Tiro (Range)</option>
+            <option value="./assets/maps/cargo.json">Cargo (Assault &amp; Train)</option>
+            <option value="./assets/maps/grid.json">Grid (Calibration Lab)</option>
+          </select>
+        </div>
+        <div class="menu-option">
+          <label for="bot-count">Quantidade de Inimigos (Bots)</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input id="bot-count" type="range" min="0" max="10" value="4">
+            <span id="bot-count-val">4</span>
+          </div>
+        </div>
+        <div class="menu-option">
+          <label for="round-time">Duração da Partida</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input id="round-time" type="range" min="30" max="600" step="30" value="210">
+            <span id="round-time-val">3:30</span>
+          </div>
+        </div>
+        <div class="menu-option">
+          <label for="bot-skin-select">Tipo de Inimigos</label>
+          <select id="bot-skin-select">
+            <option value="soldier" selected>Soldados Blocky</option>
+            <option value="ghost">Fantasmas Pac-Man</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Painel Loadout & Skin -->
+      <div class="lobby-modal-panel" data-mpanel="loadout">
+        <!-- Vitrine 3D Interativa da Arma / Operador -->
+        <div id="weapon-preview-box" class="weapon-preview-box">
+          <div class="weapon-preview-topbar">
+            <span id="wp-preview-name" class="wp-preview-title">PRIMÁRIA: HK416</span>
+            <div class="wp-preview-controls">
+              <button type="button" id="wp-btn-slot1" class="wp-pill-btn active" title="Visualizar Arma Primária">[1] PRI</button>
+              <button type="button" id="wp-btn-slot2" class="wp-pill-btn" title="Visualizar Arma Secundária">[2] SEC</button>
+              <button type="button" id="wp-btn-soldier" class="wp-pill-btn" title="Visualizar Modelo do Soldado / Skin">[👤] OPERADOR</button>
+              <button type="button" id="wp-btn-mode-rotate" class="wp-pill-btn active" title="Modo Arrastar: Girar Modelo 3D">🔄 GIRAR</button>
+              <button type="button" id="wp-btn-mode-pan" class="wp-pill-btn" title="Modo Arrastar: Mover Modelo 3D">✋ MOVER</button>
+              <button type="button" id="wp-btn-autospin" class="wp-pill-btn active" title="Ativar/Pausar Rotação Automática">⟳ AUTO</button>
+              <button type="button" id="wp-btn-reset" class="wp-pill-btn" title="Centralizar e Resetar Câmera">↺ RESET</button>
             </div>
           </div>
-
-          <div class="menu-option">
-            <label for="weapon-select">Arma Primária (Slot 1)</label>
-            <select id="weapon-select">
-              <option value="ar15" selected>HK416 (Fuzil 5.56)</option>
-              <option value="ak47">AK-47 (Fuzil 7.62 Soviético)</option>
-              <option value="uzi">UZI (Micro-SMG 9mm)</option>
-              <option value="m249">M249 SAW (LMG 100 Tiros)</option>
-              <option value="p9">P-9 (Pistola Tática)</option>
-              <option value="sw500">S&W 500 Magnum (Canhão 1-Hit Kill)</option>
-              <option value="m12">Winchester M12 (Trench Shotgun Cal. 12)</option>
-              <option value="vss">VSS Vintorez (Subsonic 9x39mm Sniper)</option>
-              <option value="scar_h">FN SCAR-H (Mk 17 7.62 NATO)</option>
-            </select>
-          </div>
-          <div class="menu-option">
-            <label for="weapon-secondary-select">Arma Secundária (Slot 2)</label>
-            <select id="weapon-secondary-select">
-              <option value="none">Nenhuma (Vazio)</option>
-              <option value="p9" selected>P-9 (Pistola Tática)</option>
-              <option value="ar15">HK416 (Fuzil 5.56)</option>
-              <option value="ak47">AK-47 (Fuzil 7.62 Soviético)</option>
-              <option value="uzi">UZI (Micro-SMG 9mm)</option>
-              <option value="m249">M249 SAW (LMG 100 Tiros)</option>
-              <option value="sw500">S&W 500 Magnum (Canhão 1-Hit Kill)</option>
-              <option value="m12">Winchester M12 (Trench Shotgun Cal. 12)</option>
-              <option value="vss">VSS Vintorez (Subsonic 9x39mm Sniper)</option>
-              <option value="scar_h">FN SCAR-H (Mk 17 7.62 NATO)</option>
-            </select>
-          </div>
-
-          <!-- Customização do Soldado / Skin do Character -->
-          <div class="soldier-skin-card">
-            <div class="soldier-skin-header">
-              <span class="soldier-skin-title">🪖 SKIN DO OPERADOR (CHARACTER)</span>
-              <button type="button" id="btn-preview-soldier" class="wp-pill-btn" title="Ver Soldado na Vitrine 3D">👁️ VER NO 3D</button>
-            </div>
-
-            <div class="menu-option">
-              <label for="soldier-preset-select">Camuflagem / Paleta</label>
-              <select id="soldier-preset-select">
-                <option value="woodland" selected>🌲 Woodland Green (Florestal Padrão)</option>
-                <option value="urban">🏙️ Urban Slate (Cinza SWAT)</option>
-                <option value="desert">🏜️ Desert Coyote (Areia do Deserto)</option>
-                <option value="specops">🌑 Spec-Ops Dark (Preto Furtivo)</option>
-                <option value="mercenary">🍂 Mercenary Camo (Forças Terrestres)</option>
-                <option value="arctic">❄️ Arctic Snow (Branco Neve)</option>
-                <option value="crimson">🩸 Crimson Ops (Vermelho Tático)</option>
-                <option value="navy">⚓ Navy Seal (Azul Noturno)</option>
-                <option value="hazard">🧪 Toxic Hazard (Amarelo Ocre)</option>
-                <option value="custom">🛠️ Personalizado (Custom)</option>
-              </select>
-            </div>
-
-            <!-- Botões Rápidos de Camuflagem -->
-            <div class="soldier-palette-pills" id="soldier-palette-pills">
-              <button type="button" class="skin-preset-pill active" data-preset="woodland" title="Woodland Green">🌲 Floresta</button>
-              <button type="button" class="skin-preset-pill" data-preset="urban" title="Urban Slate">🏙️ SWAT</button>
-              <button type="button" class="skin-preset-pill" data-preset="desert" title="Desert Coyote">🏜️ Deserto</button>
-              <button type="button" class="skin-preset-pill" data-preset="specops" title="Spec-Ops Dark">🌑 Furtivo</button>
-              <button type="button" class="skin-preset-pill" data-preset="mercenary" title="Mercenary Camo">🍂 Mercenário</button>
-              <button type="button" class="skin-preset-pill" data-preset="arctic" title="Arctic Snow">❄️ Neve</button>
-              <button type="button" class="skin-preset-pill" data-preset="crimson" title="Crimson Ops">🩸 Crimson</button>
-              <button type="button" class="skin-preset-pill" data-preset="navy" title="Navy Seal">⚓ Navy</button>
-              <button type="button" class="skin-preset-pill" data-preset="hazard" title="Toxic Hazard">🧪 Tóxico</button>
-            </div>
-
-            <!-- Grade de Seleção de Cores Livres (Fine Tuning) -->
-            <div class="soldier-color-grid">
-              <div class="soldier-color-item">
-                <label for="soldier-color-uniform">👕 Farda</label>
-                <div class="soldier-picker-wrap">
-                  <input type="color" id="soldier-color-uniform" value="#3a4833">
-                  <span id="soldier-val-uniform">#3A4833</span>
-                </div>
-              </div>
-
-              <div class="soldier-color-item">
-                <label for="soldier-color-vest">🦺 Colete</label>
-                <div class="soldier-picker-wrap">
-                  <input type="color" id="soldier-color-vest" value="#303c2a">
-                  <span id="soldier-val-vest">#303C2A</span>
-                </div>
-              </div>
-
-              <div class="soldier-color-item">
-                <label for="soldier-color-pads">🥾 Proteções</label>
-                <div class="soldier-picker-wrap">
-                  <input type="color" id="soldier-color-pads" value="#161816">
-                  <span id="soldier-val-pads">#161816</span>
-                </div>
-              </div>
-
-              <div class="soldier-color-item">
-                <label for="soldier-color-skin">🧑 Pele</label>
-                <div class="soldier-picker-wrap">
-                  <input type="color" id="soldier-color-skin" value="#c4987e">
-                  <span id="soldier-val-skin">#C4987E</span>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="menu-option">
-            <label for="bot-skin-select">Tipo de Inimigos</label>
-            <select id="bot-skin-select">
-              <option value="soldier" selected>Soldados Blocky</option>
-              <option value="ghost">Fantasmas Pac-Man</option>
-            </select>
+          <div id="wp-preview-empty" class="wp-preview-empty">SLOT 2 VAZIO — SELECIONE UMA ARMA SECUNDÁRIA</div>
+          <canvas id="weapon-preview-canvas"></canvas>
+          <div class="weapon-preview-footer">
+            <span class="wp-preview-hint">ARRASTE: GIRAR · BOTÃO DIR / 2 DEDOS / ✋: MOVER · SCROLL / PINÇA: ZOOM</span>
           </div>
         </div>
 
-        <!-- Aba 2: Partida -->
-        <div class="menu-tab-panel" data-panel="match">
-          <div class="menu-option">
-            <label for="map-select">Mapa</label>
-            <select id="map-select">
-              <option value="./assets/maps/favela.json">Favela (Labirinto &amp; Vielas 150x150)</option>
-              <option value="./assets/maps/dust.json" selected>Dust Block (Mirage Dunes Remake)</option>
-              <option value="./assets/maps/lisbon.json">Lisboa — Bairro Alto &amp; Baixa (300x300)</option>
-              <option value="./assets/maps/italy.json">CS Italy (Mapa Teste de Texturas)</option>
-              <option value="./assets/maps/village.json">Vila Ensolarada (Casas &amp; Árvores)</option>
-              <option value="./assets/maps/woods.json">Woods 300x300 (Bosque &amp; Colinas)</option>
-              <option value="./assets/maps/vice.json">Vice City 2000x2000 (Afronta GTA 6)</option>
-              <option value="./assets/maps/city.json">Cidade Abandonada 1000x1000</option>
-              <option value="./assets/maps/vertigo.json">Vertigo Skyscraper</option>
-              <option value="./assets/maps/range.json">Campo de Tiro (Range)</option>
-              <option value="./assets/maps/cargo.json">Cargo (Assault &amp; Train)</option>
-              <option value="./assets/maps/grid.json">Grid (Calibration Lab)</option>
-            </select>
-          </div>
-          <div class="menu-option">
-            <label for="bot-count">Inimigos (Bots)</label>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <input id="bot-count" type="range" min="0" max="10" value="4">
-              <span id="bot-count-val">4</span>
-            </div>
-          </div>
-          <div class="menu-option">
-            <label for="round-time">Duração da Partida</label>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <input id="round-time" type="range" min="30" max="600" step="30" value="210">
-              <span id="round-time-val">3:30</span>
-            </div>
-          </div>
+        <div class="menu-option">
+          <label for="weapon-select">Arma Primária (Slot 1)</label>
+          <select id="weapon-select">
+            <option value="ar15" selected>HK416 (Fuzil 5.56)</option>
+            <option value="ak47">AK-47 (Fuzil 7.62 Soviético)</option>
+            <option value="uzi">UZI (Micro-SMG 9mm)</option>
+            <option value="m249">M249 SAW (LMG 100 Tiros)</option>
+            <option value="p9">P-9 (Pistola Tática)</option>
+            <option value="sw500">S&W 500 Magnum (Canhão 1-Hit Kill)</option>
+            <option value="m12">Winchester M12 (Trench Shotgun Cal. 12)</option>
+            <option value="vss">VSS Vintorez (Subsonic 9x39mm Sniper)</option>
+            <option value="scar_h">FN SCAR-H (Mk 17 7.62 NATO)</option>
+          </select>
+        </div>
+        <div class="menu-option">
+          <label for="weapon-secondary-select">Arma Secundária (Slot 2)</label>
+          <select id="weapon-secondary-select">
+            <option value="none">Nenhuma (Vazio)</option>
+            <option value="p9" selected>P-9 (Pistola Tática)</option>
+            <option value="ar15">HK416 (Fuzil 5.56)</option>
+            <option value="ak47">AK-47 (Fuzil 7.62 Soviético)</option>
+            <option value="uzi">UZI (Micro-SMG 9mm)</option>
+            <option value="m249">M249 SAW (LMG 100 Tiros)</option>
+            <option value="sw500">S&W 500 Magnum (Canhão 1-Hit Kill)</option>
+            <option value="m12">Winchester M12 (Trench Shotgun Cal. 12)</option>
+            <option value="vss">VSS Vintorez (Subsonic 9x39mm Sniper)</option>
+            <option value="scar_h">FN SCAR-H (Mk 17 7.62 NATO)</option>
+          </select>
         </div>
 
-        <!-- Aba 3: Texturas & PBR -->
-        <div class="menu-tab-panel" data-panel="textures">
-          <div class="menu-option">
-            <label for="texture-mode-select">Modo de Renderização</label>
-            <select id="texture-mode-select">
-              <option value="pbr" selected>PBR Procedural (Albedo + Relevo Bump + Roughness)</option>
-              <option value="flat_textures">Albedo Puro (Sem Relevo)</option>
-              <option value="color_only">Cores Sólidas (Estilo Blocky Antigo)</option>
-            </select>
-          </div>
-          <div class="menu-option">
-            <label for="bump-slider">Intensidade do Relevo (Bump)</label>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <input id="bump-slider" type="range" min="0" max="0.12" step="0.01" value="0.05">
-              <span id="bump-val">0.05</span>
-            </div>
-          </div>
-          <div class="menu-option">
-            <label for="uv-scale-slider">Escala de Repetição UV (World-Space)</label>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <input id="uv-scale-slider" type="range" min="0.1" max="1.0" step="0.05" value="0.4">
-              <span id="uv-scale-val">0.40x</span>
-            </div>
-          </div>
-          <div class="menu-option" style="flex-direction:column;align-items:stretch;gap:6px;border-top:1px solid rgba(255,255,255,0.08);padding-top:8px;">
-            <div style="font-size:11px;color:var(--dim);letter-spacing:0.04em;">TESTAR IMAGEM EXTERNA (PNG / JPG / BITMAP)</div>
-            <div style="display:flex;gap:6px;align-items:center;">
-              <select id="custom-tex-target" style="flex:1;">
-                <option value="jungle_floor">Chão de Selva / Húmus (Woods)</option>
-                <option value="mossy_rock">Rocha com Musgo (Woods)</option>
-                <option value="sandbags">Sacos de Areia / Bunker (Woods)</option>
-                <option value="camo_tarp">Lona Camuflada (Woods)</option>
-                <option value="sand">Areia das Dunas (Dust)</option>
-                <option value="sandstone">Arenito do Deserto (Dust)</option>
-                <option value="cobblestones">Chão / Cobblestones (Italy)</option>
-                <option value="wall_peeling_ochre">Parede Ocre Descascada</option>
-                <option value="wall_peeling_terra">Parede Terracota</option>
-                <option value="wall_white">Parede Branca Envelhecida</option>
-                <option value="roof">Telhas de Terracota</option>
-                <option value="door_wood">Porta de Madeira</option>
-                <option value="crate">Caixotes de Vinho / Madeira</option>
-                <option value="awning_red">Toldo Listrado</option>
-              </select>
-              <label for="custom-tex-file" class="cta" style="padding:6px 12px;font-size:11px;cursor:pointer;white-space:nowrap;margin:0;border-radius:3px;background:var(--accent);color:#0d0f11;font-weight:600;">
-                📂 CARREGAR IMAGEM
-              </label>
-              <input id="custom-tex-file" type="file" accept="image/png,image/jpeg,image/webp,image/bmp" style="display:none;">
-            </div>
-            <div id="custom-tex-status" style="font-size:10px;color:var(--ok);margin-top:2px;display:none;"></div>
-          </div>
-        </div>
-
-        <!-- Aba 4: Mira CS2 Customizável -->
-        <div class="menu-tab-panel" data-panel="crosshair">
-          <!-- Live Preview Box -->
-          <div class="crosshair-preview-box">
-            <div id="crosshair-preview" class="crosshair-preview">
-              <div class="ch-line ch-top"></div>
-              <div class="ch-line ch-bottom"></div>
-              <div class="ch-line ch-left"></div>
-              <div class="ch-line ch-right"></div>
-              <div class="ch-dot"></div>
-            </div>
-            <div id="crosshair-preview-warning" style="display:none;position:absolute;font-size:24px;color:#e0574a;text-shadow:0 0 8px rgba(224,87,74,0.8), 0 0 2px #000;">🚫</div>
-            <div class="crosshair-preview-hint">PRÉVIA EM TEMPO REAL</div>
+        <!-- Customização do Soldado / Skin do Character -->
+        <div class="soldier-skin-card">
+          <div class="soldier-skin-header">
+            <span class="soldier-skin-title">🪖 SKIN DO OPERADOR (CHARACTER)</span>
+            <button type="button" id="btn-preview-soldier" class="wp-pill-btn" title="Ver Soldado na Vitrine 3D">👁️ VER NO 3D</button>
           </div>
 
-          <!-- Controles -->
           <div class="menu-option">
-            <label for="ch-style-select">Estilo da Mira</label>
-            <select id="ch-style-select">
-              <option value="cross" selected>Clássico (Cruz Completa)</option>
-              <option value="t_shape">Formato T (CS2 T-Shape)</option>
-              <option value="none">Oculta (Sem Mira de Quadril)</option>
+            <label for="soldier-preset-select">Camuflagem / Paleta</label>
+            <select id="soldier-preset-select">
+              <option value="woodland" selected>🌲 Woodland Green (Florestal Padrão)</option>
+              <option value="urban">🏙️ Urban Slate (Cinza SWAT)</option>
+              <option value="desert">🏜️ Desert Coyote (Areia do Deserto)</option>
+              <option value="specops">🌑 Spec-Ops Dark (Preto Furtivo)</option>
+              <option value="mercenary">🍂 Mercenary Camo (Forças Terrestres)</option>
+              <option value="arctic">❄️ Arctic Snow (Branco Neve)</option>
+              <option value="crimson">🩸 Crimson Ops (Vermelho Tático)</option>
+              <option value="navy">⚓ Navy Seal (Azul Noturno)</option>
+              <option value="hazard">🧪 Toxic Hazard (Amarelo Ocre)</option>
+              <option value="custom">🛠️ Personalizado (Custom)</option>
             </select>
           </div>
 
-          <div class="menu-option">
-            <label for="ch-mode-select">Comportamento de Dispersão</label>
-            <select id="ch-mode-select">
-              <option value="dynamic">Dinâmica (Abre com movimento/spray)</option>
-              <option value="static" selected>Estática (Fixa sem variação)</option>
-            </select>
+          <!-- Botões Rápidos de Camuflagem -->
+          <div class="soldier-palette-pills" id="soldier-palette-pills">
+            <button type="button" class="skin-preset-pill active" data-preset="woodland" title="Woodland Green">🌲 Floresta</button>
+            <button type="button" class="skin-preset-pill" data-preset="urban" title="Urban Slate">🏙️ SWAT</button>
+            <button type="button" class="skin-preset-pill" data-preset="desert" title="Desert Coyote">🏜️ Deserto</button>
+            <button type="button" class="skin-preset-pill" data-preset="specops" title="Spec-Ops Dark">🌑 Furtivo</button>
+            <button type="button" class="skin-preset-pill" data-preset="mercenary" title="Mercenary Camo">🍂 Mercenário</button>
+            <button type="button" class="skin-preset-pill" data-preset="arctic" title="Arctic Snow">❄️ Neve</button>
+            <button type="button" class="skin-preset-pill" data-preset="crimson" title="Crimson Ops">🩸 Crimson</button>
+            <button type="button" class="skin-preset-pill" data-preset="navy" title="Navy Seal">⚓ Navy</button>
+            <button type="button" class="skin-preset-pill" data-preset="hazard" title="Toxic Hazard">🧪 Tóxico</button>
           </div>
 
-          <div class="menu-option">
-            <label for="ch-dynamic-align">Alinhamento Dinâmico (Cano 3D)</label>
-            <select id="ch-dynamic-align">
-              <option value="on">Ativado (Mostra Onde o Cano Aponta)</option>
-              <option value="off" selected>Desativado (Fixo no Centro da Câmera)</option>
-            </select>
-          </div>
+          <!-- Grade de Seleção de Cores Livres (Fine Tuning) -->
+          <div class="soldier-color-grid">
+            <div class="soldier-color-item">
+              <label for="soldier-color-uniform">👕 Farda</label>
+              <div class="soldier-picker-wrap">
+                <input type="color" id="soldier-color-uniform" value="#3a4833">
+                <span id="soldier-val-uniform">#3A4833</span>
+              </div>
+            </div>
 
-          <div class="menu-option">
-            <label for="ch-follow-recoil">Seguir Recuo (Follow Recoil)</label>
-            <select id="ch-follow-recoil">
-              <option value="off" selected>Desativado (Sem Subida de Spray)</option>
-              <option value="on">Ativado (Rastreia Spray &amp; Subida)</option>
-            </select>
-          </div>
+            <div class="soldier-color-item">
+              <label for="soldier-color-vest">🦺 Colete</label>
+              <div class="soldier-picker-wrap">
+                <input type="color" id="soldier-color-vest" value="#303c2a">
+                <span id="soldier-val-vest">#303C2A</span>
+              </div>
+            </div>
 
-          <div class="menu-option">
-            <label for="ch-center-dot">Ponto Central (Center Dot)</label>
-            <select id="ch-center-dot">
-              <option value="off" selected>Desativado</option>
-              <option value="on">Ativado</option>
-            </select>
-          </div>
+            <div class="soldier-color-item">
+              <label for="soldier-color-pads">🥾 Proteções</label>
+              <div class="soldier-picker-wrap">
+                <input type="color" id="soldier-color-pads" value="#161816">
+                <span id="soldier-val-pads">#161816</span>
+              </div>
+            </div>
 
-          <div class="menu-option">
-            <label for="ch-length-slider">Comprimento (Length)</label>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <input id="ch-length-slider" type="range" min="2" max="24" step="1" value="7">
-              <span id="ch-length-val">7px</span>
+            <div class="soldier-color-item">
+              <label for="soldier-color-skin">🧑 Pele</label>
+              <div class="soldier-picker-wrap">
+                <input type="color" id="soldier-color-skin" value="#c4987e">
+                <span id="soldier-val-skin">#C4987E</span>
+              </div>
             </div>
-          </div>
-
-          <div class="menu-option">
-            <label for="ch-thick-slider">Espessura (Thickness)</label>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <input id="ch-thick-slider" type="range" min="1" max="6" step="0.5" value="1.5">
-              <span id="ch-thick-val">1.5px</span>
-            </div>
-          </div>
-
-          <div class="menu-option">
-            <label for="ch-gap-slider">Espaçamento Central (Gap)</label>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <input id="ch-gap-slider" type="range" min="-4" max="20" step="1" value="5">
-              <span id="ch-gap-val">5px</span>
-            </div>
-          </div>
-
-          <div class="menu-option">
-            <label for="ch-outline-slider">Contorno Escuro (Outline)</label>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <input id="ch-outline-slider" type="range" min="0" max="3" step="1" value="1">
-              <span id="ch-outline-val">1px</span>
-            </div>
-          </div>
-
-          <div class="menu-option">
-            <label>Cores Predefinidas &amp; Custom</label>
-            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-              <button type="button" class="ch-color-pill" data-color="#00ff66" style="background:#00ff66;" title="Verde Tático"></button>
-              <button type="button" class="ch-color-pill" data-color="#00ffff" style="background:#00ffff;" title="Ciano CS2"></button>
-              <button type="button" class="ch-color-pill" data-color="#ff3333" style="background:#ff3333;" title="Vermelho"></button>
-              <button type="button" class="ch-color-pill" data-color="#ffff00" style="background:#ffff00;" title="Amarelo"></button>
-              <button type="button" class="ch-color-pill" data-color="#ffffff" style="background:#ffffff;" title="Branco"></button>
-              <button type="button" class="ch-color-pill" data-color="#ff66cc" style="background:#ff66cc;" title="Rosa Choque"></button>
-              <input id="ch-color-picker" type="color" value="#00ff66" style="width:28px;height:24px;padding:0;border:1px solid rgba(255,255,255,0.2);cursor:pointer;background:transparent;border-radius:2px;">
-            </div>
-          </div>
-
-          <div class="menu-option">
-            <label for="ch-nofire-toggle">Aviso Cano Obstruído (No Fire Warning)</label>
-            <select id="ch-nofire-toggle">
-              <option value="on">Ativado (Exibe 🚫 e Bloqueia Disparo)</option>
-              <option value="off" selected>Desativado</option>
-            </select>
-          </div>
-
-          <div class="menu-option">
-            <label for="ch-aim-assist">Assistência de Mira (Aim Assist)</label>
-            <select id="ch-aim-assist">
-              <option value="true" selected>TRUE (Ativado - Magnético &amp; Mobile)</option>
-              <option value="none">NONE (Desativado)</option>
-            </select>
-          </div>
-
-          <div class="menu-option" style="justify-content:flex-end;">
-            <button id="ch-btn-reset" type="button" style="font-size:10px;padding:6px 14px;border:1px solid rgba(255,255,255,0.2);background:transparent;color:var(--dim);cursor:pointer;">↺ RESTAURAR PADRÃO CS2</button>
-          </div>
-        </div>
-
-        <!-- Aba 5: Mixer de Áudio e Volumes -->
-        <div class="menu-tab-panel" data-panel="audio">
-          <div class="menu-option">
-            <label for="vol-master-slider">Volume Geral (Master)</label>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <input id="vol-master-slider" type="range" min="0" max="1.0" step="0.05" value="1.00">
-              <span id="vol-master-val">100%</span>
-            </div>
-          </div>
-          <div class="menu-option">
-            <label for="vol-footsteps-slider">Passos (Locomoção / Foley)</label>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <input id="vol-footsteps-slider" type="range" min="0" max="1.0" step="0.05" value="0.05">
-              <span id="vol-footsteps-val">5%</span>
-            </div>
-          </div>
-          <div class="menu-option">
-            <label for="vol-weapons-slider">Disparos de Armas</label>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <input id="vol-weapons-slider" type="range" min="0" max="1.0" step="0.05" value="1.00">
-              <span id="vol-weapons-val">100%</span>
-            </div>
-          </div>
-          <div class="menu-option">
-            <label for="vol-impacts-slider">Impactos Balísticos (Superfícies)</label>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <input id="vol-impacts-slider" type="range" min="0" max="1.0" step="0.05" value="0.45">
-              <span id="vol-impacts-val">45%</span>
-            </div>
-          </div>
-          <div class="menu-option">
-            <label for="vol-trauma-slider">Dano no Jogador (Kevlar / Trauma)</label>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <input id="vol-trauma-slider" type="range" min="0" max="1.0" step="0.05" value="0.80">
-              <span id="vol-trauma-val">80%</span>
-            </div>
-          </div>
-          <div class="menu-option" style="justify-content:flex-end;margin-top:10px;">
-            <button id="vol-btn-reset" type="button" style="font-size:10px;padding:6px 14px;border:1px solid rgba(255,255,255,0.2);background:transparent;color:var(--dim);cursor:pointer;">↺ RESTAURAR PADRÕES DE ÁUDIO</button>
-          </div>
-        </div>
-
-        <!-- Aba 6: Ajustes e Sistema -->
-        <div class="menu-tab-panel" data-panel="system">
-          <div class="menu-option">
-            <label for="sens-slider">Sensibilidade Câmera</label>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <input id="sens-slider" type="range" min="0.5" max="5.0" step="0.1" value="2.0">
-              <span id="sens-val">2.0x</span>
-            </div>
-          </div>
-          <div class="menu-option">
-            <label for="headbob-slider">Balanço da Cabeça (Headbob)</label>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <input id="headbob-slider" type="range" min="0" max="2.0" step="0.1" value="1.0">
-              <span id="headbob-val">100%</span>
-            </div>
-          </div>
-          <div class="menu-option">
-            <label for="shake-slider">Tremor de Câmera (Shake)</label>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <input id="shake-slider" type="range" min="0" max="2.0" step="0.1" value="1.0">
-              <span id="shake-val">100%</span>
-            </div>
-          </div>
-          <div class="menu-option">
-            <label for="vibration-toggle">Vibração Tátil (Mobile)</label>
-            <select id="vibration-toggle">
-              <option value="on" selected>Ativada</option>
-              <option value="off">Desativada</option>
-            </select>
-          </div>
-          <div class="menu-option">
-            <label for="suppression-toggle">Efeito de Supressão (Near-Miss)</label>
-            <select id="suppression-toggle">
-              <option value="on" selected>Ativado</option>
-              <option value="off">Desativado</option>
-            </select>
-          </div>
-          <div class="menu-option">
-            <label for="dev-mode-toggle">Modo Desenvolvedor (Cheats)</label>
-            <select id="dev-mode-toggle">
-              <option value="off" selected>Desativado</option>
-              <option value="on">Ativado</option>
-            </select>
-          </div>
-          <div id="dev-cheats-panel" class="menu-option" style="display:none; flex-direction:column; align-items:flex-start; gap:8px; background:rgba(0,0,0,0.3); padding:10px; border-radius:4px; border:1px dashed #e8933a;">
-            <span style="font-size:11px; color:#e8933a; font-weight:bold;">🛠️ PAINEL DEV & CHEATS</span>
-            <div style="display:flex; flex-wrap:wrap; gap:8px;">
-              <button id="btn-cheat-whoami" type="button" style="font-size:10px; padding:6px 10px;">👁️ 3ª Pessoa (WHOAMI)</button>
-              <button id="btn-cheat-speed" type="button" style="font-size:10px; padding:6px 10px;">⚡ Velocidade (10x)</button>
-              <button id="btn-cheat-ammo" type="button" style="font-size:10px; padding:6px 10px;">♾️ Munição Infinita</button>
-              <button id="btn-cheat-god" type="button" style="font-size:10px; padding:6px 10px;">🛡️ Modo Deus (Invulnerável)</button>
-            </div>
-          </div>
-          <div class="menu-option" style="justify-content:flex-end;">
-            <button id="btn-fullscreen" type="button" style="font-size:11px; padding:8px 16px;">⛶ TELA CHEIA</button>
           </div>
         </div>
       </div>
     </div>
+  </div>
 
-    <div id="menu-start" class="menu-buttons">
-      <div class="cta">CLIQUE PARA COMEÇAR</div>
+  <!-- MODAL 2: CONFIGURAÇÕES -->
+  <div id="modal-settings" class="lobby-modal">
+    <div class="lobby-modal-backdrop"></div>
+    <div class="lobby-modal-content">
+      <div class="lobby-modal-header">
+        <span class="lobby-modal-title">⚙️ CONFIGURAÇÕES</span>
+        <button type="button" class="lobby-modal-close" data-close="modal-settings">✕</button>
+      </div>
+      <div class="lobby-modal-tabs">
+        <button type="button" class="lobby-modal-tab active" data-mtab="crosshair">🎯 MIRA CS2</button>
+        <button type="button" class="lobby-modal-tab" data-mtab="audio">🔊 ÁUDIO</button>
+        <button type="button" class="lobby-modal-tab" data-mtab="textures">🎨 GRÁFICOS &amp; PBR</button>
+        <button type="button" class="lobby-modal-tab" data-mtab="system">⚙️ AJUSTES &amp; DEV</button>
+      </div>
+
+      <!-- Aba Mira CS2 -->
+      <div class="lobby-modal-panel active" data-mpanel="crosshair">
+        <!-- Live Preview Box -->
+        <div class="crosshair-preview-box">
+          <div id="crosshair-preview" class="crosshair-preview">
+            <div class="ch-line ch-top"></div>
+            <div class="ch-line ch-bottom"></div>
+            <div class="ch-line ch-left"></div>
+            <div class="ch-line ch-right"></div>
+            <div class="ch-dot"></div>
+          </div>
+          <div id="crosshair-preview-warning" style="display:none;position:absolute;font-size:24px;color:#e0574a;text-shadow:0 0 8px rgba(224,87,74,0.8), 0 0 2px #000;">🚫</div>
+          <div class="crosshair-preview-hint">PRÉVIA EM TEMPO REAL</div>
+        </div>
+
+        <div class="menu-option">
+          <label for="ch-style-select">Estilo da Mira</label>
+          <select id="ch-style-select">
+            <option value="cross" selected>Clássico (Cruz Completa)</option>
+            <option value="t_shape">Formato T (CS2 T-Shape)</option>
+            <option value="none">Oculta (Sem Mira de Quadril)</option>
+          </select>
+        </div>
+
+        <div class="menu-option">
+          <label for="ch-mode-select">Comportamento de Dispersão</label>
+          <select id="ch-mode-select">
+            <option value="dynamic">Dinâmica (Abre com movimento/spray)</option>
+            <option value="static" selected>Estática (Fixa sem variação)</option>
+          </select>
+        </div>
+
+        <div class="menu-option">
+          <label for="ch-dynamic-align">Alinhamento Dinâmico (Cano 3D)</label>
+          <select id="ch-dynamic-align">
+            <option value="on">Ativado (Mostra Onde o Cano Aponta)</option>
+            <option value="off" selected>Desativado (Fixo no Centro da Câmera)</option>
+          </select>
+        </div>
+
+        <div class="menu-option">
+          <label for="ch-follow-recoil">Seguir Recuo (Follow Recoil)</label>
+          <select id="ch-follow-recoil">
+            <option value="off" selected>Desativado (Sem Subida de Spray)</option>
+            <option value="on">Ativado (Rastreia Spray &amp; Subida)</option>
+          </select>
+        </div>
+
+        <div class="menu-option">
+          <label for="ch-center-dot">Ponto Central (Center Dot)</label>
+          <select id="ch-center-dot">
+            <option value="off" selected>Desativado</option>
+            <option value="on">Ativado</option>
+          </select>
+        </div>
+
+        <div class="menu-option">
+          <label for="ch-length-slider">Comprimento (Length)</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input id="ch-length-slider" type="range" min="2" max="24" step="1" value="7">
+            <span id="ch-length-val">7px</span>
+          </div>
+        </div>
+
+        <div class="menu-option">
+          <label for="ch-thick-slider">Espessura (Thickness)</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input id="ch-thick-slider" type="range" min="1" max="6" step="0.5" value="1.5">
+            <span id="ch-thick-val">1.5px</span>
+          </div>
+        </div>
+
+        <div class="menu-option">
+          <label for="ch-gap-slider">Espaçamento Central (Gap)</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input id="ch-gap-slider" type="range" min="-4" max="20" step="1" value="5">
+            <span id="ch-gap-val">5px</span>
+          </div>
+        </div>
+
+        <div class="menu-option">
+          <label for="ch-outline-slider">Contorno Escuro (Outline)</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input id="ch-outline-slider" type="range" min="0" max="3" step="1" value="1">
+            <span id="ch-outline-val">1px</span>
+          </div>
+        </div>
+
+        <div class="menu-option">
+          <label>Cores Predefinidas &amp; Custom</label>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <button type="button" class="ch-color-pill" data-color="#00ff66" style="background:#00ff66;" title="Verde Tático"></button>
+            <button type="button" class="ch-color-pill" data-color="#00ffff" style="background:#00ffff;" title="Ciano CS2"></button>
+            <button type="button" class="ch-color-pill" data-color="#ff3333" style="background:#ff3333;" title="Vermelho"></button>
+            <button type="button" class="ch-color-pill" data-color="#ffff00" style="background:#ffff00;" title="Amarelo"></button>
+            <button type="button" class="ch-color-pill" data-color="#ffffff" style="background:#ffffff;" title="Branco"></button>
+            <button type="button" class="ch-color-pill" data-color="#ff66cc" style="background:#ff66cc;" title="Rosa Choque"></button>
+            <input id="ch-color-picker" type="color" value="#00ff66" style="width:28px;height:24px;padding:0;border:1px solid rgba(255,255,255,0.2);cursor:pointer;background:transparent;border-radius:2px;">
+          </div>
+        </div>
+
+        <div class="menu-option">
+          <label for="ch-nofire-toggle">Aviso Cano Obstruído (No Fire Warning)</label>
+          <select id="ch-nofire-toggle">
+            <option value="on">Ativado (Exibe 🚫 e Bloqueia Disparo)</option>
+            <option value="off" selected>Desativado</option>
+          </select>
+        </div>
+
+        <div class="menu-option">
+          <label for="ch-aim-assist">Assistência de Mira (Aim Assist)</label>
+          <select id="ch-aim-assist">
+            <option value="true" selected>TRUE (Ativado - Magnético &amp; Mobile)</option>
+            <option value="none">NONE (Desativado)</option>
+          </select>
+        </div>
+
+        <div class="menu-option" style="justify-content:flex-end;">
+          <button id="ch-btn-reset" type="button" style="font-size:10px;padding:6px 14px;border:1px solid rgba(255,255,255,0.2);background:transparent;color:var(--dim);cursor:pointer;">↺ RESTAURAR PADRÃO CS2</button>
+        </div>
+      </div>
+
+      <!-- Aba Áudio -->
+      <div class="lobby-modal-panel" data-mpanel="audio">
+        <div class="menu-option">
+          <label for="vol-master-slider">Volume Geral (Master)</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input id="vol-master-slider" type="range" min="0" max="1.0" step="0.05" value="1.00">
+            <span id="vol-master-val">100%</span>
+          </div>
+        </div>
+        <div class="menu-option">
+          <label for="vol-footsteps-slider">Passos (Locomoção / Foley)</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input id="vol-footsteps-slider" type="range" min="0" max="1.0" step="0.05" value="0.05">
+            <span id="vol-footsteps-val">5%</span>
+          </div>
+        </div>
+        <div class="menu-option">
+          <label for="vol-weapons-slider">Disparos de Armas</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input id="vol-weapons-slider" type="range" min="0" max="1.0" step="0.05" value="1.00">
+            <span id="vol-weapons-val">100%</span>
+          </div>
+        </div>
+        <div class="menu-option">
+          <label for="vol-impacts-slider">Impactos Balísticos (Superfícies)</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input id="vol-impacts-slider" type="range" min="0" max="1.0" step="0.05" value="0.45">
+            <span id="vol-impacts-val">45%</span>
+          </div>
+        </div>
+        <div class="menu-option">
+          <label for="vol-trauma-slider">Dano no Jogador (Kevlar / Trauma)</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input id="vol-trauma-slider" type="range" min="0" max="1.0" step="0.05" value="0.80">
+            <span id="vol-trauma-val">80%</span>
+          </div>
+        </div>
+        <div class="menu-option" style="justify-content:flex-end;margin-top:10px;">
+          <button id="vol-btn-reset" type="button" style="font-size:10px;padding:6px 14px;border:1px solid rgba(255,255,255,0.2);background:transparent;color:var(--dim);cursor:pointer;">↺ RESTAURAR PADRÕES DE ÁUDIO</button>
+        </div>
+      </div>
+
+      <!-- Aba Gráficos & Texturas -->
+      <div class="lobby-modal-panel" data-mpanel="textures">
+        <div class="menu-option">
+          <label for="texture-mode-select">Modo de Renderização</label>
+          <select id="texture-mode-select">
+            <option value="pbr" selected>PBR Procedural (Albedo + Relevo Bump + Roughness)</option>
+            <option value="flat_textures">Albedo Puro (Sem Relevo)</option>
+            <option value="color_only">Cores Sólidas (Estilo Blocky Antigo)</option>
+          </select>
+        </div>
+        <div class="menu-option">
+          <label for="bump-slider">Intensidade do Relevo (Bump)</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input id="bump-slider" type="range" min="0" max="0.12" step="0.01" value="0.05">
+            <span id="bump-val">0.05</span>
+          </div>
+        </div>
+        <div class="menu-option">
+          <label for="uv-scale-slider">Escala de Repetição UV (World-Space)</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input id="uv-scale-slider" type="range" min="0.1" max="1.0" step="0.05" value="0.4">
+            <span id="uv-scale-val">0.40x</span>
+          </div>
+        </div>
+        <div class="menu-option" style="flex-direction:column;align-items:stretch;gap:6px;border-top:1px solid rgba(255,255,255,0.08);padding-top:8px;">
+          <div style="font-size:11px;color:var(--dim);letter-spacing:0.04em;">TESTAR IMAGEM EXTERNA (PNG / JPG / BITMAP)</div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <select id="custom-tex-target" style="flex:1;">
+              <option value="jungle_floor">Chão de Selva / Húmus (Woods)</option>
+              <option value="mossy_rock">Rocha com Musgo (Woods)</option>
+              <option value="sandbags">Sacos de Areia / Bunker (Woods)</option>
+              <option value="camo_tarp">Lona Camuflada (Woods)</option>
+              <option value="sand">Areia das Dunas (Dust)</option>
+              <option value="sandstone">Arenito do Deserto (Dust)</option>
+              <option value="cobblestones">Chão / Cobblestones (Italy)</option>
+              <option value="wall_peeling_ochre">Parede Ocre Descascada</option>
+              <option value="wall_peeling_terra">Parede Terracota</option>
+              <option value="wall_white">Parede Branca Envelhecida</option>
+              <option value="roof">Telhas de Terracota</option>
+              <option value="door_wood">Porta de Madeira</option>
+              <option value="crate">Caixotes de Vinho / Madeira</option>
+              <option value="awning_red">Toldo Listrado</option>
+            </select>
+            <label for="custom-tex-file" class="cta" style="padding:6px 12px;font-size:11px;cursor:pointer;white-space:nowrap;margin:0;border-radius:3px;background:var(--accent);color:#0d0f11;font-weight:600;">
+              📂 CARREGAR IMAGEM
+            </label>
+            <input id="custom-tex-file" type="file" accept="image/png,image/jpeg,image/webp,image/bmp" style="display:none;">
+          </div>
+          <div id="custom-tex-status" style="font-size:10px;color:var(--ok);margin-top:2px;display:none;"></div>
+        </div>
+      </div>
+
+      <!-- Aba Sistema & Cheats -->
+      <div class="lobby-modal-panel" data-mpanel="system">
+        <div class="menu-option">
+          <label for="sens-slider">Sensibilidade Câmera</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input id="sens-slider" type="range" min="0.5" max="5.0" step="0.1" value="2.0">
+            <span id="sens-val">2.0x</span>
+          </div>
+        </div>
+        <div class="menu-option">
+          <label for="headbob-slider">Balanço da Cabeça (Headbob)</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input id="headbob-slider" type="range" min="0" max="2.0" step="0.1" value="1.0">
+            <span id="headbob-val">100%</span>
+          </div>
+        </div>
+        <div class="menu-option">
+          <label for="shake-slider">Tremor de Câmera (Shake)</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input id="shake-slider" type="range" min="0" max="2.0" step="0.1" value="1.0">
+            <span id="shake-val">100%</span>
+          </div>
+        </div>
+        <div class="menu-option">
+          <label for="vibration-toggle">Vibração Tátil (Mobile)</label>
+          <select id="vibration-toggle">
+            <option value="on" selected>Ativada</option>
+            <option value="off">Desativada</option>
+          </select>
+        </div>
+        <div class="menu-option">
+          <label for="suppression-toggle">Efeito de Supressão (Near-Miss)</label>
+          <select id="suppression-toggle">
+            <option value="on" selected>Ativado</option>
+            <option value="off">Desativado</option>
+          </select>
+        </div>
+        <div class="menu-option">
+          <label for="dev-mode-toggle">Modo Desenvolvedor (Cheats)</label>
+          <select id="dev-mode-toggle">
+            <option value="off" selected>Desativado</option>
+            <option value="on">Ativado</option>
+          </select>
+        </div>
+        <div id="dev-cheats-panel" class="menu-option" style="display:none; flex-direction:column; align-items:flex-start; gap:8px; background:rgba(0,0,0,0.3); padding:10px; border-radius:4px; border:1px dashed #e8933a;">
+          <span style="font-size:11px; color:#e8933a; font-weight:bold;">🛠️ PAINEL DEV &amp; CHEATS</span>
+          <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            <button id="btn-cheat-whoami" type="button" style="font-size:10px; padding:6px 10px;">👁️ 3ª Pessoa (WHOAMI)</button>
+            <button id="btn-cheat-speed" type="button" style="font-size:10px; padding:6px 10px;">⚡ Velocidade (10x)</button>
+            <button id="btn-cheat-ammo" type="button" style="font-size:10px; padding:6px 10px;">♾️ Munição Infinita</button>
+            <button id="btn-cheat-god" type="button" style="font-size:10px; padding:6px 10px;">🛡️ Modo Deus (Invulnerável)</button>
+          </div>
+        </div>
+        <div class="menu-option" style="justify-content:flex-end;">
+          <button id="btn-fullscreen" type="button" style="font-size:11px; padding:8px 16px;">⛶ TELA CHEIA</button>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <div id="menu-pause" class="menu-buttons" style="display:none;">
-      <button id="btn-resume">CONTINUAR</button>
-      <button id="btn-reset">RESET</button>
+  <!-- MODAL 3: PAUSA IN-GAME -->
+  <div id="modal-pause" class="lobby-modal lobby-modal--pause">
+    <div class="lobby-modal-backdrop"></div>
+    <div class="lobby-modal-content lobby-pause-content">
+      <div class="lobby-pause-title">PAUSA</div>
+      <button type="button" id="btn-resume-pause" class="lobby-pause-btn">RESUMIR</button>
+      <button type="button" id="btn-settings-pause" class="lobby-pause-btn">CONFIGURAÇÕES</button>
+      <button type="button" id="btn-quit-pause" class="lobby-pause-btn">SAIR</button>
+      <!-- Aliases ocultos para compatibilidade com eventuais testes legado -->
+      <button type="button" id="btn-resume" style="display:none;">CONTINUAR</button>
+      <button type="button" id="btn-reset" style="display:none;">RESET</button>
     </div>
   </div>
 </div>

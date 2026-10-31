@@ -19,6 +19,26 @@
 
 ### 🔹 Outubro de 2026
 
+#### [Interface: Lobby 3D Inspirado no Mockup, Avatar no Spawn com Arma Primária & Modais] — 31/10/2026
+* **feat(ui):** Atualização completa da interface do menu principal/lobby baseada no mockup de referência:
+  * **Layout Visual do Mockup (`index.html` e `assets/css/main.css`):**
+    * **Header Superior:** Perfil do operador com avatar circular com borda dourada e efeito de brilho, codinome editável com persistência no `localStorage` (`#lobby-player-name`, padrão "Player_01"), nível ("Nível 3"), contadores de economia (1.250 moedas de ouro e 50 gemas) e botão de configurações com ícone de sliders.
+    * **Inferior Esquerdo:** 3 botões em cards escuros arredondados translúcidos com efeito glassmorphism e ícones SVG nítidos (*Inventário*, *Loja*, *Passe*), integrados com toast de feedback "Recurso em breve".
+    * **Inferior Direito:** Card dinâmico de mapa selecionado com thumbnail, título (ex: "Dust Block"), subtítulo ("Mata-Mata · 4 Bots") e chevron de navegação; acompanhado pelo botão "▶ JOGAR" amarelo-ouro vibrante com corte angular chamfered (`clip-path`) e animações de escala e brilho.
+    * **Vinheta e Fundo:** Fundo transparente com vinheta radial elegante focando no operador 3D centralizado.
+  * **Avatar 3D do Operador no Spawn com Arma Primária (`src/main.js` e `src/view/CharacterView.js`):**
+    * Substituição da ilustração 2D central pelo avatar 3D do operador (`TacticalManContinuous` com a skin/camuflagem ativa) em pé na posição de spawn do mapa selecionado.
+    * Novo método `CharacterView.setWeaponModel(weaponId)` para trocar dinamicamente a arma 3D nas mãos do soldado em terceira pessoa utilizando os modelos reais de `ItemDrop.builders`, com rotação alinhada e fallback seguro.
+    * Enquadramento cinematográfico de câmera em terceira pessoa frontal a 2,4m de distância focando no peito/cabeça do operador com o cenário limpo do mapa de fundo.
+    * Transição suave: ao iniciar a partida (`▶ JOGAR`), o modelo em 3ª pessoa é ocultado e a câmera e braços de 1ª pessoa assumem o controle instantaneamente.
+  * **Sistema de Modais Glassmorphic (`src/ui/MenuController.js` e `index.html`):**
+    * **Modal de Mapa & Loadout (`#modal-map-loadout`):** Abas internas para "Mapa & Partida" (seleção entre os 12 mapas, quantidade de bots e duração) e "Loadout & Skin" (seleção de arma primária, secundária, vitrine 3D interativa e seletores de camuflagem/cores com sincronização em tempo real no avatar do lobby).
+    * **Modal de Configurações (`#modal-settings`):** Abas organizadas para "Mira CS2" (todos os controles avançados da mira), "Áudio" (5 sliders de volume do mixer), "Gráficos & Texturas" (modos PBR, bump, escala UV e upload de textura) e "Sistema & Ajustes" (sensibilidade, headbob, tremor, vibração, supressão, modo dev/cheats e tela cheia).
+    * **Modal de Pausa In-Game (`#modal-pause`):** Ao apertar ESC ou destrancar o mouse em combate, exibe modal minimalista com linhas finas e opções "Resumir" (retoma combate), "Configurações" (abre modal de settings) e "Sair" (recarrega para o lobby limpo).
+  * **Testes e Validação (`test/menu_mockup_integration_test.js` & `package.json`):**
+    * Nova suíte automatizada validando estrutura HTML, preservação de 100% dos IDs de controles legados, método dinâmico `CharacterView.setWeaponModel` e controle `Viewmodel.setVisible`.
+    * 114/114 testes aprovados no pipeline `npm test`.
+
 #### [Movimentação — Fase 5: Humanização da IA, Inércia dos Bots & Sincronia do NavGrid] — 30/10/2026
 * **feat(movement):** Conclusão da Fase 5 do Superplano de Movimentação em `src/ai/AIController.js`, `src/ai/NavGrid.js`, `src/entities/Bot.js`, `src/entities/Character.js` e `test/movement_phase5_test.js`:
   * **Inércia e Aceleração Orgânica dos Bots ($k_{acc} = 18.0$, $k_{dec} = 26.0$):**

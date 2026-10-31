@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import createCharacter, { applyPaletteToCharacter } from './models/TacticalManContinuous.js';
+import { ItemDrop } from '../world/ItemDrop.js';
 
 const GHOST_COLORS = [
   0xff1e1e, // Blinky (Vermelho)
@@ -123,49 +124,110 @@ export class CharacterView {
       joints.elbowLeft.rotation.x = -toRad(78);
 
       // Terceira Pessoa: Fuzil tático posicionado exatamente nas mãos do operador
-      const mGun = new THREE.MeshStandardMaterial({ color: 0x22252a, roughness: 0.35, metalness: 0.80 });
-      const mGunDark = new THREE.MeshStandardMaterial({ color: 0x141618, roughness: 0.45, metalness: 0.60 });
-
       this.gunGroup = new THREE.Group();
       this.gunGroup.name = 'third_person_gun';
       // Posiciona na altura do peito, alinhado com a empunhadura direita e o guarda-mão esquerdo
       this.gunGroup.position.set(-0.04, 0.23, 0.38);
       joints.chest.add(this.gunGroup);
 
-      const gunReceiver = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.32), mGun);
-      gunReceiver.castShadow = true;
-
-      const gunHandguard = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.075, 0.16), mGunDark);
-      gunHandguard.position.set(0, 0, 0.18);
-      gunHandguard.castShadow = true;
-
-      const gunBarrel = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.22), mGun);
-      gunBarrel.position.set(0, 0.01, 0.36);
-      gunBarrel.castShadow = true;
-
-      const gunMuzzle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.05), mGunDark);
-      gunMuzzle.position.set(0, 0.01, 0.48);
-      gunMuzzle.castShadow = true;
-
-      const gunMag = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.14, 0.08), mGunDark);
-      gunMag.position.set(0, -0.10, 0.06);
-      gunMag.rotation.x = 0.20;
-      gunMag.castShadow = true;
-
-      const gunStock = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.10, 0.15), mGunDark);
-      gunStock.position.set(0, 0.005, -0.20);
-      gunStock.castShadow = true;
-
-      const flashMat = new THREE.MeshBasicMaterial({ color: 0xffe066, transparent: true, opacity: 0.9 });
-      this.muzzleFlash = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), flashMat);
-      this.muzzleFlash.position.set(0, 0.01, 0.52);
-      this.muzzleFlash.visible = false;
-
-      this.gunGroup.add(
-        gunReceiver, gunHandguard, gunBarrel, gunMuzzle,
-        gunMag, gunStock, this.muzzleFlash
-      );
+      this._buildFallbackGun();
     }
+  }
+
+  _buildFallbackGun() {
+    if (!this.gunGroup) return;
+    const mGun = new THREE.MeshStandardMaterial({ color: 0x22252a, roughness: 0.35, metalness: 0.80 });
+    const mGunDark = new THREE.MeshStandardMaterial({ color: 0x141618, roughness: 0.45, metalness: 0.60 });
+
+    const gunReceiver = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.32), mGun);
+    gunReceiver.castShadow = true;
+
+    const gunHandguard = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.075, 0.16), mGunDark);
+    gunHandguard.position.set(0, 0, 0.18);
+    gunHandguard.castShadow = true;
+
+    const gunBarrel = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.22), mGun);
+    gunBarrel.position.set(0, 0.01, 0.36);
+    gunBarrel.castShadow = true;
+
+    const gunMuzzle = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.05), mGunDark);
+    gunMuzzle.position.set(0, 0.01, 0.48);
+    gunMuzzle.castShadow = true;
+
+    const gunMag = new THREE.Mesh(new THREE.BoxGeometry(0.045, 0.14, 0.08), mGunDark);
+    gunMag.position.set(0, -0.10, 0.06);
+    gunMag.rotation.x = 0.20;
+    gunMag.castShadow = true;
+
+    const gunStock = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.10, 0.15), mGunDark);
+    gunStock.position.set(0, 0.005, -0.20);
+    gunStock.castShadow = true;
+
+    const flashMat = new THREE.MeshBasicMaterial({ color: 0xffe066, transparent: true, opacity: 0.9 });
+    this.muzzleFlash = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), flashMat);
+    this.muzzleFlash.position.set(0, 0.01, 0.52);
+    this.muzzleFlash.visible = false;
+
+    this.gunGroup.add(
+      gunReceiver, gunHandguard, gunBarrel, gunMuzzle,
+      gunMag, gunStock, this.muzzleFlash
+    );
+  }
+
+  /**
+   * Atualiza a arma segurada pelo operador em 3ª pessoa / Lobby.
+   * Utiliza os templates do ItemDrop.builders para montar a arma real.
+   */
+  setWeaponModel(weaponId) {
+    if (!this.gunGroup || this.skinType === 'ghost') return;
+
+    // Limpa malhas de arma anteriores
+    while (this.gunGroup.children.length > 0) {
+      this.gunGroup.remove(this.gunGroup.children[0]);
+    }
+
+    const builder = ItemDrop?.builders?.[weaponId];
+    if (typeof builder === 'function') {
+      try {
+        const res = builder();
+        const model = res.group ?? res;
+        const clone = model.clone();
+
+        // Calcula bounding box para escala normalizada
+        const bbox = new THREE.Box3().setFromObject(clone);
+        const size = new THREE.Vector3();
+        bbox.getSize(size);
+        const maxDim = Math.max(size.x, size.y, size.z, 0.1);
+        const targetSpan = 0.62;
+        const scale = THREE.MathUtils.clamp(targetSpan / maxDim, 0.35, 1.6);
+        clone.scale.setScalar(scale);
+
+        // Centraliza
+        const center = new THREE.Vector3();
+        bbox.getCenter(center);
+        clone.position.sub(center.clone().multiplyScalar(scale));
+
+        // As armas em 1ª pessoa apontam para -Z. No peito/mãos do operador, giramos 180° para apontar para +Z
+        const pivot = new THREE.Group();
+        clone.rotation.y = Math.PI;
+        pivot.add(clone);
+
+        // Recria muzzle flash na ponta
+        const flashMat = new THREE.MeshBasicMaterial({ color: 0xffe066, transparent: true, opacity: 0.9 });
+        this.muzzleFlash = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), flashMat);
+        this.muzzleFlash.position.set(0, 0.01, 0.50);
+        this.muzzleFlash.visible = false;
+        pivot.add(this.muzzleFlash);
+
+        this.gunGroup.add(pivot);
+        return;
+      } catch (err) {
+        console.warn(`[CharacterView] Erro ao instanciar arma '${weaponId}':`, err);
+      }
+    }
+
+    // Fallback caso builder não exista ou falhe
+    this._buildFallbackGun();
   }
 
   triggerFlash() {

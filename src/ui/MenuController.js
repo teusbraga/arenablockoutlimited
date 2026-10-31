@@ -143,6 +143,24 @@ export class MenuController {
     this.btnReset = document.getElementById('btn-reset');
     this.overlayElRef = document.getElementById('overlay');
 
+    // Novos Elementos do Lobby Mockup & Modais
+    this.btnPlay = document.getElementById('btn-play');
+    this.btnSettings = document.getElementById('btn-settings');
+    this.btnInventory = document.getElementById('btn-inventory');
+    this.btnShop = document.getElementById('btn-shop');
+    this.btnPass = document.getElementById('btn-pass');
+    this.lobbyMapCard = document.getElementById('lobby-map-card');
+    this.lobbyMapName = document.getElementById('lobby-map-name');
+    this.lobbyMapSub = document.getElementById('lobby-map-sub');
+    this.playerNameEl = document.getElementById('lobby-player-name');
+
+    this.modalMapLoadout = document.getElementById('modal-map-loadout');
+    this.modalSettings = document.getElementById('modal-settings');
+    this.modalPause = document.getElementById('modal-pause');
+    this.btnResumePause = document.getElementById('btn-resume-pause');
+    this.btnSettingsPause = document.getElementById('btn-settings-pause');
+    this.btnQuitPause = document.getElementById('btn-quit-pause');
+
     this.sensSlider = document.getElementById('sens-slider');
     this.sensSliderVal = document.getElementById('sens-val');
     this.btnFullscreen = document.getElementById('btn-fullscreen');
@@ -178,11 +196,63 @@ export class MenuController {
 
     this._bindDOM();
     this._bindTabs();
+    this._bindModalTabs();
+    this._initPlayerName();
+    this._updateMapCard();
     this._bindSoldierSkinUI();
     this._bindCrosshairUI(this.crosshairManager);
     this._bindLockEvents();
     this._bindTextureKeys();
     this._bindAudioUI(this.audio);
+  }
+
+  _initPlayerName() {
+    const savedName = localStorage.getItem('blocky_player_name') || 'Player_01';
+    if (this.playerNameEl) {
+      this.playerNameEl.textContent = savedName;
+      this.playerNameEl.addEventListener('blur', () => {
+        const name = this.playerNameEl.textContent.trim().substring(0, 20) || 'Player_01';
+        this.playerNameEl.textContent = name;
+        localStorage.setItem('blocky_player_name', name);
+      });
+      this.playerNameEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          this.playerNameEl.blur();
+        }
+      });
+    }
+  }
+
+  _updateMapCard() {
+    if (!this.lobbyMapName || !this.mapSelect) return;
+    const opt = this.mapSelect.options[this.mapSelect.selectedIndex];
+    const mapText = opt ? opt.textContent.split('(')[0].trim() : 'Mapa';
+    this.lobbyMapName.textContent = mapText;
+    const botCount = this.botSlider ? this.botSlider.value : '4';
+    if (this.lobbyMapSub) {
+      this.lobbyMapSub.textContent = `Mata-Mata · ${botCount} Bots`;
+    }
+  }
+
+  _openModal(modalEl) {
+    if (modalEl) {
+      modalEl.classList.add('open');
+      this._syncPreviewActiveState();
+    }
+  }
+
+  _closeModal(modalEl) {
+    if (modalEl) {
+      modalEl.classList.remove('open');
+      this._syncPreviewActiveState();
+    }
+  }
+
+  _closeAllModals() {
+    this._closeModal(this.modalMapLoadout);
+    this._closeModal(this.modalSettings);
+    this._closeModal(this.modalPause);
   }
 
   static getSavedMap(defaultUrl = './assets/maps/dust.json') {
@@ -256,6 +326,9 @@ export class MenuController {
       localStorage.setItem('blocky_weapon', this.weaponSelect.value);
       this.weapons.setSlot(0, this.weaponSelect.value);
       this.weaponPreview?.setWeapon(this.weaponSelect.value, 0);
+      if (this.gameManager?.player?.view) {
+        this.gameManager.player.view.setWeaponModel(this.weaponSelect.value);
+      }
     });
     this.weaponSelect?.addEventListener('focus', () => {
       this.weaponPreview?.setWeapon(this.weaponSelect.value, 0);
@@ -281,6 +354,7 @@ export class MenuController {
         if (this.gameManager.hasStarted) {
           this.gameManager.setBotCount(parseInt(this.botSlider.value, 10));
         }
+        this._updateMapCard();
       });
     }
 
@@ -518,17 +592,83 @@ export class MenuController {
       });
     }
 
-    this.overlayElRef?.addEventListener('click', async (e) => {
+    // Botão ▶ JOGAR (inicia partida)
+    this.btnPlay?.addEventListener('click', async (e) => {
+      e.stopPropagation();
       if (this.gameManager.roundOver) return;
-      if (e.target.closest('input, button, select, .menu-tab-btn, .weapon-preview-box')) return;
+      this._closeAllModals();
       await this.input.requestLock();
+    });
+
+    // Card de Mapa (abre modal de Mapa & Loadout)
+    this.lobbyMapCard?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._openModal(this.modalMapLoadout);
+    });
+
+    // Botão de Configurações
+    this.btnSettings?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._openModal(this.modalSettings);
+    });
+
+    // Placeholders inferiores (Inventário, Loja, Passe)
+    [this.btnInventory, this.btnShop, this.btnPass].forEach(btn => {
+      btn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        emit('hud:popup', {
+          text: 'RECURSO EM BREVE',
+          color: '#e8933a',
+          duration: 1600,
+        });
+      });
+    });
+
+    // Fechar modais ao clicar no backdrop ou botão ✕
+    document.querySelectorAll('.lobby-modal-backdrop').forEach(bd => {
+      bd.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this._closeAllModals();
+      });
+    });
+    document.querySelectorAll('.lobby-modal-close').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this._closeAllModals();
+      });
+    });
+
+    // Modal de Pausa In-Game
+    this.btnResumePause?.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      this._closeAllModals();
+      await this.input.requestLock();
+    });
+    this.btnSettingsPause?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      this._closeModal(this.modalPause);
+      this._openModal(this.modalSettings);
+    });
+    this.btnQuitPause?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      location.reload();
+    });
+
+    // ESC fecha modais abertos no Lobby
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !this.gameManager?.hasStarted) {
+        this._closeAllModals();
+      }
     });
   }
 
   _syncPreviewActiveState() {
     if (!this.weaponPreview) return;
-    const menuVisible = !this.overlayElRef || !this.overlayElRef.classList.contains('hidden');
-    this.weaponPreview.setActive(Boolean(menuVisible && this.currentTab === 'loadout'));
+    const isMapLoadoutOpen = this.modalMapLoadout?.classList.contains('open');
+    const loadoutPanel = this.modalMapLoadout?.querySelector('[data-mpanel="loadout"]');
+    const isLoadoutActive = loadoutPanel?.classList.contains('active');
+    const isLegacyTabActive = this.currentTab === 'loadout' && (!this.overlayElRef || !this.overlayElRef.classList.contains('hidden'));
+    this.weaponPreview.setActive(Boolean((isMapLoadoutOpen && isLoadoutActive) || isLegacyTabActive));
   }
 
   _bindTextureKeys() {
@@ -552,6 +692,27 @@ export class MenuController {
           duration: 1600,
         });
       }
+    });
+  }
+
+  _bindModalTabs() {
+    const modalTabs = document.querySelectorAll('.lobby-modal-tab');
+    modalTabs.forEach(btn => {
+      const handleTab = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const targetTab = btn.getAttribute('data-mtab');
+        const modal = btn.closest('.lobby-modal');
+        if (!modal) return;
+        modal.querySelectorAll('.lobby-modal-tab').forEach(b => b.classList.toggle('active', b === btn));
+        modal.querySelectorAll('.lobby-modal-panel').forEach(p => {
+          const isTarget = p.getAttribute('data-mpanel') === targetTab;
+          p.classList.toggle('active', isTarget);
+        });
+        this._syncPreviewActiveState();
+      };
+      btn.addEventListener('click', handleTab);
+      btn.addEventListener('touchstart', handleTab, { passive: false });
     });
   }
 
@@ -604,22 +765,13 @@ export class MenuController {
           }
           const count = this.botSlider ? parseInt(this.botSlider.value, 10) : 4;
           this.gameManager.setBotCount(count);
+          emit('lobby:started', {});
         }
+        this._closeAllModals();
         this.overlayElRef?.classList.add('hidden');
-        const menuStart = document.getElementById('menu-start');
-        if (menuStart) menuStart.style.display = 'none';
-        const menuPause = document.getElementById('menu-pause');
-        if (menuPause) menuPause.style.display = 'flex';
-        const titleEl = document.getElementById('overlay-title');
-        if (titleEl) titleEl.textContent = 'PAUSADO';
       } else if (this.gameManager.hasStarted && !this.gameManager.roundOver && !this.inventoryOpen) {
         this.overlayElRef?.classList.remove('hidden');
-        const menuStart = document.getElementById('menu-start');
-        if (menuStart) menuStart.style.display = 'none';
-        const menuPause = document.getElementById('menu-pause');
-        if (menuPause) menuPause.style.display = 'flex';
-        const titleEl = document.getElementById('overlay-title');
-        if (titleEl) titleEl.textContent = 'PAUSADO';
+        this._openModal(this.modalPause);
       }
       this._syncPreviewActiveState();
     });

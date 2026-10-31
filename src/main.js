@@ -82,6 +82,29 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
     player.setSoldierSkin(savedSoldierSkin);
     viewmodel.arms?.applySkin(savedSoldierSkin);
 
+    // No lobby inicial: torna o modelo 3D do operador visível no spawn com a arma primária equipada
+    if (player.view?.root) {
+      player.view.root.visible = true;
+      player.view.setWeaponModel(initialWeapon);
+    }
+    viewmodel.setVisible(false);
+
+    const lobbyTarget = new THREE.Vector3(player.pos.x, player.pos.y + 1.05, player.pos.z);
+    const lobbyYaw = player.spawnYaw || 0;
+    const lobbyDistance = 2.4;
+    const lobbyCamPos = new THREE.Vector3(
+      player.pos.x - Math.sin(lobbyYaw) * lobbyDistance,
+      player.pos.y + 1.15,
+      player.pos.z - Math.cos(lobbyYaw) * lobbyDistance
+    );
+
+    on('lobby:started', () => {
+      if (player.view?.root) {
+        player.view.root.visible = player.isThirdPerson();
+      }
+      viewmodel.setVisible(true);
+    });
+
     on('player:skinChanged', (e) => {
       const skin = (e && typeof e === 'object' && 'skin' in e) ? e.skin : e;
       player.setSoldierSkin(skin);
@@ -237,14 +260,8 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
           // Fora de combate ativo (Menu Inicial, Pausa, Inventário ou Fim de Rodada):
           // congela completamente o modelo da arma e a câmera para não reagir ao mouse por trás do menu
           if (!gameManager.hasStarted) {
-            player.updateCamera(camera, 0);
-            viewmodel.updatePose(0, weapons.current, {
-              isADS: false,
-              isSprinting: false,
-              adsAmount: 0,
-              reloadProgress: 0,
-              ammo: weapons.ammo,
-            });
+            camera.position.copy(lobbyCamPos);
+            camera.lookAt(lobbyTarget);
           } else {
             player.rig.applyToCamera(camera);
           }
