@@ -1,10 +1,10 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 import { CONFIG } from './ConfigLoader.js';
 import { on } from './EventBus.js';
 
 /**
  * SceneSetup
- * Configura câmera, luzes, sombras, névoa e fundo da cena Three.js.
+ * Configura cÃ¢mera, luzes, sombras, nÃ©voa e fundo da cena Three.js.
  */
 export class SceneSetup {
   constructor(appElement) {
@@ -76,6 +76,10 @@ export class SceneSetup {
     window.addEventListener('resize', this._onResize);
 
     const BASE_AMBIENT = 1.05;
+    this._unsubGraphics = on('config:graphicsChanged', e => {
+      if (e && e.preset) this.applyQualityProfile(e.preset);
+    });
+
     this._unsubFired = on('weapon:fired', () => {
       this.ambient.intensity = BASE_AMBIENT + 0.35;
       clearTimeout(window.__ambFlashT);
@@ -85,8 +89,52 @@ export class SceneSetup {
     });
   }
 
+  /**
+   * Aplica um preset de qualidade gráfica dinamicamente sem reload.
+   * Emita 'config:graphicsChanged' via EventBus para acionar externamente.
+   * @param {'high'|'medium'|'low'} preset
+   */
+  applyQualityProfile(preset) {
+    const dpr = window.devicePixelRatio || 1;
+    if (preset === 'low') {
+      // Mobile / Low-End: zero sombras, 1 luz, DPR ≤ 1.25
+      this.renderer.shadowMap.enabled = false;
+      if (this.sun) this.sun.castShadow = false;
+      if (this.fill) this.fill.visible = false;
+      if (this.ambient) this.ambient.intensity = 1.6;
+      if (this.hemi) this.hemi.intensity = 1.1;
+      this.renderer.setPixelRatio(Math.min(dpr, 1.25));
+    } else if (preset === 'medium') {
+      // Equilibrado: sombras 1024, fill visível, DPR ≤ 1.5
+      this.renderer.shadowMap.enabled = true;
+      if (this.sun) {
+        this.sun.castShadow = true;
+        this.sun.shadow.mapSize.set(1024, 1024);
+      }
+      if (this.fill) this.fill.visible = true;
+      if (this.ambient) this.ambient.intensity = 1.05;
+      if (this.hemi) this.hemi.intensity = 0.75;
+      this.renderer.setPixelRatio(Math.min(dpr, 1.5));
+    } else {
+      // High (PC completo): estado original total
+      this.renderer.shadowMap.enabled = true;
+      if (this.sun) {
+        this.sun.castShadow = true;
+        this.sun.shadow.mapSize.set(2048, 2048);
+      }
+      if (this.fill) this.fill.visible = true;
+      if (this.ambient) this.ambient.intensity = 1.05;
+      if (this.hemi) this.hemi.intensity = 0.75;
+      this.renderer.setPixelRatio(Math.min(dpr, 2.0));
+    }
+  }
+
   destroy() {
     window.removeEventListener('resize', this._onResize);
+    if (this._unsubGraphics) {
+      this._unsubGraphics();
+      this._unsubGraphics = null;
+    }
     if (this._unsubFired) {
       this._unsubFired();
       this._unsubFired = null;

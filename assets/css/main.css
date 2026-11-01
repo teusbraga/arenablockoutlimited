@@ -239,11 +239,11 @@
     z-index: 105;
     transition: opacity .12s ease;
     will-change: left, top, transform;
-    --ch-color: #00ff66;
-    --ch-len: 7px;
+    --ch-color: #ffffff;
+    --ch-len: 5px;
     --ch-thick: 1.5px;
-    --ch-gap: 5px;
-    --ch-shadow: 0 0 0 1px rgba(0,0,0,0.95);
+    --ch-gap: 4px;
+    --ch-shadow: none;
   }
   #crosshair.ch-hidden,
   .crosshair-preview.ch-hidden { display: none !important; }
@@ -254,36 +254,36 @@
   
   .ch-line {
     position: absolute;
-    background: var(--ch-color, #00ff66);
-    box-shadow: var(--ch-shadow, 0 0 0 1px rgba(0,0,0,0.95));
+    background: var(--ch-color, #ffffff);
+    box-shadow: var(--ch-shadow, none);
     border-radius: 0.5px;
   }
   .ch-top {
     width: var(--ch-thick, 1.5px);
-    height: var(--ch-len, 7px);
+    height: var(--ch-len, 5px);
     left: calc(var(--ch-thick, 1.5px) / -2);
-    bottom: var(--gap, var(--ch-gap, 5px));
+    bottom: var(--gap, var(--ch-gap, 4px));
   }
   #crosshair.ch-t-shape .ch-top,
   .crosshair-preview.ch-t-shape .ch-top { display: none !important; }
 
   .ch-bottom {
     width: var(--ch-thick, 1.5px);
-    height: var(--ch-len, 7px);
+    height: var(--ch-len, 5px);
     left: calc(var(--ch-thick, 1.5px) / -2);
-    top: var(--gap, var(--ch-gap, 5px));
+    top: var(--gap, var(--ch-gap, 4px));
   }
   .ch-left {
     height: var(--ch-thick, 1.5px);
-    width: var(--ch-len, 7px);
+    width: var(--ch-len, 5px);
     top: calc(var(--ch-thick, 1.5px) / -2);
-    right: var(--gap, var(--ch-gap, 5px));
+    right: var(--gap, var(--ch-gap, 4px));
   }
   .ch-right {
     height: var(--ch-thick, 1.5px);
-    width: var(--ch-len, 7px);
+    width: var(--ch-len, 5px);
     top: calc(var(--ch-thick, 1.5px) / -2);
-    left: var(--gap, var(--ch-gap, 5px));
+    left: var(--gap, var(--ch-gap, 4px));
   }
   .ch-dot {
     position: absolute;
@@ -292,8 +292,8 @@
     width: var(--ch-thick, 1.5px);
     height: var(--ch-thick, 1.5px);
     border-radius: 50%;
-    background: var(--ch-color, #00ff66);
-    box-shadow: var(--ch-shadow, 0 0 0 1px rgba(0,0,0,0.95));
+    background: var(--ch-color, #ffffff);
+    box-shadow: var(--ch-shadow, none);
     display: none;
   }
 

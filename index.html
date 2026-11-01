@@ -206,12 +206,12 @@
   </div>
 </div>
 
-<div id="crosshair">
+<div id="crosshair" class="ch-t-shape">
   <div class="ch-line ch-top"></div>
   <div class="ch-line ch-bottom"></div>
   <div class="ch-line ch-left"></div>
   <div class="ch-line ch-right"></div>
-  <div class="ch-dot"></div>
+  <div class="ch-dot" style="display:block;"></div>
 </div>
 <div id="crosshair-no-fire">🚫</div>
 <div id="lens"><svg id="reticle" viewBox="-50 -50 100 100" xmlns="http://www.w3.org/2000/svg"></svg></div>
@@ -537,12 +537,12 @@
       <div class="lobby-modal-panel active" data-mpanel="crosshair">
         <!-- Live Preview Box -->
         <div class="crosshair-preview-box">
-          <div id="crosshair-preview" class="crosshair-preview">
+          <div id="crosshair-preview" class="crosshair-preview ch-t-shape">
             <div class="ch-line ch-top"></div>
             <div class="ch-line ch-bottom"></div>
             <div class="ch-line ch-left"></div>
             <div class="ch-line ch-right"></div>
-            <div class="ch-dot"></div>
+            <div class="ch-dot" style="display:block;"></div>
           </div>
           <div id="crosshair-preview-warning" style="display:none;position:absolute;font-size:24px;color:#e0574a;text-shadow:0 0 8px rgba(224,87,74,0.8), 0 0 2px #000;">🚫</div>
           <div class="crosshair-preview-hint">PRÉVIA EM TEMPO REAL</div>
@@ -551,8 +551,8 @@
         <div class="menu-option">
           <label for="ch-style-select">Estilo da Mira</label>
           <select id="ch-style-select">
-            <option value="cross" selected>Clássico (Cruz Completa)</option>
-            <option value="t_shape">Formato T (CS2 T-Shape)</option>
+            <option value="cross">Clássico (Cruz Completa)</option>
+            <option value="t_shape" selected>Formato T (CS2 T-Shape)</option>
             <option value="none">Oculta (Sem Mira de Quadril)</option>
           </select>
         </div>
@@ -560,40 +560,40 @@
         <div class="menu-option">
           <label for="ch-mode-select">Comportamento de Dispersão</label>
           <select id="ch-mode-select">
-            <option value="dynamic">Dinâmica (Abre com movimento/spray)</option>
-            <option value="static" selected>Estática (Fixa sem variação)</option>
+            <option value="dynamic" selected>Dinâmica (Abre com movimento/spray)</option>
+            <option value="static">Estática (Fixa sem variação)</option>
           </select>
         </div>
 
         <div class="menu-option">
           <label for="ch-dynamic-align">Alinhamento Dinâmico (Cano 3D)</label>
           <select id="ch-dynamic-align">
-            <option value="on">Ativado (Mostra Onde o Cano Aponta)</option>
-            <option value="off" selected>Desativado (Fixo no Centro da Câmera)</option>
+            <option value="on" selected>Ativado (Mostra Onde o Cano Aponta)</option>
+            <option value="off">Desativado (Fixo no Centro da Câmera)</option>
           </select>
         </div>
 
         <div class="menu-option">
           <label for="ch-follow-recoil">Seguir Recuo (Follow Recoil)</label>
           <select id="ch-follow-recoil">
-            <option value="off" selected>Desativado (Sem Subida de Spray)</option>
-            <option value="on">Ativado (Rastreia Spray &amp; Subida)</option>
+            <option value="off">Desativado (Sem Subida de Spray)</option>
+            <option value="on" selected>Ativado (Rastreia Spray &amp; Subida)</option>
           </select>
         </div>
 
         <div class="menu-option">
           <label for="ch-center-dot">Ponto Central (Center Dot)</label>
           <select id="ch-center-dot">
-            <option value="off" selected>Desativado</option>
-            <option value="on">Ativado</option>
+            <option value="off">Desativado</option>
+            <option value="on" selected>Ativado</option>
           </select>
         </div>
 
         <div class="menu-option">
           <label for="ch-length-slider">Comprimento (Length)</label>
           <div style="display:flex;align-items:center;gap:8px;">
-            <input id="ch-length-slider" type="range" min="2" max="24" step="1" value="7">
-            <span id="ch-length-val">7px</span>
+            <input id="ch-length-slider" type="range" min="2" max="24" step="1" value="5">
+            <span id="ch-length-val">5px</span>
           </div>
         </div>
 
@@ -608,16 +608,16 @@
         <div class="menu-option">
           <label for="ch-gap-slider">Espaçamento Central (Gap)</label>
           <div style="display:flex;align-items:center;gap:8px;">
-            <input id="ch-gap-slider" type="range" min="-4" max="20" step="1" value="5">
-            <span id="ch-gap-val">5px</span>
+            <input id="ch-gap-slider" type="range" min="-4" max="20" step="1" value="4">
+            <span id="ch-gap-val">4px</span>
           </div>
         </div>
 
         <div class="menu-option">
           <label for="ch-outline-slider">Contorno Escuro (Outline)</label>
           <div style="display:flex;align-items:center;gap:8px;">
-            <input id="ch-outline-slider" type="range" min="0" max="3" step="1" value="1">
-            <span id="ch-outline-val">1px</span>
+            <input id="ch-outline-slider" type="range" min="0" max="3" step="1" value="0">
+            <span id="ch-outline-val">0px</span>
           </div>
         </div>
 
@@ -630,7 +630,7 @@
             <button type="button" class="ch-color-pill" data-color="#ffff00" style="background:#ffff00;" title="Amarelo"></button>
             <button type="button" class="ch-color-pill" data-color="#ffffff" style="background:#ffffff;" title="Branco"></button>
             <button type="button" class="ch-color-pill" data-color="#ff66cc" style="background:#ff66cc;" title="Rosa Choque"></button>
-            <input id="ch-color-picker" type="color" value="#00ff66" style="width:28px;height:24px;padding:0;border:1px solid rgba(255,255,255,0.2);cursor:pointer;background:transparent;border-radius:2px;">
+            <input id="ch-color-picker" type="color" value="#ffffff" style="width:28px;height:24px;padding:0;border:1px solid rgba(255,255,255,0.2);cursor:pointer;background:transparent;border-radius:2px;">
           </div>
         </div>
 
@@ -766,6 +766,13 @@
           </div>
         </div>
         <div class="menu-option">
+          <label for="jumpshake-slider">Tremor de Pulo (Jump Head Shake)</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input id="jumpshake-slider" type="range" min="0" max="1.0" step="0.05" value="1.0">
+            <span id="jumpshake-val">100%</span>
+          </div>
+        </div>
+        <div class="menu-option">
           <label for="shake-slider">Tremor de Câmera (Shake)</label>
           <div style="display:flex;align-items:center;gap:8px;">
             <input id="shake-slider" type="range" min="0" max="2.0" step="0.1" value="1.0">
@@ -784,6 +791,21 @@
           <select id="suppression-toggle">
             <option value="on" selected>Ativado</option>
             <option value="off">Desativado</option>
+          </select>
+        </div>
+        <div class="menu-option">
+          <label for="graphics-preset">🎮 Qualidade Gráfica</label>
+          <select id="graphics-preset">
+            <option value="high">Alta — PC Completo (Sombras + Luzes)</option>
+            <option value="medium" selected>Média — Equilibrada (Recomendado)</option>
+            <option value="low">Mobile / Low-End — 60 FPS Máximo</option>
+          </select>
+        </div>
+        <div class="menu-option">
+          <label for="perf-monitor-toggle">📊 Monitor de Desempenho (F3)</label>
+          <select id="perf-monitor-toggle">
+            <option value="off" selected>Desativado</option>
+            <option value="on">Ativado</option>
           </select>
         </div>
         <div class="menu-option">
@@ -831,7 +853,7 @@
   }
 }
 </script>
-<script type="module" src="./src/main.js"></script>
+<script type="module" src="./src/main.js?v=landing-tremor-v4"></script>
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {

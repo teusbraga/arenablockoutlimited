@@ -1,12 +1,12 @@
 /**
- * ConfigLoader: Carregador e consolidador data-driven de configurações do jogo.
- * Suporta Deep Merge com valores padrão para garantir tolerância a falhas caso um modder
- * cometa erros de digitação ou apague propriedades em arquivos JSON.
+ * ConfigLoader: Carregador e consolidador data-driven de configuraÃ§Ãµes do jogo.
+ * Suporta Deep Merge com valores padrÃ£o para garantir tolerÃ¢ncia a falhas caso um modder
+ * cometa erros de digitaÃ§Ã£o ou apague propriedades em arquivos JSON.
  */
 
 import { SchemaValidator } from './SchemaValidator.js';
 
-// Fallbacks de segurança garantidos (caso os arquivos JSON não carreguem)
+// Fallbacks de seguranÃ§a garantidos (caso os arquivos JSON nÃ£o carreguem)
 export const DEFAULT_CONFIG = {
   PLAYER: {
     height: 1.8, crouchHeight: 1.2, eyeHeight: 1.6, eyeCrouch: 1.05,
@@ -16,7 +16,9 @@ export const DEFAULT_CONFIG = {
     accel: 40.0, airAccel: 6.0, friction: 22.0,
     jumpSpeed: 6.0, gravity: 20.0,
     stepHeight: 0.35, maxSlopeAngle: 45.0, maxWalkSlope: 0.7071,
-    coyoteTime: 0.12, jumpBuffer: 0.12, landingDipScale: 0.0035,
+    coyoteTime: 0.12, jumpBuffer: 0.12, landingDipScale: 0.0025,
+    takeoffDipScale: 0.0018, landingPitchNodScale: 0.0075,
+    landingShakeScale: 0.45,
     regenDelay: 5.0, regenRate: 12.0
   },
   CAMERA: {
@@ -56,6 +58,7 @@ export const DEFAULT_CONFIG = {
   ACCESSIBILITY: {
     headbobScale: 1.0,
     shakeScale: 1.0,
+    jumpShakeScale: 1.0,
     vibrationEnabled: true,
     suppressionEnabled: true
   },
@@ -67,14 +70,22 @@ export const DEFAULT_CONFIG = {
     defaultZeroDistance: 50.0,
     zeroingMode: false
   },
-  DEV_MODE: false
+  DEV_MODE: false,
+  GRAPHICS: {
+    preset: 'auto',
+    shadows: true,
+    shadowResolution: 1024,
+    maxPixelRatio: 1.5,
+    scopeResolution: 512,
+    perfMonitor: false
+  }
 };
 
 // Objeto singleton vivo exportado para o resto do motor
 export const CONFIG = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
 
 /**
- * Função utilitária de Deep Merge
+ * FunÃ§Ã£o utilitÃ¡ria de Deep Merge
  */
 function deepMerge(target, source) {
   for (const key of Object.keys(source)) {
@@ -123,6 +134,9 @@ export class ConfigLoader {
           CONFIG.PLAYER.coyoteTime = gp.player.coyoteTime ?? CONFIG.PLAYER.coyoteTime;
           CONFIG.PLAYER.jumpBuffer = gp.player.jumpBuffer ?? CONFIG.PLAYER.jumpBuffer;
           CONFIG.PLAYER.landingDipScale = gp.player.landingDipScale ?? CONFIG.PLAYER.landingDipScale;
+          CONFIG.PLAYER.takeoffDipScale = gp.player.takeoffDipScale ?? CONFIG.PLAYER.takeoffDipScale;
+          CONFIG.PLAYER.landingPitchNodScale = gp.player.landingPitchNodScale ?? CONFIG.PLAYER.landingPitchNodScale;
+          CONFIG.PLAYER.landingShakeScale = gp.player.landingShakeScale ?? CONFIG.PLAYER.landingShakeScale;
         }
         if (gp.camera) {
           CONFIG.CAMERA.hipFov = gp.camera.hipFov ?? CONFIG.CAMERA.hipFov;
@@ -147,6 +161,9 @@ export class ConfigLoader {
         if (gp.zeroing) {
           deepMerge(CONFIG.ZEROING, gp.zeroing);
         }
+        if (gp.graphics) {
+          deepMerge(CONFIG.GRAPHICS, gp.graphics);
+        }
       }
 
       // 2. Bots Config
@@ -158,7 +175,7 @@ export class ConfigLoader {
       const ammoData = (ammoRes.status === 'fulfilled' && ammoRes.value) ? ammoRes.value : null;
       const audioData = (audioRes.status === 'fulfilled' && audioRes.value) ? audioRes.value : null;
 
-      // 3. Perfis Data-Driven de SFX/VFX de Armas (Flash, Fumaça, Calor Residual e Pulverização)
+      // 3. Perfis Data-Driven de SFX/VFX de Armas (Flash, FumaÃ§a, Calor Residual e PulverizaÃ§Ã£o)
       const sfxIds = ['default', 'ar15', 'ak47', 'scar_h', 'rifle_proto', 'uzi', 'sw500', 'm249', 'vss', 'p9', 'm12'];
       const sfxResults = await Promise.allSettled(
         sfxIds.map(id => fetch(`./assets/weapons/sfx/${id}_sfx.json`).then(r => r.ok ? r.json() : null).catch(() => null))
@@ -171,12 +188,12 @@ export class ConfigLoader {
         }
       });
 
-      // 4. Configuração Data-Driven de Impactos e Pulverização por Material de Superfície
+      // 4. ConfiguraÃ§Ã£o Data-Driven de Impactos e PulverizaÃ§Ã£o por Material de SuperfÃ­cie
       const surfaceImpacts = await fetch('./assets/weapons/sfx/surface_impacts.json')
         .then(r => r.ok ? r.json() : null)
         .catch(() => null);
 
-      // 5. Validação defensiva dos contratos de dados no boot
+      // 5. ValidaÃ§Ã£o defensiva dos contratos de dados no boot
       SchemaValidator.validateAll({
         weapons: weaponsData?.weapons,
         ammo: ammoData,
@@ -192,7 +209,7 @@ export class ConfigLoader {
         surfaceImpacts
       };
     } catch (err) {
-      console.warn('[ConfigLoader] Usando fallback de segurança padrão:', err);
+      console.warn('[ConfigLoader] Usando fallback de seguranÃ§a padrÃ£o:', err);
       return { config: CONFIG, weapons: null, audio: null, weaponSFX: {}, surfaceImpacts: null };
     }
   }

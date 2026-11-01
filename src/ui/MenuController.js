@@ -167,6 +167,8 @@ export class MenuController {
 
     this.headbobSlider = document.getElementById('headbob-slider');
     this.headbobSliderVal = document.getElementById('headbob-val');
+    this.jumpShakeSlider = document.getElementById('jumpshake-slider');
+    this.jumpShakeSliderVal = document.getElementById('jumpshake-val');
     this.shakeSlider = document.getElementById('shake-slider');
     this.shakeSliderVal = document.getElementById('shake-val');
     this.vibrationToggle = document.getElementById('vibration-toggle');
@@ -402,6 +404,24 @@ export class MenuController {
       });
     }
 
+    // Acessibilidade: Tremor de Pulo (Jump Head Shake) Slider
+    const savedJumpShake = parseFloat(
+      localStorage.getItem('blocky_jumpshake') || (CONFIG.ACCESSIBILITY?.jumpShakeScale ?? 1.0).toString()
+    );
+    if (this.jumpShakeSlider && this.jumpShakeSliderVal) {
+      this.jumpShakeSlider.value = savedJumpShake;
+      this.jumpShakeSliderVal.textContent = `${Math.round(savedJumpShake * 100)}%`;
+      if (!CONFIG.ACCESSIBILITY) CONFIG.ACCESSIBILITY = {};
+      CONFIG.ACCESSIBILITY.jumpShakeScale = savedJumpShake;
+
+      this.jumpShakeSlider.addEventListener('input', () => {
+        const val = parseFloat(this.jumpShakeSlider.value);
+        this.jumpShakeSliderVal.textContent = `${Math.round(val * 100)}%`;
+        CONFIG.ACCESSIBILITY.jumpShakeScale = val;
+        localStorage.setItem('blocky_jumpshake', val.toString());
+      });
+    }
+
     // Acessibilidade: Shake Slider
     const savedShake = parseFloat(
       localStorage.getItem('blocky_shake') || (CONFIG.ACCESSIBILITY?.shakeScale ?? 1.0).toString()
@@ -463,6 +483,43 @@ export class MenuController {
         const enabled = this.suppressionToggle.value === 'on';
         CONFIG.ACCESSIBILITY.suppressionEnabled = enabled;
         localStorage.setItem('blocky_suppression', enabled ? 'true' : 'false');
+      });
+    }
+
+    // Seletor de Qualidade Gráfica
+    this.graphicsPresetSelect = document.getElementById('graphics-preset');
+    if (this.graphicsPresetSelect) {
+      const savedPreset = localStorage.getItem('blocky_graphics_preset') || 'medium';
+      this.graphicsPresetSelect.value = savedPreset;
+      if (!CONFIG.GRAPHICS) CONFIG.GRAPHICS = {};
+      CONFIG.GRAPHICS.preset = savedPreset;
+      // Aplica preset imediatamente no boot (SceneSetup ouve config:graphicsChanged)
+      emit('config:graphicsChanged', { preset: savedPreset });
+
+      this.graphicsPresetSelect.addEventListener('change', () => {
+        const preset = this.graphicsPresetSelect.value;
+        if (!CONFIG.GRAPHICS) CONFIG.GRAPHICS = {};
+        CONFIG.GRAPHICS.preset = preset;
+        localStorage.setItem('blocky_graphics_preset', preset);
+        emit('config:graphicsChanged', { preset });
+        const labels = { high: 'ALTA (PC)', medium: 'MÉDIA', low: 'MOBILE / LOW-END' };
+        emit('hud:popup', {
+          text: `🎮 QUALIDADE: ${labels[preset] || preset.toUpperCase()}`,
+          color: preset === 'low' ? '#06d6a0' : preset === 'medium' ? '#f7c948' : '#90c3f9',
+          duration: 1800,
+        });
+      });
+    }
+
+    // Monitor de Desempenho (F3)
+    this.perfMonitorToggle = document.getElementById('perf-monitor-toggle');
+    if (this.perfMonitorToggle) {
+      const savedPerf = localStorage.getItem('blocky_perf_monitor') || 'off';
+      this.perfMonitorToggle.value = savedPerf;
+      this.perfMonitorToggle.addEventListener('change', () => {
+        const on_ = this.perfMonitorToggle.value === 'on';
+        localStorage.setItem('blocky_perf_monitor', on_ ? 'on' : 'off');
+        emit('config:graphicsChanged', { perfMonitor: on_ });
       });
     }
 
@@ -805,7 +862,7 @@ export class MenuController {
     const btnReset = document.getElementById('ch-btn-reset');
 
     const syncFormFromConfig = (cfg) => {
-      if (styleSelect) styleSelect.value = cfg.style || 'cross';
+      if (styleSelect) styleSelect.value = cfg.style || 't_shape';
       if (modeSelect) modeSelect.value = cfg.mode || 'dynamic';
       if (dynamicAlignSelect) dynamicAlignSelect.value = cfg.dynamicAlignment !== false ? 'on' : 'off';
       if (followRecoilSelect) followRecoilSelect.value = cfg.followRecoil ? 'on' : 'off';
@@ -827,7 +884,7 @@ export class MenuController {
         outlineSlider.value = cfg.outline;
         if (outlineVal) outlineVal.textContent = `${cfg.outline}px`;
       }
-      if (colorPicker) colorPicker.value = cfg.color || '#00ff66';
+      if (colorPicker) colorPicker.value = cfg.color || '#ffffff';
       if (noFireToggle) noFireToggle.value = cfg.noFireWarning ? 'on' : 'off';
       if (aimAssistToggle) {
         const isAAOn = cfg.aimAssist !== 'none' && cfg.aimAssist !== false;

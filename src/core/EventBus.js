@@ -44,6 +44,7 @@ export const CANONICAL_EVENTS = Object.freeze([
   'player:respawn',
   'player:respawn_tick',
   'player:footstep',
+  'player:landing',
   'player:ads',
   'player:skinChanged',
   'player:perspective_changed',

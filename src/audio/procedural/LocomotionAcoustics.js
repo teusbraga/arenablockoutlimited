@@ -119,4 +119,26 @@ export class LocomotionAcoustics {
     toeOsc.start(tToe);
     toeOsc.stop(tToe + 0.05);
   }
+
+  /**
+   * Síntese de aterrissagem pesada (duplo impacto com 2 pés e transientes de alta densidade).
+   */
+  synthesizeLanding(params, ctx, destination, startTime = null, material = 'floor', humanize = true) {
+    const t0 = startTime !== null ? startTime : ctx.currentTime;
+    const j = humanize ? (1 + (Math.random() - 0.5) * 0.08) : 1.0;
+    const secondFootDelay = (getVal(params?.secondFootDelay, 42) / 1000) * j;
+
+    // Pé primário (impacto frontal principal)
+    this.synthesizeFootstep(params, ctx, destination, t0, material, humanize);
+
+    // Pé secundário (ligeiramente atenuado e com afinação sutilmente deslocada)
+    const foot2Params = {
+      ...params,
+      bodyWeight: getVal(params?.bodyWeight, 2.2) * 0.82,
+      heelFrequency: getVal(params?.heelFrequency, 85) * 0.94,
+      toePitch: getVal(params?.toePitch, 140) * 0.95,
+      scuffAmount: getVal(params?.scuffAmount, 0.65) * 0.80
+    };
+    this.synthesizeFootstep(foot2Params, ctx, destination, t0 + secondFootDelay, material, humanize);
+  }
 }

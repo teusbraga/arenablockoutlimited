@@ -305,8 +305,8 @@ Cada linha: responsabilidade, exports principais, dependências e consumidores.
 - **Exporta:** `CameraRig`.
 - **Depende:** `CONFIG`.
 - **Camadas:** target yaw/pitch (`:44-46`), current/inércia (`:48-55`), punch/coice/shake (`:58-64`), bob/lean/flinch/perspectiva (`:70-93`).
-- **Métodos:** `addMouseInput` (`:99`), `addRecoilImpulse` (`:114`), `addShake` (`:145`), `setOrientation` (`:151`), `togglePerspective` (`:189`), `reset` (`:204`), `update` (`:227`), `applyToCamera` (`:450`).
-- **Update:** smoothDamp yaw/pitch; climb com controle 100% manual (autoRecoilRecovery: false por padrão, estilo CS2); amortecimento de 90% do headbob no ADS (adsDamp = 0.10); molas ágeis de recoil em subpassos de 2 ms (340/32); shake; eye height/crouch; death roll; lean; spring-arm de 3ª pessoa com raycast.
+- **Métodos:** `addMouseInput`, `addRecoilImpulse`, `addShake`, `triggerJumpTakeoff`, `triggerLandingDip`, `setOrientation`, `togglePerspective`, `reset`, `update`, `applyToCamera`.
+- **Update:** smoothDamp yaw/pitch; climb com controle 100% manual (autoRecoilRecovery: false por padrão, estilo CS2); amortecimento de 90% do headbob e do jump pitch nod no ADS (adsDamp = 0.10); molas ágeis de recoil em subpassos de 2 ms (340/32); cinemática de pulo biomecânica híbrida (takeoff dip, landing dip k=260/d=26, head pitch nod, tremor de ação e reação elástica a 16 Hz e micro-shake concussivo); shake; eye height/crouch; death roll; lean; spring-arm de 3ª pessoa com raycast.
 - **Não usa** `CONFIG.SWAY` (molas são hardcoded 280/25 e 240/24).
 
 ### 7.2 `src/entities/`
@@ -579,7 +579,7 @@ Cada linha: responsabilidade, exports principais, dependências e consumidores.
 - **Volumes:** master/weapons/footsteps/impacts/trauma; persistidos em `localStorage` (`blocky_vol_*`); preset inicial `blocky_audio_preset_v2`.
 - **Espacial:** `updateListener` (`:311`), `checkOcclusion` (`:349`), `createSpatialDestination` (HRTF + lowpass de oclusão + ar) (`:367`), `startSmokeHiss` (`:441`), `update` (`:543`).
 - **Disparos:** `playProceduralShot(weaponId, destination)` (`:586`); mapeia `m12`, `sw500`, `ar15/m249/rifle_proto`, `ak47`, `scar_h`, `uzi`, `vss`, `p9`, fallback 5.56.
-- **Eventos que ouve (`:689-795`):** `weapon:fired`, `bot:fired`, `weapon:empty`, `weapon:pump`, `weapon:reload:start/end`, `shot:world/penetration/ricochet`, `player:damaged`, `player:footstep`, `smoke:detonate/stop`.
+- **Eventos que ouve (`:689-795`):** `weapon:fired`, `bot:fired`, `weapon:empty`, `weapon:pump`, `weapon:reload:start/end`, `shot:world/penetration/ricochet`, `player:damaged`, `player:footstep`, `player:landing`, `smoke:detonate/stop`.
 - **Ducking:** `triggerAcousticDucking` (`:217`).
 
 #### `procedural/`
@@ -606,7 +606,7 @@ Cada linha: responsabilidade, exports principais, dependências e consumidores.
 #### `CrosshairManager.js` (232 linhas)
 - **Responsabilidade:** config/persistência e posicionamento da mira em 3 eixos independentes.
 - **Exporta:** `DEFAULT_CROSSHAIR_CONFIG`, `CrosshairManager`.
-- **Config:** `style`, `mode`, `dynamicAlignment`, `followRecoil`, `centerDot`, `length`, `thickness`, `gap`, `outline`, `color`, `noFireWarning`, `aimAssist`.
+- **Config:** `style` ('t_shape'), `mode` ('dynamic'), `dynamicAlignment` (true), `followRecoil` (true), `centerDot` (true), `length` (5), `thickness` (1.5), `gap` (4), `outline` (0), `color` ('#ffffff'), `noFireWarning` (false), `aimAssist` (true).
 - **Persistência:** `localStorage.blocky_crosshair_settings`.
 - **Eixos:** gap dinâmico sub-MOA (`:176-186`), posição pelo cano com zeroing analítico (`:188-204`), offset de recoil CS2 (`:206-236`).
 - **`isBlocked`:** `wallCompression > 0.45 && noFireWarning` (`:159-170`).
@@ -831,6 +831,7 @@ Input contínuo → `Player.update`:
 | `player:respawn` | Player | HUD | — |
 | `player:respawn_tick` | Player | HUD | `{ seconds, count }` |
 | `player:footstep` | Player | AudioSystem | `pos, material` |
+| `player:landing` | Player | AudioSystem | `pos, material, velY` |
 | `player:ads` | WeaponSystem | Player | `ads` |
 | `player:skinChanged` | MenuController | main | `{ skin }` |
 | `player:perspective_changed` | Player | (ninguém) | `mode, isThirdPerson` |
@@ -1015,7 +1016,7 @@ Chaves de CONFIG padronizadas na Fase 1:
 ### 11.2 IDs importantes
 HUD/combate: `hud`, `hp-hud`, `hp-num`, `weapon-hud`, `weapon-name`, `fire-mode`, `ammo-num`, `ammo-max`, `slot-1-pill`, `slot-2-pill`, `round-timer`, `kills`, `deaths`, `killfeed`, `hitmarker`, `prompt`, `death-screen`, `respawn-txt`, `roundover-screen`, `final-stats`, `restart-btn`, `screen-flash`, `suppression-overlay`, `damage-indicator`, `kill-popup`, `crosshair`, `crosshair-no-fire`, `lens`, `reticle`, `scopeHud`, `scope-zoom-text`, `scope-fov-text`, `reload-qte`, `qte-*`.
 Inventário: `inventory-modal`, `inv-weight-lbl`, `inv-slot-pri`, `inv-slot-sec`, `inv-grid-container`, `inv-btn-close`.
-Menu: `overlay`, `menu-start`, `menu-pause`, `btn-resume`, `btn-reset`, `map-select`, `weapon-select`, `weapon-secondary-select`, `bot-skin-select`, `bot-count`, `round-time`, `sens-slider`, `headbob-slider`, `shake-slider`, `vibration-toggle`, `suppression-toggle`, `texture-mode-select`, `bump-slider`, `uv-scale-slider`, `custom-tex-*`, `ch-*`, `vol-*`, `soldier-*`, `weapon-preview-*`.
+Menu: `overlay`, `menu-start`, `menu-pause`, `btn-resume`, `btn-reset`, `map-select`, `weapon-select`, `weapon-secondary-select`, `bot-skin-select`, `bot-count`, `round-time`, `sens-slider`, `headbob-slider`, `jumpshake-slider`, `shake-slider`, `vibration-toggle`, `suppression-toggle`, `texture-mode-select`, `bump-slider`, `uv-scale-slider`, `custom-tex-*`, `ch-*`, `vol-*`, `soldier-*`, `weapon-preview-*`.
 Loading: `loading-screen`, `loading-map-name`, `loading-bar`, `loading-status`, `loading-percent`.
 
 **IDs referenciados mas ausentes no HTML:** `hp-fill`, `ammo-fill` (HUD os guarda como `null`; não são usados). `#hud` contém `controls` com texto desatualizado.

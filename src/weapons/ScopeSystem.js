@@ -1,22 +1,34 @@
-/**
+﻿/**
  * ============================================================================
- *   SCOPE SYSTEM — Lente Telescópica com Segunda Câmera (Arquivo 1 Literal)
+ *   SCOPE SYSTEM â€” Lente TelescÃ³pica com Segunda CÃ¢mera (Arquivo 1 Literal)
  * ============================================================================
- * Código literal e integral do algoritmo do Arquivo 1:
+ * CÃ³digo literal e integral do algoritmo do Arquivo 1:
  * - RenderTarget quadrado (1024x1024) para a scopeCamera
- * - ShaderMaterial com distorção de barril, aberração cromática e vinheta
- * - Mesh de CircleGeometry mapeado na overlayScene ortográfica 2D
- * - Máscara circular perfeita com setScissor delimitado ao quadrado da lente
- * - Retículo em SVG (Duplex + Ticks + Ponto Central Vermelho)
- * - Sensibilidade trigonométrica e scroll de zoom
+ * - ShaderMaterial com distorÃ§Ã£o de barril, aberraÃ§Ã£o cromÃ¡tica e vinheta
+ * - Mesh de CircleGeometry mapeado na overlayScene ortogrÃ¡fica 2D
+ * - MÃ¡scara circular perfeita com setScissor delimitado ao quadrado da lente
+ * - RetÃ­culo em SVG (Duplex + Ticks + Ponto Central Vermelho)
+ * - Sensibilidade trigonomÃ©trica e scroll de zoom
  * ============================================================================
  */
 
 import * as THREE from 'three';
 import { on } from '../core/EventBus.js';
 
+// ── Vetores estáticos reutilizáveis (Zero-Allocation no loop) ─────────────────
+// Declarados no escopo do módulo para evitar alocação de memória dentro do loop
+// de renderização, eliminando pressão no Garbage Collector (GC pauses de 50-100ms).
+const _vRear   = new THREE.Vector3();
+const _vFront  = new THREE.Vector3();
+const _dir     = new THREE.Vector3();
+const _vUp     = new THREE.Vector3();
+const _target  = new THREE.Vector3();
+const _vCam    = new THREE.Vector3();
+const _qShake  = new THREE.Quaternion();
+const _euler   = new THREE.Euler();
+
 /* =====================================================================
- *  CONFIGURAÇÃO DO ARQUIVO 1
+ *  CONFIGURAÃ‡ÃƒO DO ARQUIVO 1
  * ===================================================================== */
 export const SCOPE_CONFIG = {
   NORMAL_FOV: 75,
@@ -25,7 +37,7 @@ export const SCOPE_CONFIG = {
   SCOPE_FOV_MIN: 2,
   SCOPE_FOV_MAX: 30,
   LENS_SIZE: 0.45,
-  SCOPE_RT_SIZE: 512, // Otimizado de 1024 para 512 (75% menos fillrate/pixels processados na GPU com nitidez idêntica)
+  SCOPE_RT_SIZE: 512, // Otimizado de 1024 para 512 (75% menos fillrate/pixels processados na GPU com nitidez idÃªntica)
   ADS_SPEED: 12
 };
 
@@ -40,16 +52,16 @@ export class ScopeSystem {
     this.adsT = 0;
     this.scopeOn = false;
 
-    // ── CÂMERA 2: scope (mesma cena, mesma posição/orientação, FOV bem menor)
-    // aspect = 1 porque a lente é um círculo (textura quadrada).
+    // â”€â”€ CÃ‚MERA 2: scope (mesma cena, mesma posiÃ§Ã£o/orientaÃ§Ã£o, FOV bem menor)
+    // aspect = 1 porque a lente Ã© um cÃ­rculo (textura quadrada).
     // far ajustado para 150m (culling otimizado; fog do mapa corta aos 110m)
-    this.scopeCamera = new THREE.PerspectiveCamera(this.scopeFov, 1, 0.1, 150);
+    this.scopeCamera = new THREE.PerspectiveCamera(this.scopeFov, 1, 0.1, 115);
 
     /* ---------------------------------------------------------------------
      *  Render target: a scopeCamera desenha AQUI (textura quadrada offscreen),
-     *  e depois essa textura é colada num disco 2D no centro da tela.
+     *  e depois essa textura Ã© colada num disco 2D no centro da tela.
      *  Isso resolve o problema de setScissor() ser sempre retangular: com a
-     *  textura mapeada num CircleGeometry, a máscara circular é perfeita.
+     *  textura mapeada num CircleGeometry, a mÃ¡scara circular Ã© perfeita.
      * ------------------------------------------------------------------- */
     this.scopeRT = new THREE.WebGLRenderTarget(SCOPE_CONFIG.SCOPE_RT_SIZE, SCOPE_CONFIG.SCOPE_RT_SIZE, {
       minFilter: THREE.LinearFilter,
@@ -58,9 +70,9 @@ export class ScopeSystem {
     });
 
     /* ---------------------------------------------------------------------
-     *  Cena de composição (overlay 2D em pixels): um disco com a textura da
-     *  scopeCamera + shader com vinheta, leve distorção de lente e aberração
-     *  cromática. Câmera ortográfica com 1 unidade = 1 pixel CSS.
+     *  Cena de composiÃ§Ã£o (overlay 2D em pixels): um disco com a textura da
+     *  scopeCamera + shader com vinheta, leve distorÃ§Ã£o de lente e aberraÃ§Ã£o
+     *  cromÃ¡tica. CÃ¢mera ortogrÃ¡fica com 1 unidade = 1 pixel CSS.
      * ------------------------------------------------------------------- */
     this.overlayScene = new THREE.Scene();
     this.overlayCam = new THREE.OrthographicCamera(
@@ -82,7 +94,7 @@ export class ScopeSystem {
       vertexShader: /* glsl */`
         varying vec2 vUv;
         void main() {
-          vUv = uv;   // CircleGeometry gera UVs que mapeiam o círculo dentro do quadrado 0..1
+          vUv = uv;   // CircleGeometry gera UVs que mapeiam o cÃ­rculo dentro do quadrado 0..1
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }`,
       fragmentShader: /* glsl */`
@@ -98,8 +110,8 @@ export class ScopeSystem {
           vec2 pFront = p - uParallax;
           float rFront = length(pFront) * 2.0;     // Raio na Lente Dianteira (0 a 1)
           
-          // A imagem da cÃ¢mera vem alinhada com o cano (frontLens)
-          // EntÃ£o adicionamos uma levÃ­ssima distorÃ§Ã£o de lente baseada na lente traseira (p)
+          // A imagem da cÃƒÂ¢mera vem alinhada com o cano (frontLens)
+          // EntÃƒÂ£o adicionamos uma levÃƒÂ­ssima distorÃƒÂ§ÃƒÂ£o de lente baseada na lente traseira (p)
           vec2 uv = 0.5 + p * (1.0 - 0.10 * r * r);
           vec2 ca = p * 0.006 * r * r;
           
@@ -112,17 +124,17 @@ export class ScopeSystem {
           col *= 1.20;
 
           // Anel Interno (A parede do tubo que varia dinamicamente com o zoom)
-          // Se o raio na lente dianteira passar de uInnerRingRadius, começa a parede interna do cilindro
+          // Se o raio na lente dianteira passar de uInnerRingRadius, comeÃ§a a parede interna do cilindro
           float isWall = smoothstep(uInnerRingRadius, uInnerRingRadius + 0.035, rFront);
           
-          // Iluminação da parede interna baseada na direção (fake 3D shading do tubo)
+          // IluminaÃ§Ã£o da parede interna baseada na direÃ§Ã£o (fake 3D shading do tubo)
           float wallShade = 0.45 + 0.55 * dot(normalize(pFront + vec2(0.001)), vec2(0.0, 1.0));
           vec3 wallColor = vec3(0.012, 0.014, 0.018) * wallShade;
           
           // Mistura a imagem da lente com a parede interna
           col = mix(col, wallColor, isWall);
           
-          // Borda externa sólida e opaca (corte nítido e limpo com anti-aliasing de 1px, sem transparência esfumaçada)
+          // Borda externa sÃ³lida e opaca (corte nÃ­tido e limpo com anti-aliasing de 1px, sem transparÃªncia esfumaÃ§ada)
           float alpha = uOpacity * (1.0 - smoothstep(0.995, 1.0, r));
           
           gl_FragColor = vec4(col, alpha);
@@ -130,7 +142,7 @@ export class ScopeSystem {
     });
 
     // Disco de raio 1: a escala do mesh (em pixels) define o raio real da lente.
-    // 36 segmentos mantêm a curvatura da lente perfeitamente suave enquanto poupa vértices da GPU
+    // 36 segmentos mantÃªm a curvatura da lente perfeitamente suave enquanto poupa vÃ©rtices da GPU
     this.lensMesh = new THREE.Mesh(new THREE.CircleGeometry(1, 36), this.lensMat);
     this.overlayScene.add(this.lensMesh);
 
@@ -142,21 +154,21 @@ export class ScopeSystem {
     this.dotEl = document.getElementById('crosshair');
     this.zoomBtnTouch = document.getElementById('btn-touch-zoom');
 
-    // Variáveis de oscilação orgânica (Scope Sway / Respiração)
+    // VariÃ¡veis de oscilaÃ§Ã£o orgÃ¢nica (Scope Sway / RespiraÃ§Ã£o)
     this.swayTime = 0;
     this.swayPitch = 0;
     this.swayYaw = 0;
 
-    // Inércia de movimento do mouse (Mouse Look Inertia) para paralaxe realista
+    // InÃ©rcia de movimento do mouse (Mouse Look Inertia) para paralaxe realista
     this.prevYaw = 0;
     this.prevPitch = 0;
     this.hasPrevLook = false;
     this.lookInertia = new THREE.Vector2(0, 0);
 
-    // Inicializa Retículo SVG literal do Arquivo 1
+    // Inicializa RetÃ­culo SVG literal do Arquivo 1
     this.buildReticle();
 
-    // Tremor interno cinético exclusivo da ótica (Scope Concussion / Recoil Shockwave)
+    // Tremor interno cinÃ©tico exclusivo da Ã³tica (Scope Concussion / Recoil Shockwave)
     this.opticShake = 0;
     this.mainCameraRef = null;
 
@@ -180,7 +192,7 @@ export class ScopeSystem {
 
     this._unsubZoomToggle = on('input:zoom-toggle', () => {
       if (!this.adsTarget) return;
-      // Cycle zoom: se estiver perto do mínimo (max zoom), volta pro fov máximo, senão dá step
+      // Cycle zoom: se estiver perto do mÃ­nimo (max zoom), volta pro fov mÃ¡ximo, senÃ£o dÃ¡ step
       if (this.scopeFov <= SCOPE_CONFIG.SCOPE_FOV_MIN * 1.1) {
         this.scopeFov = SCOPE_CONFIG.SCOPE_FOV_MAX;
       } else {
@@ -234,13 +246,13 @@ export class ScopeSystem {
 
       let s = '';
 
-      // 1. Red Horseshoe (ferradura tática vermelha iluminada aberta embaixo)
+      // 1. Red Horseshoe (ferradura tÃ¡tica vermelha iluminada aberta embaixo)
       // Raio 5.4, aberta na parte inferior (~70 graus)
       s += `<path d="M -3.8 3.8 A 5.4 5.4 0 1 1 3.8 3.8" fill="none" stroke="${red}" stroke-width="1.35" stroke-linecap="butt"/>`;
 
-      // 2. Red Chevron central (ápice exatamente em 0,0)
+      // 2. Red Chevron central (Ã¡pice exatamente em 0,0)
       s += `<path d="M -1.8 2.0 L 0 0 L 1.8 2.0" fill="none" stroke="${red}" stroke-width="0.8" stroke-linejoin="miter" stroke-linecap="butt"/>`;
-      // Traço vertical central vermelho logo abaixo do chevron
+      // TraÃ§o vertical central vermelho logo abaixo do chevron
       s += L(0, 2.7, 0, 4.4, 0.65, red);
 
       // 3. Walking Speed Leads Bracket (3.1 avg walking speed em volta da ferradura)
@@ -251,45 +263,45 @@ export class ScopeSystem {
       s += C(14.0, 0, 0.85, black);
       s += `<path d="M -14.0 -1.2 L -14.0 -10.8 L 14.0 -10.8 L 14.0 -1.2" fill="none" stroke="${black}" stroke-width="0.32"/>`;
 
-      // 5. Árvore Balística Vertical BDC (Bullet Drop Compensation)
+      // 5. Ãrvore BalÃ­stica Vertical BDC (Bullet Drop Compensation)
       // Linha mestre vertical
       s += L(0, 4.4, 0, 36.0, 0.45, black);
 
-      // Ticks horizontais de distância + Wind hold dots (pontos de vento)
-      // Distância 3 (300m)
+      // Ticks horizontais de distÃ¢ncia + Wind hold dots (pontos de vento)
+      // DistÃ¢ncia 3 (300m)
       s += L(-1.4, 7.2, 1.4, 7.2, 0.45, black);
       s += C(-3.2, 7.2, 0.4, black);
       s += C(3.2, 7.2, 0.4, black);
 
-      // Distância 4 (400m) - com número '4' à direita
+      // DistÃ¢ncia 4 (400m) - com nÃºmero '4' Ã  direita
       s += L(-2.2, 11.8, 2.2, 11.8, 0.55, black);
       s += T(3.8, 11.8, '4', black, 2.3);
       s += C(-4.8, 11.8, 0.42, black);
       s += C(6.2, 11.8, 0.42, black);
 
-      // Distância 5 (500m)
+      // DistÃ¢ncia 5 (500m)
       s += L(-1.6, 17.0, 1.6, 17.0, 0.45, black);
       s += C(-6.2, 17.0, 0.42, black);
       s += C(6.2, 17.0, 0.42, black);
 
-      // Distância 6 (600m) - com número '6' à direita
+      // DistÃ¢ncia 6 (600m) - com nÃºmero '6' Ã  direita
       s += L(-2.6, 22.8, 2.6, 22.8, 0.55, black);
       s += T(4.4, 22.8, '6', black, 2.3);
       s += C(-7.8, 22.8, 0.45, black);
       s += C(7.2, 22.8, 0.45, black);
 
-      // Distância 7 (700m)
+      // DistÃ¢ncia 7 (700m)
       s += L(-1.8, 29.0, 1.8, 29.0, 0.45, black);
       s += C(-9.4, 29.0, 0.45, black);
       s += C(9.4, 29.0, 0.45, black);
 
-      // Distância 8 (800m) - com número '8' à direita
+      // DistÃ¢ncia 8 (800m) - com nÃºmero '8' Ã  direita
       s += L(-3.2, 35.5, 3.2, 35.5, 0.6, black);
       s += T(5.2, 35.5, '8', black, 2.3);
       s += C(-11.2, 35.5, 0.48, black);
       s += C(8.4, 35.5, 0.48, black);
 
-      // 6. Telêmetro Estadiamétrico à Direita (Stadiametric Rangefinder Ladder: 4, 6, 8)
+      // 6. TelÃªmetro EstadiamÃ©trico Ã  Direita (Stadiametric Rangefinder Ladder: 4, 6, 8)
       const rx = 19.5;
       s += L(rx, 11.8, rx, 35.5, 0.6, black);
       s += L(rx, 11.8, rx + 4.8, 11.8, 0.55, black);
@@ -315,7 +327,7 @@ export class ScopeSystem {
       // Barra vertical inferior
       s += L(0, 18, 0, 45, .85);
       
-      // Chevrons táticos PSO-1 (topo ^ e marcas de queda balística)
+      // Chevrons tÃ¡ticos PSO-1 (topo ^ e marcas de queda balÃ­stica)
       const chevron = (cy, sz, color = '#ff2200') => {
         return `<path d="M ${-sz} ${cy + sz} L 0 ${cy} L ${sz} ${cy + sz}" fill="none" stroke="${color}" stroke-width="0.75" stroke-linejoin="miter"/>`;
       };
@@ -324,26 +336,26 @@ export class ScopeSystem {
       s += chevron(11.0, 1.6, '#ff2a11'); // 300m
       s += chevron(16.5, 1.4, '#ff2a11'); // 400m
 
-      // Escala estadiamétrica / telêmetro balístico (quadrante inferior esquerdo)
+      // Escala estadiamÃ©trica / telÃªmetro balÃ­stico (quadrante inferior esquerdo)
       s += L(-34, 18, -12, 18, .55);
       s += `<path d="M -34 10 Q -24 12 -12 18" fill="none" stroke="#ff3311" stroke-width="0.55"/>`;
       s += L(-30, 18, -30, 11.2, .45);
       s += L(-24, 18, -24, 12.8, .45);
       s += L(-18, 18, -18, 15.0, .45);
 
-      // Ponto de iluminação central trítio / retículo russo iluminado
+      // Ponto de iluminaÃ§Ã£o central trÃ­tio / retÃ­culo russo iluminado
       s += '<circle cx="0" cy="0" r="0.4" fill="#ff1100" stroke="none"/>';
       el.innerHTML = s;
       return;
     }
 
-    // Retículo Duplex Padrão
+    // RetÃ­culo Duplex PadrÃ£o
     const L = (x1, y1, x2, y2, w) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke-width="${w}"/>`;
     let s = '';
     // Linhas grossas externas + finas internas (estilo duplex)
     s += L(-46, 0, -10, 0, .9) + L(10, 0, 46, 0, .9) + L(0, -46, 0, -10, .9) + L(0, 10, 0, 46, .9);
     s += L(-10, 0, -1.5, 0, .22) + L(1.5, 0, 10, 0, .22) + L(0, -10, 0, -1.5, .22) + L(0, 1.5, 0, 10, .22);
-    // Marcações de mira (ticks) ao longo dos eixos
+    // MarcaÃ§Ãµes de mira (ticks) ao longo dos eixos
     for (let t = 14; t <= 42; t += 7) {
       const l = (t % 14 === 0) ? 2.2 : 1.3;
       s += L(t, -l, t, l, .25) + L(-t, -l, -t, l, .25) + L(-l, t, l, t, .25) + L(-l, -t, l, -t, .25);
@@ -401,28 +413,28 @@ export class ScopeSystem {
     this.mainCameraRef = mainCamera;
     this.adsTarget = isAdsActive;
 
-    // Transição suave do ADS (exponencial, independente de FPS)
+    // TransiÃ§Ã£o suave do ADS (exponencial, independente de FPS)
     const target = this.adsTarget ? 1 : 0;
     this.adsT += (target - this.adsT) * (1 - Math.exp(-dt * SCOPE_CONFIG.ADS_SPEED));
     if (Math.abs(target - this.adsT) < 0.001) this.adsT = target;
 
-    // Decaimento responsivo do tremor de tiro interno da ótica
+    // Decaimento responsivo do tremor de tiro interno da Ã³tica
     if (this.opticShake > 0.0001) {
       this.opticShake *= Math.max(0, 1 - dt * 9.0);
     } else {
       this.opticShake = 0;
     }
 
-    // ── Inércia de Movimento Cinético (Layer 4 — Paralaxe Passivo da Câmera) ──
+    // â”€â”€ InÃ©rcia de Movimento CinÃ©tico (Layer 4 â€” Paralaxe Passivo da CÃ¢mera) â”€â”€
     let lookSpeedX = 0;
     let lookSpeedY = 0;
 
     if (rig && rig.angularVelocity) {
-      // Lê passivamente a velocidade angular contínua da Layer 1/2 (já inclui inércia e recuo!)
+      // LÃª passivamente a velocidade angular contÃ­nua da Layer 1/2 (jÃ¡ inclui inÃ©rcia e recuo!)
       lookSpeedX = rig.angularVelocity.y;
       lookSpeedY = rig.angularVelocity.x;
     } else {
-      // Fallback legado se o rig não for passado
+      // Fallback legado se o rig nÃ£o for passado
       const currentYaw = mainCamera.rotation.y;
       const currentPitch = mainCamera.rotation.x;
 
@@ -448,12 +460,12 @@ export class ScopeSystem {
     }
 
     if (this.adsT > 0.05 && dt > 0) {
-      // Ganho calibrado para sensação de paralaxe cilíndrico realista (reduzido em 60% para estabilidade de mira)
+      // Ganho calibrado para sensaÃ§Ã£o de paralaxe cilÃ­ndrico realista (reduzido em 60% para estabilidade de mira)
       const inertiaGain = 0.034;
       const targetInertiaX = THREE.MathUtils.clamp(lookSpeedX * inertiaGain, -0.20, 0.20);
       const targetInertiaY = THREE.MathUtils.clamp(-lookSpeedY * inertiaGain, -0.20, 0.20);
 
-      // Resposta ágil ao movimento da mão e retorno amortecido ao parar o mouse
+      // Resposta Ã¡gil ao movimento da mÃ£o e retorno amortecido ao parar o mouse
       const speedX = Math.abs(targetInertiaX) > Math.abs(this.lookInertia.x) ? 26.0 : 14.0;
       const speedY = Math.abs(targetInertiaY) > Math.abs(this.lookInertia.y) ? 26.0 : 14.0;
 
@@ -463,8 +475,8 @@ export class ScopeSystem {
       this.lookInertia.set(0, 0);
     }
 
-    // ── Sway Orgânico de Respiração no Scope ─────────────────────────────────
-    // Quando em ADS, a respiração produz leve oscilação suave (reduzida em 60%)
+    // â”€â”€ Sway OrgÃ¢nico de RespiraÃ§Ã£o no Scope â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Quando em ADS, a respiraÃ§Ã£o produz leve oscilaÃ§Ã£o suave (reduzida em 60%)
     if (this.adsT > 0.1) {
       this.swayTime += dt * 1.4;
       const swayAmplitude = 0.00034 * this.adsT;
@@ -475,34 +487,32 @@ export class ScopeSystem {
       this.swayPitch = 0;
     }
 
-    // Câmera do scope: Orientação sincronizada com a principal + leve oscilação orgânica
+    // CÃ¢mera do scope: OrientaÃ§Ã£o sincronizada com a principal + leve oscilaÃ§Ã£o orgÃ¢nica
     mainCamera.updateMatrixWorld();
     this.scopeCamera.position.copy(mainCamera.position);
 
     const details = this.activeDetails || this.protoDetails;
     if (details && details.rearLens && details.frontLens) {
-      const vRear = new THREE.Vector3();
-      const vFront = new THREE.Vector3();
-      details.rearLens.getWorldPosition(vRear);
-      details.frontLens.getWorldPosition(vFront);
-      
-      const dir = new THREE.Vector3().subVectors(vFront, vRear).normalize();
-      
-      const vUp = new THREE.Vector3(0, 1, 0);
+      details.rearLens.getWorldPosition(_vRear);
+      details.frontLens.getWorldPosition(_vFront);
+
+      _dir.subVectors(_vFront, _vRear).normalize();
+
+      _vUp.set(0, 1, 0);
       if (details.opticBody) {
-        vUp.transformDirection(details.opticBody.matrixWorld).normalize();
+        _vUp.transformDirection(details.opticBody.matrixWorld).normalize();
       }
 
-      const target = new THREE.Vector3().copy(this.scopeCamera.position).add(dir);
-      this.scopeCamera.up.copy(vUp);
-      this.scopeCamera.lookAt(target);
+      _target.copy(this.scopeCamera.position).add(_dir);
+      this.scopeCamera.up.copy(_vUp);
+      this.scopeCamera.lookAt(_target);
     } else {
       this.scopeCamera.quaternion.copy(mainCamera.quaternion);
       if (this.adsT > 0.1) {
-        const euler = new THREE.Euler().setFromQuaternion(this.scopeCamera.quaternion, 'YXZ');
-        euler.y += this.swayYaw;
-        euler.x += this.swayPitch;
-        this.scopeCamera.quaternion.setFromEuler(euler);
+        _euler.setFromQuaternion(this.scopeCamera.quaternion, 'YXZ');
+        _euler.y += this.swayYaw;
+        _euler.x += this.swayPitch;
+        this.scopeCamera.quaternion.setFromEuler(_euler);
       }
     }
 
@@ -510,10 +520,12 @@ export class ScopeSystem {
     this.scopeCamera.aspect = 1;
     this.scopeCamera.updateProjectionMatrix();
 
-    // Estado do scope ativo
-    this.scopeOn = this.adsT > 0.01;
+    // Estado do scope ativo: segundo passe da câmera só ativa quando a lente
+    // estiver de fato no campo de visão (>= 0.55). Isso elimina o tranco no
+    // clique de mirar (GC spike causado pelo segundo renderer.render() prematuro).
+    this.scopeOn = this.adsT >= 0.55;
 
-    // HUD Telemetria de Ótica posicionada harmonicamente no topo do HUD da arma
+    // HUD Telemetria de Ã“tica posicionada harmonicamente no topo do HUD da arma
     if (this.scopeHudEl) {
       if (this.adsT > 0.45) {
         this.scopeHudEl.classList.add('show');
@@ -522,7 +534,7 @@ export class ScopeSystem {
           this.zoomTextEl.textContent = `${this.apparentZoom().toFixed(1)}x`;
         }
         if (this.fovTextEl) {
-          this.fovTextEl.textContent = `FOV ${this.scopeFov.toFixed(1)}°`;
+          this.fovTextEl.textContent = `FOV ${this.scopeFov.toFixed(1)}Â°`;
         }
       } else {
         this.scopeHudEl.classList.remove('show');
@@ -530,8 +542,8 @@ export class ScopeSystem {
       }
     }
 
-    // Transição de Eye Relief para shooter moderno:
-    // O overlay 2D surge suavemente apenas na fase final de aproximação (adsT > 0.65)
+    // TransiÃ§Ã£o de Eye Relief para shooter moderno:
+    // O overlay 2D surge suavemente apenas na fase final de aproximaÃ§Ã£o (adsT > 0.65)
     // permitindo ver a arma subindo e a lente 3D se alinhando com o olho primeiro
     const eyeReliefThreshold = 0.65;
     const overlayProgress = Math.max(0, (this.adsT - eyeReliefThreshold) / (1 - eyeReliefThreshold));
@@ -550,48 +562,45 @@ export class ScopeSystem {
       this.scopeCamera.position.copy(this.mainCameraRef.position);
     }
 
-    // Atualiza orientação da scopeCamera com as matrizes mais recentes antes do render
+    // Atualiza orientaÃ§Ã£o da scopeCamera com as matrizes mais recentes antes do render
     const details = this.activeDetails || this.protoDetails;
     if (details && details.rearLens && details.frontLens) {
       details.rearLens.updateMatrixWorld(true);
       details.frontLens.updateMatrixWorld(true);
       
-      const vRear = new THREE.Vector3();
-      const vFront = new THREE.Vector3();
-      details.rearLens.getWorldPosition(vRear);
-      details.frontLens.getWorldPosition(vFront);
-      
-      const dir = new THREE.Vector3().subVectors(vFront, vRear).normalize();
-      const vUp = new THREE.Vector3(0, 1, 0);
+      details.rearLens.getWorldPosition(_vRear);
+      details.frontLens.getWorldPosition(_vFront);
+
+      _dir.subVectors(_vFront, _vRear).normalize();
+      _vUp.set(0, 1, 0);
       if (details.opticBody) {
-        vUp.transformDirection(details.opticBody.matrixWorld).normalize();
+        _vUp.transformDirection(details.opticBody.matrixWorld).normalize();
       }
 
-      const target = new THREE.Vector3().copy(this.scopeCamera.position).add(dir);
-      this.scopeCamera.up.copy(vUp);
-      this.scopeCamera.lookAt(target);
+      _target.copy(this.scopeCamera.position).add(_dir);
+      this.scopeCamera.up.copy(_vUp);
+      this.scopeCamera.lookAt(_target);
     } else if (this.mainCameraRef) {
       this.scopeCamera.quaternion.copy(this.mainCameraRef.quaternion);
     }
 
-    // ── Tremor Cinético Exclusivo do Interior da Ótica ─────────────────────
+    // â”€â”€ Tremor CinÃ©tico Exclusivo do Interior da Ã“tica â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (this.opticShake > 0.001) {
       const t = performance.now() * 0.001;
       const shakePitch = (Math.sin(t * 68.0) * 0.010 + Math.cos(t * 110.0) * 0.005) * this.opticShake;
       const shakeYaw = (Math.cos(t * 82.0) * 0.008 + Math.sin(t * 125.0) * 0.004) * this.opticShake;
       const shakeRoll = (Math.sin(t * 54.0) * 0.009) * this.opticShake;
 
-      const qShake = new THREE.Quaternion().setFromEuler(
-        new THREE.Euler(shakePitch, shakeYaw, shakeRoll, 'YXZ')
-      );
-      this.scopeCamera.quaternion.multiply(qShake);
+      _euler.set(shakePitch, shakeYaw, shakeRoll, 'YXZ');
+      _qShake.setFromEuler(_euler);
+      this.scopeCamera.quaternion.multiply(_qShake);
 
       this.scopeCamera.position.x += (Math.cos(t * 73.0) * 0.012) * this.opticShake;
       this.scopeCamera.position.y += (Math.sin(t * 91.0) * 0.012) * this.opticShake;
     }
 
-    // ── PASSADA 2: mesma cena, scopeCamera, dentro do render target (textura da lente)
-    // Oculta a arma apenas para a scopeCamera não enxergar o próprio cano à frente
+    // â”€â”€ PASSADA 2: mesma cena, scopeCamera, dentro do render target (textura da lente)
+    // Oculta a arma apenas para a scopeCamera nÃ£o enxergar o prÃ³prio cano Ã  frente
     if (protoModel) protoModel.visible = false;
 
     const prevShadows = this.renderer?.shadowMap ? this.renderer.shadowMap.enabled : false;
@@ -610,15 +619,15 @@ export class ScopeSystem {
 
     if (!this.scopeOn) return;
 
-    // Transição de Eye-Relief da lente de composição
+    // TransiÃ§Ã£o de Eye-Relief da lente de composiÃ§Ã£o
     const eyeReliefThreshold = 0.65;
     const overlayProgress = Math.max(0, (this.adsT - eyeReliefThreshold) / (1 - eyeReliefThreshold));
     if (overlayProgress <= 0.001) return;
 
     const smoothOverlay = Math.pow(overlayProgress, 1.8);
 
-    // ── SINCRONIZAÇÃO MATEMÁTICA EXATA COM O RECUO E ORIENTAÇÃO DO RIFLE ────────
-    // Força atualização mundial da câmera e de toda a hierarquia de nós da arma
+    // â”€â”€ SINCRONIZAÃ‡ÃƒO MATEMÃTICA EXATA COM O RECUO E ORIENTAÃ‡ÃƒO DO RIFLE â”€â”€â”€â”€â”€â”€â”€â”€
+    // ForÃ§a atualizaÃ§Ã£o mundial da cÃ¢mera e de toda a hierarquia de nÃ³s da arma
     const details = this.activeDetails || this.protoDetails;
     mainCamera.updateMatrixWorld(true);
     if (details?.rearLens) {
@@ -635,15 +644,14 @@ export class ScopeSystem {
 
     if (details && details.rearLens) {
       const rearLens = details.rearLens;
-      const v = new THREE.Vector3();
-      rearLens.getWorldPosition(v);
+      rearLens.getWorldPosition(_vCam);
 
-      // Distância frontal no eixo de visão da câmera (-Z no espaço local da câmera)
-      // Mede com precisão matemática a aproximação/afastamento da lente (profundidade física)
-      const vCam = v.clone().applyMatrix4(mainCamera.matrixWorldInverse);
-      const depthZ = -vCam.z;
+      // DistÃ¢ncia frontal no eixo de visÃ£o da cÃ¢mera (-Z no espaÃ§o local da cÃ¢mera)
+      // Mede com precisÃ£o matemÃ¡tica a aproximaÃ§Ã£o/afastamento da lente (profundidade fÃ­sica)
+      _vCam.applyMatrix4(mainCamera.matrixWorldInverse);
+      const depthZ = -_vCam.z;
 
-      // Calibra a distância base em repouso da ocular para sincronismo de escala 1:1 perfeito
+      // Calibra a distÃ¢ncia base em repouso da ocular para sincronismo de escala 1:1 perfeito
       if (!this.baseDepth) {
         this.baseDepth = depthZ;
       } else if (this.adsT > 0.95 && (!details?.physics || details.physics.recoil < 0.005)) {
@@ -655,61 +663,61 @@ export class ScopeSystem {
         depthScale = Math.max(0.65, Math.min(2.5, rawScale));
       }
 
-      // Projeção do centro no plano da câmera
-      v.project(mainCamera);
-      offsetX = (v.x * (w / 2));
-      offsetY = (-v.y * (h / 2));
+      // ProjeÃ§Ã£o do centro no plano da cÃ¢mera
+      rearLens.getWorldPosition(_vRear);
+      _vRear.project(mainCamera);
+      offsetX = (_vRear.x * (w / 2));
+      offsetY = (-_vRear.y * (h / 2));
 
-      // Calcula o roll (torção/inclinação) da carcaça da ótica no plano de visão da tela
+      // Calcula o roll (torÃ§Ã£o/inclinaÃ§Ã£o) da carcaÃ§a da Ã³tica no plano de visÃ£o da tela
       if (details.opticBody) {
-        const vUp = new THREE.Vector3(0, 1, 0);
-        vUp.transformDirection(details.opticBody.matrixWorld);
-        vUp.transformDirection(mainCamera.matrixWorldInverse);
-        rollAngle = Math.atan2(vUp.x, vUp.y);
+        _vUp.set(0, 1, 0);
+        _vUp.transformDirection(details.opticBody.matrixWorld);
+        _vUp.transformDirection(mainCamera.matrixWorldInverse);
+        rollAngle = Math.atan2(_vUp.x, _vUp.y);
       }
 
       if (details.frontLens) {
-        const vFront = new THREE.Vector3();
-        details.frontLens.getWorldPosition(vFront);
-        vFront.project(mainCamera);
-        this.pxShiftX = (vFront.x * (w / 2)) - offsetX;
-        this.pxShiftY = (-vFront.y * (h / 2)) - offsetY;
+        details.frontLens.getWorldPosition(_vFront);
+        _vFront.project(mainCamera);
+        this.pxShiftX = (_vFront.x * (w / 2)) - offsetX;
+        this.pxShiftY = (-_vFront.y * (h / 2)) - offsetY;
       }
     }
 
     // Centro do disco na tela
     const centerX = (w / 2) + offsetX;
-    const centerY = (h / 2) - offsetY; // Inversão para o sistema de coordenadas WebGL (origem inferior-esquerda)
+    const centerY = (h / 2) - offsetY; // InversÃ£o para o sistema de coordenadas WebGL (origem inferior-esquerda)
 
-    // Expansão tática do diâmetro acompanhando a profundidade física real da arma
+    // ExpansÃ£o tÃ¡tica do diÃ¢metro acompanhando a profundidade fÃ­sica real da arma
     const D = this.lensDiameter() * (0.68 + 0.32 * smoothOverlay) * depthScale;
     const R = D / 2;
 
-    // Posiciona o disco 2D na overlayScene exatamente onde a ocular 3D está na tela com rotação sincronizada
+    // Posiciona o disco 2D na overlayScene exatamente onde a ocular 3D estÃ¡ na tela com rotaÃ§Ã£o sincronizada
     this.lensMesh.position.set(offsetX, -offsetY, 0);
     this.lensMesh.rotation.z = -rollAngle;
     this.lensMesh.scale.set(R, R, 1);
     this.lensMat.uniforms.uOpacity.value = smoothOverlay;
 
-    // ── RAIO DINÂMICO DO ANEL INTERNO COM BASE NO ZOOM (FOV) ─────────────────
+    // â”€â”€ RAIO DINÃ‚MICO DO ANEL INTERNO COM BASE NO ZOOM (FOV) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     const zoomFactor = (SCOPE_CONFIG.SCOPE_FOV_MAX - this.scopeFov) / (SCOPE_CONFIG.SCOPE_FOV_MAX - SCOPE_CONFIG.SCOPE_FOV_MIN);
     const innerRingRadius = THREE.MathUtils.lerp(0.84, 1.08, THREE.MathUtils.clamp(zoomFactor, 0, 1));
     this.lensMat.uniforms.uInnerRingRadius.value = innerRingRadius;
 
-    // ── PARALAXE COMBINADO: RECUO/BOBBING 3D + INÉRCIA DO MOUSE ─────────────
+    // â”€â”€ PARALAXE COMBINADO: RECUO/BOBBING 3D + INÃ‰RCIA DO MOUSE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     let shiftX = 0;
     let shiftY = 0;
     if (D > 0 && this.pxShiftX !== undefined) {
-      const pxMultiplier = 0.80; // Proporção calibrada de profundidade do tubo (reduzida em 60% para firmeza)
+      const pxMultiplier = 0.80; // ProporÃ§Ã£o calibrada de profundidade do tubo (reduzida em 60% para firmeza)
       shiftX = (this.pxShiftX / D) * pxMultiplier;
       shiftY = (-this.pxShiftY / D) * pxMultiplier;
     }
 
-    // Inércia fluida do mouse para sensação de peso e cilindro 3D realista
+    // InÃ©rcia fluida do mouse para sensaÃ§Ã£o de peso e cilindro 3D realista
     shiftX += this.lookInertia.x;
     shiftY += this.lookInertia.y;
 
-    // Impulso do tremor cinético interno no paralaxe da lente
+    // Impulso do tremor cinÃ©tico interno no paralaxe da lente
     if (this.opticShake > 0.001) {
       const t = performance.now() * 0.001;
       shiftX += Math.cos(t * 63.0) * 0.08 * this.opticShake;
@@ -718,7 +726,7 @@ export class ScopeSystem {
 
     this.lensMat.uniforms.uParallax.value.set(shiftX, shiftY);
 
-    // setScissor acompanha o centro dinâmico da mira (coordenadas do scissor: x, y, width, height)
+    // setScissor acompanha o centro dinÃ¢mico da mira (coordenadas do scissor: x, y, width, height)
     const scissorX = Math.round(centerX - R - 2);
     const scissorY = Math.round(centerY - R - 2);
     const scissorSize = Math.round(D + 4);
@@ -730,7 +738,7 @@ export class ScopeSystem {
     this.renderer.setScissorTest(false);
     this.renderer.autoClear = true;
 
-    // Sincroniza o retículo e carcaça externa HTML/SVG com os mesmos pixels de deslocamento e rotação
+    // Sincroniza o retÃ­culo e carcaÃ§a externa HTML/SVG com os mesmos pixels de deslocamento e rotaÃ§Ã£o
     if (this.lensEl) {
       let reticleShiftX = 0;
       let reticleShiftY = 0;

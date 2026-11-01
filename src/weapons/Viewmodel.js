@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 import { CONFIG } from '../core/ConfigLoader.js';
 import { WEAPONS } from './WeaponDefs.js';
 import { buildHK416 } from './models/HK416.js';
@@ -18,7 +18,7 @@ import { ViewmodelArms } from './ViewmodelArms.js';
 // Re-exporta construtores para compatibilidade com main.js / WeaponRegistry
 export { buildHK416, buildHK416 as buildAR15, buildP9, buildUZI, buildM249, buildRiflePrototype, buildAK47, buildSW500, buildWinchester1912, buildWinchester1912 as buildM12, buildVSS, buildSCARH };
 
-// Fallback de segurança para mocks sem sfx compilado
+// Fallback de seguranÃ§a para mocks sem sfx compilado
 
 const _vStockOffset = new THREE.Vector3();
 const _vRecoilPivotOffset = new THREE.Vector3();
@@ -40,14 +40,14 @@ const FALLBACK_FLASH_SIZES = {
 };
 
 /**
- * Viewmodel: Gerenciador de pose, física de mola (sway), recuo e animações da arma em 1ª pessoa.
- * Completamente desacoplado dos detalhes de malha geométrica.
+ * Viewmodel: Gerenciador de pose, fÃ­sica de mola (sway), recuo e animaÃ§Ãµes da arma em 1Âª pessoa.
+ * Completamente desacoplado dos detalhes de malha geomÃ©trica.
  */
 export class Viewmodel {
   constructor(camera) {
     this.camera = camera;
 
-    // Grupo raiz de oscilação física (Sway / Bobbing / Breathing)
+    // Grupo raiz de oscilaÃ§Ã£o fÃ­sica (Sway / Bobbing / Breathing)
     this.swayGroup = new THREE.Group();
     camera.add(this.swayGroup);
 
@@ -55,12 +55,12 @@ export class Viewmodel {
     this.mount = new THREE.Group();
     this.swayGroup.add(this.mount);
 
-    // Muzzle Flash Light dinâmico
+    // Muzzle Flash Light dinÃ¢mico
     this.flashLight = new THREE.PointLight(0xff9922, 0, 5, 2.0);
     this.flashLight.position.set(0, 0.02, -0.5);
     this.mount.add(this.flashLight);
 
-    // Muzzle Flash Mesh volumétrico cruzado (Padrão VSS Glow - 2 Planos Ortogonais Cruzados)
+    // Muzzle Flash Mesh volumÃ©trico cruzado (PadrÃ£o VSS Glow - 2 Planos Ortogonais Cruzados)
     this.flashGroup = new THREE.Group();
     
     this.flashTex = this._createVSSGlowTexture();
@@ -88,7 +88,7 @@ export class Viewmodel {
     this.flashDuration = 0.055;
     this.flashMaxOpacity = 0.90;
 
-    // Transição suave de saque (Draw animation)
+    // TransiÃ§Ã£o suave de saque (Draw animation)
     this.drawAmount = 0;
 
     // Spring-Damper mouse sway
@@ -98,18 +98,18 @@ export class Viewmodel {
     this.lastPitch = 0;
     this.smoothMag = 0;
 
-    // Recoil físico reativo (ombro firme, cano sobe e volta rápido)
+    // Recoil fÃ­sico reativo (ombro firme, cano sobe e volta rÃ¡pido)
     this.kickPos = new THREE.Vector3();
     this.kickRotX = 0;
     this.basePos = new THREE.Vector3();
     this.baseRot = new THREE.Vector3();
 
-    // Registro de modelos disponíveis
+    // Registro de modelos disponÃ­veis
     this.models = {};
     this.activeModel = null;
     this.activePhysics = null;
 
-    // Sistema de suavização de locomoção e transição de poses contínuas
+    // Sistema de suavizaÃ§Ã£o de locomoÃ§Ã£o e transiÃ§Ã£o de poses contÃ­nuas
     this.locomotion = new LocomotionSmoothingSystem();
     this.arms = new ViewmodelArms(this.mount);
   }
@@ -180,6 +180,9 @@ export class Viewmodel {
 
     model.visible = false;
     this.mount.add(model);
+    // Desativa sombras em toda a arma de 1ª pessoa: elimina 120-184 draw calls/frame
+    // sem tocar nos arquivos de modelo (src/weapons/models/*.js — diretiva GEMINI.md).
+    model.traverse(o => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } });
     this.models[weaponId] = { mesh: model, physics, details: result };
   }
 
@@ -202,7 +205,7 @@ export class Viewmodel {
         mag.position.y = 0;
       }
 
-      // Inicia transição suave de saque
+      // Inicia transiÃ§Ã£o suave de saque
       this.drawAmount = 1.0;
       if (this.arms) {
         this.arms.setWeapon(weaponId);
@@ -227,10 +230,10 @@ export class Viewmodel {
   }
 
   applyKick(pitch, yaw, customKickbackZ = 0.008, customKickRot = 1.5, isADS = false) {
-    // Se o modelo ativo tiver física própria (como o RiflePrototype), ela já gerencia os vetores de recuo
+    // Se o modelo ativo tiver fÃ­sica prÃ³pria (como o RiflePrototype), ela jÃ¡ gerencia os vetores de recuo
     if (this.activePhysics) return;
 
-    // Cano sobe: rotação positiva em X eleva a ponta do cano e apoia a coronha
+    // Cano sobe: rotaÃ§Ã£o positiva em X eleva a ponta do cano e apoia a coronha
     const rotScale = isADS ? 0.20 : 1.0;
     const posScale = isADS ? 0.35 : 1.0;
 
@@ -243,11 +246,11 @@ export class Viewmodel {
   }
 
   /**
-   * Layer 3: Atualiza a física de mola e oscilação orgânica do Viewmodel baseado na velocidade angular
-   * do CameraRig (Layer 1/2) e na locomoção do jogador.
+   * Layer 3: Atualiza a fÃ­sica de mola e oscilaÃ§Ã£o orgÃ¢nica do Viewmodel baseado na velocidade angular
+   * do CameraRig (Layer 1/2) e na locomoÃ§Ã£o do jogador.
    */
   applySwayFromRig(rig, dt, isADS, isSprinting, playerVel, weaponDef, options = {}) {
-    // No ADS, o sway mantém inércia tática suave (sensação física de peso e paralaxe)
+    // No ADS, o sway mantÃ©m inÃ©rcia tÃ¡tica suave (sensaÃ§Ã£o fÃ­sica de peso e paralaxe)
     const adsMul = isADS ? 0.18 : 0.55;
     const sprintMul = isSprinting ? 1.25 : 1.0;
     const mul = adsMul * sprintMul;
@@ -256,18 +259,18 @@ export class Viewmodel {
     const lookSpeedX = rig?.angularVelocity ? rig.angularVelocity.y : 0;
     const lookSpeedY = rig?.angularVelocity ? rig.angularVelocity.x : 0;
 
-    // Fator de Massa e Peso da Arma (normalizado em torno de 3.5 kg de um rifle padrão)
+    // Fator de Massa e Peso da Arma (normalizado em torno de 3.5 kg de um rifle padrÃ£o)
     const weight = (weaponDef && weaponDef.weight) ? weaponDef.weight : 3.5;
     const massFactor = Math.max(0.25, Math.min(2.6, weight / 3.5));
     const inertiaMul = Math.sqrt(massFactor);
 
     // Rigidez e Amortecimento da Mola:
-    // - Armas leves (pistolas/SMGs) são ágeis e têm alta frequência de retorno elástico (snappy).
-    // - Armas pesadas (fuzis pesados/LMGs) têm inércia maior e retorno com elasticidade mais cadenciada e pesada.
+    // - Armas leves (pistolas/SMGs) sÃ£o Ã¡geis e tÃªm alta frequÃªncia de retorno elÃ¡stico (snappy).
+    // - Armas pesadas (fuzis pesados/LMGs) tÃªm inÃ©rcia maior e retorno com elasticidade mais cadenciada e pesada.
     const springK = 22.0 / Math.pow(massFactor, 0.45);
     const springD = 9.5 / Math.pow(massFactor, 0.35);
 
-    // Força cinética do olhar reduzida em 60% para amplitude contida e tática
+    // ForÃ§a cinÃ©tica do olhar reduzida em 60% para amplitude contida e tÃ¡tica
     const forceGain = 1.0;
     const targetForceX = lookSpeedX * forceGain * mul * inertiaMul;
     const targetForceY = -lookSpeedY * forceGain * mul * inertiaMul;
@@ -278,12 +281,12 @@ export class Viewmodel {
     this.swayPos.x += this.swayVel.x * dt;
     this.swayPos.y += this.swayVel.y * dt;
 
-    // Limites de segurança contidos para evitar amplitude excessiva
+    // Limites de seguranÃ§a contidos para evitar amplitude excessiva
     const maxSway = isADS ? 0.035 : 0.085;
     this.swayPos.x = THREE.MathUtils.clamp(this.swayPos.x, -maxSway, maxSway);
     this.swayPos.y = THREE.MathUtils.clamp(this.swayPos.y, -maxSway, maxSway);
 
-    // Atualiza o sistema unificado de locomoção contínua (elimina estalo de fase e degraus)
+    // Atualiza o sistema unificado de locomoÃ§Ã£o contÃ­nua (elimina estalo de fase e degraus)
     const speed = playerVel ? Math.hypot(playerVel.x, playerVel.z) : 0;
     this.locomotion.update(dt, {
       speedXZ: speed,
@@ -297,7 +300,7 @@ export class Viewmodel {
     const bobScale = CONFIG.ACCESSIBILITY?.headbobScale ?? 1.0;
     const { x: bobX, y: bobY } = this.locomotion.getWeaponBob(bobScale);
 
-    // Respiração suave ponderada pelo peso de repouso (desaparece gradualmente na corrida)
+    // RespiraÃ§Ã£o suave ponderada pelo peso de repouso (desaparece gradualmente na corrida)
     const time = performance.now() * 0.001;
     const idleWeight = this.locomotion.idleWeight;
     let idleRotX, idleRotY, idlePosX, idlePosY;
@@ -313,16 +316,16 @@ export class Viewmodel {
       idlePosY = Math.cos(time * 1.1) * 0.002 * idleWeight;
     }
 
-    // Atenuação tática no ADS: estabiliza a ótica no centro sem remover 100% a sensação de peso
+    // AtenuaÃ§Ã£o tÃ¡tica no ADS: estabiliza a Ã³tica no centro sem remover 100% a sensaÃ§Ã£o de peso
     const curAds = options?.adsAmount ?? (isADS ? 1.0 : 0.0);
     const adsSwayDamp = Math.max(0.12, 1.0 - (curAds * 0.85));
 
-    // Aplica Rotações no grupo de sway:
+    // Aplica RotaÃ§Ãµes no grupo de sway:
     this.swayGroup.rotation.y = (-this.swayPos.x * 0.45 * adsSwayDamp) + (idleRotY * adsSwayDamp);
     this.swayGroup.rotation.x = (this.swayPos.y * 0.45 * adsSwayDamp) + (idleRotX * adsSwayDamp) + (this.locomotion.accelInertiaPitch * adsSwayDamp);
     this.swayGroup.rotation.z = this.swayPos.x * 0.20 * adsSwayDamp;
     
-    // Aplica Posições (bobbing e inércia longitudinal amortecidos no ADS para alinhamento firme):
+    // Aplica PosiÃ§Ãµes (bobbing e inÃ©rcia longitudinal amortecidos no ADS para alinhamento firme):
     this.swayGroup.position.x = (this.swayPos.x * 0.18 * adsSwayDamp) + (bobX * adsSwayDamp) + (idlePosX * adsSwayDamp);
     this.swayGroup.position.y = (this.swayPos.y * 0.18 * adsSwayDamp) + (bobY * adsSwayDamp) + (idlePosY * adsSwayDamp) + (this.locomotion.locoOffsetY * adsSwayDamp);
     this.swayGroup.position.z = this.locomotion.accelInertiaZ * adsSwayDamp;
@@ -358,7 +361,7 @@ export class Viewmodel {
   }
 
   /**
-   * Interpolação suave entre poses táticas (Hipfire, ADS, Sprint, Reload e Draw)
+   * InterpolaÃ§Ã£o suave entre poses tÃ¡ticas (Hipfire, ADS, Sprint, Reload e Draw)
    */
   updatePose(dt, weaponId, { isADS, isSprinting, adsAmount, reloadProgress, ammo, wallCompression = 0 }) {
     const def = WEAPONS[weaponId];
@@ -374,7 +377,7 @@ export class Viewmodel {
 
     // Alvo de pose:
     // No ADS, mira diretamente no sight (sem duplo amortecimento com adsAmount),
-    // restaurando o tempo exato e ágil de abertura de mira original.
+    // restaurando o tempo exato e Ã¡gil de abertura de mira original.
     let tPosX, tPosY, tPosZ, tRotX, tRotY, tRotZ;
     if (isADS) {
       tPosX = adsPos[0];
@@ -384,7 +387,7 @@ export class Viewmodel {
       tRotY = adsRot[1];
       tRotZ = adsRot[2];
     } else {
-      // Fora do ADS, faz o blend ponderado contínuo entre Hipfire e Sprint (70-90ms)
+      // Fora do ADS, faz o blend ponderado contÃ­nuo entre Hipfire e Sprint (70-90ms)
       const sprintW = this.locomotion ? this.locomotion.sprintWeight : (isSprinting ? 1.0 : 0.0);
       const hipW = Math.max(0.0, 1.0 - sprintW);
       tPosX = hipPos[0] * hipW + sprintPos[0] * sprintW;
@@ -396,7 +399,7 @@ export class Viewmodel {
       tRotZ = hipRot[2] * hipW + sprintRot[2] * sprintW;
     }
 
-    // Interpolação ágil e tática da pose base (resposta de ADS idêntica à original)
+    // InterpolaÃ§Ã£o Ã¡gil e tÃ¡tica da pose base (resposta de ADS idÃªntica Ã  original)
     const curAdsAmount = adsAmount !== undefined ? adsAmount : (isADS ? 1.0 : 0.0);
     const k = Math.min(dt * (isADS ? (16.0 + curAdsAmount * 14.0) : 24.0), 1.0);
     this.basePos.x += (tPosX - this.basePos.x) * k;
@@ -407,7 +410,7 @@ export class Viewmodel {
     this.baseRot.y += (tRotY - this.baseRot.y) * k;
     this.baseRot.z += (tRotZ - this.baseRot.z) * k;
 
-    // Recoil decai dependente do peso da arma (armas leves voltam rápido; armas pesadas têm recuperação cadenciada)
+    // Recoil decai dependente do peso da arma (armas leves voltam rÃ¡pido; armas pesadas tÃªm recuperaÃ§Ã£o cadenciada)
     const weight = def.weight || 3.5;
     const massFactor = Math.max(0.25, Math.min(2.6, weight / 3.5));
     const kickDecaySpeed = 24.0 / Math.pow(massFactor, 0.35);
@@ -415,12 +418,12 @@ export class Viewmodel {
     this.kickPos.z *= decay;
     this.kickRotX  *= decay;
 
-    // Cinemática Stock-Pivot: Gira a arma ao redor da coronha apoiada no ombro direito,
-    // eliminando o efeito pêndulo. No ADS, atenua a rotação local para preservar a visão pela lente.
+    // CinemÃ¡tica Stock-Pivot: Gira a arma ao redor da coronha apoiada no ombro direito,
+    // eliminando o efeito pÃªndulo. No ADS, atenua a rotaÃ§Ã£o local para preservar a visÃ£o pela lente.
     const rotMultiplier = 1.0 - (curAdsAmount * 0.82);
     const effectiveKickRotX = this.kickRotX * rotMultiplier;
 
-    // Posição de ombro (pivô): transição contínua entre hipfire e ADS
+    // PosiÃ§Ã£o de ombro (pivÃ´): transiÃ§Ã£o contÃ­nua entre hipfire e ADS
     _vStockOffset.set(0.14 * (1.0 - curAdsAmount) + 0.08 * curAdsAmount, -0.16, 0.18);
     _eStockRecoil.set(effectiveKickRotX, 0, 0, 'YXZ');
     _qStockRecoil.setFromEuler(_eStockRecoil);
@@ -435,8 +438,8 @@ export class Viewmodel {
     mount.rotation.y = this.baseRot.y;
     mount.rotation.z = this.baseRot.z;
 
-    // Weapon Wall Press (Cano da arma pressionado contra obstáculo)
-    // Cano sobe ~75° (1.31 rad) e vira ~15° (-0.26 rad) em direção ao ombro/jogador
+    // Weapon Wall Press (Cano da arma pressionado contra obstÃ¡culo)
+    // Cano sobe ~75Â° (1.31 rad) e vira ~15Â° (-0.26 rad) em direÃ§Ã£o ao ombro/jogador
     if (wallCompression > 0.001) {
       mount.position.z += wallCompression * 0.20;
       mount.position.y += wallCompression * 0.08;
@@ -446,7 +449,7 @@ export class Viewmodel {
       mount.rotation.z += wallCompression * 0.12;  // banking natural
     }
 
-    // Animação de Recarregamento (Reload Dip suave)
+    // AnimaÃ§Ã£o de Recarregamento (Reload Dip suave)
     if (reloadProgress > 0) {
       const dip = Math.sin(reloadProgress * Math.PI);
       mount.position.y -= dip * 0.12;
@@ -478,7 +481,7 @@ export class Viewmodel {
       }
     }
 
-    // Transição suave de saque (Draw animation)
+    // TransiÃ§Ã£o suave de saque (Draw animation)
     if (this.drawAmount > 0) {
       this.drawAmount = Math.max(0, this.drawAmount - dt * 5.0);
       const ease = Math.pow(this.drawAmount, 2);
@@ -487,7 +490,7 @@ export class Viewmodel {
       mount.rotation.z += ease * 0.15;
     }
 
-    // Executa a física de recoil elástico, blowback, câmara vazia e muzzle flash originais do protótipo
+    // Executa a fÃ­sica de recoil elÃ¡stico, blowback, cÃ¢mara vazia e muzzle flash originais do protÃ³tipo
     if (this.activePhysics) {
       this.activePhysics.update(dt, this.camera, ammo ?? 30);
     }
@@ -523,7 +526,7 @@ export class Viewmodel {
       enabled = baseSize > 0;
     }
 
-    // Se a arma não tem flash (VSS silenciada, P9, M12, etc.), garante que fique oculto
+    // Se a arma nÃ£o tem flash (VSS silenciada, P9, M12, etc.), garante que fique oculto
     if (!enabled || baseSize <= 0) {
       this.flashGroup.visible = false;
       this.flashLight.intensity = 0;
@@ -533,7 +536,7 @@ export class Viewmodel {
 
     const mz = def?.muzzleLocal || [0, 0.02, -0.5];
 
-    // Posiciona e orienta no bocal da arma ativa com offset mínimo
+    // Posiciona e orienta no bocal da arma ativa com offset mÃ­nimo
     this.flashLight.position.set(mz[0], mz[1], mz[2] - 0.02);
     this.flashGroup.position.set(mz[0], mz[1], mz[2] - 0.015);
 

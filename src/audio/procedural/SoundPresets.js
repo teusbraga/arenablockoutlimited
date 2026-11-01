@@ -193,5 +193,18 @@ export const SOUND_PRESETS = {
     surfaceQ: 4.5,
     scuffAmount: 0.28,
     bodyWeight: 0.85
+  },
+
+  // --- IMPACTO DE ATERRISSAGEM (PANCADA DUPLA GRAVE DE 2 PÉS) ---
+  landing_impact: {
+    heelFrequency: 85,    // Grave e encorpado (vs 130 do passo simples)
+    heelDecay: 65,        // Duração do impacto (sólido e contundente)
+    toeDelay: 28,         // Atraso da ponta do pé
+    toePitch: 140,        // Slap da ponta da sola militar
+    woodResonance: 150,   // Ressonância física da cavidade do solo bem presente
+    surfaceQ: 2.5,        // Curva modal aberta e ressonante
+    scuffAmount: 0.65,    // Fricção da sola no chão (poeira/atrito esmagado)
+    bodyWeight: 2.2,      // Peso corporal total de impacto
+    secondFootDelay: 42   // Atraso descompassado do segundo pé (~42ms)
   }
 };

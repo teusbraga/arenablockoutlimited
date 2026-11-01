@@ -296,6 +296,35 @@ export class AudioSystem {
     }
   }
 
+  /**
+   * Som de aterrissagem após pulo: pancada grave e encorpada de duplo impacto (dois pés tocando o solo).
+   * Conectado ao bus de impactos para presença acústica contundente e equilibrada no mix.
+   * @param {string} material - Material do piso.
+   * @param {number} velY     - Velocidade vertical no momento do impacto (valor negativo).
+   */
+  playLanding(material = 'floor', velY = -5) {
+    const ctx = this._ensure();
+    if (!ctx) return;
+    const dest = this.impactsGain || this.foleyGain || ctx.destination;
+    if (!this.locomotionAcoustics) return;
+
+    // Escala dinâmica de impacto com base na velocidade terminal de queda (1.5 m/s a 12.0 m/s)
+    const clampedSpeed = Math.min(12.0, Math.max(1.5, Math.abs(velY || -5)));
+    const impactScale = Math.min(1.8, Math.max(0.75, clampedSpeed / 5.5));
+    const basePreset = this.presets.landing_impact || this.presets.footstep_default;
+
+    const scaledPreset = {
+      ...basePreset,
+      bodyWeight: (basePreset.bodyWeight || 2.2) * impactScale
+    };
+
+    if (typeof this.locomotionAcoustics.synthesizeLanding === 'function') {
+      this.locomotionAcoustics.synthesizeLanding(scaledPreset, ctx, dest, null, material, true);
+    } else {
+      this.locomotionAcoustics.synthesizeFootstep(scaledPreset, ctx, dest, null, material, true);
+    }
+  }
+
   // =========================================================================
   // ÁUDIO ESPACIAL 3D & OCLUSÃO GEOMÉTRICA
   // =========================================================================
@@ -804,6 +833,8 @@ export class AudioSystem {
       }),
 
       on('player:footstep', e => this.playFootstep(e?.material)),
+
+      on('player:landing', e => this.playLanding(e?.material, e?.velY)),
 
       // 6. Granada de Fumaça (Hissing de Fumaça Procedural)
       on('smoke:detonate', e => {

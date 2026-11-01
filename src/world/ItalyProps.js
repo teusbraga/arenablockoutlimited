@@ -1,20 +1,20 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 import { materialFactory } from './MaterialFactory.js';
 import { TextureGenerator } from './TextureGenerator.js';
 import { on } from '../core/EventBus.js';
 
 /**
  * ItalyProps.js
- * Fábrica e construtor de props 3D especializados para o mapa CS Italy:
+ * FÃ¡brica e construtor de props 3D especializados para o mapa CS Italy:
  * - Janelas italianas com venezianas e peitoris de pedra
- * - Portas rústicas com batentes de travertino
- * - Arcos de pedra conectando edifícios
+ * - Portas rÃºsticas com batentes de travertino
+ * - Arcos de pedra conectando edifÃ­cios
  * - Sacadas/varandas com grades de ferro e vasos
  * - Trepadeiras/hera com folhas recortadas
  * - Barris de vinho e caixotes de feira
  * - Toldos listrados de mercado italiano
  * - Lanternas de ferro forjado
- * - Galeria/Parede de Inspeção e Teste de Texturas (Material Showcase)
+ * - Galeria/Parede de InspeÃ§Ã£o e Teste de Texturas (Material Showcase)
  */
 
 export class ItalyProps {
@@ -54,7 +54,7 @@ export class ItalyProps {
     const winGeo = new THREE.PlaneGeometry(width, height);
     const winMesh = new THREE.Mesh(winGeo, matShutter);
     winMesh.position.set(0, 0, 0.02);
-    winMesh.castShadow = true;
+    winMesh.castShadow = false; // veneziana plana: sombra imperceptível, -1 DC/janela
     winMesh.receiveShadow = true;
     group.add(winMesh);
 
@@ -63,7 +63,7 @@ export class ItalyProps {
   }
 
   /**
-   * Adiciona porta rústica de madeira com moldura de pedra
+   * Adiciona porta rÃºstica de madeira com moldura de pedra
    */
   addRusticDoorFrame(x, y, z, rotY = 0, width = 1.3, height = 2.4) {
     const group = new THREE.Group();
@@ -103,7 +103,7 @@ export class ItalyProps {
   }
 
   /**
-   * Arco de pedra clássico do CS Italy conectando dois edifícios através do beco
+   * Arco de pedra clÃ¡ssico do CS Italy conectando dois edifÃ­cios atravÃ©s do beco
    */
   addStoneArchway(x, y, z, span = 7.0, height = 5.2, thickness = 1.2) {
     const group = new THREE.Group();
@@ -147,7 +147,7 @@ export class ItalyProps {
     this.scene.add(group);
 
     if (this.world) {
-      // Colisão para os dois pilares laterais (passagem livre por baixo)
+      // ColisÃ£o para os dois pilares laterais (passagem livre por baixo)
       this.world.addBox(x - span / 2 + pillarWidth / 2, y + height / 2, z, pillarWidth, height, thickness);
       this.world.addBox(x + span / 2 - pillarWidth / 2, y + height / 2, z, pillarWidth, height, thickness);
       this.world.addBox(x, y + height + 0.6, z, span, 1.2, thickness);
@@ -172,7 +172,7 @@ export class ItalyProps {
     slab.receiveShadow = true;
     group.add(slab);
 
-    // Mísulas decorativas embaixo da sacada
+    // MÃ­sulas decorativas embaixo da sacada
     const corbelGeo = new THREE.BoxGeometry(0.35, 0.7, depth * 0.8);
     const c1 = new THREE.Mesh(corbelGeo, matStone);
     c1.position.set(-width * 0.35, -0.45, depth * 0.45);
@@ -193,7 +193,7 @@ export class ItalyProps {
     // Grades laterais
     const railSideL = new THREE.Mesh(new THREE.BoxGeometry(0.08, railH, depth), matIron);
     railSideL.position.set(-width / 2, railH / 2 + 0.15, depth / 2);
-    railSideL.castShadow = true;
+    railSideL.castShadow = false; // grade lateral fina: -2 DC/sacada
     group.add(railSideL);
 
     const railSideR = railSideL.clone();
@@ -234,7 +234,7 @@ export class ItalyProps {
   }
 
   /**
-   * Barril de vinho de carvalho com anéis de ferro
+   * Barril de vinho de carvalho com anÃ©is de ferro
    */
   addWineBarrel(x, y, z, scale = 1.0) {
     const group = new THREE.Group();
@@ -267,7 +267,7 @@ export class ItalyProps {
   }
 
   /**
-   * Caixote de vinho de madeira empilhável com carimbo
+   * Caixote de vinho de madeira empilhÃ¡vel com carimbo
    */
   addWineCrate(x, y, z, rotY = 0, sx = 1.2, sy = 1.0, sz = 1.2) {
     const matCrate = materialFactory.get('crate');
@@ -296,7 +296,7 @@ export class ItalyProps {
     const matWood = materialFactory.get('crate');
     const matAwning = materialFactory.get('awning_red');
 
-    // 4 Postes de sustentação de madeira
+    // 4 Postes de sustentaÃ§Ã£o de madeira
     const postGeo = new THREE.BoxGeometry(0.12, height, 0.12);
     const corners = [
       [-width / 2 + 0.1, -depth / 2 + 0.1],
@@ -324,7 +324,7 @@ export class ItalyProps {
     const awningGeo = new THREE.PlaneGeometry(width + 0.4, depth + 0.5);
     const awningMesh = new THREE.Mesh(awningGeo, matAwning);
     awningMesh.position.set(0, height + 0.1, 0.1);
-    awningMesh.rotation.x = Math.PI * 0.45; // Leve inclinação para escoar chuva
+    awningMesh.rotation.x = Math.PI * 0.45; // Leve inclinaÃ§Ã£o para escoar chuva
     awningMesh.castShadow = true;
     awningMesh.receiveShadow = true;
     group.add(awningMesh);
@@ -368,7 +368,7 @@ export class ItalyProps {
     lantern.position.set(0, -0.15, 0.45);
     group.add(lantern);
 
-    // Ponto de luz quente iluminando a parede e o chão ao redor
+    // Ponto de luz quente iluminando a parede e o chÃ£o ao redor
     const light = new THREE.PointLight(0xffb866, 1.2, 8, 1.8);
     light.position.set(0, -0.15, 0.45);
     group.add(light);
@@ -378,8 +378,8 @@ export class ItalyProps {
   }
 
   /**
-   * PAREDE DE TESTE & MOSTRUÁRIO DE TEXTURAS (Material Showcase Wall)
-   * Área interativa onde o jogador pode inspecionar de perto cada textura criada!
+   * PAREDE DE TESTE & MOSTRUÃRIO DE TEXTURAS (Material Showcase Wall)
+   * Ãrea interativa onde o jogador pode inspecionar de perto cada textura criada!
    */
   addTextureShowcaseWall(x, y, z, rotY = 0) {
     const group = new THREE.Group();
@@ -389,7 +389,7 @@ export class ItalyProps {
     const showcaseMaterials = [
       { id: 'wall_peeling_ochre', title: '1. OCRE DESCASCADO' },
       { id: 'cobblestones',        title: '2. COBBLESTONES' },
-      { id: 'door_wood',           title: '3. MADEIRA RÚSTICA' },
+      { id: 'door_wood',           title: '3. MADEIRA RÃšSTICA' },
       { id: 'roof',                title: '4. TELHAS TERRACOTA' },
       { id: 'window_shutter',      title: '5. VENEZIANA VERDE' },
       { id: 'ivy_foliage',         title: '6. HERA (ALPHA)' },
@@ -402,7 +402,7 @@ export class ItalyProps {
     const wallW = showcaseMaterials.length * 1.6 + 1.0;
     const wallH = 3.6;
 
-    // Parede estrutural do mostruário
+    // Parede estrutural do mostruÃ¡rio
     const backWall = new THREE.Mesh(
       new THREE.BoxGeometry(wallW, wallH, 0.6),
       materialFactory.get('stone')
@@ -412,7 +412,7 @@ export class ItalyProps {
     backWall.receiveShadow = true;
     group.add(backWall);
 
-    // Painéis de demonstração
+    // PainÃ©is de demonstraÃ§Ã£o
     showcaseMaterials.forEach((item, index) => {
       const px = -wallW / 2 + 1.2 + index * 1.6;
 
@@ -425,7 +425,7 @@ export class ItalyProps {
       frame.castShadow = true;
       group.add(frame);
 
-      // Mostruário da textura (placa)
+      // MostruÃ¡rio da textura (placa)
       const sampleMat = materialFactory.get(item.id);
       const sample = new THREE.Mesh(
         new THREE.PlaneGeometry(1.0, 1.3),
@@ -438,7 +438,7 @@ export class ItalyProps {
 
       // Esfera 3D na frente para ver a curvatura e reflexos PBR da textura
       const sphereMat = sampleMat.clone();
-      sphereMat.transparent = false; // esfera sólida
+      sphereMat.transparent = false; // esfera sÃ³lida
       const sphere = new THREE.Mesh(
         new THREE.SphereGeometry(0.24, 24, 24),
         sphereMat
@@ -470,7 +470,7 @@ export class ItalyProps {
   // =========================================================================
 
   /**
-   * Árvore 3D da vila com tronco de carvalho e copa de folhagem recortada com alfa
+   * Ãrvore 3D da vila com tronco de carvalho e copa de folhagem recortada com alfa
    */
   addVillageTree(x, y, z, scale = 1.0) {
     const group = new THREE.Group();
@@ -490,7 +490,7 @@ export class ItalyProps {
     trunkMesh.receiveShadow = true;
     group.add(trunkMesh);
 
-    // Copa em 3 níveis esferoidais orgânicos
+    // Copa em 3 nÃ­veis esferoidais orgÃ¢nicos
     const tiers = [
       { y: trunkH * 0.75, rX: 2.2 * scale, rY: 1.4 * scale, rZ: 2.2 * scale },
       { y: trunkH * 1.1,  rX: 1.8 * scale, rY: 1.3 * scale, rZ: 1.8 * scale },
@@ -515,7 +515,7 @@ export class ItalyProps {
   }
 
   /**
-   * Cerca rústica de madeira da vila com postes e travessas horizontais
+   * Cerca rÃºstica de madeira da vila com postes e travessas horizontais
    */
   addRusticFence(x, y, z, rotY = 0, length = 5.0, height = 1.1) {
     const group = new THREE.Group();
@@ -555,7 +555,7 @@ export class ItalyProps {
   }
 
   /**
-   * Poço d'água da praça central da vila
+   * PoÃ§o d'Ã¡gua da praÃ§a central da vila
    */
   addVillageWell(x, y, z) {
     const group = new THREE.Group();
@@ -565,7 +565,7 @@ export class ItalyProps {
     const matWood = materialFactory.get('wood');
     const matRoof = materialFactory.get('roof');
 
-    // Parede de pedra circular do poço
+    // Parede de pedra circular do poÃ§o
     const wallGeo = new THREE.CylinderGeometry(1.4, 1.4, 0.9, 16, 1, true);
     const wall = new THREE.Mesh(wallGeo, matStone);
     wall.position.set(0, 0.45, 0);
@@ -573,7 +573,7 @@ export class ItalyProps {
     wall.receiveShadow = true;
     group.add(wall);
 
-    // Superfície da água escura no fundo
+    // SuperfÃ­cie da Ã¡gua escura no fundo
     const waterMat = new THREE.MeshStandardMaterial({ color: 0x1a3340, roughness: 0.1, metalness: 0.8 });
     const water = new THREE.Mesh(new THREE.CircleGeometry(1.35, 16), waterMat);
     water.rotation.x = -Math.PI / 2;
@@ -591,7 +591,7 @@ export class ItalyProps {
     p2.position.x = 1.1;
     group.add(p2);
 
-    // Telhado de telhas sobre o poço
+    // Telhado de telhas sobre o poÃ§o
     const roofGeo = new THREE.ConeGeometry(1.6, 0.9, 4);
     const roof = new THREE.Mesh(roofGeo, matRoof);
     roof.position.set(0, 2.4, 0);
@@ -607,7 +607,7 @@ export class ItalyProps {
   }
 
   /**
-   * Chaminé de pedra para telhados
+   * ChaminÃ© de pedra para telhados
    */
   addChimney(x, y, z, height = 1.8) {
     const group = new THREE.Group();
@@ -634,7 +634,7 @@ export class ItalyProps {
   }
 
   /**
-   * Fardos de feno rústicos da fazenda
+   * Fardos de feno rÃºsticos da fazenda
    */
   addHayBale(x, y, z, rotY = 0) {
     const matDirt = materialFactory.get('dirt');
@@ -659,7 +659,7 @@ export class ItalyProps {
 
   /**
    * Palmeira do deserto estilo CS:GO Mirage com tronco anelado, colar fibroso,
-   * cachos de tâmaras e coroa volumosa de 22 folhas arqueadas em 3 camadas (Tiers)
+   * cachos de tÃ¢maras e coroa volumosa de 22 folhas arqueadas em 3 camadas (Tiers)
    */
   addPalmTree(x, y, z, scale = 1.0) {
     const group = new THREE.Group();
@@ -672,7 +672,7 @@ export class ItalyProps {
     const trunkR = 0.36 * scale;
     const trunkTilt = -0.055;
 
-    // 1. Tronco principal orgânico com leve inclinação de deserto
+    // 1. Tronco principal orgÃ¢nico com leve inclinaÃ§Ã£o de deserto
     const trunkGeo = new THREE.CylinderGeometry(trunkR * 0.68, trunkR, trunkH, 12);
     const trunk = new THREE.Mesh(trunkGeo, matTrunk);
     const topX = 0.42 * scale;
@@ -684,7 +684,7 @@ export class ItalyProps {
     trunk.receiveShadow = true;
     group.add(trunk);
 
-    // 2. Colar fibroso / coroa na ponta do tronco (nódulo de junção das folhas)
+    // 2. Colar fibroso / coroa na ponta do tronco (nÃ³dulo de junÃ§Ã£o das folhas)
     const crownGeo = new THREE.CylinderGeometry(trunkR * 1.08, trunkR * 0.72, 0.42 * scale, 12);
     const crownMesh = new THREE.Mesh(crownGeo, matTrunk);
     crownMesh.position.set(topX, topY - 0.12 * scale, topZ);
@@ -692,7 +692,7 @@ export class ItalyProps {
     crownMesh.castShadow = true;
     group.add(crownMesh);
 
-    // 3. Cachos de tâmaras do deserto (Date fruit clusters em dourado/laranja sob a copa)
+    // 3. Cachos de tÃ¢maras do deserto (Date fruit clusters em dourado/laranja sob a copa)
     const dateMat = new THREE.MeshStandardMaterial({ color: 0xba6e2a, roughness: 0.75 });
     const numDateClusters = 3;
     for (let c = 0; c < numDateClusters; c++) {
@@ -712,16 +712,17 @@ export class ItalyProps {
           -s * (0.07 * scale),
           Math.cos(s * 1.9) * (0.10 * scale)
         );
-        berry.castShadow = true;
+        // berry: sombra desativada — detalhes minúsculos sem impacto visual de sombra
+        berry.castShadow = false;
         cluster.add(berry);
       }
       group.add(cluster);
     }
 
-    // Função interna para criar geometria de folha com pivô na base e curvatura gravitacional em V
+    // FunÃ§Ã£o interna para criar geometria de folha com pivÃ´ na base e curvatura gravitacional em V
     const createCurvedFrondGeometry = (w, len, droop, vFold = 0.16) => {
       const geo = new THREE.PlaneGeometry(w, len, 2, 7);
-      // Pivô na base para que a folha inteira se projete a partir do tronco
+      // PivÃ´ na base para que a folha inteira se projete a partir do tronco
       geo.translate(0, len / 2, 0);
 
       const pos = geo.attributes.position;
@@ -732,7 +733,7 @@ export class ItalyProps {
 
         // Arqueamento progressivo sob gravidade
         const curve = Math.pow(t, 2.1) * droop;
-        // Dobra em V das pínulas
+        // Dobra em V das pÃ­nulas
         const sideDist = Math.abs(lx) / (w * 0.5);
         const fold = sideDist * (vFold * w);
 
@@ -754,7 +755,7 @@ export class ItalyProps {
         offsetAng: 0,
         heightOffset: 0.12 * scale
       },
-      // Camada Média: 8 folhas adultas grandes da copa principal abrindo em arco
+      // Camada MÃ©dia: 8 folhas adultas grandes da copa principal abrindo em arco
       {
         count: 8,
         width: 2.7 * scale,
@@ -764,7 +765,7 @@ export class ItalyProps {
         offsetAng: Math.PI / 8,
         heightOffset: 0.0
       },
-      // Camada Baixa: 8 folhas maduras caídas pendendo graciosamente ao redor do tronco
+      // Camada Baixa: 8 folhas maduras caÃ­das pendendo graciosamente ao redor do tronco
       {
         count: 8,
         width: 2.4 * scale,
@@ -785,8 +786,9 @@ export class ItalyProps {
         frond.rotation.y = ang;
         frond.rotation.x = tier.tilt;
         frond.rotation.z = Math.sin(i * 1.7) * 0.08; // Quebra de simetria natural
-        frond.castShadow = true;
-        frond.receiveShadow = true;
+        // frond: sombra desativada — 22 folhas × 2 draw calls = -44 draw calls por palmeira
+        frond.castShadow = false;
+        frond.receiveShadow = false;
         group.add(frond);
       }
     }
@@ -799,7 +801,7 @@ export class ItalyProps {
   }
 
   /**
-   * Arco Árabe do Oriente Médio (Mirage Palace & A-Site Arch)
+   * Arco Ãrabe do Oriente MÃ©dio (Mirage Palace & A-Site Arch)
    */
   addArabicArch(x, y, z, span = 6.5, height = 4.8, thickness = 1.2) {
     const group = new THREE.Group();
@@ -826,7 +828,7 @@ export class ItalyProps {
     top.receiveShadow = true;
     group.add(top);
 
-    // Chanfros pontiagudos de arco árabe
+    // Chanfros pontiagudos de arco Ã¡rabe
     const cL = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.8, thickness), matSandstone);
     cL.position.set(-span / 2 + pillarW + 0.3, height - 0.25, 0);
     cL.rotation.z = Math.PI * 0.28;
@@ -848,7 +850,7 @@ export class ItalyProps {
   }
 
   /**
-   * Tapete / Tecido Árabe decorativo pendurado em paredes de bazar
+   * Tapete / Tecido Ãrabe decorativo pendurado em paredes de bazar
    */
   addArabicRugWall(x, y, z, rotY = 0, width = 2.4, height = 3.2, isGreen = false) {
     const matRug = isGreen ? materialFactory.get('fabric_green') : materialFactory.get('fabric_red');
@@ -863,7 +865,7 @@ export class ItalyProps {
   }
 
   /**
-   * Caixote militar tático de suprimentos
+   * Caixote militar tÃ¡tico de suprimentos
    */
   addMilitaryCrate(x, y, z, rotY = 0, sx = 1.4, sy = 1.2, sz = 1.4) {
     const matMil = materialFactory.get('military_crate');
@@ -881,7 +883,7 @@ export class ItalyProps {
   }
 
   /**
-   * Barril de óleo industrial com marcas inflamáveis
+   * Barril de Ã³leo industrial com marcas inflamÃ¡veis
    */
   addOilBarrel(x, y, z, scale = 1.0) {
     const matOil = materialFactory.get('oil_barrel');
@@ -917,7 +919,7 @@ export class ItalyProps {
   }
 
   /**
-   * Caixa d'água metálica cilíndrica de teto desértico
+   * Caixa d'Ã¡gua metÃ¡lica cilÃ­ndrica de teto desÃ©rtico
    */
   addWaterTank(x, y, z, scale = 1.0) {
     const group = new THREE.Group();
@@ -953,7 +955,7 @@ export class ItalyProps {
   // =========================================================================
 
   /**
-   * Árvore tropical gigante com raízes tabulares (Sapopembas) e copa massiva
+   * Ãrvore tropical gigante com raÃ­zes tabulares (Sapopembas) e copa massiva
    */
   addGiantJungleTree(x, y, z, scale = 1.0) {
     const group = new THREE.Group();
@@ -973,7 +975,7 @@ export class ItalyProps {
     trunk.receiveShadow = true;
     group.add(trunk);
 
-    // 4 Raízes tabulares (Sapopembas) em cruz na base para cobertura tática
+    // 4 RaÃ­zes tabulares (Sapopembas) em cruz na base para cobertura tÃ¡tica
     const buttressAngles = [0, Math.PI * 0.5, Math.PI, Math.PI * 1.5];
     const rootLen = 2.8 * scale;
     const rootH = 3.6 * scale;
@@ -986,7 +988,7 @@ export class ItalyProps {
       const dist = trunkR * 0.7 + rootLen * 0.45;
       rootMesh.position.set(Math.sin(ang) * dist, rootH * 0.45, Math.cos(ang) * dist);
       rootMesh.rotation.y = ang;
-      rootMesh.rotation.x = -0.12; // Inclinada em direção ao chão
+      rootMesh.rotation.x = -0.12; // Inclinada em direÃ§Ã£o ao chÃ£o
       rootMesh.castShadow = true;
       rootMesh.receiveShadow = true;
       group.add(rootMesh);
@@ -1014,8 +1016,9 @@ export class ItalyProps {
         frond.position.set(Math.sin(fAng) * (tier.spread * 0.3), tier.y, Math.cos(fAng) * (tier.spread * 0.3));
         frond.rotation.y = fAng;
         frond.rotation.x = Math.PI * 0.35; // Leque inclinado para fora
-        frond.castShadow = true;
-        frond.receiveShadow = true;
+        // frond: sombra desativada — 22 folhas × 2 draw calls = -44 draw calls por palmeira
+        frond.castShadow = false;
+        frond.receiveShadow = false;
         group.add(frond);
       }
     }
@@ -1028,7 +1031,7 @@ export class ItalyProps {
   }
 
   /**
-   * Tronco caído de árvore gigante coberto de musgo (Fallen Deadwood Log)
+   * Tronco caÃ­do de Ã¡rvore gigante coberto de musgo (Fallen Deadwood Log)
    */
   addFallenLog(x, y, z, rotY = 0, length = 7.5, radius = 0.6) {
     const group = new THREE.Group();
@@ -1045,7 +1048,7 @@ export class ItalyProps {
 
     this.scene.add(group);
     if (this.world) {
-      // Caixa de colisão transponível
+      // Caixa de colisÃ£o transponÃ­vel
       this.world.addBox(x, y + radius * 0.8, z, length, radius * 1.8, radius * 2, { vaultable: true });
     }
     return group;
@@ -1069,7 +1072,7 @@ export class ItalyProps {
       const card = new THREE.Mesh(cardGeo, matFern);
       card.position.set(0, cardH * 0.45, 0);
       card.rotation.y = ang;
-      card.rotation.x = 0.15; // Leve inclinação natural
+      card.rotation.x = 0.15; // Leve inclinaÃ§Ã£o natural
       card.castShadow = true;
       card.receiveShadow = true;
       group.add(card);
@@ -1080,7 +1083,7 @@ export class ItalyProps {
   }
 
   /**
-   * Bosque denso de bambu selvagem com múltiplos colmos (Bamboo Thicket)
+   * Bosque denso de bambu selvagem com mÃºltiplos colmos (Bamboo Thicket)
    */
   addBambooGrove(x, y, z, count = 8, radius = 1.6, height = 7.5) {
     const group = new THREE.Group();
@@ -1120,7 +1123,7 @@ export class ItalyProps {
   }
 
   /**
-   * Posição defensiva / Bunker em 'U' de sacos de areia (Sandbag Fortification)
+   * PosiÃ§Ã£o defensiva / Bunker em 'U' de sacos de areia (Sandbag Fortification)
    */
   addSandbagBunker(x, y, z, rotY = 0, width = 4.2, depth = 3.2, height = 1.25) {
     const group = new THREE.Group();
@@ -1151,14 +1154,14 @@ export class ItalyProps {
 
     this.scene.add(group);
     if (this.world) {
-      // Colisão para os 3 parapeitos com flag transponível
+      // ColisÃ£o para os 3 parapeitos com flag transponÃ­vel
       this.world.addBox(x, y + height / 2, z, width, height, depth, { vaultable: true });
     }
     return group;
   }
 
   /**
-   * Torre de observação militar de madeira sobre estacas (Jungle Watchtower)
+   * Torre de observaÃ§Ã£o militar de madeira sobre estacas (Jungle Watchtower)
    */
   addJungleWatchtower(x, y, z, height = 6.2) {
     const group = new THREE.Group();
@@ -1216,7 +1219,7 @@ export class ItalyProps {
     plat.receiveShadow = true;
     group.add(plat);
 
-    // Guarda-corpo / Grade de ferro de proteção
+    // Guarda-corpo / Grade de ferro de proteÃ§Ã£o
     const railH = 1.0;
     const rFront = new THREE.Mesh(new THREE.BoxGeometry(stiltSpan + 0.4, railH, 0.08), matIron);
     rFront.position.set(0, platY + railH / 2 + 0.1, stiltSpan / 2 + 0.2);
@@ -1243,9 +1246,9 @@ export class ItalyProps {
 
     this.scene.add(group);
     if (this.world) {
-      // Piso sólido caminhável no topo da torre
+      // Piso sÃ³lido caminhÃ¡vel no topo da torre
       this.world.addBox(x, y + platY, z, stiltSpan + 0.4, 0.25, stiltSpan + 0.4);
-      // Colisão para as 4 pernas de sustentação
+      // ColisÃ£o para as 4 pernas de sustentaÃ§Ã£o
       for (const [cx, cz] of corners) {
         this.world.addBox(x + cx, y + height / 2, z + cz, 0.35, height, 0.35);
       }
@@ -1254,7 +1257,7 @@ export class ItalyProps {
   }
 
   /**
-   * Ruínas de templo antigo de pedra cobertas de musgo e hera (Ancient Jungle Ruins)
+   * RuÃ­nas de templo antigo de pedra cobertas de musgo e hera (Ancient Jungle Ruins)
    */
   addAncientRuins(x, y, z, rotY = 0) {
     const group = new THREE.Group();
@@ -1264,7 +1267,7 @@ export class ItalyProps {
     const matRock = materialFactory.get('mossy_rock');
     const matFern = materialFactory.get('jungle_fern');
 
-    // 4 Pilares monolíticos ancestrais
+    // 4 Pilares monolÃ­ticos ancestrais
     const pillarH = 4.8;
     const pillarW = 1.2;
     const positions = [
@@ -1292,21 +1295,21 @@ export class ItalyProps {
       }
     }
 
-    // Lintel caído e quebrado sobre dois pilares
+    // Lintel caÃ­do e quebrado sobre dois pilares
     const lintel = new THREE.Mesh(new THREE.BoxGeometry(6.8, 0.8, 1.2), matRock);
     lintel.position.set(0, pillarH + 0.4, -3.2);
     lintel.castShadow = true;
     lintel.receiveShadow = true;
     group.add(lintel);
 
-    // Altar cerimonial de pedra no centro das ruínas
+    // Altar cerimonial de pedra no centro das ruÃ­nas
     const altar = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.0, 1.8), matRock);
     altar.position.set(0, 0.5, 0);
     altar.castShadow = true;
     altar.receiveShadow = true;
     group.add(altar);
 
-    // Muretas de pedra baixas e derruídas nos flancos
+    // Muretas de pedra baixas e derruÃ­das nos flancos
     const wallLow = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.1, 4.2), matRock);
     wallLow.position.set(-3.2, 0.55, 0);
     wallLow.castShadow = true;
@@ -1322,7 +1325,7 @@ export class ItalyProps {
   }
 
   /**
-   * Tenda / Posto de comando tático com lona camuflada (Military Camo Tent)
+   * Tenda / Posto de comando tÃ¡tico com lona camuflada (Military Camo Tent)
    */
   addMilitaryCamoTent(x, y, z, rotY = 0, width = 5.2, length = 7.0, height = 3.2) {
     const group = new THREE.Group();
@@ -1347,7 +1350,7 @@ export class ItalyProps {
     ridge.position.set(0, height, 0);
     group.add(ridge);
 
-    // 2 Águas do teto inclinado de lona camuflada
+    // 2 Ãguas do teto inclinado de lona camuflada
     const slopeW = Math.sqrt((width / 2) ** 2 + height ** 2);
     const slopeAngle = Math.atan2(height, width / 2);
 
@@ -1370,7 +1373,7 @@ export class ItalyProps {
 
     this.scene.add(group);
     if (this.world) {
-      // Cobertura sólida nas laterais da tenda
+      // Cobertura sÃ³lida nas laterais da tenda
       this.world.addBox(x - width / 2 + 0.3, y + height / 2, z, 0.6, height, length);
       this.world.addBox(x + width / 2 - 0.3, y + height / 2, z, 0.6, height, length);
     }
@@ -1378,7 +1381,7 @@ export class ItalyProps {
   }
 
   /**
-   * Monólito / Rocha gigante com musgo (Mossy Boulder)
+   * MonÃ³lito / Rocha gigante com musgo (Mossy Boulder)
    */
   addMossyBoulder(x, y, z, sx = 2.8, sy = 2.0, sz = 2.5, rotY = 0) {
     const matRock = materialFactory.get('mossy_rock');
@@ -1407,7 +1410,7 @@ export class ItalyProps {
   // =========================================================================
 
   /**
-   * Suporte de madeira com alvo de papel militar e anéis concêntricos
+   * Suporte de madeira com alvo de papel militar e anÃ©is concÃªntricos
    */
   addPaperTarget(x, y, z, rotY = 0, scale = 1.0) {
     const group = new THREE.Group();
@@ -1417,7 +1420,7 @@ export class ItalyProps {
     const matWood = materialFactory.get('wood');
     const matTarget = materialFactory.get('target');
 
-    // 1. Mourões verticais de madeira (2x4)
+    // 1. MourÃµes verticais de madeira (2x4)
     const legGeo = new THREE.BoxGeometry(0.06 * scale, 1.8 * scale, 0.06 * scale);
     const legL = new THREE.Mesh(legGeo, matWood);
     legL.position.set(-0.35 * scale, 0.9 * scale, 0);
@@ -1429,7 +1432,7 @@ export class ItalyProps {
     legR.castShadow = true;
     group.add(legR);
 
-    // 2. Travessas e sapatas de base no chão (H-base)
+    // 2. Travessas e sapatas de base no chÃ£o (H-base)
     const footGeo = new THREE.BoxGeometry(0.06 * scale, 0.06 * scale, 0.65 * scale);
     const footL = new THREE.Mesh(footGeo, matWood);
     footL.position.set(-0.35 * scale, 0.03 * scale, 0);
@@ -1441,7 +1444,7 @@ export class ItalyProps {
     footR.castShadow = true;
     group.add(footR);
 
-    // 3. Placa de sustentação de papelão/compensado
+    // 3. Placa de sustentaÃ§Ã£o de papelÃ£o/compensado
     const boardW = 0.88 * scale;
     const boardH = 1.25 * scale;
     const boardGeo = new THREE.BoxGeometry(boardW, boardH, 0.02 * scale);
@@ -1451,7 +1454,7 @@ export class ItalyProps {
     board.receiveShadow = true;
     group.add(board);
 
-    // 4. Folha de alvo frontal com textura concêntrica (virada para +Z)
+    // 4. Folha de alvo frontal com textura concÃªntrica (virada para +Z)
     const paperGeo = new THREE.PlaneGeometry(boardW * 0.98, boardH * 0.98);
     const paperFront = new THREE.Mesh(paperGeo, matTarget);
     paperFront.position.set(0, 1.25 * scale, 0.012 * scale);
@@ -1478,7 +1481,7 @@ export class ItalyProps {
   }
 
   /**
-   * Alvo pendular de plinker (gongo metálico em cavalete que balança e emite PLIINNNG)
+   * Alvo pendular de plinker (gongo metÃ¡lico em cavalete que balanÃ§a e emite PLIINNNG)
    */
   addPlinkerTarget(x, y, z, rotY = 0, plateRadius = 0.28, frameHeight = 1.75) {
     const group = new THREE.Group();
@@ -1488,7 +1491,7 @@ export class ItalyProps {
     const matSteel = materialFactory.get('scaffold');
     const matPlinker = materialFactory.get('plinker');
 
-    // 1. Armação de cavalete em A (tubos de aço)
+    // 1. ArmaÃ§Ã£o de cavalete em A (tubos de aÃ§o)
     const legLen = frameHeight / Math.cos(0.24);
     const legGeo = new THREE.CylinderGeometry(0.028, 0.028, legLen, 8);
 
@@ -1520,7 +1523,7 @@ export class ItalyProps {
     legBR.castShadow = true;
     group.add(legBR);
 
-    // Barra superior horizontal do pivô
+    // Barra superior horizontal do pivÃ´
     const barGeo = new THREE.CylinderGeometry(0.038, 0.038, 1.15, 10);
     barGeo.rotateZ(Math.PI / 2);
     const topBar = new THREE.Mesh(barGeo, matSteel);
@@ -1528,12 +1531,12 @@ export class ItalyProps {
     topBar.castShadow = true;
     group.add(topBar);
 
-    // 2. Montagem Balançante Suspensa no Pivô (Eixo no topo em frameHeight)
+    // 2. Montagem BalanÃ§ante Suspensa no PivÃ´ (Eixo no topo em frameHeight)
     const pivotGroup = new THREE.Group();
     pivotGroup.position.set(0, frameHeight, 0);
     group.add(pivotGroup);
 
-    // Hastes/correntes de suspensão
+    // Hastes/correntes de suspensÃ£o
     const armLen = frameHeight * 0.56;
     const armGeo = new THREE.BoxGeometry(0.022, armLen, 0.015);
 
@@ -1547,7 +1550,7 @@ export class ItalyProps {
     armR.castShadow = true;
     pivotGroup.add(armR);
 
-    // Chapa circular do gongo de aço
+    // Chapa circular do gongo de aÃ§o
     const gongGeo = new THREE.CylinderGeometry(plateRadius, plateRadius, 0.028, 24);
     gongGeo.rotateX(Math.PI / 2);
     const gongMesh = new THREE.Mesh(gongGeo, matPlinker);
@@ -1581,7 +1584,7 @@ export class ItalyProps {
       });
     }
 
-    // 4. Controlador de Física Pendular do Plinker
+    // 4. Controlador de FÃ­sica Pendular do Plinker
     const plinker = {
       group,
       pivotGroup,
@@ -1644,7 +1647,7 @@ export class ItalyProps {
   }
 
   /**
-   * Bancada de tiro com divisórias de baia acústica
+   * Bancada de tiro com divisÃ³rias de baia acÃºstica
    */
   addShootingBench(x, y, z, rotY = 0, width = 2.4, depth = 0.9, height = 0.95) {
     const group = new THREE.Group();
@@ -1662,7 +1665,7 @@ export class ItalyProps {
     topMesh.receiveShadow = true;
     group.add(topMesh);
 
-    // 4 pernas tubulares de aço
+    // 4 pernas tubulares de aÃ§o
     const legGeo = new THREE.CylinderGeometry(0.035, 0.035, height, 8);
     const px = width * 0.44;
     const pz = depth * 0.40;
@@ -1677,7 +1680,7 @@ export class ItalyProps {
       group.add(leg);
     }
 
-    // Divisória lateral de baia (Sound Baffle Partition)
+    // DivisÃ³ria lateral de baia (Sound Baffle Partition)
     const baffleGeo = new THREE.BoxGeometry(0.06, 1.6, depth * 1.1);
     const baffleMesh = new THREE.Mesh(baffleGeo, matWood);
     baffleMesh.position.set(width * 0.5, height + 0.8, 0);
@@ -1697,14 +1700,14 @@ export class ItalyProps {
   }
 
   /**
-   * Placa de marcação de distância (ex: 10m, 25m, 50m, 75m)
+   * Placa de marcaÃ§Ã£o de distÃ¢ncia (ex: 10m, 25m, 50m, 75m)
    */
   /** =========================================================================
    * PROPS ESPECIALIZADOS DE FAVELA (Labirinto, Vielas, Lajes e Telhados)
    * ========================================================================= */
 
   /**
-   * Antenas de TV de laje (UHF espinha de peixe ou antena parabólica com prato)
+   * Antenas de TV de laje (UHF espinha de peixe ou antena parabÃ³lica com prato)
    */
   addFavelaAntenna(x, y, z, rotY = 0, scale = 1.0, type = 'uhf') {
     const group = new THREE.Group();
@@ -1717,7 +1720,7 @@ export class ItalyProps {
       roughness: 0.35
     });
 
-    // Mastro principal de fixação
+    // Mastro principal de fixaÃ§Ã£o
     const mastH = 2.4 * scale;
     const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.03 * scale, 0.035 * scale, mastH, 8), matMetal);
     mast.position.set(0, mastH / 2, 0);
@@ -1725,11 +1728,11 @@ export class ItalyProps {
     group.add(mast);
 
     if (type === 'dish') {
-      // Antena Parabólica de laje
+      // Antena ParabÃ³lica de laje
       const dishR = 0.65 * scale;
       const dish = new THREE.Mesh(new THREE.CylinderGeometry(dishR, dishR * 0.9, 0.05 * scale, 16), matMetal);
       dish.position.set(0, mastH - 0.15 * scale, 0.25 * scale);
-      dish.rotation.x = -Math.PI / 4; // Inclinada para o céu
+      dish.rotation.x = -Math.PI / 4; // Inclinada para o cÃ©u
       dish.castShadow = true;
       group.add(dish);
 
@@ -1739,11 +1742,11 @@ export class ItalyProps {
       lnb.rotation.x = Math.PI / 4;
       group.add(lnb);
     } else {
-      // Antena UHF Espinha de Peixe clássica brasileira
+      // Antena UHF Espinha de Peixe clÃ¡ssica brasileira
       const boomLen = 1.4 * scale;
       const boom = new THREE.Mesh(new THREE.BoxGeometry(0.03 * scale, 0.03 * scale, boomLen), matMetal);
       boom.position.set(0, mastH - 0.1 * scale, boomLen / 2);
-      boom.castShadow = true;
+      boom.castShadow = false; // haste fina: sombra imperceptível, -1 DC/antena
       group.add(boom);
 
       // Varetas transversais decrescentes
@@ -1768,7 +1771,7 @@ export class ItalyProps {
   }
 
   /**
-   * Fiação elétrica aérea e cabos pretos suspensos cruzando o beco
+   * FiaÃ§Ã£o elÃ©trica aÃ©rea e cabos pretos suspensos cruzando o beco
    */
   addOverheadWires(x1, y1, z1, x2, y2, z2, sag = 0.35, cableCount = 3) {
     const group = new THREE.Group();
@@ -1830,7 +1833,7 @@ export class ItalyProps {
     armMesh.castShadow = true;
     group.add(armMesh);
 
-    // 3. 4 isoladores de cerâmica
+    // 3. 4 isoladores de cerÃ¢mica
     const insMat = new THREE.MeshStandardMaterial({ color: 0x2b4f3b, roughness: 0.3 });
     const insPositions = [-0.85, -0.3, 0.3, 0.85];
     for (const ip of insPositions) {
@@ -1839,7 +1842,7 @@ export class ItalyProps {
       group.add(ins);
     }
 
-    // 4. Transformador de energia em balanço
+    // 4. Transformador de energia em balanÃ§o
     const trafo = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.85, 0.55), matMetal);
     trafo.position.set(0, height - 2.5, 0.42);
     trafo.castShadow = true;
@@ -1854,14 +1857,14 @@ export class ItalyProps {
   }
 
   /**
-   * A autêntica caixa d'água azul brasileira (polietileno 1000L com tampa e anéis)
+   * A autÃªntica caixa d'Ã¡gua azul brasileira (polietileno 1000L com tampa e anÃ©is)
    */
   addFavelaWaterTank(x, y, z, scale = 1.0) {
     const group = new THREE.Group();
     group.position.set(x, y, z);
 
     const tankMat = new THREE.MeshStandardMaterial({
-      color: 0x0c4ea2, // Azul escuro royal característico
+      color: 0x0c4ea2, // Azul escuro royal caracterÃ­stico
       roughness: 0.42,
       metalness: 0.12
     });
@@ -1870,14 +1873,14 @@ export class ItalyProps {
     const tankRTop = 0.85 * scale;
     const tankRBot = 0.72 * scale;
 
-    // Corpo cilíndrico cônico da caixa
+    // Corpo cilÃ­ndrico cÃ´nico da caixa
     const tankGeo = new THREE.CylinderGeometry(tankRTop, tankRBot, tankH, 16);
     const tankMesh = new THREE.Mesh(tankGeo, tankMat);
     tankMesh.position.set(0, tankH / 2, 0);
     tankMesh.castShadow = true;
     group.add(tankMesh);
 
-    // Tampa sobreposta cônica
+    // Tampa sobreposta cÃ´nica
     const lidH = 0.22 * scale;
     const lidGeo = new THREE.CylinderGeometry(0.15 * scale, tankRTop + 0.05 * scale, lidH, 16);
     const lidMesh = new THREE.Mesh(lidGeo, tankMat);
@@ -1885,7 +1888,7 @@ export class ItalyProps {
     lidMesh.castShadow = true;
     group.add(lidMesh);
 
-    // Anéis de reforço
+    // AnÃ©is de reforÃ§o
     const ringGeo = new THREE.TorusGeometry(tankRTop * 0.94, 0.025 * scale, 6, 20);
     const ring1 = new THREE.Mesh(ringGeo, tankMat);
     ring1.rotation.x = Math.PI / 2;
@@ -1906,7 +1909,7 @@ export class ItalyProps {
   }
 
   /**
-   * Escada de alvenaria/concreto para acesso transitável a lajes e pisos superiores
+   * Escada de alvenaria/concreto para acesso transitÃ¡vel a lajes e pisos superiores
    */
   addFavelaStairs(x, y, z, rotY = 0, steps = 8, width = 1.2, stepHeight = 0.35, stepDepth = 0.45, withHandrail = true) {
     const group = new THREE.Group();
@@ -1930,7 +1933,7 @@ export class ItalyProps {
       stepMesh.receiveShadow = true;
       group.add(stepMesh);
 
-      // Colisão para o player caminhar (stepHeight <= 0.4m permite subir sem travar)
+      // ColisÃ£o para o player caminhar (stepHeight <= 0.4m permite subir sem travar)
       if (this.world) {
         const wx = x + (-sin * localZ);
         const wz = z + (cos * localZ);
@@ -1969,7 +1972,7 @@ export class ItalyProps {
     leg.castShadow = true;
     group.add(leg);
 
-    // Placa amarela de trânsito/militar com texto preto
+    // Placa amarela de trÃ¢nsito/militar com texto preto
     const { canvas, ctx } = TextureGenerator.createCanvas(256, 128);
     ctx.fillStyle = '#ffcc00';
     ctx.fillRect(0, 0, 256, 128);

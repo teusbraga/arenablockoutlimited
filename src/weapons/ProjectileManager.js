@@ -1,13 +1,13 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 import { emit } from '../core/EventBus.js';
 import { CONFIG } from '../core/ConfigLoader.js';
 import { BallisticsCalculator } from './BallisticsCalculator.js';
 
-export const SPEED_OF_SOUND = 343.0; // Velocidade do som no ar (m/s) a 20°C
+export const SPEED_OF_SOUND = 343.0; // Velocidade do som no ar (m/s) a 20Â°C
 
 /**
- * Representação individual de um projétil em voo.
- * Objeto reutilizável para a piscina (Object Pool).
+ * RepresentaÃ§Ã£o individual de um projÃ©til em voo.
+ * Objeto reutilizÃ¡vel para a piscina (Object Pool).
  */
 export class Projectile {
   constructor() {
@@ -54,7 +54,7 @@ export class Projectile {
   }
 }
 
-// Vetores auxiliares reutilizáveis para zerar alocação de memória no loop a 120Hz
+// Vetores auxiliares reutilizÃ¡veis para zerar alocaÃ§Ã£o de memÃ³ria no loop a 120Hz
 const _stepVec = new THREE.Vector3();
 const _stepDir = new THREE.Vector3();
 const _tempDir = new THREE.Vector3();
@@ -69,10 +69,16 @@ const _segAP = new THREE.Vector3();
 const _segClosest = new THREE.Vector3();
 const _targetHead = new THREE.Vector3();
 
+// Pool de resultados de impacto balístico (Zero-Allocation por tiro)
+// Elimina GC spikes ao substituir point: new THREE.Vector3() por referências reutilizáveis.
+const _hitResult0 = new THREE.Vector3();
+const _hitResult1 = new THREE.Vector3();
+const _hitResult2 = new THREE.Vector3();
+
 /**
  * ProjectileManager
- * Gerencia a simulação física de projéteis com Continuous Collision Detection (CCD),
- * Trajetória parabólica, resistência do ar, vento e atraso acústico realista.
+ * Gerencia a simulaÃ§Ã£o fÃ­sica de projÃ©teis com Continuous Collision Detection (CCD),
+ * TrajetÃ³ria parabÃ³lica, resistÃªncia do ar, vento e atraso acÃºstico realista.
  */
 export class ProjectileManager {
   constructor({ world, botsProvider = () => [], player = null, camera = null, maxProjectiles = 256, gameManager = null }) {
@@ -83,7 +89,7 @@ export class ProjectileManager {
     this.maxProjectiles = maxProjectiles;
     this.gameManager = gameManager;
 
-    // Object Pool pré-alocado
+    // Object Pool prÃ©-alocado
     this.pool = Array.from({ length: maxProjectiles }, () => new Projectile());
     this._activeList = [];
     this.raycaster = new THREE.Raycaster();
@@ -108,7 +114,7 @@ export class ProjectileManager {
   }
 
   /**
-   * Spawna um projétil a partir do pool pré-alocado.
+   * Spawna um projÃ©til a partir do pool prÃ©-alocado.
    */
   spawn({
     origin,
@@ -174,7 +180,7 @@ export class ProjectileManager {
       color: p.color
     });
 
-    // Se projétil usar tracer físico (ex: projéteis hiper-lentos < 200m/s ou flag physical explícita)
+    // Se projÃ©til usar tracer fÃ­sico (ex: projÃ©teis hiper-lentos < 200m/s ou flag physical explÃ­cita)
     const isPhysicalTracer = p.speed < 200 || weaponDef?.tracerProfile?.physical === true;
     if (!isPhysicalTracer) {
       const normDir = _tempDir.copy(direction).normalize();
@@ -195,14 +201,14 @@ export class ProjectileManager {
   }
 
   /**
-   * Raycast síncrono rápido no momento do disparo para estimar impacto visual imediato.
-   * Totalmente desacoplado do avanço contínuo do projétil (evita atraso de vôo no tracer).
+   * Raycast sÃ­ncrono rÃ¡pido no momento do disparo para estimar impacto visual imediato.
+   * Totalmente desacoplado do avanÃ§o contÃ­nuo do projÃ©til (evita atraso de vÃ´o no tracer).
    */
   _estimateImpact(origin, dir, maxDist, owner = 'player', ownerEntity = null) {
     let closestDist = maxDist;
     let hitPoint = null;
 
-    // 1. Raycast no mundo estático (CollisionWorld)
+    // 1. Raycast no mundo estÃ¡tico (CollisionWorld)
     if (this.world) {
       const hitWorld = this.world.raycast(origin, dir, maxDist);
       if (hitWorld && hitWorld.distance < closestDist) {
@@ -211,7 +217,7 @@ export class ProjectileManager {
       }
     }
 
-    // 2. Raycast em entidades dinâmicas (Bots / Player)
+    // 2. Raycast em entidades dinÃ¢micas (Bots / Player)
     const attacker = ownerEntity || (owner === 'player' ? this.player : null);
     const bots = this.botsProvider ? this.botsProvider() : [];
     for (let i = 0; i < bots.length; i++) {
@@ -234,30 +240,26 @@ export class ProjectileManager {
     }
 
     if (!hitPoint) {
-      return {
-        distance: closestDist,
-        point: new THREE.Vector3(
-          origin.x + dir.x * closestDist,
-          origin.y + dir.y * closestDist,
-          origin.z + dir.z * closestDist
-        )
-      };
+      _hitResult0.set(
+        origin.x + dir.x * closestDist,
+        origin.y + dir.y * closestDist,
+        origin.z + dir.z * closestDist
+      );
+      return { distance: closestDist, point: _hitResult0 };
     }
 
-    return {
-      distance: closestDist,
-      point: new THREE.Vector3(hitPoint.x, hitPoint.y, hitPoint.z)
-    };
+    _hitResult1.set(hitPoint.x, hitPoint.y, hitPoint.z);
+    return { distance: closestDist, point: _hitResult1 };
   }
 
   /**
-   * Testa colisão de segmento contra bots de forma puramente matemática (AABB/Cilindro)
-   * Usado para garantir 100% de precisão e compatibilidade com simulação headless/sem-WebGL.
+   * Testa colisÃ£o de segmento contra bots de forma puramente matemÃ¡tica (AABB/Cilindro)
+   * Usado para garantir 100% de precisÃ£o e compatibilidade com simulaÃ§Ã£o headless/sem-WebGL.
    */
   _raycastMathBot(prevPos, dir, maxDist, bot) {
     if (!bot || !bot.alive) return null;
 
-    // Bounds do bot: base no chão bot.pos.y até bot.pos.y + 1.8
+    // Bounds do bot: base no chÃ£o bot.pos.y atÃ© bot.pos.y + 1.8
     const botX = bot.pos.x;
     const botY = bot.pos.y;
     const botZ = bot.pos.z;
@@ -296,20 +298,12 @@ export class ProjectileManager {
     const hitY = prevPos.y + dir.y * hitT;
     const part = (hitY >= botY + 1.35) ? 'head' : 'body';
 
-    return {
-      distance: hitT,
-      part,
-      bot,
-      point: new THREE.Vector3(
-        prevPos.x + dir.x * hitT,
-        hitY,
-        prevPos.z + dir.z * hitT
-      )
-    };
+    _hitResult2.set(prevPos.x + dir.x * hitT, hitY, prevPos.z + dir.z * hitT);
+    return { distance: hitT, part, bot, point: _hitResult2 };
   }
 
   /**
-   * Atualização determinística de física e colisão contínua (CCD Sweep).
+   * AtualizaÃ§Ã£o determinÃ­stica de fÃ­sica e colisÃ£o contÃ­nua (CCD Sweep).
    */
   update(dt) {
     if (dt <= 0) return;
@@ -320,7 +314,7 @@ export class ProjectileManager {
 
       p.prevPos.copy(p.pos);
 
-      // 1. Forças balísticas: Gravidade + Arrasto + Vento
+      // 1. ForÃ§as balÃ­sticas: Gravidade + Arrasto + Vento
       p.vel.y -= p.gravity * dt;
       if (this.wind.x !== 0) p.vel.x += this.wind.x * dt;
       if (this.wind.z !== 0) p.vel.z += this.wind.z * dt;
@@ -363,7 +357,7 @@ export class ProjectileManager {
             _hittableMeshes.push(hits[hIdx]);
           }
         } else {
-          // Modo Headless / Matemática Pura
+          // Modo Headless / MatemÃ¡tica Pura
           const mHit = this._raycastMathBot(p.prevPos, _stepDir, closestEntityDist, b);
           if (mHit && mHit.distance < closestEntityDist) {
             closestEntityDist = mHit.distance;
@@ -405,19 +399,19 @@ export class ProjectileManager {
         }
       }
 
-      // Raycast contra o mundo físico estático (CollisionWorld)
+      // Raycast contra o mundo fÃ­sico estÃ¡tico (CollisionWorld)
       const hitWorld = this.world?.raycast(p.prevPos, _stepDir, stepDist);
 
       const entityDist = entityHit ? entityHit.distance : Infinity;
       const worldDist = hitWorld ? hitWorld.distance : Infinity;
 
-      // 4. Resolução de impacto mais próximo
+      // 4. ResoluÃ§Ã£o de impacto mais prÃ³ximo
       if (entityDist <= worldDist && entityHit && entityDist <= stepDist) {
-        // ── ACERTOU ENTIDADE (BOT OU PLAYER) ──────────────────────
+        // â”€â”€ ACERTOU ENTIDADE (BOT OU PLAYER) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         const totalDistance = p.distanceTraveled + entityDist;
         const acousticDelay = totalDistance / SPEED_OF_SOUND;
 
-        // Avalia supressão nos arredores da trajetória percorrida até a colisão
+        // Avalia supressÃ£o nos arredores da trajetÃ³ria percorrida atÃ© a colisÃ£o
         this._checkSuppression(p, p._suppressLastPos, entityHit.point, entityHit);
 
         p.pos.copy(entityHit.point);
@@ -427,7 +421,7 @@ export class ProjectileManager {
           const bot = entityHit.bot;
           let part = entityHit.part;
 
-          // Se queda de projétil por distância for expressiva (>0.25m), ajusta headshot para body
+          // Se queda de projÃ©til por distÃ¢ncia for expressiva (>0.25m), ajusta headshot para body
           const terminalImpact = BallisticsCalculator.calculateTerminalImpact(p.weaponDef, totalDistance, part);
           if (terminalImpact.dropY > 0.25 && part === 'head') {
             part = 'body';
@@ -466,25 +460,25 @@ export class ProjectileManager {
       }
 
       if (worldDist < entityDist && hitWorld && worldDist <= stepDist) {
-        // ── ACERTOU O MUNDO FÍSICO (PAREDE / CHÃO) ───────────────────
+        // â”€â”€ ACERTOU O MUNDO FÃSICO (PAREDE / CHÃƒO) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         const totalDistance = p.distanceTraveled + worldDist;
         const acousticDelay = totalDistance / SPEED_OF_SOUND;
         const hitMat = (hitWorld.box?.meta?.material || 'wall').toLowerCase();
         const norm = hitWorld.normal || { x: 0, y: 1, z: 0 };
-        const dot = -(_stepDir.x * norm.x + _stepDir.y * norm.y + _stepDir.z * norm.z); // cos do ângulo de incidência
+        const dot = -(_stepDir.x * norm.x + _stepDir.y * norm.y + _stepDir.z * norm.z); // cos do Ã¢ngulo de incidÃªncia
 
         _worldHitPoint.copy(hitWorld.point);
 
-        // Avalia supressão nos arredores da trajetória percorrida até a parede
+        // Avalia supressÃ£o nos arredores da trajetÃ³ria percorrida atÃ© a parede
         this._checkSuppression(p, p._suppressLastPos, _worldHitPoint);
 
-        // 1. VERIFICAÇÃO DE RICOCHETE ANGULAR FÍSICO
-        // Superfícies duras com ângulo rasante (< 25°, cos > -0.42 ou dot < 0.42 em relação à normal)
+        // 1. VERIFICAÃ‡ÃƒO DE RICOCHETE ANGULAR FÃSICO
+        // SuperfÃ­cies duras com Ã¢ngulo rasante (< 25Â°, cos > -0.42 ou dot < 0.42 em relaÃ§Ã£o Ã  normal)
         const isHardSurface = hitMat.includes('metal') || hitMat.includes('concrete') || hitMat.includes('stone') || hitMat.includes('sandstone') || hitMat.includes('brick');
-        const isShallowAngle = dot >= 0 && dot < 0.42; // incidência rasante em relação à superfície
+        const isShallowAngle = dot >= 0 && dot < 0.42; // incidÃªncia rasante em relaÃ§Ã£o Ã  superfÃ­cie
 
         if (isHardSurface && isShallowAngle && (p.penetrationsRemaining > 0 || Math.random() < p.ricochetChance)) {
-          // Reflexão do vetor de velocidade: v' = v - 2(v · n)n + dispersão
+          // ReflexÃ£o do vetor de velocidade: v' = v - 2(v Â· n)n + dispersÃ£o
           const vDotN = p.vel.x * norm.x + p.vel.y * norm.y + p.vel.z * norm.z;
           _reflVec.set(
             p.vel.x - 2 * vDotN * norm.x,
@@ -492,17 +486,17 @@ export class ProjectileManager {
             p.vel.z - 2 * vDotN * norm.z
           );
 
-          // Leve dispersão angular (jitter) no ricochete
+          // Leve dispersÃ£o angular (jitter) no ricochete
           _reflVec.x += (Math.random() - 0.5) * 0.15 * _reflVec.length();
           _reflVec.y += (Math.random() - 0.5) * 0.15 * _reflVec.length();
           _reflVec.z += (Math.random() - 0.5) * 0.15 * _reflVec.length();
 
-          // Perda de energia cinética (35% a 50%)
+          // Perda de energia cinÃ©tica (35% a 50%)
           _reflVec.multiplyScalar(0.60);
           p.vel.copy(_reflVec);
           p.speed = p.vel.length();
 
-          // Reposiciona o projétil ligeiramente fora da parede na direção da normal
+          // Reposiciona o projÃ©til ligeiramente fora da parede na direÃ§Ã£o da normal
           p.pos.copy(_worldHitPoint).addScaledVector(norm, 0.05);
           p.prevPos.copy(p.pos);
           p._suppressLastPos.copy(p.pos);
@@ -520,12 +514,12 @@ export class ProjectileManager {
             weapon: p.weaponDef
           });
 
-          // Projétil continua vivo voando após o ricochete!
+          // ProjÃ©til continua vivo voando apÃ³s o ricochete!
           continue;
         }
 
-        // 2. VERIFICAÇÃO DE PENETRAÇÃO DE PAREDE (WALLBANG)
-        // Coeficientes de densidade/resistência do material por metro de espessura
+        // 2. VERIFICAÃ‡ÃƒO DE PENETRAÃ‡ÃƒO DE PAREDE (WALLBANG)
+        // Coeficientes de densidade/resistÃªncia do material por metro de espessura
         let resistance = 1.0;
         if (hitMat.includes('wood')) {
           resistance = 0.35;
@@ -541,18 +535,18 @@ export class ProjectileManager {
         const requiredPenPower = wallThickness * resistance;
 
         if (p.penetrationsRemaining > 0 && p.penetrationPower >= requiredPenPower) {
-          // PENETRAÇÃO BEM-SUCEDIDA!
+          // PENETRAÃ‡ÃƒO BEM-SUCEDIDA!
           p.penetrationsRemaining--;
           p.penetrationPower -= requiredPenPower;
 
-          // Ponto de saída do projétil do outro lado da parede
+          // Ponto de saÃ­da do projÃ©til do outro lado da parede
           _exitHitPoint.copy(_worldHitPoint).addScaledVector(_stepDir, wallThickness + 0.06);
           p.pos.copy(_exitHitPoint);
           p.prevPos.copy(_exitHitPoint);
           p._suppressLastPos.copy(_exitHitPoint);
           p._suppressTick = 0;
 
-          // Perda de velocidade (25% a 40%) e redução do dano restante
+          // Perda de velocidade (25% a 40%) e reduÃ§Ã£o do dano restante
           const speedRetained = Math.max(0.4, 1.0 - (requiredPenPower * 0.45));
           p.vel.multiplyScalar(speedRetained);
           p.speed = p.vel.length();
@@ -569,11 +563,11 @@ export class ProjectileManager {
             weapon: p.weaponDef
           });
 
-          // Projétil continua sua trajetória mortal além da parede
+          // ProjÃ©til continua sua trajetÃ³ria mortal alÃ©m da parede
           continue;
         }
 
-        // 3. IMPACTO TERMINAL ABSORVIDO (Sem penetração e sem ricochete)
+        // 3. IMPACTO TERMINAL ABSORVIDO (Sem penetraÃ§Ã£o e sem ricochete)
         p.pos.copy(_worldHitPoint);
         p.active = false;
 
@@ -590,12 +584,12 @@ export class ProjectileManager {
         continue;
       }
 
-      // ── SEM IMPACTO NESTE FRAME: CONTINUA EM VOO ────────────────
+      // â”€â”€ SEM IMPACTO NESTE FRAME: CONTINUA EM VOO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
       p.pos.copy(p.prevPos).add(_stepVec);
       p.distanceTraveled += stepDist;
       p.life += dt;
 
-      // Supressão tática para projéteis em vôo livre (throttled a cada 4 ticks cobrindo o segmento completo)
+      // SupressÃ£o tÃ¡tica para projÃ©teis em vÃ´o livre (throttled a cada 4 ticks cobrindo o segmento completo)
       p._suppressTick = (p._suppressTick + 1) & 3;
       if (p._suppressTick === 0) {
         this._checkSuppression(p, p._suppressLastPos, p.pos);
@@ -609,14 +603,14 @@ export class ProjectileManager {
   }
 
   /**
-   * Avalia a proximidade tática (Near-Miss) de um segmento de projétil contra o jogador e bots.
-   * Dispara flinch, tremor de câmera, estalo supersônico e vinheta de visão de túnel.
+   * Avalia a proximidade tÃ¡tica (Near-Miss) de um segmento de projÃ©til contra o jogador e bots.
+   * Dispara flinch, tremor de cÃ¢mera, estalo supersÃ´nico e vinheta de visÃ£o de tÃºnel.
    */
   _checkSuppression(p, startPos, endPos, entityHit = null) {
     if (CONFIG.ACCESSIBILITY?.suppressionEnabled === false) return;
     const suppressionRadius = 2.40;
 
-    // 1. Supressão contra o Jogador (tiros disparados por bots ou ricochetes)
+    // 1. SupressÃ£o contra o Jogador (tiros disparados por bots ou ricochetes)
     if (this.player && this.player.alive && p.owner !== 'player' && !p.hasSuppressedPlayer) {
       if (!entityHit || !entityHit.player) {
         _targetHead.set(this.player.pos.x, this.player.pos.y + 1.55, this.player.pos.z);
@@ -648,7 +642,7 @@ export class ProjectileManager {
       }
     }
 
-    // 2. Supressão contra Bots (tiros que passam raspando em bots inimigos)
+    // 2. SupressÃ£o contra Bots (tiros que passam raspando em bots inimigos)
     if (this.botsProvider) {
       const bots = this.botsProvider();
       const attacker = p.ownerEntity || (p.owner === 'player' ? this.player : null);
@@ -686,7 +680,7 @@ export class ProjectileManager {
   }
 
   /**
-   * Retorna os projéteis ativos para uso por sistemas visuais.
+   * Retorna os projÃ©teis ativos para uso por sistemas visuais.
    */
   getActiveProjectiles() {
     const list = this._activeList;

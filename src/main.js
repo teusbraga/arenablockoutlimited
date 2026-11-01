@@ -18,13 +18,14 @@ import { AudioSystem } from './audio/AudioSystem.js';
 import { HUD } from './ui/HUD.js';
 import { MenuController } from './ui/MenuController.js';
 import { ScopeSystem } from './weapons/ScopeSystem.js';
+import { DevPerfMonitor } from './ui/DevPerfMonitor.js';
 import { on, emit } from './core/EventBus.js';
 import { loadingScreen } from './ui/LoadingScreen.js';
 import { SmokeGrenadeManager } from './weapons/SmokeGrenadeManager.js';
 import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } from './new_mechanics/index.js';
 
 /* =========================================================
-   BOOTSTRAP & INICIALIZAÇÃO DO JOGO
+   BOOTSTRAP & INICIALIZAÃ‡ÃƒO DO JOGO
    ========================================================= */
 
 (async function boot() {
@@ -38,6 +39,7 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
     const hud = new HUD();
     const audio = new AudioSystem();
     const effects = new Effects(scene);
+    const perfMonitor = new DevPerfMonitor();
 
     // 1. Carrega assets Data-Driven (JSONs)
     const assets = await ConfigLoader.loadAll();
@@ -77,12 +79,12 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
     const secondaryWeapon = MenuController.getSavedSecondaryWeapon('p9');
     viewmodel.equip(initialWeapon);
 
-    // Aplica a skin de soldado salva no jogador (3ª pessoa) e braços (1ª pessoa)
+    // Aplica a skin de soldado salva no jogador (3Âª pessoa) e braÃ§os (1Âª pessoa)
     const savedSoldierSkin = MenuController.getSavedSoldierSkin();
     player.setSoldierSkin(savedSoldierSkin);
     viewmodel.arms?.applySkin(savedSoldierSkin);
 
-    // No lobby inicial: torna o modelo 3D do operador visível no spawn com a arma primária equipada
+    // No lobby inicial: torna o modelo 3D do operador visÃ­vel no spawn com a arma primÃ¡ria equipada
     if (player.view?.root) {
       player.view.root.visible = true;
       player.view.setWeaponModel(initialWeapon);
@@ -126,7 +128,7 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
     weapons._equip(initialWeapon);
     player.setWeaponManager(weapons);
 
-    // Novas Mecânicas Táticas Integradas:
+    // Novas MecÃ¢nicas TÃ¡ticas Integradas:
     const barrelCrosshair = new BarrelCrosshairAlignment({
       camera,
       viewmodel,
@@ -188,10 +190,10 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
     }
 
     for (const id in viewmodel.models) {
-      viewmodel.models[id].mesh.visible = true; // Força compilação
+      viewmodel.models[id].mesh.visible = true; // ForÃ§a compilaÃ§Ã£o
     }
 
-    loadingScreen.setProgress(94, 'Pré-aquecendo shaders de render...');
+    loadingScreen.setProgress(94, 'PrÃ©-aquecendo shaders de render...');
     renderer.compile(scene, camera);
 
     for (const id in viewmodel.models) {
@@ -205,10 +207,10 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
     // 5. Interface e Menus
     new MenuController({ input, gameManager, weapons, crosshairManager: hud.crosshairManager, audio });
 
-    // Finaliza a tela de carregamento com transição suave
+    // Finaliza a tela de carregamento com transiÃ§Ã£o suave
     loadingScreen.hide();
 
-    // Feedback Tátil Háptico Mobile (Acessibilidade e Imersão)
+    // Feedback TÃ¡til HÃ¡ptico Mobile (Acessibilidade e ImersÃ£o)
     const triggerHaptic = (pattern) => {
       if (CONFIG.ACCESSIBILITY?.vibrationEnabled !== false && typeof navigator !== 'undefined' && navigator.vibrate) {
         try {
@@ -224,7 +226,7 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
        LOOP PRINCIPAL (GODOT-READY: fixedUpdate vs renderUpdate)
        ========================================================= */
     startEngine({
-      // _physics_process: Física, lógica, bot IA, raycast e regras (120Hz)
+      // _physics_process: FÃ­sica, lÃ³gica, bot IA, raycast e regras (120Hz)
       fixedUpdate(dt) {
         if (!gameManager.hasStarted || gameManager.roundOver || !input.locked || inventorySystem.isOpen) return;
 
@@ -236,8 +238,9 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
         gameManager.update(dt);
       },
 
-      // _process: Animação visual, sway, partículas, interpolações e render (rAF)
+      // _process: AnimaÃ§Ã£o visual, sway, partÃ­culas, interpolaÃ§Ãµes e render (rAF)
       renderUpdate(alpha, dt) {
+        perfMonitor.begin();
         const isScoped = weapons.current === 'rifle_proto' || weapons.current === 'vss' || weapons.current === 'scar_h';
         const isGameplayActive = gameManager.hasStarted && !gameManager.roundOver && input.locked && !inventorySystem.isOpen;
 
@@ -246,7 +249,7 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
         gameManager.renderUpdate(alpha, dt);
         hud.updateScoreboard(input);
 
-        // Alternância de Inventário com tecla I (permitida durante a partida antes do fim de rodada)
+        // AlternÃ¢ncia de InventÃ¡rio com tecla I (permitida durante a partida antes do fim de rodada)
         if (gameManager.hasStarted && !gameManager.roundOver) {
           if (input.consumeAction('toggle_inventory') || input.isActionJustPressed('toggle_inventory')) {
             const opened = inventorySystem.toggle();
@@ -259,8 +262,8 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
         }
 
         if (!isGameplayActive) {
-          // Fora de combate ativo (Menu Inicial, Pausa, Inventário ou Fim de Rodada):
-          // congela completamente o modelo da arma e a câmera para não reagir ao mouse por trás do menu
+          // Fora de combate ativo (Menu Inicial, Pausa, InventÃ¡rio ou Fim de Rodada):
+          // congela completamente o modelo da arma e a cÃ¢mera para nÃ£o reagir ao mouse por trÃ¡s do menu
           if (!gameManager.hasStarted) {
             camera.position.copy(lobbyCamPos);
             camera.lookAt(lobbyTarget);
@@ -270,23 +273,23 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
           effects.update(dt, camera);
           decalSystem.update(dt);
         } else {
-          // Atualização cinemática da câmera (1ª vs 3ª pessoa)
+          // AtualizaÃ§Ã£o cinemÃ¡tica da cÃ¢mera (1Âª vs 3Âª pessoa)
           player.activeWeaponWeight = weapons.def?.weight || 3.5;
           player.updateCamera(camera, dt);
 
-          // Alternância de visibilidade do viewmodel em 3ª pessoa
+          // AlternÃ¢ncia de visibilidade do viewmodel em 3Âª pessoa
           const tpAmount = player.rig?.thirdPersonAmount ?? 0;
           if (viewmodel.mount) {
-            // Em 3ª pessoa pura oculta o viewmodel de braços soltos da tela
+            // Em 3Âª pessoa pura oculta o viewmodel de braÃ§os soltos da tela
             viewmodel.mount.visible = (tpAmount < 0.6);
           }
 
           // Shake da câmera
           const shake = viewmodel.getShake();
-          if (shake > 0.002 && player.rig && !isScoped) {
+          if (shake > 0.002 && player.rig && !(isScoped && scopeSystem.scopeOn)) {
             player.rig.addShake(shake * 0.14);
           }
-          if (isScoped && player.rig) {
+          if (isScoped && scopeSystem.scopeOn && player.rig) {
             player.rig.shakeIntensity = 0;
           }
 
@@ -305,11 +308,11 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
           });
           viewmodel.decayFlash(dt);
 
-          // Efeitos visuais e partículas
+          // Efeitos visuais e partÃ­culas
           effects.update(dt, camera);
           decalSystem.update(dt);
 
-          // FOV Dinâmico (Proporcional ao peso contínuo de sprint para transição aveludada)
+          // FOV DinÃ¢mico (Proporcional ao peso contÃ­nuo de sprint para transiÃ§Ã£o aveludada)
           const sprintW = viewmodel.locomotion?.sprintWeight ?? (player.sprinting ? 1.0 : 0.0);
           const sprintFovExtra = 8.0 * sprintW;
           const targetFov = weapons.ads
@@ -328,7 +331,7 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
             player.customSensMul = 1.0;
           }
 
-          // Mecânica Wardogs: Atualiza a balística 3D do cano e projeção 2D
+          // MecÃ¢nica Wardogs: Atualiza a balÃ­stica 3D do cano e projeÃ§Ã£o 2D
           const currentSprayRecoil = weapons.getSprayRecoil();
           if (barrelCrosshair && weapons.def) {
             barrelCrosshair.update(weapons.def, weapons.ads, dt, currentSprayRecoil);
@@ -353,12 +356,12 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
           );
           hud.update(dt, player.yaw);
 
-          // Áudio 3D Espacial e Oclusão Sonora
+          // Ãudio 3D Espacial e OclusÃ£o Sonora
           audio.updateListener(camera);
           audio.update(dt);
         }
 
-        // Renderização Three.js
+        // RenderizaÃ§Ã£o Three.js
         const activeScopedModel = viewmodel.models[weapons.current]?.mesh;
 
         if (isScoped && scopeSystem.scopeOn) {
@@ -366,6 +369,7 @@ import { BarrelCrosshairAlignment, TacticalInventorySystem, AimAssistSystem } fr
         }
 
         renderer.render(scene, camera);
+        perfMonitor.end(renderer);
 
         if (isScoped && scopeSystem.scopeOn) {
           scopeSystem.render(camera);

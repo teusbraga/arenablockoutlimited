@@ -1,16 +1,16 @@
 import { emit, on } from '../core/EventBus.js';
 
 export const DEFAULT_CROSSHAIR_CONFIG = {
-  style: 'cross',           // 'cross' | 't_shape' | 'none'
-  mode: 'static',          // 'static' | 'dynamic' (abertura das hastes com spread)
-  dynamicAlignment: false,   // true | false (alinhamento dinâmico 3D do cano na HUD)
-  followRecoil: false,      // true | false (subida/desvio da mira com o recuo/spray)
-  centerDot: false,         // true | false
-  length: 7,                // 2 a 24 px
+  style: 't_shape',         // 'cross' | 't_shape' | 'none'
+  mode: 'dynamic',          // 'static' | 'dynamic' (abertura das hastes com spread)
+  dynamicAlignment: true,   // true | false (alinhamento dinâmico 3D do cano na HUD)
+  followRecoil: true,       // true | false (subida/desvio da mira com o recuo/spray)
+  centerDot: true,          // true | false
+  length: 5,                // 2 a 24 px
   thickness: 1.5,           // 1 a 6 px
-  gap: 5,                   // -4 a 20 px
-  outline: 1,               // 0 a 3 px
-  color: '#00ff66',         // hex
+  gap: 4,                   // -4 a 20 px
+  outline: 0,               // 0 a 3 px
+  color: '#ffffff',         // hex
   noFireWarning: false,      // true | false
   aimAssist: true           // true ('true' = ON) | 'none' (false = OFF)
 };

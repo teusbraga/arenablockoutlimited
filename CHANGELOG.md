@@ -1,7 +1,7 @@
 # 📜 Log de Versões e Histórico de Desenvolvimento (CHANGELOG)
 **Projeto:** Arena Blockout (FPS Browser 3D Three.js)  
 **Repositório:** [teusbraga/arenablockoutlimited](https://github.com/teusbraga/arenablockoutlimited)  
-**Data da última atualização:** 30 de Outubro de 2026  
+**Data da última atualização:** 01 de Novembro de 2026  
 
 ---
 
@@ -17,7 +17,163 @@
 
 ## 🚀 Histórico Cronológico de Versões e Commits
 
+### 🔹 Novembro de 2026
+
+#### [feat(ui/crosshair): Novos padrões iniciais da mira CS2 (T-Shape Dinâmica, Follow Recoil e Ponto Branco)] — 01/11/2026
+
+* **feat(crosshair): `src/ui/CrosshairManager.js` & `src/ui/MenuController.js`** — Configuração padrão atualizada:
+  * Definido `DEFAULT_CROSSHAIR_CONFIG` com os parâmetros competitivos de referência:
+    * `style: 't_shape'` — Formato T (CS2 T-Shape, removendo a haste superior para máxima visibilidade de headshots);
+    * `mode: 'dynamic'` — Comportamento de dispersão dinâmico com abertura responsiva das hastes em movimento e spray;
+    * `dynamicAlignment: true` — Alinhamento dinâmico 3D da mira projetado a partir do cano real da arma na HUD;
+    * `followRecoil: true` — Rastreamento dinâmico de recuo e subida de spray;
+    * `centerDot: true` — Ponto central (Center Dot) ativado para focalização precisa;
+    * `length: 5` — Comprimento das hastes calibrado em 5px;
+    * `thickness: 1.5` — Espessura das hastes em 1.5px;
+    * `gap: 4` — Espaçamento central calibrado em 4px;
+    * `outline: 0` — Contorno escuro desativado (0px);
+    * `color: '#ffffff'` — Cor branca de alto contraste (#ffffff);
+    * `noFireWarning: false` — Aviso de cano obstruído desativado por padrão;
+    * `aimAssist: true` — Assistência de mira mantida ativada.
+  * Botão de restauração (`↺ RESTAURAR PADRÃO CS2`) e inicialização limpa (primeira execução / sem `localStorage`) sincronizados com os novos valores padrão.
+
+* **feat(dom/css): `index.html` & `assets/css/main.css`** — Sincronização de marcação e estilos CSS:
+  * Atualizados os valores e atributos `selected` dos selects (`#ch-style-select`, `#ch-mode-select`, `#ch-dynamic-align`, `#ch-follow-recoil`, `#ch-center-dot`), sliders (`#ch-length-slider`, `#ch-gap-slider`, `#ch-outline-slider`) e color picker (`#ch-color-picker`).
+  * Inserida classe `ch-t-shape` e estilo de exibição do ponto central diretamente nos elementos `#crosshair` e `#crosshair-preview` para evitar qualquer piscar de transição visual durante o boot.
+  * Atualizadas as variáveis CSS de fallback (`--ch-color: #ffffff; --ch-len: 5px; --ch-gap: 4px; --ch-shadow: none;`) em `main.css`.
+
+* **test: `test/crosshair_manager.test.js`** — Atualização dos testes unitários de persistência e defaults:
+  * Validação explícita de todos os novos valores padrão na instanciação inicial sem storage e verificação da integridade de alternância de configurações.
+
+#### [feat(ui/accessibility): Slider de Tremor de Pulo (Jump Head Shake) no Menu de Configurações] — 01/11/2026
+
+* **feat(ui): `index.html` & `src/ui/MenuController.js`** — Novo controle deslizante de acessibilidade no menu:
+  * Inserido o controle `#jumpshake-slider` e indicador `#jumpshake-val` [0% a 100%, step 5%] posicionado estrategicamente junto ao Balanço de Cabeça (Headbob).
+  * Persistência contínua no navegador via `localStorage` (`blocky_jumpshake`) e atualização em tempo real de `CONFIG.ACCESSIBILITY.jumpShakeScale`.
+
+* **feat(camera): `src/core/CameraRig.js`** — Modulação paramétrica da cinemática de salto:
+  * `triggerJumpTakeoff` e `triggerLandingDip` agora modulam proporcionalmente a flexão inicial, a mola de pouso, o pitch nod e a oscilação elástica por `jumpShakeScale`.
+  * Em 0%, neutraliza 100% o tremor e a pancada de aterrissagem sem afetar o headbob de caminhada; em 100%, entrega o efeito biomecânico integral.
+
+* **data(config): `assets/config/gameplay.json` & `src/core/ConfigLoader.js`**:
+  * Chave `jumpShakeScale: 1.0` integrada aos defaults de acessibilidade.
+
+* **test: `test/phase14_accessibility_test.js` & `test/jump_kinematics_test.js`**:
+  * Cobertura automatizada para neutralização total em 0% e calibração contínua em 50% e 100%.
+
+#### [feat/biomechanics: Tremor de aterrissagem com ação e reação elástica, pancada contundente e cache-bust] — 01/11/2026
+
+* **feat(camera): `src/core/CameraRig.js`** — Implementação do tremor biomecânico elástico com ação e reação:
+  1. **Compressão inicial de impacto (Ação):** Ao tocar o solo, o impacto e a inércia da cabeça comprimem as articulações para baixo com pico de até `-7.3 cm` vertical e `-3.7°` de pitch nod.
+  2. **Rebote elástico (Reação):** A resposta elástica das articulações e tendões dispara imediatamente o rebote para cima ultrapassando a linha de base em até `+4.8 cm` e `+2.4°` de pitch.
+  3. **Oscilação de tremor contundente:** Modelada como oscilação harmônica sobamortecida ($\omega = 16\text{ Hz}$, $\lambda = 11\text{ s}^{-1}$ e duração de 380 ms), gerando 12 alternâncias de fase perceptíveis de cima/baixo que reproduzem a reverberação esquelética.
+  4. **Micro-shake concussivo:** Calibrado `shakePos` e `shakeRot` com multiplicador de 0.45 para conferir sensação tátil de pancada no momento do impacto.
+  5. **Atenuação no ADS preservada:** No ADS, a perturbação é amortecida em 85-90% para manter a precisão de tiro competitiva protegida.
+
+* **data(config): `assets/config/gameplay.json` & `src/core/ConfigLoader.js`** — Calibração data-driven:
+  * `landingDipScale` calibrado para `0.0025`, `landingShakeScale` elevado para `0.45`.
+
+* **fix(cache): `sw.js` & `index.html`** — Invalidação agressiva de cache no navegador:
+  * Atualizado `CACHE_NAME` do Service Worker para `'arena-blockout-v4'`, garantindo purga de assets legados cacheados.
+  * Adicionada query string versionada `?v=landing-tremor-v3` no script principal de `index.html`.
+
+* **test: `test/jump_kinematics_test.js`** — Nova Suíte 8:
+  * Validação analítica do ciclo de ação (compressão $< -5\text{ cm}$), reação (rebote $> +3\text{ cm}$), e contagem de alternâncias de fase cima/baixo.
+
 ### 🔹 Outubro de 2026
+
+#### [feat/fix: Som de pancada duplo no impacto de pouso e física de salto com sprint] — 31/10/2026
+
+* **feat(player): `src/entities/Player.js`** — Correção e calibração fina da física de sprint e detecção de pouso:
+  1. **Preservação de velocidade no sprint jump:** O jogador que já está sprintando no chão e salta mantém a velocidade e o estado de sprint durante todo o voo (`wantsSprint = this.sprinting ? canSprintBase : (canSprintBase && this.onGround)`). A velocidade não é mais cortada no ar nem aciona freio de recuperação de postura.
+  2. **Bloqueio de início de sprint no ar:** Se o jogador estiver no ar (sem estar sprintando previamente) e pressionar Shift, o sprint não é iniciado, eliminando a aceleração irreal no ar.
+  3. **Sensibilidade de pouso calibrada (`velY < -1.5`):** Limiar ajustado de `-3.0` para `-1.5` m/s, garantindo que qualquer aterrissagem de salto (em piso plano, rampas, obstáculos ou caixas) acione confiavelmente o `triggerLandingDip` e o evento `player:landing`.
+
+* **feat(audio): `src/audio/procedural/LocomotionAcoustics.js`** — Novo método `synthesizeLanding`:
+  * Sintetiza uma pancada orgânica de duplo impacto simulando os 2 pés tocando o solo descompassados (~42 ms de diferença).
+  * O pé secundário tem afinação e peso modulados para criar separação acústica realista.
+
+* **feat(audio): `src/audio/AudioSystem.js`** — Roteamento potente de pouso para `impactsGain`:
+  * `playLanding(material, velY)` agora encaminha para o barramento `this.impactsGain` (volume padrão 0.45), garantindo corpo, pegada e presença auditiva nítida em vez do volume abafado de 0.05 de passos contínuos.
+  * Escala proporcional à velocidade vertical de queda (`clampedSpeed` de 1.5 a 12.0 m/s).
+
+* **feat(audio): `src/audio/procedural/SoundPresets.js`** — Calibração do preset `landing_impact`:
+  * Frequência de calcanhar em 85 Hz (grave e contundente), ressonância modal de piso em 150 Hz com Q=2.5, atrito de sola `scuffAmount: 0.65` e peso corporal `bodyWeight: 2.2`.
+
+* **test: `test/jump_kinematics_test.js` & `test/procedural_audio_test.js`** — Suítes de validação automatizadas:
+  * Suíte 7 em `jump_kinematics_test.js` cobrindo pouso com emissão de `player:landing`, manutenção de sprint no salto e bloqueio de sprint no ar.
+  * Teste 7 em `procedural_audio_test.js` validando o disparo do método `synthesizeLanding` e roteamento para `impactsGain`.
+
+#### [Otimização de Desempenho Mobile — Plano Mestre: Zero-Allocation, Draw Calls e Telemetria] — 31/10/2026
+
+* **perf(scope): `src/weapons/ScopeSystem.js`** — Object Pooling completo no loop da luneta:
+  * Declarados 8 vetores estáticos no escopo do módulo (`_vRear`, `_vFront`, `_dir`, `_vUp`, `_target`, `_vCam`, `_qShake`, `_euler`), eliminando ~1.800 alocações `new THREE.Vector3/Quaternion/Euler()` por segundo e os stutters de GC associados.
+  * Threshold do segundo passe de câmera (`scopeOn`) alterado de `> 0.01` para `>= 0.55`, eliminando stutter/tranco visual ao iniciar a mira.
+  * `scopeCamera.far` reduzido de 150 m para 115 m, alinhado ao fog da cena (sem impacto visual).
+
+* **perf(projectiles): `src/weapons/ProjectileManager.js`** — Pool de resultados de impacto balístico:
+  * Adicionados `_hitResult0`, `_hitResult1`, `_hitResult2` como vetores estáticos de módulo; eliminam `new THREE.Vector3()` criados a cada hit/miss em `_estimateImpact` e `_raycastMathBot`.
+
+* **perf(viewmodel): `src/weapons/Viewmodel.js`** — Sombras da arma em 1ª pessoa desativadas:
+  * Em `registerModel()`: `model.traverse(o => { if (o.isMesh) { o.castShadow = false; o.receiveShadow = false; } })` — corta 120–184 draw calls/frame de todas as armas sem tocar em `src/weapons/models/*.js` (diretiva GEMINI.md preservada).
+
+* **perf(props): `src/world/ItalyProps.js`** — Sombras desativadas em malhas decorativas de alta frequência:
+  * `addPalmTree`: 22 folhas (`frond`) e cachos de tâmaras (`berry`) sem `castShadow`/`receiveShadow` — reduz ~44–50 draw calls por palmeira.
+  * `addBalcony`: grades laterais finas (`railSideL`) sem `castShadow`.
+  * `addWindow`: veneziana plana (`winMesh`) sem `castShadow`.
+  * `addFavelaAntenna`: haste UHF (`boom`) sem `castShadow`.
+
+* **feat(graphics): `src/core/SceneSetup.js`** — Perfis gráficos dinâmicos:
+  * Método `applyQualityProfile(preset)` com 3 presets (`'low'`, `'medium'`, `'high'`) controlando sombras, luzes, pixelRatio (low ≤1.25, medium ≤1.5, high ≤2.0).
+  * Listener `config:graphicsChanged` no EventBus aplica preset sem reload; unsubscribe em `destroy()`.
+
+* **data(config): `assets/config/gameplay.json`** — Bloco `"graphics"` canônico adicionado:
+  * Defaults: `preset:"auto"`, `shadows:true`, `shadowResolution:1024`, `maxPixelRatio:1.5`, `scopeResolution:512`, `perfMonitor:false`.
+
+* **feat(config): `src/core/ConfigLoader.js`** — `GRAPHICS` adicionado ao `DEFAULT_CONFIG` e carregado do JSON via `deepMerge`.
+
+* **feat(ui): `src/ui/DevPerfMonitor.js`** — NOVO módulo: Monitor de Telemetria Científica (F3):
+  * FPS estável em janela deslizante 0.5 s; métrica `1% Low` (pior 1% dos frame times); JS Frame Time via `performance.now()`; semáforo de Draw Calls (🟢≤50 / 🟡51–90 / 🔴>90); triângulos, texturas e geometrias de `renderer.info`.
+  * Ativado/desativado por `F3`; responde a `config:graphicsChanged { perfMonitor }`; `destroy()` com unsubscribe e remoção do DOM.
+
+* **feat(main): `src/main.js`** — Integração do `DevPerfMonitor` no `renderUpdate`:
+  * `perfMonitor.begin()` no início do frame; `perfMonitor.end(renderer)` após `renderer.render(scene, camera)`.
+
+* **feat(ui): `index.html`** — Controles gráficos na aba Sistema:
+  * `<select id="graphics-preset">` com opções Alta/Média/Mobile; `<select id="perf-monitor-toggle">` para ativar F3.
+
+* **feat(menu): `src/ui/MenuController.js`** — Listeners para `#graphics-preset` e `#perf-monitor-toggle`:
+  * Persistência em `localStorage`; emit de `config:graphicsChanged` no boot e a cada alteração.
+
+* **Validação:** `npm test` → 137/137 ✅ | `node --test test/tracer_test.js test/italy_map_test.js test/touch_haptics_ios_test.js` → 8/8 ✅
+
+---
+
+#### [Cinemática Híbrida de Pulo: Takeoff Dip, Pitch Nod e Micro-Shake em Quedas Duras] — 31/10/2026
+* **feat(kinematics):** Integração cinemática elegante e discreta entre o sistema de Camera Shake, molas harmônicas e o movimento de pulo do personagem:
+  * **Análise Comparativa (Camera Shake vs Mola de Salto):**
+    * Diagnosticado que o Camera Shake de recuo/supressão opera como ruído pseudo-harmônico senoidal de alta frequência (~6 a 10 Hz) e é deliberadamente neutralizado na câmera externa durante ADS (`shakeDamp = 0.0`) para preservar a precisão de mira.
+    * A mola de pouso (`landingDip`, $k=280, d=26$) atuava exclusivamente no eixo linear $Y$ de translação, deixando a decolagem do pulo 100% rígida e o pouso desprovido de inércia angular cervical.
+  * **Takeoff Dip e Pitch Nod na Decolagem (`src/core/CameraRig.js`, `src/entities/Player.js`):**
+    * Implementado `triggerJumpTakeoff()` disparado organicamente ao executar o pulo no `Player.js`.
+    * Injeta micro-compressão elástica vertical em $Y$ ($\approx -9\text{mm}$, regulada por `CONFIG.PLAYER.takeoffDipScale`) e um micro-pitch nod ($\approx -0.13^\circ$, regulado por mola angular harmônica $k=320, d=28$), conferindo sensação tátil de esforço biomecânico e explosão muscular sem travamento.
+  * **Pancada Angular de Impacto, Tremor Biomecânico e Micro-Shake na Aterrissagem (`src/core/CameraRig.js`):**
+    * **Tremor Biomecânico Elástico de Ação e Reação:** Implementada oscilação amortecida rápida de 12 Hz ($\omega = 75\text{ rad/s}, \lambda = 16$) simulando a compressão e devolução elástica das articulações e da coluna cervical:
+      * No impacto do solo ($t < 25\text{ms}$), a câmera sofre compressão para baixo de $-4.7\text{ cm}$ e $-2.6^\circ$ de pitch.
+      * A elasticidade musculoesquelética devolve a força com rebote imediato para cima em $50\text{ms}$ ($+1.5\text{ cm}$ e $+0.7^\circ$).
+      * A câmera literalmente oscila/treme verticalmente (baixo $\rightarrow$ cima $\rightarrow$ baixo $\rightarrow$ repouso) ao longo de $180\text{ms}$, produzindo um tremor físico real e nítido.
+    * **Correção de Silenciamento de Shake em Fuzis (`src/main.js`):**
+      * Corrigida a condição de supressão de shake: antes verificava apenas `isScoped` (zerando `shakeIntensity = 0` permanentemente a cada frame se `rifle_proto`, `vss` ou `scar_h` estivessem em mãos), agora verifica estritamente `isScoped && scopeSystem.scopeOn`, garantindo que armas com luneta sofram shake normal em hipfire e pulos.
+      * Micro-shake concussivo triplicado (`landingShakeScale = 0.36`), fornecendo um baque sólido de alta frequência perceptível ($\approx 0.34$ de intensidade) no pulo comum e até $0.60$ em quedas severas.
+  * **Blindagem no ADS e Acessibilidade:**
+    * No ADS (`isAds = true`), tanto o Pitch Nod quanto o Roll Nod são atenuados em 90% (`adsDamp = 0.10`), preservando a linha de visada em jump-peeks/jump-shots competitivos.
+    * Respeita integralmente os multiplicadores de acessibilidade (`CONFIG.ACCESSIBILITY.headbobScale` e `CONFIG.ACCESSIBILITY.shakeScale`).
+  * **Configuração Data-Driven (`assets/config/gameplay.json`, `src/core/ConfigLoader.js`):**
+    * Adicionados os parâmetros `takeoffDipScale: 0.0018`, `landingPitchNodScale: 0.0075` e `landingShakeScale: 0.36`.
+  * **Suíte de Testes Automatizada (`test/jump_kinematics_test.js`, `package.json`):**
+    * Criadas 6 suítes de testes unitários e integrados cobrindo dados, estabilização de mola rápida, ativação de micro-shake no pulo comum e em queda severa, amortecimento de ADS, acessibilidade a 0% e integração física com o `Player`.
+    * Integrado ao gate principal `npm test` (137/137 testes aprovados).
+
 
 #### [Correção de Geometria de Rampa 3D (createWedgeGeometry) e Registro de Materiais PBR] — 31/10/2026
 * **fix(render):** Resolução do `ReferenceError: createWedgeGeometry is not defined` no carregamento de mapas com rampas em runtime (`src/world/MapLoader.js`):

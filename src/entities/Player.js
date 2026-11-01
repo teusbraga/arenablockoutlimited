@@ -167,9 +167,10 @@ export class Player extends Character {
         this.crouched = false;
       }
 
-      // Sprint só é permitido com movimento para frente ou diagonais frontais
+      // Sprint só pode ser INICIADO no chão; se já estava sprintando ao saltar, mantém a velocidade no ar
       const isMovingForward = _wish.dot(_fwd) > 0.01;
-      const wantsSprint = isPressed('sprint') && _wish.lengthSq() > 0 && isMovingForward && !this.ads && !this.crouched;
+      const canSprintBase = isPressed('sprint') && _wish.lengthSq() > 0 && isMovingForward && !this.ads && !this.crouched;
+      const wantsSprint = this.sprinting ? canSprintBase : (canSprintBase && this.onGround);
       if (this.sprinting && !wantsSprint) {
         this.sprintRecoveryTimer = CONFIG.PLAYER.stanceRecoveryTime || 0.15;
       }
@@ -220,6 +221,9 @@ export class Player extends Character {
         this.onGround = false;
         this.coyoteTimer = 0;
         this.jumpBufferTimer = 0;
+        if (this.rig?.triggerJumpTakeoff) {
+          this.rig.triggerJumpTakeoff();
+        }
       }
     } else {
       _wish.set(0, 0, 0);
@@ -285,10 +289,11 @@ export class Player extends Character {
     const wasOnGround = this.onGround;
     this.applyPhysics(dt, CONFIG.PLAYER.stepHeight);
 
-    if (!wasOnGround && this.onGround && prevVelY < -3.0) {
+    if (!wasOnGround && this.onGround && prevVelY < -1.5) {
       if (this.rig?.triggerLandingDip) {
         this.rig.triggerLandingDip(prevVelY);
       }
+      emit('player:landing', { pos: this.pos.clone(), material: this.groundMaterial || 'floor', velY: prevVelY });
     }
 
     // ---- Limites do mapa ----

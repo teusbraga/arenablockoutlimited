@@ -23,7 +23,10 @@
     "stepHeight": 0.35,
     "coyoteTime": 0.12,
     "jumpBuffer": 0.12,
-    "landingDipScale": 0.0035,
+    "landingDipScale": 0.0025,
+    "takeoffDipScale": 0.0018,
+    "landingPitchNodScale": 0.0075,
+    "landingShakeScale": 0.45,
     "regenDelay": 5,
     "regenRate": 12,
     "maxSlopeAngle": 45,
@@ -62,6 +65,7 @@
   "accessibility": {
     "headbobScale": 1,
     "shakeScale": 1,
+    "jumpShakeScale": 1,
     "vibrationEnabled": true,
     "suppressionEnabled": true
   },
@@ -74,5 +78,13 @@
   "zeroing": {
     "defaultZeroDistance": 50,
     "zeroingMode": false
+  },
+  "graphics": {
+    "preset": "auto",
+    "shadows": true,
+    "shadowResolution": 1024,
+    "maxPixelRatio": 1.5,
+    "scopeResolution": 512,
+    "perfMonitor": false
   }
 }

@@ -29,22 +29,30 @@ test('CrosshairManager - Defaults and Config Persistence', () => {
   };
 
   const cm = new CrosshairManager({ crosshairEl: mockEl });
-  assert.equal(cm.config.style, 'cross');
-  assert.equal(cm.config.color, '#00ff66');
-  assert.equal(cm.config.length, 7);
+  assert.equal(cm.config.style, 't_shape');
+  assert.equal(cm.config.mode, 'dynamic');
+  assert.equal(cm.config.dynamicAlignment, true);
+  assert.equal(cm.config.followRecoil, true);
+  assert.equal(cm.config.centerDot, true);
+  assert.equal(cm.config.length, 5);
+  assert.equal(cm.config.thickness, 1.5);
+  assert.equal(cm.config.gap, 4);
+  assert.equal(cm.config.outline, 0);
+  assert.equal(cm.config.color, '#ffffff');
   assert.equal(cm.config.noFireWarning, false);
+  assert.equal(cm.config.aimAssist, true);
 
   // Alterar e salvar config
-  cm.saveConfig({ style: 't_shape', length: 12, color: '#00ffff' });
-  assert.equal(cm.config.style, 't_shape');
+  cm.saveConfig({ style: 'cross', length: 12, color: '#00ffff' });
+  assert.equal(cm.config.style, 'cross');
   assert.equal(cm.config.length, 12);
   assert.equal(cm.config.color, '#00ffff');
-  assert.ok(mockClasses.has('ch-t-shape'));
+  assert.ok(!mockClasses.has('ch-t-shape'));
   assert.equal(mockStyle.getProperty('--ch-color'), '#00ffff');
 
   // Testar recarregamento do storage
   const cm2 = new CrosshairManager({ crosshairEl: mockEl });
-  assert.equal(cm2.config.style, 't_shape');
+  assert.equal(cm2.config.style, 'cross');
   assert.equal(cm2.config.length, 12);
 
   cm.destroy();

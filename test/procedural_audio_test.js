@@ -324,6 +324,30 @@ class MockAudioContext {
   audio.destroy();
 }
 
+// 7. Validação do Som de Pancada Dupla no Impacto de Aterrissagem (2 pés)
+{
+  console.log('[Teste 7] Validando Pancada de Aterrissagem (Landing Impact)...');
+  const audio = new AudioSystem();
+  audio.ctx = new MockAudioContext();
+  audio._initAudioGraph();
+
+  let landingCalled = false;
+  let landingParams = null;
+  let landingDest = null;
+  audio.locomotionAcoustics.synthesizeLanding = (params, ctx, dest, t0, mat, hum) => {
+    landingCalled = true;
+    landingParams = params;
+    landingDest = dest;
+  };
+
+  emit('player:landing', { material: 'concrete', velY: -5.8 });
+  assert.strictEqual(landingCalled, true, 'Evento player:landing deve acionar synthesizeLanding');
+  assert.strictEqual(landingDest, audio.impactsGain, 'Landing impact deve ser roteado para o bus impactsGain');
+  assert(landingParams.bodyWeight > 2.0, 'BodyWeight da aterrissagem deve ser ampliado para peso de impacto');
+  console.log('✓ Pancada de aterrissagem dupla acionada e roteada para impactsGain.');
+  audio.destroy();
+}
+
 console.log('==================================================');
 console.log('🎉 TODOS OS TESTES DE ÁUDIO PROCEDURAL PASSARAM COM SUCESSO!');
 console.log('==================================================');

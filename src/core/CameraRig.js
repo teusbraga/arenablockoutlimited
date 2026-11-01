@@ -84,9 +84,25 @@ export class CameraRig {
     this.currentLean = 0;
     this.targetLean = 0;
 
-    // ---- Landing Dip (Amortecimento vertical de impacto no pouso) ----
+    // ---- Landing Dip & Jump Kinematics ----
     this.landingDip = 0;
     this.landingDipVel = 0;
+    this.jumpPitchNod = 0;
+    this.jumpPitchNodVel = 0;
+    this.effectiveJumpPitchNod = 0;
+    this.jumpRollNod = 0;
+    this.jumpRollNodVel = 0;
+    this.effectiveJumpRollNod = 0;
+
+    // ---- Tremor Biomecânico de Aterrissagem (Ação e Reação de Articulações) ----
+    this.landingTremorTime = 999.0;
+    this.landingTremorDuration = 0.38;
+    this.landingTremorAmpY = 0;
+    this.landingTremorAmpPitch = 0;
+    this.landingTremorAmpRoll = 0;
+    this.landingTremorOffsetY = 0;
+    this.landingTremorPitch = 0;
+    this.landingTremorRoll = 0;
 
     // ---- Flinch (Impacto de Tiro Recebido) ----
     this.flinchPitch = 0;
@@ -232,12 +248,53 @@ export class CameraRig {
     return this.perspective === 'third';
   }
 
+  triggerJumpTakeoff() {
+    const takeoffScale = CONFIG.PLAYER?.takeoffDipScale ?? 0.0018;
+    if (takeoffScale <= 0) return;
+    const jumpScale = (CONFIG.ACCESSIBILITY?.jumpShakeScale ?? 1.0) * (CONFIG.ACCESSIBILITY?.headbobScale ?? 1.0);
+    if (jumpScale <= 0) return;
+    const jumpSpeed = CONFIG.PLAYER?.jumpSpeed ?? 6.0;
+    // Micro-compressão vertical inicial na saída do chão (flexão de pernas)
+    this.landingDipVel -= jumpSpeed * takeoffScale * 60.0 * jumpScale;
+    // Micro-pitch nod sutil de esforço e impulso (-0.18 rad/s)
+    this.jumpPitchNodVel -= 0.18 * jumpScale;
+  }
+
   triggerLandingDip(impactYVel) {
-    const scale = CONFIG.PLAYER?.landingDipScale ?? 0.0035;
-    if (scale <= 0) return;
-    const userBobScale = CONFIG.ACCESSIBILITY?.headbobScale ?? 1.0;
+    const scale = CONFIG.PLAYER?.landingDipScale ?? 0.0025;
+    const nodScale = CONFIG.PLAYER?.landingPitchNodScale ?? 0.0075;
+    const jumpScale = CONFIG.ACCESSIBILITY?.jumpShakeScale ?? 1.0;
+    const userBobScale = (CONFIG.ACCESSIBILITY?.headbobScale ?? 1.0) * jumpScale;
+    const userShakeScale = (CONFIG.ACCESSIBILITY?.shakeScale ?? 1.0) * jumpScale;
+    if (userBobScale <= 0 && userShakeScale <= 0) return;
     const clampedSpeed = Math.min(Math.abs(impactYVel), 12.0);
-    this.landingDipVel -= clampedSpeed * scale * 60.0 * userBobScale;
+
+    // 1. Mola vertical rápida de flexão das pernas (Landing Dip linear em Y)
+    if (scale > 0 && userBobScale > 0) {
+      this.landingDipVel -= clampedSpeed * scale * 60.0 * userBobScale;
+    }
+
+    // 2. Pancada angular de impacto (Head Pitch Nod brusco e enérgico)
+    if (nodScale > 0 && userBobScale > 0) {
+      this.jumpPitchNodVel -= clampedSpeed * nodScale * 60.0 * userBobScale;
+      // Tranco assimétrico de roll (pancada orgânica)
+      this.jumpRollNodVel += (Math.random() - 0.5) * 0.35 * (clampedSpeed / 6.0) * userBobScale;
+    }
+
+    // 3. Tremor Biomecânico Elástico de Ação e Reação (rebote vertical para cima e para baixo)
+    const impactRatio = Math.min(2.0, clampedSpeed / 5.5);
+    if (userBobScale > 0) {
+      this.landingTremorTime = 0.0;
+      this.landingTremorAmpY = 0.085 * impactRatio * userBobScale;
+      this.landingTremorAmpPitch = 0.075 * impactRatio * userBobScale;
+      this.landingTremorAmpRoll = (Math.random() - 0.5) * 0.018 * impactRatio * userBobScale;
+    }
+
+    // 4. Micro-shake concussivo e nítido de impacto
+    const landingShakeScale = CONFIG.PLAYER?.landingShakeScale ?? 0.45;
+    if (landingShakeScale > 0 && userShakeScale > 0) {
+      this.addShake(landingShakeScale * impactRatio * userShakeScale);
+    }
   }
 
   reset(spawnYaw = 0) {
@@ -263,6 +320,19 @@ export class CameraRig {
     this.shakePos.set(0, 0, 0);
     this.landingDip = 0;
     this.landingDipVel = 0;
+    this.jumpPitchNod = 0;
+    this.jumpPitchNodVel = 0;
+    this.effectiveJumpPitchNod = 0;
+    this.jumpRollNod = 0;
+    this.jumpRollNodVel = 0;
+    this.effectiveJumpRollNod = 0;
+    this.landingTremorTime = 999.0;
+    this.landingTremorAmpY = 0;
+    this.landingTremorAmpPitch = 0;
+    this.landingTremorAmpRoll = 0;
+    this.landingTremorOffsetY = 0;
+    this.landingTremorPitch = 0;
+    this.landingTremorRoll = 0;
   }
 
   /**
@@ -358,16 +428,16 @@ export class CameraRig {
       const t = performance.now() * 0.001;
       const userShakeScale = CONFIG.ACCESSIBILITY?.shakeScale ?? 1.0;
       // No ADS, a câmera principal externa fica 100% firme e estável (zero tremor externo)
-      const shakeDamp = (isAds ? 0.0 : 0.50) * userShakeScale;
+      const shakeDamp = (isAds ? 0.0 : 0.65) * userShakeScale;
       this.shakePos.set(
-        Math.sin(t * 47.3) * 0.012 * this.shakeIntensity * shakeDamp,
-        Math.cos(t * 61.7) * 0.012 * this.shakeIntensity * shakeDamp,
-        Math.sin(t * 53.1) * 0.008 * this.shakeIntensity * shakeDamp
+        Math.sin(t * 47.3) * 0.016 * this.shakeIntensity * shakeDamp,
+        Math.cos(t * 61.7) * 0.016 * this.shakeIntensity * shakeDamp,
+        Math.sin(t * 53.1) * 0.010 * this.shakeIntensity * shakeDamp
       );
       this.shakeRot.set(
-        Math.cos(t * 55.0) * 0.008 * this.shakeIntensity * shakeDamp,
-        Math.sin(t * 43.0) * 0.006 * this.shakeIntensity * shakeDamp,
-        Math.sin(t * 37.0) * 0.006 * this.shakeIntensity * shakeDamp
+        Math.cos(t * 55.0) * 0.012 * this.shakeIntensity * shakeDamp,
+        Math.sin(t * 43.0) * 0.009 * this.shakeIntensity * shakeDamp,
+        Math.sin(t * 37.0) * 0.009 * this.shakeIntensity * shakeDamp
       );
     } else {
       this.shakePos.set(0, 0, 0);
@@ -451,6 +521,67 @@ export class CameraRig {
       this.landingDipVel = 0;
     }
 
+    // ---- 8.6. Jump Pitch & Roll Nod (Mola rápida de pancada angular de aterrissagem) ----
+    const nodSpringK = 540.0;
+    const nodSpringD = 38.0;
+
+    if (Math.abs(this.jumpPitchNod) > 0.00005 || Math.abs(this.jumpPitchNodVel) > 0.0005) {
+      const nodAcc = -nodSpringK * this.jumpPitchNod - nodSpringD * this.jumpPitchNodVel;
+      this.jumpPitchNodVel += nodAcc * dt;
+      this.jumpPitchNod += this.jumpPitchNodVel * dt;
+      if (Math.abs(this.jumpPitchNod) < 0.00005 && Math.abs(this.jumpPitchNodVel) < 0.0005) {
+        this.jumpPitchNod = 0;
+        this.jumpPitchNodVel = 0;
+      }
+    } else {
+      this.jumpPitchNod = 0;
+      this.jumpPitchNodVel = 0;
+    }
+
+    if (Math.abs(this.jumpRollNod) > 0.00005 || Math.abs(this.jumpRollNodVel) > 0.0005) {
+      const rollAcc = -nodSpringK * this.jumpRollNod - nodSpringD * this.jumpRollNodVel;
+      this.jumpRollNodVel += rollAcc * dt;
+      this.jumpRollNod += this.jumpRollNodVel * dt;
+      if (Math.abs(this.jumpRollNod) < 0.00005 && Math.abs(this.jumpRollNodVel) < 0.0005) {
+        this.jumpRollNod = 0;
+        this.jumpRollNodVel = 0;
+      }
+    } else {
+      this.jumpRollNod = 0;
+      this.jumpRollNodVel = 0;
+    }
+
+    // No ADS, a perturbação angular do pulo é atenuada em 90% para proteger a precisão da mira tática
+    this.effectiveJumpPitchNod = this.jumpPitchNod * (isAds ? 0.10 : 1.0);
+    this.effectiveJumpRollNod = this.jumpRollNod * (isAds ? 0.10 : 1.0);
+
+    // ---- 8.7. Tremor Biomecânico de Aterrissagem (Oscilação Vertical Elástica de Ação e Reação) ----
+    if (this.landingTremorTime < this.landingTremorDuration) {
+      this.landingTremorTime += dt;
+      const t = this.landingTremorTime;
+      // Frequência de oscilação elástica (~16 Hz) e decaimento exponencial calibrado
+      const lambda = 11.0;
+      const omega = 100.53; // 16 Hz * 2 * Math.PI
+      const env = Math.exp(-lambda * t);
+      const wave = Math.sin(omega * t);
+
+      // Deslocamento para baixo no impacto (ação) e rebote elástico para cima (reação)
+      this.landingTremorOffsetY = -this.landingTremorAmpY * env * wave;
+      this.landingTremorPitch = -this.landingTremorAmpPitch * env * wave;
+      this.landingTremorRoll = this.landingTremorAmpRoll * env * wave;
+
+      // No ADS, atenua para manter a mira competitiva utilizável
+      if (isAds) {
+        this.landingTremorOffsetY *= 0.15;
+        this.landingTremorPitch *= 0.10;
+        this.landingTremorRoll *= 0.10;
+      }
+    } else {
+      this.landingTremorOffsetY = 0;
+      this.landingTremorPitch = 0;
+      this.landingTremorRoll = 0;
+    }
+
     // ---- 9. Posição no Espaço World (1ª Pessoa vs 3ª Pessoa com Spring-Arm) ----
     const rightX = Math.cos(this.currentYaw);
     const rightZ = -Math.sin(this.currentYaw);
@@ -460,7 +591,7 @@ export class CameraRig {
 
     const firstPersonPos = {
       x: player.renderPos.x + (bobX + leanOffsetDist) * rightX + rightX * this.recoilPos.x + backX * this.recoilPos.z + this.shakePos.x,
-      y: player.renderPos.y + this.eyeHeight - leanDrop + bobY + this.recoilPos.y + this.shakePos.y + this.landingDip,
+      y: player.renderPos.y + this.eyeHeight - leanDrop + bobY + this.recoilPos.y + this.shakePos.y + this.landingDip + this.landingTremorOffsetY,
       z: player.renderPos.z + (bobX + leanOffsetDist) * rightZ + rightZ * this.recoilPos.x + backZ * this.recoilPos.z + this.shakePos.z
     };
 
@@ -481,7 +612,7 @@ export class CameraRig {
       // Ponto de pivô de cabeça/ombros do player
       const pivot = {
         x: player.renderPos.x + (leanOffsetDist + this.tpOffsetRight * this.thirdPersonAmount) * rightX,
-        y: player.renderPos.y + this.eyeHeight - leanDrop + (this.tpOffsetY * this.thirdPersonAmount) + this.landingDip,
+        y: player.renderPos.y + this.eyeHeight - leanDrop + (this.tpOffsetY * this.thirdPersonAmount) + this.landingDip + this.landingTremorOffsetY,
         z: player.renderPos.z + (leanOffsetDist + this.tpOffsetRight * this.thirdPersonAmount) * rightZ
       };
 
@@ -519,10 +650,10 @@ export class CameraRig {
     camera.position.copy(this.position);
     camera.rotation.order = 'YXZ';
     camera.rotation.y = this.currentYaw + this.flinchYaw + this.recoilRot.y + this.shakeRot.y;
-    camera.rotation.x = this.currentPitch + this.bobPitch + this.flinchPitch + this.recoilRot.x + this.shakeRot.x;
+    camera.rotation.x = this.currentPitch + this.bobPitch + this.flinchPitch + this.recoilRot.x + this.shakeRot.x + this.effectiveJumpPitchNod + this.landingTremorPitch;
     
     // Inclinação angular de lean (roll): ~7.5 graus negativos para a direita, positivos para a esquerda
     const leanRoll = -this.currentLean * 0.13;
-    camera.rotation.z = this.bobRoll + this.currentRoll + this.recoilRot.z + this.shakeRot.z + leanRoll;
+    camera.rotation.z = this.bobRoll + this.currentRoll + this.recoilRot.z + this.shakeRot.z + leanRoll + this.effectiveJumpRollNod + this.landingTremorRoll;
   }
 }
