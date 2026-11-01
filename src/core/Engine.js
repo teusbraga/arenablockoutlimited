@@ -1,3 +1,4 @@
+import { CONFIG } from './ConfigLoader.js';
 function escapeHtml(str) {
   return String(str)
     .replace(/&/g, '&amp;')
@@ -72,6 +73,7 @@ export function startEngine({
   let last = 0;
   let isCrashed = false;
   let frameId = null;
+  let renderTick = 0;
 
   function frame(nowMs) {
     if (isCrashed) return;
@@ -96,7 +98,11 @@ export function startEngine({
       }
 
       const alpha = acc / fixedDt;
-      if (onRender) onRender(alpha, dt);
+      renderTick++;
+      const shouldLimit30 = (typeof CONFIG !== 'undefined' && Boolean(CONFIG.GRAPHICS?.limitRenderFps30));
+      if (!shouldLimit30 || (renderTick % 2 === 0)) {
+        if (onRender) onRender(alpha, dt);
+      }
 
       frameId = requestAnimationFrame(frame);
     } catch (err) {

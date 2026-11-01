@@ -76,6 +76,10 @@ export const DEFAULT_CONFIG = {
     shadows: true,
     shadowResolution: 1024,
     maxPixelRatio: 1.5,
+    precision: 'mediump',
+    antialias: true,
+    limitRenderFps30: false,
+    botLodMode: 'auto',
     scopeResolution: 512,
     perfMonitor: false
   }

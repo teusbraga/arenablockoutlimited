@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import createCharacter, { applyPaletteToCharacter } from './models/TacticalManContinuous.js';
 import { ItemDrop } from '../world/ItemDrop.js';
+import { CONFIG } from '../core/ConfigLoader.js';
 
 const GHOST_COLORS = [
   0xff1e1e, // Blinky (Vermelho)
@@ -86,6 +87,8 @@ export class CharacterView {
 
       this.root.add(this.body, this.head, eyeL, pupilL, eyeR, pupilR);
 
+    } else if (CONFIG.GRAPHICS?.preset === 'potato' || this.options.lod === 'potato') {
+      this._buildBlockySoldier();
     } else {
       /* SOLDADO TÁTICO CONTÍNUO (TACTIC MAN CONTINUOUS AUTÊNTICO COM PALETA DE CORES POR BOT OU PLAYER) */
       const palIdx = Math.max(0, (this.id - 1) % 5);
@@ -132,6 +135,80 @@ export class CharacterView {
 
       this._buildFallbackGun();
     }
+  }
+
+  _buildBlockySoldier() {
+    this.isBlockySoldier = true;
+    const soldierSkin = this.options.soldierSkin || this.options.palette || null;
+    const bodyColor = soldierSkin?.uniform ? parseInt(soldierSkin.uniform.replace('#', '0x'), 16) : 0x3d4b38;
+    const vestColor = soldierSkin?.vest ? parseInt(soldierSkin.vest.replace('#', '0x'), 16) : 0x222723;
+    const skinColor = soldierSkin?.skinTone ? parseInt(soldierSkin.skinTone.replace('#', '0x'), 16) : 0xd8a078;
+
+    const mUniform = new THREE.MeshLambertMaterial({ color: bodyColor });
+    const mVest = new THREE.MeshLambertMaterial({ color: vestColor });
+    const mSkin = new THREE.MeshLambertMaterial({ color: skinColor });
+    this.blockyMats = { mUniform, mVest, mSkin };
+
+    // 1. Cabeça (Head hitbox)
+    this.head = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.28, 0.28), mSkin);
+    this.head.name = 'tactical_head_face';
+    this.head.position.set(0, 1.48, 0);
+    this.head.userData = { type: 'character', character: this.character, bot: this.character, part: 'head' };
+
+    // Capacete/Boné leve sobre a cabeça
+    const helmet = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.12, 0.30), mVest);
+    helmet.position.set(0, 0.10, 0);
+    this.head.add(helmet);
+
+    // 2. Tronco / Colete (Body hitbox)
+    this.body = new THREE.Mesh(new THREE.BoxGeometry(0.40, 0.55, 0.24), mVest);
+    this.body.name = 'combat_shirt_torso_mesh';
+    this.body.position.set(0, 1.02, 0);
+    this.body.userData = { type: 'character', character: this.character, bot: this.character, part: 'body' };
+    this.torso = this.body;
+    this.headGroup = this.head;
+
+    // 3. Braços articulados
+    this.leftArmPivot = new THREE.Group();
+    this.leftArmPivot.position.set(-0.26, 1.25, 0);
+    const leftArmMesh = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.45, 0.12), mUniform);
+    leftArmMesh.position.set(0, -0.18, 0);
+    this.leftArmPivot.add(leftArmMesh);
+
+    this.rightArmPivot = new THREE.Group();
+    this.rightArmPivot.position.set(0.26, 1.25, 0);
+    const rightArmMesh = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.45, 0.12), mUniform);
+    rightArmMesh.position.set(0, -0.18, 0);
+    this.rightArmPivot.add(rightArmMesh);
+
+    // 4. Pernas articuladas
+    this.leftLegPivot = new THREE.Group();
+    this.leftLegPivot.position.set(-0.11, 0.72, 0);
+    const leftLegMesh = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.68, 0.14), mUniform);
+    leftLegMesh.position.set(0, -0.34, 0);
+    this.leftLegPivot.add(leftLegMesh);
+
+    this.rightLegPivot = new THREE.Group();
+    this.rightLegPivot.position.set(0.11, 0.72, 0);
+    const rightLegMesh = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.68, 0.14), mUniform);
+    rightLegMesh.position.set(0, -0.34, 0);
+    this.rightLegPivot.add(rightLegMesh);
+
+    // 5. Terceira Pessoa: Arma
+    this.gunGroup = new THREE.Group();
+    this.gunGroup.name = 'third_person_gun';
+    this.gunGroup.position.set(-0.04, 0.05, 0.32);
+    this.body.add(this.gunGroup);
+    this._buildFallbackGun();
+
+    this.root.add(
+      this.body,
+      this.head,
+      this.leftArmPivot,
+      this.rightArmPivot,
+      this.leftLegPivot,
+      this.rightLegPivot
+    );
   }
 
   _buildFallbackGun() {
@@ -296,6 +373,10 @@ export class CharacterView {
       } else {
         if (this.leftLegPivot) this.leftLegPivot.rotation.x = swing * 0.65;
         if (this.rightLegPivot) this.rightLegPivot.rotation.x = -swing * 0.65;
+        if (this.leftArmPivot) this.leftArmPivot.rotation.x = -swing * 0.45;
+        if (this.rightArmPivot) this.rightArmPivot.rotation.x = swing * 0.45;
+        if (this.headGroup) this.headGroup.rotation.x = (this.character.pitch || 0) * 0.35;
+        if (this.gunGroup) this.gunGroup.rotation.z = -swing * 0.02;
       }
 
       this.root.position.set(charPos.x, charPos.y, charPos.z);
@@ -375,6 +456,16 @@ export class CharacterView {
   applySoldierSkin(skinConfig) {
     if (this.tactical && skinConfig) {
       applyPaletteToCharacter(this.tactical, skinConfig);
+    } else if (this.blockyMats && skinConfig) {
+      if (skinConfig.uniform && this.blockyMats.mUniform) {
+        this.blockyMats.mUniform.color.set(skinConfig.uniform);
+      }
+      if (skinConfig.vest && this.blockyMats.mVest) {
+        this.blockyMats.mVest.color.set(skinConfig.vest);
+      }
+      if (skinConfig.skinTone && this.blockyMats.mSkin) {
+        this.blockyMats.mSkin.color.set(skinConfig.skinTone);
+      }
     }
   }
 

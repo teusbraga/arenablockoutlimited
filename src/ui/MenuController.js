@@ -3,6 +3,7 @@ import { on, emit } from '../core/EventBus.js';
 import { materialFactory } from '../world/MaterialFactory.js';
 import { DEFAULT_CROSSHAIR_CONFIG } from './CrosshairManager.js';
 import { WeaponPreview3D } from './WeaponPreview3D.js';
+import { DeviceTierDetector } from '../core/DeviceTierDetector.js';
 
 export const SOLDIER_SKIN_PRESETS = {
   woodland: {
@@ -489,12 +490,14 @@ export class MenuController {
     // Seletor de Qualidade Gráfica
     this.graphicsPresetSelect = document.getElementById('graphics-preset');
     if (this.graphicsPresetSelect) {
-      const savedPreset = localStorage.getItem('blocky_graphics_preset') || 'medium';
-      this.graphicsPresetSelect.value = savedPreset;
+      const savedPreset = localStorage.getItem('blocky_graphics_preset');
+      const detectedTier = DeviceTierDetector.detect();
+      const initialPreset = savedPreset || (detectedTier === 'potato' ? 'potato' : 'medium');
+      this.graphicsPresetSelect.value = initialPreset;
       if (!CONFIG.GRAPHICS) CONFIG.GRAPHICS = {};
-      CONFIG.GRAPHICS.preset = savedPreset;
+      CONFIG.GRAPHICS.preset = initialPreset;
       // Aplica preset imediatamente no boot (SceneSetup ouve config:graphicsChanged)
-      emit('config:graphicsChanged', { preset: savedPreset });
+      emit('config:graphicsChanged', { preset: initialPreset });
 
       this.graphicsPresetSelect.addEventListener('change', () => {
         const preset = this.graphicsPresetSelect.value;
@@ -502,10 +505,34 @@ export class MenuController {
         CONFIG.GRAPHICS.preset = preset;
         localStorage.setItem('blocky_graphics_preset', preset);
         emit('config:graphicsChanged', { preset });
-        const labels = { high: 'ALTA (PC)', medium: 'MÉDIA', low: 'MOBILE / LOW-END' };
+        const labels = {
+          potato: '🥔 BATATA (MÁXIMA PERFORMANCE)',
+          low: 'MOBILE / LOW-END',
+          medium: 'MÉDIA',
+          high: 'ALTA (PC)'
+        };
         emit('hud:popup', {
           text: `🎮 QUALIDADE: ${labels[preset] || preset.toUpperCase()}`,
-          color: preset === 'low' ? '#06d6a0' : preset === 'medium' ? '#f7c948' : '#90c3f9',
+          color: preset === 'potato' ? '#ff9f43' : (preset === 'low' ? '#06d6a0' : preset === 'medium' ? '#f7c948' : '#90c3f9'),
+          duration: 1800,
+        });
+      });
+    }
+
+    // Limitador de FPS para Mobile / Bateria
+    this.limitFps30Select = document.getElementById('limit-fps-30');
+    if (this.limitFps30Select) {
+      const savedLimitFps = localStorage.getItem('blocky_limit_fps_30') || 'off';
+      this.limitFps30Select.value = savedLimitFps;
+      if (CONFIG.GRAPHICS) CONFIG.GRAPHICS.limitRenderFps30 = (savedLimitFps === 'on');
+      this.limitFps30Select.addEventListener('change', () => {
+        const on_ = this.limitFps30Select.value === 'on';
+        if (CONFIG.GRAPHICS) CONFIG.GRAPHICS.limitRenderFps30 = on_;
+        localStorage.setItem('blocky_limit_fps_30', on_ ? 'on' : 'off');
+        emit('config:graphicsChanged', { limitRenderFps30: on_ });
+        emit('hud:popup', {
+          text: on_ ? '🔋 RENDER LIMITADO A 30 FPS' : '⚡ RENDER A 60+ FPS LIVRE',
+          color: on_ ? '#2ed573' : '#70a1ff',
           duration: 1800,
         });
       });

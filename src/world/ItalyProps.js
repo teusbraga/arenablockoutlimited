@@ -1,7 +1,8 @@
-﻿import * as THREE from 'three';
+import * as THREE from 'three';
 import { materialFactory } from './MaterialFactory.js';
 import { TextureGenerator } from './TextureGenerator.js';
 import { on } from '../core/EventBus.js';
+import { CONFIG } from '../core/ConfigLoader.js';
 
 /**
  * ItalyProps.js
@@ -222,6 +223,7 @@ export class ItalyProps {
    * Folhagem de trepadeira/hera (Ivy) aplicada sobre a parede com canal alfa
    */
   addIvyPatch(x, y, z, rotY = 0, width = 2.4, height = 3.6) {
+    if (CONFIG.GRAPHICS?.preset === 'potato') return null;
     const matIvy = materialFactory.get('ivy_foliage');
     const geo = new THREE.PlaneGeometry(width, height);
     const mesh = new THREE.Mesh(geo, matIvy);
@@ -1058,6 +1060,7 @@ export class ItalyProps {
    * Arbusto denso de samambaias tropicais com leques cruzados (Fern Bush)
    */
   addFernCluster(x, y, z, scale = 1.0) {
+    if (CONFIG.GRAPHICS?.preset === 'potato') return new THREE.Group();
     const group = new THREE.Group();
     group.position.set(x, y, z);
 
@@ -1088,6 +1091,13 @@ export class ItalyProps {
   addBambooGrove(x, y, z, count = 8, radius = 1.6, height = 7.5) {
     const group = new THREE.Group();
     group.position.set(x, y, z);
+
+    if (CONFIG.GRAPHICS?.preset === 'potato') {
+      if (this.world) {
+        this.world.addBox(x, y + height / 2, z, radius * 2, height, radius * 2);
+      }
+      return group;
+    }
 
     const matBamboo = materialFactory.get('bamboo');
     const matFern = materialFactory.get('jungle_fern');
@@ -1711,6 +1721,12 @@ export class ItalyProps {
    */
   addFavelaAntenna(x, y, z, rotY = 0, scale = 1.0, type = 'uhf') {
     const group = new THREE.Group();
+    if (CONFIG.GRAPHICS?.preset === 'potato') {
+      if (this.world) {
+        this.world.addBox(x, y + 0.45, z, 0.4, 0.9, 0.4, { vaultable: true });
+      }
+      return group;
+    }
     group.position.set(x, y, z);
     group.rotation.y = rotY;
 
@@ -1775,6 +1791,7 @@ export class ItalyProps {
    */
   addOverheadWires(x1, y1, z1, x2, y2, z2, sag = 0.35, cableCount = 3) {
     const group = new THREE.Group();
+    if (CONFIG.GRAPHICS?.preset === 'potato') return group;
     const wireMat = new THREE.MeshBasicMaterial({ color: 0x141517 });
 
     const dx = x2 - x1;
@@ -1935,7 +1952,7 @@ export class ItalyProps {
 
       // ColisÃ£o para o player caminhar (stepHeight <= 0.4m permite subir sem travar)
       if (this.world) {
-        const wx = x + (-sin * localZ);
+        const wx = x + (sin * localZ);
         const wz = z + (cos * localZ);
         const wy = y + localY;
         if (Math.abs(sin) > 0.7) {

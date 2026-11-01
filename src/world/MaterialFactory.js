@@ -901,8 +901,11 @@ export class MaterialFactory {
         mat.map = null;
         mat.bumpMap = null;
         mat.roughnessMap = null;
-      } else if (mode === 'flat_textures') {
+      } else if (mode === 'flat_textures' || mode === 'potato') {
         mat.bumpMap = null;
+        mat.roughnessMap = null;
+        mat.roughness = 1.0;
+        mat.metalness = 0.0;
       }
       mat.needsUpdate = true;
     }

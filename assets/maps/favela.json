@@ -1369,13 +1369,13 @@
     {
       "type": "favela_stairs",
       "pos": [
-        -1.5,
+        -0.05,
         0,
-        8.5
+        11.5
       ],
-      "rotY": 0,
+      "rotY": -1.5707963267948966,
       "steps": 11,
-      "width": 1.2,
+      "width": 1.0,
       "stepHeight": 0.35,
       "stepDepth": 0.45,
       "withHandrail": true

@@ -19,6 +19,52 @@
 
 ### 🔹 Novembro de 2026
 
+#### [feat(perf): Kit de Sobrevivência Mobile e Preset "Batata" para Celulares de Entrada] — 01/11/2026
+
+* **feat(core): `src/core/DeviceTierDetector.js`** — Detecção heurística e transparente de hardware:
+  * Analisa `navigator.deviceMemory`, `navigator.hardwareConcurrency` e suporte a toque para classificar dispositivos em 4 tiers (`potato`, `low`, `medium`, `high`).
+  * Sugere automaticamente o preset gráfico mais adequado no primeiro acesso sem sobrecarregar celulares de entrada.
+
+* **feat(render): `src/core/SceneSetup.js` & `src/core/ConfigLoader.js`** — Calibração cirúrgica do pipeline WebGL:
+  * Suporte ao preset `potato` com `pixelRatio` rigorosamente travado em 1.0 (eliminando o estrangulamento de fill rate em telas Full HD+ móveis), desativação de sombras (`shadowMap.enabled = false`) e luzes secundárias.
+  * Otimização de inicialização com `antialias: false` e `precision: 'mediump'` para dispositivos móveis e touch.
+  * Suporte a limites estritos de DPR mantidos durante eventos de resize e rotação de tela.
+
+* **feat(view/character): `src/view/CharacterView.js`** — LOD leve de soldado no modo Batata com hitboxes intactas:
+  * Implementado `_buildBlockySoldier()`: soldado tático bloco simplificado com 6-7 meshes (cabeça, capacete, corpo, braços e pernas articuladas) ativado no preset `potato`.
+  * Reduz mais de 55 draw calls por bot (economizando ~165 draw calls em partidas com 3 bots), mantendo as hitboxes de headshot e body shot (`part: 'head'` e `part: 'body'`) 100% idênticas ao modelo `TacticalManContinuous`.
+  * Preservação total das armas em 1ª pessoa conforme diretiva de congelamento `GEMINI.md`.
+
+* **feat(world/props): `src/world/ItalyProps.js`** — Otimização de adereços cosméticos secundários:
+  * No preset `potato`, adereços puramente decorativos sem colisão (`ivy_patch`, `overhead_wires`, `favela_antenna`, `fern_cluster`) são omitidos ou simplificados.
+  * Preserva 100% dos colisores físicos e elementos estruturais no `CollisionWorld` (ex: colisão do bosque de bambu).
+
+* **feat(world/materials): `src/world/MaterialFactory.js`** — Modo de renderização rápido para mobile:
+  * Adicionado suporte ao modo `'potato'` em `setRenderMode`: zera bump maps, roughness maps e reflexões metálicas, aliviando o custo de fragment shader e microfacetas GGX.
+
+* **feat(core/engine): `src/core/Engine.js`** — Frame pacing e limitador de 30 FPS no render:
+  * Suporte à flag `limitRenderFps30` em `CONFIG.GRAPHICS`: divide as chamadas de `renderUpdate` por 2 (30 FPS de renderização visual), mantendo a física de `fixedUpdate` rigorosamente fixa em 60 Hz (`fixedDt = 1/60`) para preservar gunplay, balística e IA.
+  * Economiza até 50% de bateria e reduz o aquecimento térmico em celulares fracos.
+
+* **feat(ui): `src/ui/MenuController.js` & `index.html`** — Controles no menu de configurações:
+  * Adicionada a opção `🥔 Batata — Extrema Performance (Celulares Fracos)` no seletor de Qualidade Gráfica.
+  * Adicionado seletor para `🔋 Limitar Render a 30 FPS` com feedback na HUD e persistência no `localStorage`.
+
+* **test(perf): `test/mobile_potato_optimization_test.js` & `package.json`** — Suíte automatizada de testes:
+  * 7 testes cobrindo classificação de hardware, parâmetros estritos de cena, integridade das hitboxes do soldado leve, culling de adereços de props, materiais e cadência de 60 Hz física / 30 FPS render.
+
+#### [fix(maps/favela): Correção da orientação em 90° e física da escada da Casa 1] — 01/11/2026
+
+* **fix(data): `assets/maps/favela.json`** — Ajuste de rotação, largura e coordenadas da escada (`favela_stairs`) da Casa 1:
+  * A escada anteriormente posicionada em `pos: [-1.5, 0, 8.5]` com `rotY: 0` subia em direção ao sul e colidia sob a laje frontal de concreto (`c1_slab_east_front`, `Z = 12`), prendendo a cabeça do jogador nos degraus finais.
+  * Corrigida a rotação de `+Math.PI / 2` (que a projetava para fora da casa na rua leste) para `-1.5707963267948966` (`-Math.PI / 2`), direcionando a subida para o interior oeste da residência (`-X`).
+  * Posicionada em `pos: [-0.05, 0, 11.5]` com `width: 1.0`: os 11 degraus iniciam rente ao piso térreo leste e passam com folga e zero colisão pelo vão aberto da laje (entre `Z = 11.0` e `Z = 12.0`), desembarcando rente e nivelados a $X = -5.0$ sobre a laje oeste (`c1_slab_west`, base $3.80$, topo $4.15$).
+
+* **fix(physics/world): `src/world/ItalyProps.js`** — Sincronização da fórmula trigonométrica de colisão das escadas:
+  * Corrigida a projeção do eixo X em `addFavelaStairs`: `const wx = x + (sin * localZ)` (substituindo `-sin * localZ`), equalizando o cálculo do `CollisionWorld` com o Three.js world transform ao rotacionar props em Y.
+
+
+
 #### [feat(ui/crosshair): Novos padrões iniciais da mira CS2 (T-Shape Dinâmica, Follow Recoil e Ponto Branco)] — 01/11/2026
 
 * **feat(crosshair): `src/ui/CrosshairManager.js` & `src/ui/MenuController.js`** — Configuração padrão atualizada:

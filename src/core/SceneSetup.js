@@ -1,24 +1,41 @@
-﻿import * as THREE from 'three';
+import * as THREE from 'three';
 import { CONFIG } from './ConfigLoader.js';
 import { on } from './EventBus.js';
+import { DeviceTierDetector } from './DeviceTierDetector.js';
+import { materialFactory } from '../world/MaterialFactory.js';
 
 /**
  * SceneSetup
- * Configura cÃ¢mera, luzes, sombras, nÃ©voa e fundo da cena Three.js.
+ * Configura câmera, luzes, sombras, névoa e fundo da cena Three.js.
  */
 export class SceneSetup {
   constructor(appElement) {
     this.appElement = appElement;
 
-    const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const isTouch = (typeof window !== 'undefined' && 'ontouchstart' in window) || (typeof navigator !== 'undefined' && navigator.maxTouchPoints > 0);
+    const detectedTier = DeviceTierDetector.detect();
+    const activePreset = (!CONFIG.GRAPHICS?.preset || CONFIG.GRAPHICS.preset === 'auto')
+      ? detectedTier
+      : CONFIG.GRAPHICS.preset;
+    this.currentPreset = activePreset;
+
+    const isPotato = activePreset === 'potato';
+    const isLowOrPotato = isPotato || activePreset === 'low';
+
     this.renderer = new THREE.WebGLRenderer({
-      antialias: true,
+      antialias: !isLowOrPotato,
+      precision: isTouch ? 'mediump' : 'highp',
       powerPreference: 'high-performance'
     });
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-    // Em mobile (high-dpi nativo), travar o pixel ratio perto de 1.0 ou 1.2 destrava o FPS.
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isTouch ? 1.2 : 2));
-    this.renderer.shadowMap.enabled = true;
+    const winW = typeof window !== 'undefined' ? window.innerWidth : 800;
+    const winH = typeof window !== 'undefined' ? window.innerHeight : 600;
+    this.renderer.setSize(winW, winH);
+
+    // Limites de DPR calibrados por perfil de performance
+    const dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
+    const maxDpr = isPotato ? 1.0 : (activePreset === 'low' ? 1.25 : (activePreset === 'medium' ? 1.5 : 2.0));
+    this.renderer.setPixelRatio(Math.min(dpr, maxDpr));
+    this.renderer.shadowMap.enabled = !isLowOrPotato;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.15;
@@ -31,7 +48,7 @@ export class SceneSetup {
 
     this.camera = new THREE.PerspectiveCamera(
       CONFIG.CAMERA.hipFov,
-      window.innerWidth / window.innerHeight,
+      winW / winH,
       0.03,
       250
     );
@@ -72,12 +89,26 @@ export class SceneSetup {
       this.camera.aspect = window.innerWidth / window.innerHeight;
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(window.innerWidth, window.innerHeight);
+
+      const dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
+      const preset = this.currentPreset || 'medium';
+      const maxDpr = preset === 'potato' ? 1.0 : (preset === 'low' ? 1.25 : (preset === 'medium' ? 1.5 : 2.0));
+      this.renderer.setPixelRatio(Math.min(dpr, maxDpr));
     };
-    window.addEventListener('resize', this._onResize);
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', this._onResize);
+    }
 
     const BASE_AMBIENT = 1.05;
     this._unsubGraphics = on('config:graphicsChanged', e => {
-      if (e && e.preset) this.applyQualityProfile(e.preset);
+      if (e && e.preset) {
+        this.applyQualityProfile(e.preset);
+        if (materialFactory && typeof materialFactory.setRenderMode === 'function') {
+          if (e.preset === 'potato') materialFactory.setRenderMode('potato');
+          else if (e.preset === 'low') materialFactory.setRenderMode('flat_textures');
+          else materialFactory.setRenderMode('pbr');
+        }
+      }
     });
 
     this._unsubFired = on('weapon:fired', () => {
@@ -92,11 +123,20 @@ export class SceneSetup {
   /**
    * Aplica um preset de qualidade gráfica dinamicamente sem reload.
    * Emita 'config:graphicsChanged' via EventBus para acionar externamente.
-   * @param {'high'|'medium'|'low'} preset
+   * @param {'high'|'medium'|'low'|'potato'} preset
    */
   applyQualityProfile(preset) {
-    const dpr = window.devicePixelRatio || 1;
-    if (preset === 'low') {
+    this.currentPreset = preset;
+    const dpr = typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1;
+    if (preset === 'potato') {
+      // Extrema Performance (Potato Phone): zero sombras, fill rate travado em 1.0, 1 luz
+      this.renderer.shadowMap.enabled = false;
+      if (this.sun) this.sun.castShadow = false;
+      if (this.fill) this.fill.visible = false;
+      if (this.ambient) this.ambient.intensity = 1.7;
+      if (this.hemi) this.hemi.intensity = 1.2;
+      this.renderer.setPixelRatio(1.0);
+    } else if (preset === 'low') {
       // Mobile / Low-End: zero sombras, 1 luz, DPR ≤ 1.25
       this.renderer.shadowMap.enabled = false;
       if (this.sun) this.sun.castShadow = false;
@@ -130,7 +170,9 @@ export class SceneSetup {
   }
 
   destroy() {
-    window.removeEventListener('resize', this._onResize);
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('resize', this._onResize);
+    }
     if (this._unsubGraphics) {
       this._unsubGraphics();
       this._unsubGraphics = null;
