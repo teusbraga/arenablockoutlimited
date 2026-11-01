@@ -26,6 +26,14 @@ export class CrosshairManager {
     this.currentRecoilOffset = { x: 0, y: 0 };
     this.isBlocked = false;
 
+    // Cache para dirty checking e Zero-DOM-Thrashing (elimina recálculos desnecessários de estilo a 60 FPS)
+    this._lastAppliedGap = null;
+    this._lastOpacity = null;
+    this._lastBlockedState = null;
+    this._lastLeft = null;
+    this._lastTop = null;
+    this._lastTransform = null;
+
     this._bindEvents();
     this.applyConfig();
   }
@@ -51,7 +59,6 @@ export class CrosshairManager {
       }
     } catch (_) {}
     this.applyConfig();
-
   }
 
   _bindEvents() {
@@ -73,6 +80,16 @@ export class CrosshairManager {
   applyConfig(targetEl = this.el, overrideConfig = this.config) {
     if (!targetEl) return;
     const cfg = overrideConfig;
+
+    // Invalida cache de dirty checking para sincronização instantânea
+    if (targetEl === this.el) {
+      this._lastAppliedGap = null;
+      this._lastOpacity = null;
+      this._lastBlockedState = null;
+      this._lastLeft = null;
+      this._lastTop = null;
+      this._lastTransform = null;
+    }
 
     // Variáveis CSS
     targetEl.style.setProperty('--ch-color', cfg.color);
@@ -110,11 +127,14 @@ export class CrosshairManager {
       if (!cfg.dynamicAlignment) {
         targetEl.style.left = '50%';
         targetEl.style.top = '50%';
+        this._lastLeft = '50%';
+        this._lastTop = '50%';
       }
       if (!cfg.followRecoil) {
         this.currentRecoilOffset.x = 0;
         this.currentRecoilOffset.y = 0;
         targetEl.style.transform = 'translate(calc(-50% + 0.0px), calc(-50% + 0.0px))';
+        this._lastTransform = 'translate(calc(-50% + 0.0px), calc(-50% + 0.0px))';
       }
     }
   }
@@ -144,17 +164,25 @@ export class CrosshairManager {
     const cfg = this.config;
     const hasAnyVisible = (cfg.style !== 'none') || !!cfg.centerDot;
     if (!hasAnyVisible) {
-      this.el.style.opacity = '0';
-      if (this.noFireEl) this.noFireEl.style.display = 'none';
+      if (this._lastOpacity !== '0') {
+        this.el.style.opacity = '0';
+        this._lastOpacity = '0';
+      }
+      if (this.noFireEl && this._lastBlockedState !== false) {
+        this.noFireEl.style.display = 'none';
+        this._lastBlockedState = false;
+      }
       return;
     }
 
     // 1. Verificação de No Fire Warning (Cano obstruído contra parede)
     const isObstructed = (wallCompression > 0.45);
     this.isBlocked = isObstructed && cfg.noFireWarning;
+    const shouldBlock = this.isBlocked && adsAmount < 0.9;
 
-    if (this.noFireEl) {
-      if (this.isBlocked && adsAmount < 0.9) {
+    if (this.noFireEl && this._lastBlockedState !== shouldBlock) {
+      this._lastBlockedState = shouldBlock;
+      if (shouldBlock) {
         this.noFireEl.style.display = 'flex';
         this.el.classList.add('ch-blocked');
       } else {
@@ -165,12 +193,20 @@ export class CrosshairManager {
 
     // Se estiver em ADS completo, esconde a crosshair
     if (adsAmount >= 0.95) {
-      this.el.style.opacity = '0';
+      if (this._lastOpacity !== '0') {
+        this.el.style.opacity = '0';
+        this._lastOpacity = '0';
+      }
       return;
     }
 
     const baseOpacity = isSprinting ? 0.25 : 0.90;
-    this.el.style.opacity = String(Math.max(0, (1 - adsAmount * 1.2) * baseOpacity));
+    const targetOpacity = Math.max(0, (1 - adsAmount * 1.2) * baseOpacity);
+    const opacityStr = String(targetOpacity);
+    if (this._lastOpacity !== opacityStr) {
+      this.el.style.opacity = opacityStr;
+      this._lastOpacity = opacityStr;
+    }
 
     // 2. EIXO 1 — Comportamento de Dispersão: Estático vs Dinâmico (Abrir/Fechar das hastes com spread)
     if (cfg.mode === 'dynamic') {
@@ -183,7 +219,11 @@ export class CrosshairManager {
     } else {
       this.currentGap = cfg.gap;
     }
-    this.el.style.setProperty('--gap', this.currentGap.toFixed(1) + 'px');
+    const gapStr = this.currentGap.toFixed(1) + 'px';
+    if (this._lastAppliedGap !== gapStr) {
+      this.el.style.setProperty('--gap', gapStr);
+      this._lastAppliedGap = gapStr;
+    }
 
     // 3. EIXO 2 & 3 — Alinhamento Dinâmico do Cano 3D e Seguir Recuo (Follow Recoil)
     const hasBarrelPos = barrelScreenPos && typeof barrelScreenPos.x === 'number' && typeof barrelScreenPos.y === 'number';
@@ -194,19 +234,37 @@ export class CrosshairManager {
       // Se followRecoil estiver ATIVO: usa a posição balística real onde as balas vão bater (barrelScreenPos)
       // Se followRecoil estiver DESATIVADO: usa a posição pura do cano sem a subida de spray (pureBarrelScreenPos)
       const targetPos = (cfg.followRecoil && hasBarrelPos) ? barrelScreenPos : (hasPurePos ? pureBarrelScreenPos : barrelScreenPos);
-      this.el.style.left = `${targetPos.x.toFixed(1)}px`;
-      this.el.style.top = `${targetPos.y.toFixed(1)}px`;
+      const leftStr = `${targetPos.x.toFixed(1)}px`;
+      const topStr = `${targetPos.y.toFixed(1)}px`;
+      if (this._lastLeft !== leftStr) {
+        this.el.style.left = leftStr;
+        this._lastLeft = leftStr;
+      }
+      if (this._lastTop !== topStr) {
+        this.el.style.top = topStr;
+        this._lastTop = topStr;
+      }
 
       // Como targetPos já aponta diretamente para o ponto de impacto balístico no mundo 3D (98%+ match),
       // zeramos o deslocamento extra no transform para evitar contagem duplicada (double-dipping)
       this.currentRecoilOffset.x = 0;
       this.currentRecoilOffset.y = 0;
-      this.el.style.transform = 'translate(calc(-50% + 0.0px), calc(-50% + 0.0px))';
+      const tfStr = 'translate(calc(-50% + 0.0px), calc(-50% + 0.0px))';
+      if (this._lastTransform !== tfStr) {
+        this.el.style.transform = tfStr;
+        this._lastTransform = tfStr;
+      }
     } else {
       // Alinhamento Dinâmico DESATIVADO:
       // Ancorado no centro da tela (50%, 50%)
-      this.el.style.left = '50%';
-      this.el.style.top = '50%';
+      if (this._lastLeft !== '50%') {
+        this.el.style.left = '50%';
+        this._lastLeft = '50%';
+      }
+      if (this._lastTop !== '50%') {
+        this.el.style.top = '50%';
+        this._lastTop = '50%';
+      }
 
       if (cfg.followRecoil) {
         // Estilo CS2 (cl_crosshair_recoil true):
@@ -227,12 +285,20 @@ export class CrosshairManager {
 
         const rx = this.currentRecoilOffset.x.toFixed(1);
         const ry = this.currentRecoilOffset.y.toFixed(1);
-        this.el.style.transform = `translate(calc(-50% + ${rx}px), calc(-50% + ${ry}px))`;
+        const tfStr = `translate(calc(-50% + ${rx}px), calc(-50% + ${ry}px))`;
+        if (this._lastTransform !== tfStr) {
+          this.el.style.transform = tfStr;
+          this._lastTransform = tfStr;
+        }
       } else {
         // Estático puro (OFF, OFF):
         this.currentRecoilOffset.x = 0;
         this.currentRecoilOffset.y = 0;
-        this.el.style.transform = 'translate(calc(-50% + 0.0px), calc(-50% + 0.0px))';
+        const tfStr = 'translate(calc(-50% + 0.0px), calc(-50% + 0.0px))';
+        if (this._lastTransform !== tfStr) {
+          this.el.style.transform = tfStr;
+          this._lastTransform = tfStr;
+        }
       }
     }
   }

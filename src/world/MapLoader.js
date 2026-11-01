@@ -239,6 +239,8 @@ export async function loadMap(mapOrUrl, scene) {
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(w, d), floorMaterial);
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
+    floor.matrixAutoUpdate = false;
+    floor.updateMatrix();
     scene.add(floor);
   }
   world.addBox(0, -0.5, 0, w, 1, d, { material: floorMatName });
@@ -482,6 +484,9 @@ export async function loadMap(mapOrUrl, scene) {
           italyProps.addFavelaStairs(p.pos[0], p.pos[1], p.pos[2], p.rotY || 0, p.steps || 8, p.width || 1.2, p.stepHeight || 0.35, p.stepDepth || 0.45, p.withHandrail ?? true);
           break;
       }
+    }
+    if (italyProps && typeof italyProps.freezeStaticProps === 'function') {
+      italyProps.freezeStaticProps();
     }
   }
 

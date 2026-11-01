@@ -86,7 +86,7 @@ export class DecalSystem {
 
       const mesh = new THREE.Mesh(geometry, material);
       mesh.visible = false;
-      mesh.matrixAutoUpdate = true;
+      mesh.matrixAutoUpdate = false;
       this.group.add(mesh);
 
       this.pool.push({

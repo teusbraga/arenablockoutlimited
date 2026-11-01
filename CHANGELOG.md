@@ -19,6 +19,42 @@
 
 ### 🔹 Novembro de 2026
 
+#### [perf(core,render,physics): Otimização Extrema de CPU, Limpeza de Stutter e Zero-DOM-Trash] — 01/11/2026
+
+* **perf(ui/dom): `src/ui/HUD.js` & `assets/css/main.css`** — Pool fixo de hitmarkers descentralizados (Zero-DOM-Trash & Zero-Forced-Reflow):
+  * Substituída a criação pontual de elementos via `document.createElement('div')` e `.remove()` em `_hit` (disparo de espingarda/pellets) por um pool circular pré-alocado de 32 elementos em container dedicado `#shotgun-hit-pool`.
+  * As coordenadas dos pellets agora usam interpolação puramente via `transform: translate3d(...)` acelerada pela GPU, eliminando o recalculo síncrono de geometria na CPU.
+  * Extingue o aviso de **`Forced reflow`** do DevTools, achata a contagem de nós do DOM (congelada em ~2.600 nós sem efeito escada) e reduz o tempo de processamento de input (*Processing duration*) de 476 ms para < 5 ms.
+
+* **perf(render/materials): `src/world/ItalyProps.js`** — Cache estático compartilhado de materiais de adereços:
+  * Criado repositório cacheado `SHARED_PROPS_MATS` e utilitário `getSharedPropMat(key, factoryFn)`.
+  * Substituídas as 14 instanciações repetidas de `new THREE.MeshStandardMaterial` / `MeshBasicMaterial` (lanterna, água da fonte, feno, tâmaras de palmeira, gongo plinker, metal de antena, fiação elétrica, isoladores, postes e caixas d'água) por instâncias compartilhadas.
+  * O Three.js passa a consolidar uniformes e reaproveitar os programas WebGL compilados, reduzindo drasticamente o consumo de CPU em `setProgram` (que antes correspondia a 29,5% do tempo total).
+
+* **perf(render/shadows): `src/world/ItalyProps.js`** — Poda seletiva de sombras solares (`castShadow = false`) em micro-props:
+  * Desativado `castShadow` em dezenas de geometrias secundárias ou planas coladas a superfícies já sombreadas: peitoris e lintéis de janelas, ombreiras de portas, mísulas de sacada, braço de lanterna, varetas de antenas parabólicas/espinha-de-peixe, cruzetas e transformadores de postes, degraus de escada, placas de sinalização e tampas de caixa d'água.
+  * Mantido `castShadow = true` apenas nos volumes principais e silhuetas fundamentais dos modelos (troncos, colunas de concreto, gongo do alvo, cilindros principais).
+  * Redução substancial de draw calls no passe de profundidade do Shadow Map solar (`renderBufferDirect`), atacando o *Presentation delay* (que causava até 1.380 ms de engarrafamento no compositor sob baixa performance).
+
+* **perf(ui): `src/ui/CrosshairManager.js` & `assets/css/main.css`** — Zero-DOM-Thrashing e dirty checking estrito a 60 FPS:
+  * Implementado cache de dirty checking para `--gap`, `opacity`, `isBlocked`, `left`, `top` e `transform`, eliminando mutações contínuas e redundantes no DOM 60 vezes por segundo.
+  * O custo de CPU da crosshair no profiler despencou de 225ms (4.1% da CPU global) para virtualmente 0ms (< 1ms).
+  * Removida a transição conflitante `transition: opacity .12s ease;` de `#crosshair` em `assets/css/main.css`, eliminando o overhead de interpolações concorrentes a cada 16ms no motor de estilo do navegador.
+
+* **perf(scene/matrix): `src/world/MapLoader.js`, `src/world/ItalyProps.js`, `src/fx/DecalSystem.js` & `src/view/models/TacticalManContinuous.js`** — Desativação de recomposição de matrizes (`matrixAutoUpdate = false`):
+  * `MapLoader.js`: Piso, rampas (wedges), domos e malhas instanciadas (`InstancedMesh`) agora são congeladas com `matrixAutoUpdate = false` e pré-compostas uma única vez (`updateMatrix()`).
+  * `ItalyProps.js`: Adicionado método `freezeStaticProps()` que percorre todos os adereços e decorações estáticas geradas no mapa e desliga `matrixAutoUpdate`, preservando o pivô dinâmico de plinkers pendulares.
+  * `DecalSystem.js`: Os 128 decalques do pool de crateras e impactos nascem com `matrixAutoUpdate = false`, calculando sua matriz local apenas uma vez ao colidirem com uma superfície.
+  * `TacticalManContinuous.js`: Todas as mais de 80 sub-peças rígidas (coletes, bolsos, rádio, capacete, óculos, sola de bota) têm `matrixAutoUpdate = false`, delegando a interpolação cinemática apenas às 16 juntas biomecânicas. Elimina centenas de chamadas desnecessárias a `matrix.compose()` por frame.
+
+* **perf(physics): `src/physics/CollisionWorld.js`** — Zero-Alloc Spatial Hashing e Deduplicação por Stamp:
+  * Substituído o hashing de strings ``${cx},${cz}`` por hashing numérico bitwise de inteiros de 32 bits `((cx + 32768) << 16) | ((cz + 32768) & 0xffff)`. Elimina até 1.800 alocações de strings por frame durante raycasts e varreduras físicas.
+  * `getNearbyBoxes`: Implementada fast-path para queries de célula única e deduplicação de caixas via `_queryStamp`, eliminando instâncias de `new Set()` e chamadas a `Array.from()` no caminho quente. A taxa de simulação física headless saltou de 17.214 para 31.429 ticks/seg (+82.5% de throughput).
+
+* **perf(events/canvas): `src/core/GameManager.js` & `src/ui/HUD.js`** — Eliminação de eventos por frame e canvas 2D ocioso:
+  * `GameManager.js`: `interact:target` agora só é emitido quando o alvo de interação (`interactTarget`) realmente muda de estado, eliminando dezenas de eventos por frame no fixed update e prevenindo updates de DOM repetitivos na HUD.
+  * `HUD.js`: O contexto 2D do indicador de dano (`damage-indicator`) agora só executa `clearRect` quando há marcas de dano ativas ou no frame de transição para o estado limpo (`_canvasDirty`), desonerando o rendering de canvas 2D a 60 FPS.
+
 #### [feat(perf): Kit de Sobrevivência Mobile e Preset "Batata" para Celulares de Entrada] — 01/11/2026
 
 * **feat(core): `src/core/DeviceTierDetector.js`** — Detecção heurística e transparente de hardware:

@@ -48,6 +48,7 @@ export class HUD {
     
     this.diCtx = this.el.diCanvas.getContext('2d');
     this.damageMarks = [];
+    this._canvasDirty = false;
     this._flashTimers = new Map();
     this.scoreboardData = [];
     
@@ -62,6 +63,47 @@ export class HUD {
       crosshairEl: this.el.crosshair,
       noFireEl: typeof document !== 'undefined' ? document.getElementById('crosshair-no-fire') : null
     });
+
+    // Pool fixo de hitmarkers descentralizados para espingardas (pellets)
+    // Elimina Forced Reflow, alocação contínua de divs e rampa de nós no DOM
+    this._pelletPoolSize = 32;
+    this._pelletPool = [];
+    this._pelletPoolIndex = 0;
+    this._pelletContainer = null;
+    if (typeof document !== 'undefined' && document.body) {
+      this._pelletContainer = document.getElementById('shotgun-hit-pool');
+      if (!this._pelletContainer) {
+        this._pelletContainer = document.createElement('div');
+        this._pelletContainer.id = 'shotgun-hit-pool';
+        this._pelletContainer.style.position = 'fixed';
+        this._pelletContainer.style.top = '0';
+        this._pelletContainer.style.left = '0';
+        this._pelletContainer.style.width = '100%';
+        this._pelletContainer.style.height = '100%';
+        this._pelletContainer.style.pointerEvents = 'none';
+        this._pelletContainer.style.zIndex = '110';
+        document.body.appendChild(this._pelletContainer);
+      }
+      for (let i = 0; i < this._pelletPoolSize; i++) {
+        const hm = document.createElement('div');
+        hm.className = 'shotgun-hit-pellet';
+        hm.textContent = '×';
+        hm.style.position = 'absolute';
+        hm.style.top = '0';
+        hm.style.left = '0';
+        hm.style.pointerEvents = 'none';
+        hm.style.opacity = '0';
+        hm.style.fontFamily = "'Oswald',sans-serif";
+        hm.style.fontSize = '24px';
+        hm.style.fontWeight = 'bold';
+        hm.style.textShadow = '0 0 2px rgba(0,0,0,0.8)';
+        hm.style.transition = 'opacity 0.12s';
+        hm.style.willChange = 'transform, opacity';
+        this._pelletContainer.appendChild(hm);
+        this._pelletPool.push({ el: hm, timer: null });
+      }
+    }
+
     this._bind();
     this._bindInventoryUI();
     this.syncGameplayUIVisibility();
@@ -447,50 +489,56 @@ export class HUD {
     }
     this._flashTimers.clear();
     clearTimeout(this._hitT);
+
+    if (this._pelletPool) {
+      for (const item of this._pelletPool) {
+        if (item.timer) clearTimeout(item.timer);
+      }
+      this._pelletPool = [];
+    }
+    if (this._pelletContainer?.parentNode) {
+      this._pelletContainer.parentNode.removeChild(this._pelletContainer);
+      this._pelletContainer = null;
+    }
   }
 
   _hit(e) {
     if (e.isShotgun && e.screenX !== undefined && e.screenY !== undefined) {
-      // Hitmarkers dinâmicos descentralizados para espingardas (pellets)
-      const hm = document.createElement('div');
-      hm.innerHTML = '×';
-      hm.style.position = 'fixed';
-      hm.style.left = e.screenX + 'px';
-      hm.style.top = e.screenY + 'px';
-      hm.style.color = e.headshot ? '#ffd166' : 'var(--warn)';
-      hm.style.fontSize = '24px';
-      hm.style.fontWeight = 'bold';
-      hm.style.fontFamily = "'Oswald',sans-serif";
-      hm.style.pointerEvents = 'none';
-      hm.style.zIndex = '110';
-      hm.style.textShadow = '0 0 2px rgba(0,0,0,0.8)';
-      hm.style.transition = 'opacity 0.12s, transform 0.12s';
-      
-      const rot = (Math.random() - 0.5) * 60;
-      hm.style.transform = `translate(-50%, -50%) scale(1.3) rotate(${rot}deg)`;
-      hm.style.opacity = '1';
-      
-      document.body.appendChild(hm);
-      
-      requestAnimationFrame(() => {
-        hm.style.transform = `translate(-50%, -50%) scale(1) rotate(${rot}deg)`;
-      });
-      
-      setTimeout(() => {
-        hm.style.opacity = '0';
-        setTimeout(() => hm.remove(), 120);
-      }, 120);
+      // Hitmarkers descentralizados para espingardas reaproveitando pool fixo (0 reflow, 0 allocations)
+      if (this._pelletPool && this._pelletPool.length > 0) {
+        const item = this._pelletPool[this._pelletPoolIndex];
+        this._pelletPoolIndex = (this._pelletPoolIndex + 1) % this._pelletPoolSize;
+
+        if (item.timer) {
+          clearTimeout(item.timer);
+          item.timer = null;
+        }
+
+        const hm = item.el;
+        hm.style.color = e.headshot ? '#ffd166' : 'var(--warn)';
+        const rot = ((Math.random() - 0.5) * 60) | 0;
+        // Transform acelerado por hardware GPU evitando reflow de layout
+        hm.style.transform = `translate3d(${e.screenX}px, ${e.screenY}px, 0) translate(-50%, -50%) rotate(${rot}deg) scale(1.15)`;
+        hm.style.opacity = '1';
+
+        item.timer = setTimeout(() => {
+          hm.style.opacity = '0';
+          item.timer = null;
+        }, 120);
+      }
     } else {
       // Hitmarker central clássico
       const el = this.el.hitmarker;
-      el.classList.toggle('head', !!e.headshot);
-      el.style.opacity = '1';
-      el.style.transform = 'translate(-50%,-50%) scale(1.3)';
-      clearTimeout(this._hitT);
-      this._hitT = setTimeout(() => {
-        el.style.opacity = '0';
-        el.style.transform = 'translate(-50%,-50%) scale(1)';
-      }, 110);
+      if (el) {
+        el.classList.toggle('head', !!e.headshot);
+        el.style.opacity = '1';
+        el.style.transform = 'translate(-50%,-50%) scale(1.3)';
+        clearTimeout(this._hitT);
+        this._hitT = setTimeout(() => {
+          el.style.opacity = '0';
+          el.style.transform = 'translate(-50%,-50%) scale(1)';
+        }, 110);
+      }
     }
   }
 
@@ -642,6 +690,15 @@ export class HUD {
   // Chamado a cada frame pelo main.js para atualizar o canvas do indicador direcional
   update(dt, playerYaw) {
     this.playerYaw = playerYaw;
+    if (this.damageMarks.length === 0) {
+      if (this._canvasDirty && this.diCtx) {
+        this.diCtx.clearRect(0, 0, this.el.diCanvas.width, this.el.diCanvas.height);
+        this._canvasDirty = false;
+      }
+      return;
+    }
+
+    this._canvasDirty = true;
     const w = this.el.diCanvas.width;
     const h = this.el.diCanvas.height;
     const cx = w / 2;

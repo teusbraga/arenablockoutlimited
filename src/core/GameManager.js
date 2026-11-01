@@ -48,6 +48,7 @@ export class GameManager {
     this._lastEmittedTimerSec = -1;
     this.killCombo = 0;
     this.lastKillTime = -999;
+    this._lastInteractTarget = null;
 
     this._setupEvents();
   }
@@ -674,7 +675,10 @@ export class GameManager {
 
     // Alvo contextual de interação (porta, carregador ou drop de arma no chão)
     const interactTarget = nearDoor || nearMag || nearDrop;
-    emit('interact:target', { target: interactTarget });
+    if (interactTarget !== this._lastInteractTarget) {
+      this._lastInteractTarget = interactTarget;
+      emit('interact:target', { target: interactTarget });
+    }
 
     if (this.player.alive && this.weapons?.input?.consumeAction('interact')) {
       if (nearDoor) {

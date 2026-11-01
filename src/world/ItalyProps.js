@@ -18,11 +18,47 @@ import { CONFIG } from '../core/ConfigLoader.js';
  * - Galeria/Parede de InspeÃ§Ã£o e Teste de Texturas (Material Showcase)
  */
 
+const SHARED_PROPS_MATS = new Map();
+function getSharedPropMat(key, factoryFn) {
+  let mat = SHARED_PROPS_MATS.get(key);
+  if (!mat) {
+    mat = factoryFn();
+    SHARED_PROPS_MATS.set(key, mat);
+  }
+  return mat;
+}
+
 export class ItalyProps {
   constructor(scene, world) {
     this.scene = scene;
     this.world = world;
     this.plinkers = [];
+    this.staticGroups = [];
+  }
+
+  _add(group, isStatic = true) {
+    if (this.scene && group) {
+      this.scene.add(group);
+      if (isStatic && this.staticGroups) {
+        this.staticGroups.push(group);
+      }
+    }
+    return group;
+  }
+
+  freezeStaticProps() {
+    if (!this.staticGroups) return;
+    for (let i = 0; i < this.staticGroups.length; i++) {
+      const g = this.staticGroups[i];
+      g.matrixAutoUpdate = false;
+      g.updateMatrix();
+      g.traverse(child => {
+        if (!child.userData?.dynamic) {
+          child.matrixAutoUpdate = false;
+          child.updateMatrix();
+        }
+      });
+    }
   }
 
   /**
@@ -40,7 +76,7 @@ export class ItalyProps {
     const sillGeo = new THREE.BoxGeometry(width + 0.35, 0.16, 0.28);
     const sillMesh = new THREE.Mesh(sillGeo, matStone);
     sillMesh.position.set(0, -height / 2, 0.08);
-    sillMesh.castShadow = true;
+    sillMesh.castShadow = false; // colado à parede: sombra imperceptível, -1 DC/janela
     sillMesh.receiveShadow = true;
     group.add(sillMesh);
 
@@ -48,7 +84,7 @@ export class ItalyProps {
     const lintelGeo = new THREE.BoxGeometry(width + 0.35, 0.2, 0.22);
     const lintelMesh = new THREE.Mesh(lintelGeo, matStone);
     lintelMesh.position.set(0, height / 2 + 0.06, 0.05);
-    lintelMesh.castShadow = true;
+    lintelMesh.castShadow = false; // colado à parede: -1 DC/janela
     group.add(lintelMesh);
 
     // Vidro e venezianas (Painel frontal texturizado)
@@ -59,7 +95,7 @@ export class ItalyProps {
     winMesh.receiveShadow = true;
     group.add(winMesh);
 
-    this.scene.add(group);
+    this._add(group);
     return group;
   }
 
@@ -77,7 +113,7 @@ export class ItalyProps {
     // Lintel e ombreiras de pedra
     const frameL = new THREE.Mesh(new THREE.BoxGeometry(0.18, height + 0.2, 0.25), matStone);
     frameL.position.set(-width / 2 - 0.08, height / 2, 0.04);
-    frameL.castShadow = true;
+    frameL.castShadow = false;
     group.add(frameL);
 
     const frameR = frameL.clone();
@@ -86,7 +122,7 @@ export class ItalyProps {
 
     const frameTop = new THREE.Mesh(new THREE.BoxGeometry(width + 0.36, 0.25, 0.28), matStone);
     frameTop.position.set(0, height + 0.1, 0.04);
-    frameTop.castShadow = true;
+    frameTop.castShadow = false;
     group.add(frameTop);
 
     // Folha de madeira da porta
@@ -96,7 +132,7 @@ export class ItalyProps {
     doorMesh.receiveShadow = true;
     group.add(doorMesh);
 
-    this.scene.add(group);
+    this._add(group);
     if (this.world) {
       this.world.addBox(x, y + height / 2, z, width + 0.2, height, 0.3);
     }
@@ -145,7 +181,7 @@ export class ItalyProps {
     wR.rotation.z = -Math.PI * 0.25;
     group.add(wR);
 
-    this.scene.add(group);
+    this._add(group);
 
     if (this.world) {
       // ColisÃ£o para os dois pilares laterais (passagem livre por baixo)
@@ -173,11 +209,11 @@ export class ItalyProps {
     slab.receiveShadow = true;
     group.add(slab);
 
-    // MÃ­sulas decorativas embaixo da sacada
+    // Mísulas decorativas embaixo da sacada
     const corbelGeo = new THREE.BoxGeometry(0.35, 0.7, depth * 0.8);
     const c1 = new THREE.Mesh(corbelGeo, matStone);
     c1.position.set(-width * 0.35, -0.45, depth * 0.45);
-    c1.castShadow = true;
+    c1.castShadow = false; // sob a laje: sombra imperceptível, -2 DC/sacada
     group.add(c1);
 
     const c2 = c1.clone();
@@ -212,7 +248,7 @@ export class ItalyProps {
     pot2.position.x = width * 0.3;
     group.add(pot2);
 
-    this.scene.add(group);
+    this._add(group);
     if (this.world) {
       this.world.addBox(x, y, z + depth / 2, width, 0.3, depth);
     }
@@ -231,7 +267,7 @@ export class ItalyProps {
     mesh.rotation.y = rotY;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
-    this.scene.add(mesh);
+    this._add(mesh);
     return mesh;
   }
 
@@ -261,7 +297,7 @@ export class ItalyProps {
     midMesh.castShadow = true;
     group.add(midMesh);
 
-    this.scene.add(group);
+    this._add(group);
     if (this.world) {
       this.world.addBox(x, y + height / 2, z, radius * 2, height, radius * 2);
     }
@@ -279,7 +315,7 @@ export class ItalyProps {
     mesh.rotation.y = rotY;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
-    this.scene.add(mesh);
+    this._add(mesh);
 
     if (this.world) {
       this.world.addBox(x, y + sy / 2, z, sx, sy, sz, { vaultable: true });
@@ -335,7 +371,7 @@ export class ItalyProps {
     this.addWineCrate(x + 0.5, y + 0.9, z, rotY + 0.1, 0.8, 0.6, 0.8);
     this.addWineBarrel(x - width / 2 - 0.5, y, z, 0.9);
 
-    this.scene.add(group);
+    this._add(group);
     if (this.world) {
       this.world.addBox(x, y + 0.45, z, width, 0.9, depth);
     }
@@ -355,17 +391,17 @@ export class ItalyProps {
     // Haste de suporte
     const arm = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.45), matIron);
     arm.position.set(0, 0, 0.22);
-    arm.castShadow = true;
+    arm.castShadow = false; // haste fina na parede: -1 DC/lanterna
     group.add(arm);
 
-    // Corpo da lanterna
+    // Corpo da lanterna (material cacheado compartilhado)
     const lanternGeo = new THREE.CylinderGeometry(0.12, 0.08, 0.35, 6);
-    const lanternMat = new THREE.MeshStandardMaterial({
+    const lanternMat = getSharedPropMat('lantern', () => new THREE.MeshStandardMaterial({
       color: 0xffd999,
       emissive: 0xffa033,
       emissiveIntensity: 0.85,
       roughness: 0.3,
-    });
+    }));
     const lantern = new THREE.Mesh(lanternGeo, lanternMat);
     lantern.position.set(0, -0.15, 0.45);
     group.add(lantern);
@@ -375,7 +411,7 @@ export class ItalyProps {
     light.position.set(0, -0.15, 0.45);
     group.add(light);
 
-    this.scene.add(group);
+    this._add(group);
     return group;
   }
 
@@ -460,7 +496,7 @@ export class ItalyProps {
       group.add(ped);
     });
 
-    this.scene.add(group);
+    this._add(group);
     if (this.world) {
       this.world.addBox(x, y + wallH / 2, z, wallW, wallH, 0.8);
     }
@@ -509,7 +545,7 @@ export class ItalyProps {
       group.add(folMesh);
     }
 
-    this.scene.add(group);
+    this._add(group);
     if (this.world) {
       this.world.addBox(x, y + trunkH / 2, z, trunkR * 2, trunkH, trunkR * 2);
     }
@@ -549,7 +585,7 @@ export class ItalyProps {
     rail2.position.y = height * 0.78;
     group.add(rail2);
 
-    this.scene.add(group);
+    this._add(group);
     if (this.world) {
       this.world.addBox(x, y + height / 2, z, length, height, 0.3, { vaultable: true });
     }
@@ -575,8 +611,8 @@ export class ItalyProps {
     wall.receiveShadow = true;
     group.add(wall);
 
-    // SuperfÃ­cie da Ã¡gua escura no fundo
-    const waterMat = new THREE.MeshStandardMaterial({ color: 0x1a3340, roughness: 0.1, metalness: 0.8 });
+    // Superfície da água escura no fundo
+    const waterMat = getSharedPropMat('fountainWater', () => new THREE.MeshStandardMaterial({ color: 0x1a3340, roughness: 0.1, metalness: 0.8 }));
     const water = new THREE.Mesh(new THREE.CircleGeometry(1.35, 16), waterMat);
     water.rotation.x = -Math.PI / 2;
     water.position.set(0, 0.3, 0);
@@ -601,7 +637,7 @@ export class ItalyProps {
     roof.castShadow = true;
     group.add(roof);
 
-    this.scene.add(group);
+    this._add(group);
     if (this.world) {
       this.world.addBox(x, y + 0.45, z, 2.8, 0.9, 2.8, { vaultable: true });
     }
@@ -628,7 +664,7 @@ export class ItalyProps {
     cap.castShadow = true;
     group.add(cap);
 
-    this.scene.add(group);
+    this._add(group);
     if (this.world) {
       this.world.addBox(x, y + height / 2, z, 0.8, height, 0.8);
     }
@@ -640,14 +676,14 @@ export class ItalyProps {
    */
   addHayBale(x, y, z, rotY = 0) {
     const matDirt = materialFactory.get('dirt');
-    const hayMat = new THREE.MeshStandardMaterial({ color: 0xc49d47, roughness: 0.95 });
+    const hayMat = getSharedPropMat('hay', () => new THREE.MeshStandardMaterial({ color: 0xc49d47, roughness: 0.95 }));
     const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 1.4, 12), hayMat);
     mesh.position.set(x, y + 0.7, z);
     mesh.rotation.z = Math.PI * 0.5;
     mesh.rotation.y = rotY;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
-    this.scene.add(mesh);
+    this._add(mesh);
 
     if (this.world) {
       this.world.addBox(x, y + 0.7, z, 1.4, 1.4, 1.4, { vaultable: true });
@@ -694,8 +730,8 @@ export class ItalyProps {
     crownMesh.castShadow = true;
     group.add(crownMesh);
 
-    // 3. Cachos de tÃ¢maras do deserto (Date fruit clusters em dourado/laranja sob a copa)
-    const dateMat = new THREE.MeshStandardMaterial({ color: 0xba6e2a, roughness: 0.75 });
+    // 3. Cachos de tâmaras do deserto (Date fruit clusters em dourado/laranja sob a copa)
+    const dateMat = getSharedPropMat('dates', () => new THREE.MeshStandardMaterial({ color: 0xba6e2a, roughness: 0.75 }));
     const numDateClusters = 3;
     for (let c = 0; c < numDateClusters; c++) {
       const cAng = (c / numDateClusters) * Math.PI * 2 + 0.35;
@@ -795,7 +831,7 @@ export class ItalyProps {
       }
     }
 
-    this.scene.add(group);
+    this._add(group);
     if (this.world) {
       this.world.addBox(x, y + trunkH / 2, z, trunkR * 2, trunkH, trunkR * 2);
     }
@@ -842,7 +878,7 @@ export class ItalyProps {
     cR.rotation.z = -Math.PI * 0.28;
     group.add(cR);
 
-    this.scene.add(group);
+    this._add(group);
     if (this.world) {
       this.world.addBox(x - span / 2 + pillarW / 2, y + height / 2, z, pillarW, height, thickness);
       this.world.addBox(x + span / 2 - pillarW / 2, y + height / 2, z, pillarW, height, thickness);
@@ -862,7 +898,7 @@ export class ItalyProps {
     mesh.rotation.y = rotY;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
-    this.scene.add(mesh);
+    this._add(mesh);
     return mesh;
   }
 
@@ -876,7 +912,7 @@ export class ItalyProps {
     mesh.rotation.y = rotY;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
-    this.scene.add(mesh);
+    this._add(mesh);
 
     if (this.world) {
       this.world.addBox(x, y + sy / 2, z, sx, sy, sz, { vaultable: true });
@@ -896,7 +932,7 @@ export class ItalyProps {
     mesh.position.set(x, y + h / 2, z);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
-    this.scene.add(mesh);
+    this._add(mesh);
 
     if (this.world) {
       this.world.addBox(x, y + h / 2, z, r * 2, h, r * 2);
@@ -916,7 +952,7 @@ export class ItalyProps {
     mesh.rotation.x = Math.PI * 0.45;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
-    this.scene.add(mesh);
+    this._add(mesh);
     return mesh;
   }
 
@@ -927,7 +963,7 @@ export class ItalyProps {
     const group = new THREE.Group();
     group.position.set(x, y, z);
 
-    const matMetal = materialFactory.get('scaffold') || new THREE.MeshStandardMaterial({ color: 0x9099a2, metalness: 0.8, roughness: 0.4 });
+    const matMetal = materialFactory.get('scaffold') || getSharedPropMat('scaffoldFallback', () => new THREE.MeshStandardMaterial({ color: 0x9099a2, metalness: 0.8, roughness: 0.4 }));
     const tankR = 0.9 * scale;
     const tankH = 1.6 * scale;
 
@@ -945,7 +981,7 @@ export class ItalyProps {
       group.add(leg);
     }
 
-    this.scene.add(group);
+    this._add(group);
     if (this.world) {
       this.world.addBox(x, y + (tankH + 0.5) / 2, z, tankR * 2, tankH + 0.5, tankR * 2);
     }
@@ -1025,7 +1061,7 @@ export class ItalyProps {
       }
     }
 
-    this.scene.add(group);
+    this._add(group);
     if (this.world) {
       this.world.addBox(x, y + trunkH / 2, z, trunkR * 2.2, trunkH, trunkR * 2.2);
     }
@@ -1048,7 +1084,7 @@ export class ItalyProps {
     logMesh.receiveShadow = true;
     group.add(logMesh);
 
-    this.scene.add(group);
+    this._add(group);
     if (this.world) {
       // Caixa de colisÃ£o transponÃ­vel
       this.world.addBox(x, y + radius * 0.8, z, length, radius * 1.8, radius * 2, { vaultable: true });
@@ -1081,7 +1117,7 @@ export class ItalyProps {
       group.add(card);
     }
 
-    this.scene.add(group);
+    this._add(group);
     return group;
   }
 
@@ -1125,7 +1161,7 @@ export class ItalyProps {
       group.add(topLeaves);
     }
 
-    this.scene.add(group);
+    this._add(group);
     if (this.world) {
       this.world.addBox(x, y + height / 2, z, radius * 2, height, radius * 2);
     }
@@ -1162,7 +1198,7 @@ export class ItalyProps {
     rightWall.position.x = width / 2 - thick / 2;
     group.add(rightWall);
 
-    this.scene.add(group);
+    this._add(group);
     if (this.world) {
       // ColisÃ£o para os 3 parapeitos com flag transponÃ­vel
       this.world.addBox(x, y + height / 2, z, width, height, depth, { vaultable: true });
@@ -1254,7 +1290,7 @@ export class ItalyProps {
     roof.castShadow = true;
     group.add(roof);
 
-    this.scene.add(group);
+    this._add(group);
     if (this.world) {
       // Piso sÃ³lido caminhÃ¡vel no topo da torre
       this.world.addBox(x, y + platY, z, stiltSpan + 0.4, 0.25, stiltSpan + 0.4);
@@ -1326,7 +1362,7 @@ export class ItalyProps {
     wallLow.receiveShadow = true;
     group.add(wallLow);
 
-    this.scene.add(group);
+    this._add(group);
     if (this.world) {
       this.world.addBox(x, y + 0.5, z, 2.6, 1.0, 1.8, { vaultable: true });
       this.world.addBox(x - 3.2, y + 0.55, z, 0.8, 1.1, 4.2, { vaultable: true });
@@ -1381,7 +1417,7 @@ export class ItalyProps {
     roofR.receiveShadow = true;
     group.add(roofR);
 
-    this.scene.add(group);
+    this._add(group);
     if (this.world) {
       // Cobertura sÃ³lida nas laterais da tenda
       this.world.addBox(x - width / 2 + 0.3, y + height / 2, z, 0.6, height, length);
@@ -1402,7 +1438,7 @@ export class ItalyProps {
     mesh.rotation.y = rotY;
     mesh.castShadow = true;
     mesh.receiveShadow = true;
-    this.scene.add(mesh);
+    this._add(mesh);
 
     if (this.world) {
       if (typeof this.world.addDome === 'function') {
@@ -1478,7 +1514,7 @@ export class ItalyProps {
     paperBack.receiveShadow = true;
     group.add(paperBack);
 
-    this.scene.add(group);
+    this._add(group);
 
     if (this.world) {
       this.world.addBox(x, y + 1.25 * scale, z, boardW, boardH, 0.22 * scale, {
@@ -1543,6 +1579,7 @@ export class ItalyProps {
 
     // 2. Montagem BalanÃ§ante Suspensa no PivÃ´ (Eixo no topo em frameHeight)
     const pivotGroup = new THREE.Group();
+    pivotGroup.userData = { dynamic: true };
     pivotGroup.position.set(0, frameHeight, 0);
     group.add(pivotGroup);
 
@@ -1552,15 +1589,15 @@ export class ItalyProps {
 
     const armL = new THREE.Mesh(armGeo, matSteel);
     armL.position.set(-plateRadius * 0.6, -armLen * 0.5, 0);
-    armL.castShadow = true;
+    armL.castShadow = false;
     pivotGroup.add(armL);
 
     const armR = new THREE.Mesh(armGeo, matSteel);
     armR.position.set(plateRadius * 0.6, -armLen * 0.5, 0);
-    armR.castShadow = true;
+    armR.castShadow = false;
     pivotGroup.add(armR);
 
-    // Chapa circular do gongo de aÃ§o
+    // Chapa circular do gongo de aço
     const gongGeo = new THREE.CylinderGeometry(plateRadius, plateRadius, 0.028, 24);
     gongGeo.rotateX(Math.PI / 2);
     const gongMesh = new THREE.Mesh(gongGeo, matPlinker);
@@ -1569,19 +1606,19 @@ export class ItalyProps {
     gongMesh.receiveShadow = true;
     pivotGroup.add(gongMesh);
 
-    // Centro bullseye em vermelho escarlate vivo
+    // Centro bullseye em vermelho escarlate vivo (material compartilhado)
     const dotGeo = new THREE.CylinderGeometry(plateRadius * 0.38, plateRadius * 0.38, 0.032, 20);
     dotGeo.rotateX(Math.PI / 2);
-    const matDot = new THREE.MeshStandardMaterial({
+    const matDot = getSharedPropMat('plinkerDot', () => new THREE.MeshStandardMaterial({
       color: 0xd32f2f,
       roughness: 0.38,
       metalness: 0.60
-    });
+    }));
     const dotMesh = new THREE.Mesh(dotGeo, matDot);
     dotMesh.position.set(0, -armLen, 0.002);
     pivotGroup.add(dotMesh);
 
-    this.scene.add(group);
+    this._add(group);
 
     const worldPlateY = y + frameHeight - armLen;
 
@@ -1697,7 +1734,7 @@ export class ItalyProps {
     baffleMesh.castShadow = true;
     group.add(baffleMesh);
 
-    this.scene.add(group);
+    this._add(group);
 
     if (this.world) {
       this.world.addBox(x, y + height * 0.5, z, width, height, depth, {
@@ -1730,13 +1767,13 @@ export class ItalyProps {
     group.position.set(x, y, z);
     group.rotation.y = rotY;
 
-    const matMetal = new THREE.MeshStandardMaterial({
+    const matMetal = getSharedPropMat('antennaMetal', () => new THREE.MeshStandardMaterial({
       color: 0xa0a5ab,
       metalness: 0.85,
       roughness: 0.35
-    });
+    }));
 
-    // Mastro principal de fixaÃ§Ã£o
+    // Mastro principal de fixação
     const mastH = 2.4 * scale;
     const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.03 * scale, 0.035 * scale, mastH, 8), matMetal);
     mast.position.set(0, mastH / 2, 0);
@@ -1744,11 +1781,11 @@ export class ItalyProps {
     group.add(mast);
 
     if (type === 'dish') {
-      // Antena ParabÃ³lica de laje
+      // Antena Parabólica de laje
       const dishR = 0.65 * scale;
       const dish = new THREE.Mesh(new THREE.CylinderGeometry(dishR, dishR * 0.9, 0.05 * scale, 16), matMetal);
       dish.position.set(0, mastH - 0.15 * scale, 0.25 * scale);
-      dish.rotation.x = -Math.PI / 4; // Inclinada para o cÃ©u
+      dish.rotation.x = -Math.PI / 4; // Inclinada para o céu
       dish.castShadow = true;
       group.add(dish);
 
@@ -1758,7 +1795,7 @@ export class ItalyProps {
       lnb.rotation.x = Math.PI / 4;
       group.add(lnb);
     } else {
-      // Antena UHF Espinha de Peixe clÃ¡ssica brasileira
+      // Antena UHF Espinha de Peixe clássica brasileira
       const boomLen = 1.4 * scale;
       const boom = new THREE.Mesh(new THREE.BoxGeometry(0.03 * scale, 0.03 * scale, boomLen), matMetal);
       boom.position.set(0, mastH - 0.1 * scale, boomLen / 2);
@@ -1773,7 +1810,7 @@ export class ItalyProps {
         const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.012 * scale, 0.012 * scale, elemW, 6), matMetal);
         bar.rotation.z = Math.PI / 2;
         bar.position.set(0, mastH - 0.1 * scale, elemZ);
-        bar.castShadow = true;
+        bar.castShadow = false; // varetas finas de 1cm: sombra imperceptível a distância, -6 DC/antena
         group.add(bar);
       }
     }
@@ -1782,7 +1819,7 @@ export class ItalyProps {
       this.world.addBox(x, y + 0.45, z, 0.4, 0.9, 0.4, { vaultable: true });
     }
 
-    this.scene.add(group);
+    this._add(group);
     return group;
   }
 
@@ -1792,7 +1829,7 @@ export class ItalyProps {
   addOverheadWires(x1, y1, z1, x2, y2, z2, sag = 0.35, cableCount = 3) {
     const group = new THREE.Group();
     if (CONFIG.GRAPHICS?.preset === 'potato') return group;
-    const wireMat = new THREE.MeshBasicMaterial({ color: 0x141517 });
+    const wireMat = getSharedPropMat('wireBasic', () => new THREE.MeshBasicMaterial({ color: 0x141517 }));
 
     const dx = x2 - x1;
     const dy = y2 - y1;
@@ -1820,7 +1857,7 @@ export class ItalyProps {
       group.add(wireMesh);
     }
 
-    this.scene.add(group);
+    this._add(group);
     return group;
   }
 
@@ -1832,9 +1869,9 @@ export class ItalyProps {
     group.position.set(x, y, z);
     group.rotation.y = rotY;
 
-    const matPole = materialFactory.get('concrete') || new THREE.MeshStandardMaterial({ color: 0x888b90, roughness: 0.9 });
-    const matWood = materialFactory.get('wood') || new THREE.MeshStandardMaterial({ color: 0x4a321f });
-    const matMetal = new THREE.MeshStandardMaterial({ color: 0x2e3338, metalness: 0.8, roughness: 0.4 });
+    const matPole = materialFactory.get('concrete') || getSharedPropMat('poleConcreteFallback', () => new THREE.MeshStandardMaterial({ color: 0x888b90, roughness: 0.9 }));
+    const matWood = materialFactory.get('wood') || getSharedPropMat('poleWoodFallback', () => new THREE.MeshStandardMaterial({ color: 0x4a321f }));
+    const matMetal = getSharedPropMat('poleMetal', () => new THREE.MeshStandardMaterial({ color: 0x2e3338, metalness: 0.8, roughness: 0.4 }));
 
     // 1. Coluna de concreto do poste
     const poleGeo = new THREE.BoxGeometry(0.38, height, 0.38);
@@ -1847,11 +1884,11 @@ export class ItalyProps {
     const armGeo = new THREE.BoxGeometry(2.2, 0.14, 0.14);
     const armMesh = new THREE.Mesh(armGeo, matWood);
     armMesh.position.set(0, height - 0.35, 0);
-    armMesh.castShadow = true;
+    armMesh.castShadow = false; // cruzeta a 7m de altura: -1 DC/poste
     group.add(armMesh);
 
-    // 3. 4 isoladores de cerÃ¢mica
-    const insMat = new THREE.MeshStandardMaterial({ color: 0x2b4f3b, roughness: 0.3 });
+    // 3. 4 isoladores de cerâmica
+    const insMat = getSharedPropMat('insulator', () => new THREE.MeshStandardMaterial({ color: 0x2b4f3b, roughness: 0.3 }));
     const insPositions = [-0.85, -0.3, 0.3, 0.85];
     for (const ip of insPositions) {
       const ins = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.05, 0.16, 8), insMat);
@@ -1859,17 +1896,17 @@ export class ItalyProps {
       group.add(ins);
     }
 
-    // 4. Transformador de energia em balanÃ§o
+    // 4. Transformador de energia em balanço
     const trafo = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.85, 0.55), matMetal);
     trafo.position.set(0, height - 2.5, 0.42);
-    trafo.castShadow = true;
+    trafo.castShadow = false; // trafo aéreo: -1 DC/poste
     group.add(trafo);
 
     if (this.world) {
       this.world.addBox(x, y + height / 2, z, 0.5, height, 0.5);
     }
 
-    this.scene.add(group);
+    this._add(group);
     return group;
   }
 
@@ -1880,29 +1917,29 @@ export class ItalyProps {
     const group = new THREE.Group();
     group.position.set(x, y, z);
 
-    const tankMat = new THREE.MeshStandardMaterial({
-      color: 0x0c4ea2, // Azul escuro royal caracterÃ­stico
+    const tankMat = getSharedPropMat('favelaWaterTank', () => new THREE.MeshStandardMaterial({
+      color: 0x0c4ea2, // Azul escuro royal característico
       roughness: 0.42,
       metalness: 0.12
-    });
+    }));
 
     const tankH = 1.35 * scale;
     const tankRTop = 0.85 * scale;
     const tankRBot = 0.72 * scale;
 
-    // Corpo cilÃ­ndrico cÃ´nico da caixa
+    // Corpo cilíndrico cônico da caixa
     const tankGeo = new THREE.CylinderGeometry(tankRTop, tankRBot, tankH, 16);
     const tankMesh = new THREE.Mesh(tankGeo, tankMat);
     tankMesh.position.set(0, tankH / 2, 0);
     tankMesh.castShadow = true;
     group.add(tankMesh);
 
-    // Tampa sobreposta cÃ´nica
+    // Tampa sobreposta cônica
     const lidH = 0.22 * scale;
     const lidGeo = new THREE.CylinderGeometry(0.15 * scale, tankRTop + 0.05 * scale, lidH, 16);
     const lidMesh = new THREE.Mesh(lidGeo, tankMat);
     lidMesh.position.set(0, tankH + lidH / 2, 0);
-    lidMesh.castShadow = true;
+    lidMesh.castShadow = false; // tampa no topo da caixa: -1 DC/caixa
     group.add(lidMesh);
 
     // AnÃ©is de reforÃ§o
@@ -1921,7 +1958,7 @@ export class ItalyProps {
       this.world.addBox(x, y + (tankH + lidH) / 2, z, tankRTop * 2, tankH + lidH, tankRTop * 2, { vaultable: true });
     }
 
-    this.scene.add(group);
+    this._add(group);
     return group;
   }
 
@@ -1946,7 +1983,7 @@ export class ItalyProps {
       const stepGeo = new THREE.BoxGeometry(width, stepHeight, stepDepth);
       const stepMesh = new THREE.Mesh(stepGeo, matSlab);
       stepMesh.position.set(0, localY, localZ);
-      stepMesh.castShadow = true;
+      stepMesh.castShadow = false; // degraus empilhados: -steps DC no shadow pass
       stepMesh.receiveShadow = true;
       group.add(stepMesh);
 
@@ -1973,7 +2010,7 @@ export class ItalyProps {
       group.add(railMesh);
     }
 
-    this.scene.add(group);
+    this._add(group);
     return group;
   }
 
@@ -2013,10 +2050,10 @@ export class ItalyProps {
     const signGeo = new THREE.BoxGeometry(0.8, 0.45, 0.03);
     const signMesh = new THREE.Mesh(signGeo, signMat);
     signMesh.position.set(0, 1.15, 0);
-    signMesh.castShadow = true;
+    signMesh.castShadow = false; // placa fina: sombra imperceptível, -1 DC
     group.add(signMesh);
 
-    this.scene.add(group);
+    this._add(group);
     return group;
   }
 }

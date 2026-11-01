@@ -20,6 +20,7 @@
   body:not(.in-gameplay) #lens,
   body:not(.in-gameplay) #killfeed,
   body:not(.in-gameplay) #hitmarker,
+  body:not(.in-gameplay) #shotgun-hit-pool,
   body:not(.in-gameplay) #prompt,
   body:not(.in-gameplay) #kill-popup,
   body:not(.in-gameplay) #damage-indicator,

@@ -15,11 +15,10 @@ export class CollisionWorld {
     this.grid = new Map();
     this.globalBoxes = []; // key: "x,z" -> Set<box>
     this.slopes = [];
-    this.domes = [];
-  }
+    this.domes = [];  this._queryStamp = 0;}
 
   _hash(cx, cz) {
-    return `${cx},${cz}`;
+    return ((cx + 32768) << 16) | ((cz + 32768) & 0xffff);
   }
 
   _getBoxCoords(box) {
@@ -215,33 +214,49 @@ export class CollisionWorld {
     const minCz = Math.floor(minZ / this.cellSize);
     const maxCz = Math.floor(maxZ / this.cellSize);
 
-    // Se tocar apenas em uma célula, evita criar Set
-    let list = [];
     if (minCx === maxCx && minCz === maxCz) {
       const cell = this.grid.get(this._hash(minCx, minCz));
-      if (cell) list = Array.from(cell);
+      let list = cell ? Array.from(cell) : [];
+      if (this.globalBoxes && this.globalBoxes.length > 0) {
+        for (let i = 0; i < this.globalBoxes.length; i++) {
+          const gb = this.globalBoxes[i];
+          if (maxX >= gb.min.x && minX <= gb.max.x && maxZ >= gb.min.z && minZ <= gb.max.z) {
+            list.push(gb);
+          }
+        }
+      }
+      return list;
     }
 
-    const candidates = new Set();
+    const stamp = ++this._queryStamp;
+    const list = [];
+
     for (let cx = minCx; cx <= maxCx; cx++) {
       for (let cz = minCz; cz <= maxCz; cz++) {
         const cell = this.grid.get(this._hash(cx, cz));
         if (cell) {
           for (const box of cell) {
-            candidates.add(box);
+            if (box._queryStamp !== stamp) {
+              box._queryStamp = stamp;
+              list.push(box);
+            }
           }
         }
       }
     }
-    if (minCx !== maxCx || minCz !== maxCz) { list = Array.from(candidates); }
+
     if (this.globalBoxes && this.globalBoxes.length > 0) {
       for (let i = 0; i < this.globalBoxes.length; i++) {
         const gb = this.globalBoxes[i];
         if (maxX >= gb.min.x && minX <= gb.max.x && maxZ >= gb.min.z && minZ <= gb.max.z) {
-          list.push(gb);
+          if (gb._queryStamp !== stamp) {
+            gb._queryStamp = stamp;
+            list.push(gb);
+          }
         }
       }
     }
+
     return list;
   }
 
