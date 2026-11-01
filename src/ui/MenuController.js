@@ -512,9 +512,9 @@ export class MenuController {
           high: 'ALTA (PC)'
         };
         emit('hud:popup', {
-          text: `🎮 QUALIDADE: ${labels[preset] || preset.toUpperCase()}`,
+          text: `🎮 QUALIDADE: ${labels[preset] || preset.toUpperCase()} (Recarregue para aplicar nos bots)`,
           color: preset === 'potato' ? '#ff9f43' : (preset === 'low' ? '#06d6a0' : preset === 'medium' ? '#f7c948' : '#90c3f9'),
-          duration: 1800,
+          duration: 2500,
         });
       });
     }

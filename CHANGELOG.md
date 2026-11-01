@@ -26,9 +26,10 @@
   * `DecalSystem.js`: Adicionada chamada síncrona obrigatória a `mesh.updateMatrix()` logo após `mesh.scale.set(...)` em `spawnDecal()`, e configurado `frustumCulled = false` no pool circular de decalques. Como os decalques utilizam `matrixAutoUpdate = false`, a ausência de `updateMatrix()` mantinha a matriz local na origem (0,0,0) ou na posição do disparo anterior, provocando piscamento visual conforme o jogador movia a visada.
   * `ItalyProps.js`: Adicionada chamada a `g.updateMatrixWorld(true)` após congelar as matrizes em `freezeStaticProps()`, assegurando que todas as matrizes no espaço de mundo de adereços estáticos sejam pré-calculadas integralmente no boot.
 
-* **perf(mobile/tier): `src/ui/MenuController.js`** — Correção de inicialização do preset gráfico em dispositivos móveis:
-  * Corrigida a lógica de boot em `MenuController.js` (`savedPreset || detectedTier || 'medium'`). Anteriormente, aparelhos classificados como `low` eram forçados a iniciar no preset `medium` por falta de mapeamento explícito na expressão ternária.
-  * Dispositivos móveis de entrada agora iniciam legitimamente no preset `low` (sem sombras, texturas flat, DPR $\le 1.25$ e 1 luz), permitindo que aparelhos Android rodem sem afogamento de fill-rate de GPU.
+* **perf(mobile/tier): `src/ui/MenuController.js` & `src/view/CharacterView.js`** — Correção de inicialização do preset gráfico e LOD de soldados em dispositivos móveis:
+  * `MenuController.js`: Corrigida a lógica de boot (`savedPreset || detectedTier || 'medium'`). Anteriormente, aparelhos classificados como `low` eram forçados a iniciar no preset `medium` por falta de mapeamento explícito na expressão ternária.
+  * `CharacterView.js`: Em dispositivos móveis táteis com preset `low` ou `potato`, o gerador de soldados agora seleciona automaticamente o modelo leve `_buildBlockySoldier()` (6 malhas por bot em vez de 157). Isso elimina de imediato mais de 600 draw calls em partidas com bots em celulares.
+  * `ItalyProps.js`: Em presets `low` e `potato`, a geração de palmeiras (`addPalmTree`) omite cachos decorativos de tâmaras (15 malhas) e reduz a coroa foliar para 6 folhas simples, cortando 32 draw calls por palmeira.
 
 * **perf(gpu/shadows): `src/core/SceneSetup.js`** — Otimização da resolução de Shadow Map (Alívio de GPU integrada Vega e mobile):
   * Calibrada a resolução padrão do mapa de sombras direcional do sol de 2048 para **1024** no desktop e **512** em dispositivos táteis/mobile.

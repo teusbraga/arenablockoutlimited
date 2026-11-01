@@ -87,7 +87,12 @@ export class CharacterView {
 
       this.root.add(this.body, this.head, eyeL, pupilL, eyeR, pupilR);
 
-    } else if (CONFIG.GRAPHICS?.preset === 'potato' || this.options.lod === 'potato') {
+    } else if (
+      CONFIG.GRAPHICS?.preset === 'potato' ||
+      ((typeof window !== 'undefined' && ('ontouchstart' in window || (navigator.maxTouchPoints > 0))) &&
+       (CONFIG.GRAPHICS?.preset === 'low' || CONFIG.GRAPHICS?.preset === 'potato')) ||
+      this.options.lod === 'potato'
+    ) {
       this._buildBlockySoldier();
     } else {
       /* SOLDADO TÁTICO CONTÍNUO (TACTIC MAN CONTINUOUS AUTÊNTICO COM PALETA DE CORES POR BOT OU PLAYER) */

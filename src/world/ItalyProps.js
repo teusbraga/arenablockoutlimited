@@ -731,6 +731,9 @@ export class ItalyProps {
     crownMesh.castShadow = true;
     group.add(crownMesh);
 
+    const isLowOrPotato = CONFIG.GRAPHICS?.preset === 'potato' || CONFIG.GRAPHICS?.preset === 'low';
+
+    if (!isLowOrPotato) {
     // 3. Cachos de tâmaras do deserto (Date fruit clusters em dourado/laranja sob a copa)
     const dateMat = getSharedPropMat('dates', () => new THREE.MeshStandardMaterial({ color: 0xba6e2a, roughness: 0.75 }));
     const numDateClusters = 3;
@@ -756,6 +759,7 @@ export class ItalyProps {
         cluster.add(berry);
       }
       group.add(cluster);
+    }
     }
 
     // FunÃ§Ã£o interna para criar geometria de folha com pivÃ´ na base e curvatura gravitacional em V
@@ -783,7 +787,9 @@ export class ItalyProps {
     };
 
     // 4. Coroa de 22 folhas exuberantes em 3 Tiers (camadas sobrepostas)
-    const tiers = [
+    const tiers = isLowOrPotato
+      ? [{ count: 6, width: 2.5 * scale, length: 5.0 * scale, droop: 1.5 * scale, tilt: 0.45, offsetAng: 0, heightOffset: 0.0 }]
+      : [
       // Camada Alta: 6 folhas jovens apontando para cima e arqueando levemente
       {
         count: 6,
