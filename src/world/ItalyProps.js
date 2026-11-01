@@ -58,6 +58,7 @@ export class ItalyProps {
           child.updateMatrix();
         }
       });
+      g.updateMatrixWorld(true);
     }
   }
 

@@ -2400,17 +2400,6 @@ export function createCharacter(THREEInstance = THREE, options = {}) {
     }
   };
 
-  // Otimização de Performance Zero-Trash: Congela matrizes locais de todas as submáquinas rígidas
-  // que nunca se movem relativamente à sua junta anatômica pai.
-  const jointSet = new Set(Object.values(rootGroup.userData.joints));
-  jointSet.add(rootGroup);
-  rootGroup.traverse((child) => {
-    if (!jointSet.has(child)) {
-      child.matrixAutoUpdate = false;
-      child.updateMatrix();
-    }
-  });
-
   return rootGroup;
 }
 

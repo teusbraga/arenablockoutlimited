@@ -492,7 +492,7 @@ export class MenuController {
     if (this.graphicsPresetSelect) {
       const savedPreset = localStorage.getItem('blocky_graphics_preset');
       const detectedTier = DeviceTierDetector.detect();
-      const initialPreset = savedPreset || (detectedTier === 'potato' ? 'potato' : 'medium');
+      const initialPreset = savedPreset || detectedTier || 'medium';
       this.graphicsPresetSelect.value = initialPreset;
       if (!CONFIG.GRAPHICS) CONFIG.GRAPHICS = {};
       CONFIG.GRAPHICS.preset = initialPreset;

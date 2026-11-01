@@ -73,7 +73,7 @@ export function startEngine({
   let last = 0;
   let isCrashed = false;
   let frameId = null;
-  let renderTick = 0;
+  let lastRender = 0;
 
   function frame(nowMs) {
     if (isCrashed) return;
@@ -98,9 +98,10 @@ export function startEngine({
       }
 
       const alpha = acc / fixedDt;
-      renderTick++;
       const shouldLimit30 = (typeof CONFIG !== 'undefined' && Boolean(CONFIG.GRAPHICS?.limitRenderFps30));
-      if (!shouldLimit30 || (renderTick % 2 === 0)) {
+      const minRenderInterval = shouldLimit30 ? 0.0312 : 0;
+      if (!shouldLimit30 || (now - lastRender >= minRenderInterval)) {
+        lastRender = now;
         if (onRender) onRender(alpha, dt);
       }
 

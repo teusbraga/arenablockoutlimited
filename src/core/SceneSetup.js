@@ -69,7 +69,7 @@ export class SceneSetup {
     this.sun.position.set(14, 22, 8);
     this.sun.castShadow = true;
     const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    const shadowMapRes = isTouch ? 1024 : 2048;
+    const shadowMapRes = isTouch ? 512 : 1024;
     this.sun.shadow.mapSize.set(shadowMapRes, shadowMapRes);
     this.sun.shadow.camera.left = -35;
     this.sun.shadow.camera.right = 35;
@@ -160,7 +160,7 @@ export class SceneSetup {
       this.renderer.shadowMap.enabled = true;
       if (this.sun) {
         this.sun.castShadow = true;
-        this.sun.shadow.mapSize.set(2048, 2048);
+        this.sun.shadow.mapSize.set(1024, 1024);
       }
       if (this.fill) this.fill.visible = true;
       if (this.ambient) this.ambient.intensity = 1.05;

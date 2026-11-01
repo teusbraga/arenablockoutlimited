@@ -87,6 +87,7 @@ export class DecalSystem {
       const mesh = new THREE.Mesh(geometry, material);
       mesh.visible = false;
       mesh.matrixAutoUpdate = false;
+      mesh.frustumCulled = false;
       this.group.add(mesh);
 
       this.pool.push({
@@ -246,6 +247,7 @@ export class DecalSystem {
       // Entrada padrão
       mesh.scale.set(finalScale, finalScale, 1.0);
     }
+    mesh.updateMatrix();
 
     // 5. Ajustes de Material PBR e Amostragem de Cor (SurfaceEyedropper)
     mat.roughness = decalCfg.roughness ?? 0.85;

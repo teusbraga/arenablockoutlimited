@@ -19,6 +19,25 @@
 
 ### 🔹 Novembro de 2026
 
+#### [fix(render,mobile): Correção de Malhas Piscando (Frustum Culling), Otimização de GPU Vega/Mobile e Calibração de Tier] — 01/11/2026
+
+* **fix(render/culling): `src/view/models/TacticalManContinuous.js` & `src/fx/DecalSystem.js`** — Resolução de malhas piscando (flickering de visibilidade no PWA):
+  * `TacticalManContinuous.js`: Revertido o congelamento de matrizes locais (`matrixAutoUpdate = false`) nas subpeças anatômicas do soldado. Por se tratar de uma hierarquia esquelética contínua articulada por juntas dinâmicas, o congelamento local impedia a propagação correta das matrizes e esferas delimitadoras de mundo, fazendo o motor de Frustum Culling do Three.js ocultar/flickerar partes da malha aleatoriamente durante rotações de câmera.
+  * `DecalSystem.js`: Adicionada chamada síncrona obrigatória a `mesh.updateMatrix()` logo após `mesh.scale.set(...)` em `spawnDecal()`, e configurado `frustumCulled = false` no pool circular de decalques. Como os decalques utilizam `matrixAutoUpdate = false`, a ausência de `updateMatrix()` mantinha a matriz local na origem (0,0,0) ou na posição do disparo anterior, provocando piscamento visual conforme o jogador movia a visada.
+  * `ItalyProps.js`: Adicionada chamada a `g.updateMatrixWorld(true)` após congelar as matrizes em `freezeStaticProps()`, assegurando que todas as matrizes no espaço de mundo de adereços estáticos sejam pré-calculadas integralmente no boot.
+
+* **perf(mobile/tier): `src/ui/MenuController.js`** — Correção de inicialização do preset gráfico em dispositivos móveis:
+  * Corrigida a lógica de boot em `MenuController.js` (`savedPreset || detectedTier || 'medium'`). Anteriormente, aparelhos classificados como `low` eram forçados a iniciar no preset `medium` por falta de mapeamento explícito na expressão ternária.
+  * Dispositivos móveis de entrada agora iniciam legitimamente no preset `low` (sem sombras, texturas flat, DPR $\le 1.25$ e 1 luz), permitindo que aparelhos Android rodem sem afogamento de fill-rate de GPU.
+
+* **perf(gpu/shadows): `src/core/SceneSetup.js`** — Otimização da resolução de Shadow Map (Alívio de GPU integrada Vega e mobile):
+  * Calibrada a resolução padrão do mapa de sombras direcional do sol de 2048 para **1024** no desktop e **512** em dispositivos táteis/mobile.
+  * A redução de $2048 \times 2048$ para $1024 \times 1024$ reduz em 75% o número de texels de profundidade calculados no passe do `PCFShadowMap`, eliminando o estrangulamento de largura de banda de memória em GPUs integradas (como a Radeon Vega 7 do Ryzen 5 5600G) e atacando diretamente o *Presentation delay*.
+
+* **fix(engine/loop): `src/core/Engine.js`** — Correção de limitação de FPS (Eliminação da queda para 15 FPS e stutter no iOS):
+  * Substituído o flip-flop ingênuo `renderTick % 2 === 0` por controle temporal analítico com delta mínimo (`now - lastRender >= 0.0312`).
+  * Em telas onde o rAF já roda a 30 Hz (como Safari no iOS com Low Power Mode ou throttling térmico), a limitação antiga dividia 30 por 2 resultando em 15 FPS com 4 passos acumulados de física por frame. A nova verificação garante que a taxa nunca caia para 15 FPS e impede acúmulos excessivos no loop de física (`onFixed`).
+
 #### [perf(core,render,physics): Otimização Extrema de CPU, Limpeza de Stutter e Zero-DOM-Trash] — 01/11/2026
 
 * **perf(ui/dom): `src/ui/HUD.js` & `assets/css/main.css`** — Pool fixo de hitmarkers descentralizados (Zero-DOM-Trash & Zero-Forced-Reflow):
