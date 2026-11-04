@@ -702,20 +702,35 @@ export class MenuController {
     document.querySelectorAll('.lobby-modal-backdrop').forEach(bd => {
       bd.addEventListener('click', (e) => {
         e.stopPropagation();
-        this._closeAllModals();
+        const modal = bd.closest('.lobby-modal');
+        if (modal === this.modalPause) {
+          if (this.gameManager?.hasStarted) {
+            this.input?.requestLock?.();
+          }
+        } else if (modal === this.modalSettings && this.gameManager?.hasStarted) {
+          this._closeModal(this.modalSettings);
+          this._openModal(this.modalPause);
+        } else {
+          this._closeAllModals();
+        }
       });
     });
     document.querySelectorAll('.lobby-modal-close').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        this._closeAllModals();
+        const modal = btn.closest('.lobby-modal');
+        if (modal === this.modalSettings && this.gameManager?.hasStarted) {
+          this._closeModal(this.modalSettings);
+          this._openModal(this.modalPause);
+        } else {
+          this._closeAllModals();
+        }
       });
     });
 
     // Modal de Pausa In-Game
     this.btnResumePause?.addEventListener('click', async (e) => {
       e.stopPropagation();
-      this._closeAllModals();
       await this.input.requestLock();
     });
     this.btnSettingsPause?.addEventListener('click', (e) => {
@@ -728,10 +743,23 @@ export class MenuController {
       location.reload();
     });
 
-    // ESC fecha modais abertos no Lobby
+    // ESC fecha modais abertos no Lobby ou gerencia pausa na partida
     window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !this.gameManager?.hasStarted) {
-        this._closeAllModals();
+      if (e.key === 'Escape') {
+        if (!this.gameManager?.hasStarted) {
+          this._closeAllModals();
+        } else {
+          const isSettingsOpen = this.modalSettings?.classList.contains('open');
+          const isPauseOpen = this.modalPause?.classList.contains('open');
+          if (isSettingsOpen) {
+            e.preventDefault();
+            this._closeModal(this.modalSettings);
+            this._openModal(this.modalPause);
+          } else if (isPauseOpen) {
+            e.preventDefault();
+            this.input?.requestLock?.();
+          }
+        }
       }
     });
   }
@@ -742,7 +770,8 @@ export class MenuController {
     const loadoutPanel = this.modalMapLoadout?.querySelector('[data-mpanel="loadout"]');
     const isLoadoutActive = loadoutPanel?.classList.contains('active');
     const isLegacyTabActive = this.currentTab === 'loadout' && (!this.overlayElRef || !this.overlayElRef.classList.contains('hidden'));
-    this.weaponPreview.setActive(Boolean((isMapLoadoutOpen && isLoadoutActive) || isLegacyTabActive));
+    const isMatchActive = Boolean(this.gameManager?.hasStarted);
+    this.weaponPreview.setActive(Boolean(!isMatchActive && ((isMapLoadoutOpen && isLoadoutActive) || isLegacyTabActive)));
   }
 
   _bindTextureKeys() {
@@ -841,9 +870,11 @@ export class MenuController {
           this.gameManager.setBotCount(count);
           emit('lobby:started', {});
         }
+        this.overlayElRef?.classList.add('in-match');
         this._closeAllModals();
         this.overlayElRef?.classList.add('hidden');
       } else if (this.gameManager.hasStarted && !this.gameManager.roundOver && !this.inventoryOpen) {
+        this.overlayElRef?.classList.add('in-match');
         this.overlayElRef?.classList.remove('hidden');
         this._openModal(this.modalPause);
       }

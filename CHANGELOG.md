@@ -19,6 +19,19 @@
 
 ### 🔹 Novembro de 2026
 
+#### [fix(ui): Isolamento Estrito do Lobby In-Game e Correção de Vazamento do Menu Principal após Pausa] — 04/11/2026
+
+* **fix(ui): `assets/css/main.css`, `src/ui/MenuController.js` & `test/menu_mockup_integration_test.js`** — Eliminação do vazamento do Menu Principal (Lobby) durante e após a pausa de partidas:
+  * `assets/css/main.css`: Adicionada a classe `#overlay.in-match` com `display: none !important;` e `pointer-events: none !important;` para `.lobby-header`, `.lobby-bottom-left` e `.lobby-bottom-right`, além de neutralizar o fundo opaco e blur global do container quando em partida. Isso garante isolamento estrito da interface de Lobby, impedindo que o botão "▶ JOGAR", moedas, cards e cabeçalho apareçam na tela de pausa.
+  * `src/ui/MenuController.js`:
+    * Implementada aplicação automática de `.in-match` em `#overlay` ao iniciar a partida ou entrar em pausa ativa.
+    * Corrigido o fechamento indevido no clique de backdrop: clicar fora da caixinha de pausa agora tenta retomar a partida (`requestLock()`) em vez de fechar cegamente todos os modais e expor o lobby com a partida rodando ao fundo.
+    * Corrigido o fechamento de configurações em partida ativa: ao fechar o modal de configurações (via "✕" ou backdrop), o jogo agora retorna consistentemente para o menu de pausa (`modalPause`).
+    * Corrigido o fluxo do botão "RESUMIR": removida a chamada prematura a `_closeAllModals()`, aguardando a confirmação da captura do ponteiro para ocultar o overlay sem flashes ou travamentos por cooldown de `ESC`.
+    * Gerenciamento de teclado `Escape`: adicionado suporte para fechar configurações e retornar à pausa, ou retomar a partida caso a pausa esteja aberta.
+    * Otimização em `_syncPreviewActiveState()`: a vitrine 3D de armas (`WeaponPreview3D`) agora permanece obrigatoriamente desativada durante a partida, poupando ciclos de CPU e GPU na pausa.
+  * `test/menu_mockup_integration_test.js`: Adicionado teste automatizado validando a integridade das regras CSS de isolamento `#overlay.in-match` e o fluxo de modais no `MenuController`.
+
 #### [refactor(ui): Remoção de Efeitos Interativos em Botões Placeholders do Menu] — 04/11/2026
 
 * **refactor(ui): `assets/css/main.css`, `index.html` & `src/ui/MenuController.js`** — Desativação de efeitos de hover, active e clique nos cards não atrelados do lobby (Inventário, Loja e Passe):

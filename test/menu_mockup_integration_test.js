@@ -87,3 +87,20 @@ test('Viewmodel - setVisible controla visibilidade de braços 1ª pessoa', () =>
   vm.setVisible(true);
   assert.strictEqual(vm.swayGroup.visible, true, 'swayGroup deve ficar visível quando setVisible(true)');
 });
+
+test('MenuController & CSS - In-Match Pause & Lobby Isolation', () => {
+  const css = fs.readFileSync('assets/css/main.css', 'utf8');
+  assert.ok(css.includes('#overlay.in-match'), 'Deve possuir regra CSS #overlay.in-match');
+  assert.ok(
+    css.includes('#overlay.in-match .lobby-header') &&
+    css.includes('#overlay.in-match .lobby-bottom-left') &&
+    css.includes('#overlay.in-match .lobby-bottom-right'),
+    'Deve ocultar .lobby-header, .lobby-bottom-left e .lobby-bottom-right em #overlay.in-match'
+  );
+
+  const js = fs.readFileSync('src/ui/MenuController.js', 'utf8');
+  assert.ok(js.includes("this.overlayElRef?.classList.add('in-match')"), 'MenuController deve aplicar in-match no overlay');
+  assert.ok(js.includes('modal === this.modalPause'), 'MenuController deve tratar backdrop de pause distintamente de modais do lobby');
+  assert.ok(js.includes('modal === this.modalSettings && this.gameManager?.hasStarted'), 'Fechar settings em partida deve retornar para modalPause');
+});
+

@@ -630,6 +630,18 @@
     padding:calc(12px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) calc(16px + env(safe-area-inset-left, 0px));
     transition:opacity .25s ease, visibility .25s ease;}
   #overlay.hidden{opacity:0;visibility:hidden;pointer-events:none;}
+  #overlay.in-match{
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    cursor: default;
+  }
+  #overlay.in-match .lobby-header,
+  #overlay.in-match .lobby-bottom-left,
+  #overlay.in-match .lobby-bottom-right {
+    display: none !important;
+    pointer-events: none !important;
+  }
   #overlay .menu-content {
     display:flex; flex-direction:column; align-items:center; max-width:680px; width:min(94vw, 680px);
     max-height:94dvh;
