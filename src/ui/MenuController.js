@@ -696,17 +696,7 @@ export class MenuController {
       this._openModal(this.modalSettings);
     });
 
-    // Placeholders inferiores (Inventário, Loja, Passe)
-    [this.btnInventory, this.btnShop, this.btnPass].forEach(btn => {
-      btn?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        emit('hud:popup', {
-          text: 'RECURSO EM BREVE',
-          color: '#e8933a',
-          duration: 1600,
-        });
-      });
-    });
+    // Placeholders inferiores (Inventário, Loja, Passe) mantidos estáticos como mockup visual ("só a forma")
 
     // Fechar modais ao clicar no backdrop ou botão ✕
     document.querySelectorAll('.lobby-modal-backdrop').forEach(bd => {

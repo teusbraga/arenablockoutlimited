@@ -1,7 +1,7 @@
 # 📜 Log de Versões e Histórico de Desenvolvimento (CHANGELOG)
 **Projeto:** Arena Blockout (FPS Browser 3D Three.js)  
 **Repositório:** [teusbraga/arenablockoutlimited](https://github.com/teusbraga/arenablockoutlimited)  
-**Data da última atualização:** 01 de Novembro de 2026  
+**Data da última atualização:** 04 de Novembro de 2026  
 
 ---
 
@@ -18,6 +18,13 @@
 ## 🚀 Histórico Cronológico de Versões e Commits
 
 ### 🔹 Novembro de 2026
+
+#### [refactor(ui): Remoção de Efeitos Interativos em Botões Placeholders do Menu] — 04/11/2026
+
+* **refactor(ui): `assets/css/main.css`, `index.html` & `src/ui/MenuController.js`** — Desativação de efeitos de hover, active e clique nos cards não atrelados do lobby (Inventário, Loja e Passe):
+  * `assets/css/main.css`: Removidos os seletores de `:hover` (elevação `translateY(-3px)`, realce de borda e sombra) e `:active` (`scale(0.96)`) de `.lobby-action-card`. Aplicados `pointer-events: none;`, `cursor: default;` e `user-select: none;` para manter apenas o formato visual estático (mockup) das peças no HUD inferior esquerdo.
+  * `index.html`: Removidos os atributos `title` dos botões `#btn-inventory`, `#btn-shop` e `#btn-pass`, evitando tooltips de hover nativos do navegador. Adicionados `tabindex="-1"` e `aria-disabled="true"` para garantir que não capturem foco de teclado.
+  * `src/ui/MenuController.js`: Removidos os event listeners de clique associados aos 3 botões que disparavam popup de "RECURSO EM BREVE", mantendo-os puramente visuais como formas estáticas no layout.
 
 #### [fix(render,mobile): Correção de Malhas Piscando (Frustum Culling), Otimização de GPU Vega/Mobile e Calibração de Tier] — 01/11/2026
 
